@@ -47,14 +47,16 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado desde el core.
     r += uHigh * 0.01 * sin(t * 15.0 + ang * 8.0);
 
-    float freq = 2.0 + uDensity * 6.0;
+    // Aun mas simplificada: menos anillos todavia (2 a 5), mas gruesos, y
+    // menos fringing por defecto.
+    float freq = 1.2 + uDensity * 3.2;
     float travel = t * (0.15 + uSpeed * 0.5);
 
     // Kick: una onda expansiva extra, mas rapida, que se superpone.
     float kickWave = uKick * 6.0;
 
-    float aberr = 0.002 + uD1 * 0.020;
-    float ringW = 1.3 + uD2 * 2.8;
+    float aberr = 0.0015 + uD1 * 0.014;
+    float ringW = 1.8 + uD2 * 3.0;
 
     // Cada canal evalua el patron de anillos con un radio propio.
     float rR = r + aberr;

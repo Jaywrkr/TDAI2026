@@ -85,7 +85,9 @@ vec4 render(vec2 uv)
     // (asi el color de fondo no compite con el shift -- el shift se lee en
     // la estatica, el matiz da la paleta).
     float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.05);
-    vec3 base = hsv2rgb(vec3(hBase, 0.70, 1.0));
+    // Value bajado (era 1.0): la escena se veia demasiado clara/plana --
+    // ahora es oscura en reposo y Bass/Kick la hacen respirar mas claro.
+    vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.30));
     vec3 staticCol = base * (0.30 + 0.70 * vec3(nR, nG, nB));
 
     // Chaos tambien controla CUANTA estatica hay en total, no solo su
