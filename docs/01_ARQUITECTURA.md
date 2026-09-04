@@ -191,10 +191,29 @@ negro sin explicación.
 
 ---
 
-## Una regla al añadir módulos
+## Dos reglas al añadir módulos
 
-**Ningún submódulo puede llamarse igual que una función pública de
-`vjcore/__init__.py`.**
+### 1. Los globales de TouchDesigner hay que pedirlos
+
+TouchDesigner inyecta `op`, `run`, `absTime`, `project`, `parent` y todas las
+constantes de tipo (`baseCOMP`, `glslTOP`, `mathCHOP`…) en su propio namespace
+y en los DATs — pero **no** en módulos importados desde `sys.path`. Un módulo
+externo los ve como `NameError` en cuanto se ejecuta, aunque importe bien.
+
+Todo módulo de `vjcore/` que use alguno lleva arriba:
+
+```python
+try:
+    from td import *          # noqa: F401,F403
+except ImportError:
+    pass                       # fuera de TD, para las herramientas de tools/
+```
+
+`smoke_import.py` lo verifica con el AST: recorre cada módulo, saca los nombres
+libres que coinciden con globales de TD o con el patrón `*COMP/*TOP/*CHOP/*DAT`,
+y falla si el módulo no declara el import.
+
+### 2. Ningún submódulo puede llamarse como una función del paquete
 
 Python asigna el submódulo como atributo del paquete en cuanto se importa. Un
 `vjcore/build.py` pisa a la función `vjcore.build()` la primera vez que se

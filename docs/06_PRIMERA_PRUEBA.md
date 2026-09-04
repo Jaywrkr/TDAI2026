@@ -89,6 +89,7 @@ VERIFICACION DEL BUILD
 |---|---|---|
 | `ModuleNotFoundError: No module named 'vjcore'` | La ruta `REPO` está mal | Comprueba que `REPO` apunta a la carpeta `td/`, no a la raíz del repo |
 | `AttributeError: 'function' object has no attribute 'build'` | Versión antigua del repo | Actualiza: se corrigió renombrando `build.py` a `builder.py` |
+| `NameError: name 'op' is not defined` | Versión antigua del repo | Actualiza: faltaba `from td import *` en los módulos |
 | `[!!] ctrl tiene canales -> 0 canales` | Normal si el CHOP aún no cocinó | Corre el script otra vez; si persiste, mira los `AVISO` de más arriba |
 | `[!!] visuals/ encontrado` | El repo está incompleto | Faltan `td/visuals/*.frag` |
 | Líneas `AVISO set <op>.<par>` | Un nombre de parámetro cambió en tu build de TD | Anótalas y pásamelas: el build sigue, pero ese parámetro quedó sin poner |

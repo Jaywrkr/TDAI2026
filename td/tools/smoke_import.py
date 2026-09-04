@@ -13,6 +13,7 @@ importarlo, asi que vjcore/build.py pisaba a la funcion vjcore.build().
 
 import importlib
 import os
+import re
 import sys
 import types
 
@@ -21,6 +22,39 @@ TD = os.path.dirname(HERE)
 sys.path.insert(0, TD)
 
 FAILURES = []
+
+# Globales que TouchDesigner inyecta en su namespace y en los DATs, pero NO
+# en modulos importados desde sys.path.
+TD_NAMES = {'op', 'ops', 'run', 'absTime', 'project', 'parent', 'me',
+            'ui', 'monitors', 'app', 'iop', 'ipar', 'var'}
+TD_TYPE_RE = re.compile(r'^[a-z][A-Za-z0-9]*(COMP|TOP|CHOP|DAT|SOP|MAT)$')
+
+
+def td_globals_used(path):
+    """Nombres de globales de TD que el modulo lee y no define el mismo.
+
+    Usa el AST, asi que no cuenta apariciones en comentarios ni en strings.
+    """
+    import ast as _ast
+    with open(path, encoding='utf-8') as f:
+        tree = _ast.parse(f.read())
+
+    definidos = set()
+    leidos = set()
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.Name):
+            (definidos if isinstance(node.ctx, _ast.Store) else leidos).add(node.id)
+        elif isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef,
+                               _ast.ClassDef)):
+            definidos.add(node.name)
+        elif isinstance(node, (_ast.Import, _ast.ImportFrom)):
+            for a in node.names:
+                definidos.add((a.asname or a.name).split('.')[0])
+        elif isinstance(node, _ast.arg):
+            definidos.add(node.arg)
+
+    libres = leidos - definidos
+    return {n for n in libres if n in TD_NAMES or TD_TYPE_RE.match(n)}
 
 
 def check(label, cond, detail=''):
@@ -74,6 +108,18 @@ def main():
     c = vjcore._mod('control')
     check('modulo control tiene .resolve_channels()',
           callable(getattr(c, 'resolve_channels', None)))
+
+    # Todo modulo que use globales de TouchDesigner (op, run, absTime,
+    # baseCOMP, glslTOP...) tiene que traerlos con "from td import *".
+    # Sin eso el modulo importa bien y revienta al ejecutarse.
+    for name in vjcore._SUBMODULES + ['__init__']:
+        fn = os.path.join(TD, 'vjcore', name + '.py')
+        usados = td_globals_used(fn)
+        tiene = 'from td import' in open(fn, encoding='utf-8').read()
+        check('{}.py: globales TD declarados'.format(name),
+              tiene or not usados,
+              'usa {} sin "from td import *"'.format(sorted(usados)[:5])
+              if usados and not tiene else '')
 
     # Los DATs de runtime tambien deben ser Python valido.
     import ast

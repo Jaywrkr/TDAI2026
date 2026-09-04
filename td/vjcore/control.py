@@ -13,6 +13,17 @@ ctrl_tex es un CHOP to TOP de 1 x N pixeles en float32. Es lo que cada
 GLSL TOP recibe como input 0.
 """
 
+# TouchDesigner inyecta sus globales (op, run, absTime, project y las
+# constantes de tipo como baseCOMP o glslTOP) en su propio namespace y en los
+# DATs, pero NO en modulos importados desde sys.path. Hay que pedirlos.
+# El try existe para que las herramientas de td/tools/ puedan importar este
+# modulo fuera de TouchDesigner.
+try:
+    from td import *          # noqa: F401,F403
+except ImportError:
+    pass
+
+
 from . import config
 from .tdutil import safe_set, safe_set_first, safe_expr, connect, log, chan_names
 

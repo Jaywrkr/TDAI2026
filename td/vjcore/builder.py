@@ -1,5 +1,16 @@
 """Construccion del rig completo dentro de /project1."""
 
+# TouchDesigner inyecta sus globales (op, run, absTime, project y las
+# constantes de tipo como baseCOMP o glslTOP) en su propio namespace y en los
+# DATs, pero NO en modulos importados desde sys.path. Hay que pedirlos.
+# El try existe para que las herramientas de td/tools/ puedan importar este
+# modulo fuera de TouchDesigner.
+try:
+    from td import *          # noqa: F401,F403
+except ImportError:
+    pass
+
+
 import os
 
 from . import config, audio, control, midi, scenes, program, dashboard, shader
@@ -135,6 +146,15 @@ def onValuesChanged(changes):
 # ---------------------------------------------------------------
 
 def build(verbose=True):
+    try:
+        op
+    except NameError:
+        raise RuntimeError(
+            'Los globales de TouchDesigner (op, baseCOMP...) no estan '
+            'disponibles en este modulo. Falta "from td import *" arriba de '
+            'vjcore/builder.py, o estas ejecutando el build fuera de '
+            'TouchDesigner.')
+
     clear_log()
     root = op('/')
 

@@ -23,6 +23,17 @@ Estructura de cada escena:
         out1             Null TOP   <- lo que consume el program bus
 """
 
+# TouchDesigner inyecta sus globales (op, run, absTime, project y las
+# constantes de tipo como baseCOMP o glslTOP) en su propio namespace y en los
+# DATs, pero NO en modulos importados desde sys.path. Hay que pedirlos.
+# El try existe para que las herramientas de td/tools/ puedan importar este
+# modulo fuera de TouchDesigner.
+try:
+    from td import *          # noqa: F401,F403
+except ImportError:
+    pass
+
+
 from . import config, shader as shadermod
 from .tdutil import safe_set, safe_set_first, safe_expr, connect, log
 
