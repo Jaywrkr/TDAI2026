@@ -24,16 +24,26 @@
 //    regiones enteras. Sin ella la pantalla se llena por igual y se lee
 //    como textura, no como organismo.
 //
+// 5. CONTRATO DE AUDIO (Fase 2): el audio SOLO toca brillo y color, nunca
+//    geometria. La version anterior tenia uLevel en 'breathe' y en 'cover',
+//    y uBass en el ancho de linea (wT/wC) -- eso es lo que se veia como
+//    temblor: con un microfono de ambiente el nivel nunca esta quieto, y
+//    ahi estaba escalando la POSICION y el GROSOR de cada pixel cada frame.
+//    Ahora Bass solo sube el brillo (audioLift, al final, antes del
+//    tonemap) y High se deja tocar el warp pero a escala micro (+0.05 como
+//    mucho) porque esa es la unica excepcion del contrato -- ademas ya
+//    llega suavizado desde audio.py, asi que no reintroduce el temblor.
+//
 // CONTROLES
 //   Speed    velocidad global (uTime ya viene integrado: sin saltos de fase)
 //   Density  cuanta red se ve (abre la mascara de cobertura) + capilares
 //   Hue      paleta completa: sangre / cyan / violeta...
 //   Chaos    domain warp = que tan retorcidas van
-//   Bass     engrosa las venas
+//   Bass     brillo de lo que ya esta claro (audioLift) -- ya NO el grosor
 //   Kick     flash instantaneo
 //   Beat     empuja los pulsos de flujo
-//   High     brillo de los capilares
-//   Level    respiracion global + halo
+//   High     brillo de los capilares + vibracion micro de las intersecciones
+//   Level    halo (brillo), NO la respiracion -- esa es solo tiempo ahora
 // ===============================================================
 
 // Baja estas octavas si te faltan fps en una GPU modesta (ver docs/05).
@@ -63,29 +73,43 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    // Respiracion: el organismo late con el nivel general.
-    float breathe = 1.0 + 0.04 * sin(t * 0.50) + 0.10 * uLevel;
+    // Respiracion: SOLO tiempo. El audio nunca mueve geometria (ver
+    // contrato de audio en el header automatico) -- esto era antes
+    // "+ 0.10 * uLevel" y era la causa principal del temblor: con un
+    // microfono de ambiente el nivel nunca esta quieto, y aqui escalaba
+    // literalmente la posicion de cada pixel cada frame.
+    float breathe = 1.0 + 0.05 * sin(t * 0.50);
     p /= breathe;
     p += vec2(t * 0.018, t * 0.011);          // deriva lenta
 
     // ---------------- COBERTURA ----------------
     // Density abre o cierra el organismo. Esto es lo que da composicion.
+    // Antes tambien tenia "+ uLevel * 0.10": regiones enteras aparecian y
+    // desaparecian con el nivel de audio. Misma causa que 'breathe'.
     float cv = fbm(p * 0.42 + vec2(3.1, t * 0.03), 3);
     float cover = smoothstep(0.52 - uDensity * 0.30,
                              0.80 - uDensity * 0.22,
-                             cv + uLevel * 0.10);
+                             cv);
 
     // ---------------- TRONCOS ----------------
-    vec2  wa = warp(p, t, 0.25 + uChaos * 0.80);
+    // uHigh (agudos) SI se deja tocar el warp, a proposito: es la unica
+    // excepcion del contrato de audio, y a esta escala (+0.05 como mucho,
+    // sobre una base de 0.25-1.05) es una vibracion de las intersecciones,
+    // no una reestructuracion. Ademas uHigh ya llega suavizado (ver
+    // audio.py Fase 2), asi que no reintroduce temblor.
+    vec2  wa = warp(p, t, 0.25 + uChaos * 0.80 + uHigh * 0.05);
     float na = fbm(wa * 0.85, OCT_TRUNK, 0.50);
-    float wT = 1.3 + uBass * 3.0 + (1.0 - uDensity) * 1.0;
+    // El ancho de linea es geometria: ya NO depende de uBass (era la otra
+    // causa grande del temblor -- las venas engordaban y adelgazaban con
+    // cada golpe de graves). Bass ahora solo sube el brillo, mas abajo.
+    float wT = 1.3 + (1.0 - uDensity) * 1.0;
     float trunk  = vein(na, wT);
     float tGlow  = vein(na, wT * 7.0);        // halo ancho, gratis
 
     // ---------------- CAPILARES ----------------
-    vec2  wb = warp(p * 2.6 + 7.1, t * 1.30, 0.15 + uChaos * 0.45);
+    vec2  wb = warp(p * 2.6 + 7.1, t * 1.30, 0.15 + uChaos * 0.45 + uHigh * 0.04);
     float nb = fbm(wb * 2.2, OCT_CAP, 0.55);
-    float wC = 0.8 + uBass * 1.4;
+    float wC = 0.8 + (1.0 - uDensity) * 0.5;
     float hug = smoothstep(0.05, 0.45, tGlow);   // solo cerca de un tronco
     float cap   = vein(nb, wC) * hug * (0.35 + uDensity * 0.90);
     float cGlow = vein(nb, wC * 6.0) * hug;
@@ -115,6 +139,11 @@ vec4 render(vec2 uv)
              + cCore * pow(core, 3.0) * 2.20
              + cBody * halo * 0.75
              + cCore * cap * uHigh * 0.35;
+
+    // Bajos = brillo de lo que ya esta claro. Nunca geometria (ver arriba),
+    // y col*(1+x) no puede encender un pixel que ya era negro -- lo oscuro
+    // se queda oscuro por construccion.
+    col = audioLift(col, uBass * 0.8);
 
     // Tonemap: evita que los nucleos se claven en blanco plano.
     col = col / (1.0 + col);

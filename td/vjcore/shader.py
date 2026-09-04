@@ -94,6 +94,31 @@ float vignette(vec2 uv, float amt) {{
     vec2 d = (uv - 0.5) * 2.0;
     return mix(1.0, clamp(1.0 - dot(d, d) * 0.55, 0.0, 1.0), amt);
 }}
+
+// ---------------- contrato de audio ----------------
+// El audio SOLO toca brillo y color. Nunca geometria (posicion, ancho de
+// linea, umbral de cobertura, radio, cantidad de elementos...). La unica
+// excepcion son los agudos, y solo para una vibracion de un par de pixeles
+// como mucho -- nunca reestructuran la escena.
+//
+// Motivo: mover geometria con audio en vivo se ve como temblor, no como
+// reaccion. Con un microfono de ambiente el nivel nunca esta quieto, y
+// cualquier cosa que dependa de el para su FORMA parpadea sin parar.
+
+// Sube el brillo SOLO donde ya hay algo brillante. col * (1+x) sigue siendo
+// 0 si col era 0 -- el negro se queda negro por construccion, no por ajuste
+// fino. Pesa por la luminancia existente para que un halo tenue no se
+// encienda igual que el nucleo. Uso tipico: col = audioLift(col, uBass*0.8);
+vec3 audioLift(vec3 col, float amount) {{
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    return col * (1.0 + amount * lum);
+}}
+
+// Rota un matiz (0..1) por 'amount'. Uso: calcula el matiz como float ANTES
+// de convertir a RGB, aplica audioHue ahi, y recien entonces hsv2rgb --
+// muchisimo mas barato que convertir RGB a HSV y volver. Uso tipico:
+// float h = audioHue(uHue, uMid * 0.05);
+float audioHue(float hue, float amount) {{ return fract(hue + amount); }}
 // ============== FIN HEADER - tu codigo empieza abajo ==============
 
 """

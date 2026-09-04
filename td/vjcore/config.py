@@ -85,10 +85,17 @@ DEFAULT_MIDI = {
     'Blackout':   'ch1ctrl28',
     'Snapshot':   'ch1ctrl27',
     'Reset':      'ch1ctrl26',
+    # Sin default: no tengo confirmados los CC de estos 4 knobs todavia.
+    # Se mapean con Learn (Learn Audioamount, etc.) la primera vez.
+    'Audioamount': '',
+    'Bassamount': '',
+    'Midamount': '',
+    'Highamount': '',
 }
 
 # Orden en que aparecen en la pagina MIDI Mapping.
 MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
+              'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
               'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
 
 # Slots continuos (knobs) vs slots de disparo (pads).
@@ -99,6 +106,10 @@ MIDI_CONTINUOUS = {
     'Chaos': 'Chaos',
     'Brightness': 'Brightness',
     'Transition': 'Transitionseconds',
+    'Audioamount': 'Audioamount',
+    'Bassamount': 'Bassamount',
+    'Midamount': 'Midamount',
+    'Highamount': 'Highamount',
 }
 MIDI_TRIGGERS = ['Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
 

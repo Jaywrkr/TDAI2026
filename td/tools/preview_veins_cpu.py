@@ -55,20 +55,20 @@ def render(W,H,t=8.,density=.5,hue=.0,chaos=.35,level=.35,bass=.4,
     t=F(t); ys,xs=np.mgrid[0:H,0:W]
     uvx=F((xs+.5)/W); uvy=F(1-(ys+.5)/H); asp=F(W/H)
     px=(uvx-F(.5))*asp*2; py=(uvy-F(.5))*2
-    br=1+F(.04)*np.sin(t*F(.5))+F(.10)*level; px/=br; py/=br
+    br=1+F(.05)*np.sin(t*F(.5)); px/=br; py/=br  # Fase 2: solo tiempo, no level
     px=px+t*F(.018); py=py+t*F(.011)
 
     cover=fbm(px*F(.42)+F(3.1),py*F(.42)+t*F(.03),3)
-    cover=ss(F(.52)-F(density)*F(.30),F(.80)-F(density)*F(.22),cover+F(level)*F(.10))
+    cover=ss(F(.52)-F(density)*F(.30),F(.80)-F(density)*F(.22),cover)  # Fase 2: sin level
 
     wax,way=warp(px,py,t,F(.25)+F(chaos)*F(.80))
     na=fbm(wax*F(.85),way*F(.85),4,F(.50))
-    wT=F(1.3)+F(bass)*F(3.0)+(1-F(density))*F(1.0)
+    wT=F(1.3)+(1-F(density))*F(1.0)  # Fase 2: sin bass (era geometria)
     trunk=vein(na,wT); tGlow=vein(na,wT*F(7.))
 
     wbx,wby=warp(px*F(2.6)+F(7.1),py*F(2.6)+F(7.1),t*F(1.3),F(.15)+F(chaos)*F(.45))
     nb=fbm(wbx*F(2.2),wby*F(2.2),3,F(.55))
-    wC=F(.8)+F(bass)*F(1.4)
+    wC=F(.8)+(1-F(density))*F(.5)  # Fase 2: sin bass
     cap=vein(nb,wC)*ss(F(.05),F(.45),tGlow)*(F(.35)+F(density)*F(.9))
     cGlow=vein(nb,wC*F(6.))*ss(F(.05),F(.45),tGlow)
 
@@ -89,6 +89,9 @@ def render(W,H,t=8.,density=.5,hue=.0,chaos=.35,level=.35,bass=.4,
     for d_,b_,c_ in zip(dC,bC,cC):
         col.append(d_*(F(.14)+F(1.00)*halo)+b_*core*F(1.25)
                    +c_*(core**F(3.))*F(2.2)+b_*halo*F(.75)+c_*cap*F(high)*F(.35))
+    # audioLift: bajos suben el brillo de lo que ya esta claro, nunca la geometria.
+    lum = F(0.299)*col[0]+F(0.587)*col[1]+F(0.114)*col[2]
+    col = [c*(1+F(bass)*F(0.8)*lum) for c in col]
     col=[c/(1+c) for c in col]
     d2=((uvx-F(.5))*2)**2+((uvy-F(.5))*2)**2
     vig=1+(np.clip(1-d2*F(.55),0,1)-1)*F(.55)
