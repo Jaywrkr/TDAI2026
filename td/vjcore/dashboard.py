@@ -121,7 +121,12 @@ def build_status_panel(dash, x, y, w, h):
     safe_set_first(render, ['alignx', 'justifyx', 'textalignx'], 'left')
     safe_set_first(render, ['aligny', 'justifyy', 'textaligny'], 'top')
     safe_set_first(render, ['fontsizex', 'fontsize'], 14)
-    safe_set_first(render, ['font', 'fontname'], 'Consolas')
+    # 'Consolas' es de Windows y no existe en macOS: TD la sustituye por
+    # Helvetica en cada cook y lo registra como warning en system_errors,
+    # que tiene un limite de 60 lineas -- eso puede tapar un error real.
+    # 'Courier New' es monoespaciada y viene instalada de fabrica en
+    # Windows, macOS y la mayoria de Linux.
+    safe_set_first(render, ['font', 'fontname'], 'Courier New')
     for p, v in (('fontcolorr', 0.90), ('fontcolorg', 0.94), ('fontcolorb', 0.90)):
         safe_set(render, p, v)
     for p, v in (('bgcolorr', 0.06), ('bgcolorg', 0.06), ('bgcolorb', 0.07)):
