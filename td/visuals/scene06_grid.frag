@@ -39,8 +39,8 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
 
     // Rotacion lenta + deriva.
-    p = rot2(t * 0.05) * p;
-    p += vec2(t * 0.03, t * 0.02);
+    p = rot2(t * (0.02 + uSpeed * 0.06)) * p;
+    p += vec2(t * (0.01 + uSpeed * 0.04), t * (0.008 + uSpeed * 0.025));
 
     // Domain warp: sin esto la rejilla se ve rigida, con esto se curva
     // organicamente sin dejar de leerse como rejilla.
