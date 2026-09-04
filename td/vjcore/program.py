@@ -100,6 +100,16 @@ def build(proj, scene_outs):
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
         safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")
 
+    # Ventana de salida al proyector. Se crea pero NO se abre sola: abrirla
+    # es una accion de show, no de build.
+    win = proj.create(windowCOMP, 'show_window')
+    win.nodeX, win.nodeY = 1560, -160
+    safe_set_first(win, ['op', 'operator', 'winop'], show.path)
+    safe_set(win, 'borders', False)
+    safe_set_first(win, ['opensize', 'size'], 'fill')
+    safe_set(win, 'monitor', 1)
+    safe_set(win, 'cursorvisible', False)
+
     log('PROGRAM: bus A/B + crossfade nativo + master fade OK')
-    return {'a': sw_a, 'b': sw_b, 'cross': cross,
-            'clean': clean, 'master': master, 'show': show}
+    return {'a': sw_a, 'b': sw_b, 'cross': cross, 'clean': clean,
+            'master': master, 'show': show, 'window': win}

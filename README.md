@@ -17,6 +17,9 @@ Una reescritura del build script original con tres cambios de fondo:
 
 ## Arranque rápido
 
+> Guía completa con checkpoints y diagnóstico:
+> **[docs/06_PRIMERA_PRUEBA.md](docs/06_PRIMERA_PRUEBA.md)**
+
 1. Clona el repo.
 2. En TouchDesigner: nuevo **Text DAT**, pega el contenido de [`td/RUN_ME.py`](td/RUN_ME.py), ajusta `REPO`, **Run Script**.
 3. Lee el reporte de verificación en la Textport.
@@ -30,6 +33,7 @@ Una reescritura del build script original con tres cambios de fondo:
 
 | Doc | Para qué |
 |---|---|
+| [06 — **Primera prueba, paso a paso**](docs/06_PRIMERA_PRUEBA.md) | **Empieza por aquí**: 12 fases con checkpoints |
 | [00 — Análisis del script original](docs/00_ANALISIS.md) | Qué estaba mal y por qué |
 | [01 — Arquitectura](docs/01_ARQUITECTURA.md) | Cómo está armado el rig |
 | [02 — MIDI MiniLab MkII](docs/02_MIDI_MINILAB_MKII.md) | Mapeo, MIDI Learn, CCs de fábrica |

@@ -30,7 +30,13 @@ vec4 TDOutputSwizzle(vec4 c) { return c; }
 """
 
 
-def build_source(index, force_template=False):
+# Escenario degradado: TD arrancado SIN device de audio seleccionado.
+# Un visual debe compilar igual (uBass y compania caen a 0.0).
+CHANNELS_NO_AUDIO = ['speed', 'density', 'hue', 'chaos', 'bright',
+                     'time', 'rtime', 'resw', 'resh']
+
+
+def build_source(index, force_template=False, channels=None):
     if force_template:
         path = shader.template_path()
         with open(path, 'r', encoding='utf-8') as f:
@@ -38,14 +44,14 @@ def build_source(index, force_template=False):
     else:
         body, path = shader.read_body(index)
     src = (TD_PROLOGUE
-           + shader.make_header(index, config.CTRL_CHANNELS)
+           + shader.make_header(index, channels or config.CTRL_CHANNELS)
            + body
            + shader._FOOTER)
     return src, path
 
 
-def validate(index, force_template=False):
-    src, path = build_source(index, force_template)
+def validate(index, force_template=False, channels=None):
+    src, path = build_source(index, force_template, channels)
     with tempfile.NamedTemporaryFile('w', suffix='.frag', delete=False) as f:
         f.write(src)
         tmp = f.name
@@ -78,16 +84,29 @@ def main():
         if shader.find_visual(i):
             targets.append(('scene{:02d}'.format(i), i, False))
 
+    escenarios = [
+        ('completo', None),
+        ('sin audio', CHANNELS_NO_AUDIO),
+    ]
+
     failures = 0
     for label, i, forced in targets:
-        ok, path, out, src = validate(i, forced)
-        print('[{}] {:<12} {}'.format('OK' if ok else 'FAIL', label,
-                                      os.path.basename(path)))
-        if not ok:
-            failures += 1
-            print(annotate(out, src))
+        estados = []
+        for nombre, chans in escenarios:
+            ok, path, out, src = validate(i, forced, chans)
+            estados.append((nombre, ok))
+            if not ok:
+                failures += 1
+                print('[FAIL] {:<12} {}  ({})'.format(
+                    label, os.path.basename(path), nombre))
+                print(annotate(out, src))
+        if all(ok for _, ok in estados):
+            print('[OK]   {:<12} {:<24} {}'.format(
+                label, os.path.basename(path),
+                ' '.join(n for n, _ in estados)))
     print('')
-    print('{} shader(s) revisados, {} con error'.format(len(targets), failures))
+    print('{} shader(s) x {} escenarios, {} con error'.format(
+        len(targets), len(escenarios), failures))
     return 1 if failures else 0
 
 

@@ -268,6 +268,7 @@ def verify(proj, channels):
     check('ctrl_tex existe', bool(proj.op('ctrl_tex')))
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))
+    check('show_window existe', bool(proj.op('show_window')))
     check('Repopath configurado', bool(proj.par.Repopath.eval()),
           proj.par.Repopath.eval())
     check('visuals/ encontrado', os.path.isdir(shader.visuals_dir()),
@@ -281,6 +282,9 @@ def verify(proj, channels):
     out.append('   2. /project1/midi1   -> elegir "Arturia MiniLab mkII"')
     out.append('   3. /project1 > MIDI Mapping > Learn <slot> y mover el knob')
     out.append('   4. /project1 > System > desmarcar Safe Start Blackout')
-    out.append('   5. Abrir /project1/dashboard_ui en modo Perform')
+    out.append('   5. Abrir /project1/dashboard_ui (flag Viewer Active)')
+    out.append('   6. Proyector: /project1/show_window > Monitor > pulso Open')
+    out.append('')
+    out.append('  GUIA COMPLETA: docs/06_PRIMERA_PRUEBA.md')
     out.append('=' * 58)
     return out

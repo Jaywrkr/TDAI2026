@@ -16,6 +16,8 @@ practicamente cero.
 
 import os
 
+from . import config
+
 VISUALS_DIRNAME = 'visuals'
 TEMPLATE_NAME = '_TEMPLATE.frag'
 
@@ -122,11 +124,42 @@ def uniform_name(chan):
     return 'u' + NAME_MAP.get(chan, chan[0].upper() + chan[1:])
 
 
+# Valor que toma un uniform cuyo canal NO existe en /project1/ctrl.
+# Sin esto, arrancar sin device de audio dejaria uBass sin declarar y TODOS
+# los shaders que lo usan fallarian al compilar. Un visual debe seguir
+# funcionando aunque falte el audio o el MIDI.
+FALLBACK = {
+    'resw': '1280.0',
+    'resh': '720.0',
+}
+FALLBACK_DEFAULT = '0.0'
+
+
 def _defines(channels):
-    """#define uSpeed _ctrl(0) ... generado desde el orden REAL del CHOP."""
+    """Genera los #define desde el orden REAL de canales de /project1/ctrl.
+
+    - Canal presente  -> apunta a su indice real en la textura.
+    - Canal ausente   -> constante de fallback, para que el shader compile.
+    - Canal extra     -> tambien se expone, por si añades canales propios.
+    """
+    index = {name: i for i, name in enumerate(channels)}
     lines = []
-    for i, name in enumerate(channels):
-        lines.append('#define {:<10} _ctrl({})'.format(uniform_name(name), i))
+    missing = []
+
+    names = list(config.CTRL_CHANNELS)
+    names += [c for c in channels if c not in names]
+
+    for name in names:
+        uni = uniform_name(name)
+        if name in index:
+            lines.append('#define {:<10} _ctrl({})'.format(uni, index[name]))
+        else:
+            lines.append('#define {:<10} {}   // AUSENTE en /project1/ctrl'.format(
+                uni, FALLBACK.get(name, FALLBACK_DEFAULT)))
+            missing.append(name)
+
+    if missing:
+        lines.append('// Canales ausentes: {}'.format(', '.join(missing)))
     return '\n'.join(lines)
 
 

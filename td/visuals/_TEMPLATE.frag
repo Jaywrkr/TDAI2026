@@ -40,8 +40,11 @@ vec4 render(vec2 uv)
     // Reaccion al audio.
     float energy = 0.25 + uLevel * 0.5 + uKick * 0.6;
 
-    // Color desde el knob Hue.
-    vec3 col = hsv2rgb(vec3(fract(uHue + n * 0.25), 0.75, n * energy));
+    // Cada escena sin visual propio sale de un color distinto. Asi, mientras
+    // pruebas, VES que el cambio de escena ocurrio de verdad.
+    float h = fract(uHue + float(uScene) * 0.137);
+
+    vec3 col = hsv2rgb(vec3(fract(h + n * 0.25), 0.75, n * energy));
 
     col *= vignette(uv, 0.6);
     return vec4(col, 1.0);
