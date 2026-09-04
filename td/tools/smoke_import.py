@@ -121,6 +121,18 @@ def main():
               'usa {} sin "from td import *"'.format(sorted(usados)[:5])
               if usados and not tiene else '')
 
+    # El bucle de refresco del diagnostico (tickDiag) tiene que arrancar
+    # desde builder.py, no solo desde runtime_manager.onStart(). onStart de
+    # un Execute DAT dispara una vez por SESION de TD, no cada vez que un
+    # script recrea /project1 con TD ya corriendo -- que es el caso normal
+    # de "Run Script". Si el unico disparador es onStart, el panel de
+    # estado se queda congelado en el primer valor para siempre.
+    builder_src = open(os.path.join(TD, 'vjcore', 'builder.py'),
+                       encoding='utf-8').read()
+    check('builder.py arranca tickDiag() explicitamente',
+          "runtime_manager').module.tickDiag()" in builder_src
+          or 'module.tickDiag()' in builder_src)
+
     # Los DATs de runtime tambien deben ser Python valido.
     import ast
     dat_dir = os.path.join(TD, 'vjcore', 'dats')

@@ -3,6 +3,13 @@
 onFrameStart NO esta activo. El script original corria Python en cada
 frame solo para hacer un modulo; a 60 fps son 60 llamadas por segundo de
 puro overhead. En su lugar, diagnostics se auto-reagenda con run().
+
+El bucle de refresco (tickDiag -> run(delayFrames=N) -> tickDiag) lo arranca
+builder.py al final del build, NO onStart() de aqui abajo. onStart() de un
+Execute DAT dispara una sola vez por SESION de TouchDesigner (al abrir o dar
+play al proyecto), no cada vez que un script recrea /project1 mientras TD ya
+esta corriendo. Se deja igual como red de seguridad: si algun dia guardas el
+.toe y lo vuelves a abrir sin correr RUN_ME, esto reinicia el bucle solo.
 """
 
 

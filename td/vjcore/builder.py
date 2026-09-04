@@ -220,7 +220,18 @@ def build(verbose=True):
     contract.nodeX, contract.nodeY = 1560, 700
     contract.text = _contract_text(channels)
 
+    # 'delayFrames' arranca aqui, NO desde runtime_manager.onStart(). onStart
+    # de un Execute DAT dispara una sola vez por SESION de TouchDesigner (al
+    # abrir/arrancar el proyecto), no cada vez que este script recrea
+    # /project1 mientras TD ya esta corriendo -- que es exactamente lo que
+    # pasa al usar "Run Script" repetidas veces. El runtime_manager recien
+    # creado nunca recibia ese evento, asi que el bucle que reprograma el
+    # refresco del diagnostico (tickDiag -> run(delayFrames=N) -> tickDiag)
+    # jamas arrancaba: el panel de estado quedaba con el primer valor para
+    # siempre, aunque MIDI y audio si funcionaran (esos son 100% por evento,
+    # no dependen de este bucle).
     run("op('/project1/control_script').module.safeStartup()", delayFrames=3)
+    run("op('/project1/runtime_manager').module.tickDiag()", delayFrames=5)
 
     report = verify(proj, channels)
     if verbose:
