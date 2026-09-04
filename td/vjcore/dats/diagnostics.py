@@ -35,7 +35,7 @@ def _gpu_ms():
 
 def update():
     p = _p()
-    status = op('/project1/dashboard_ui/system_status')
+    status = op('/project1/dashboard_ui/system_status_src')
     if not p or not status:
         return
 
@@ -92,7 +92,7 @@ def update():
         lines.append('')
         lines.append('>> MIDI LEARN ARMADO: {}'.format(learn))
 
-    status.par.text = '\n'.join(lines)
+    status.text = '\n'.join(lines)
     try:
         p.par.Systemready = (overall == 'OK')
     except Exception:

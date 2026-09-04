@@ -22,7 +22,7 @@ except ImportError:
 
 
 from . import config
-from .tdutil import safe_set, safe_set_first, log
+from .tdutil import safe_set, safe_set_first, safe_expr, log
 
 BORDER = 3
 
@@ -87,28 +87,61 @@ def build(proj, thumbs, program_clean):
     safe_set(mon, 'topfill', 'fillaspect')
     safe_set(mon, 'enable', False)
 
-    status = dash.create(textCOMP, 'system_status')
-    safe_set(status, 'x', px)
-    safe_set(status, 'y', c.DASH_MARGIN)
-    safe_set(status, 'w', c.PROGRAM_W)
-    safe_set(status, 'h', max(120, py - c.DASH_MARGIN - 12))
-    safe_set(status, 'enable', False)
-    safe_set(status, 'text', 'SYSTEM INITIALIZING...')
-    safe_set(status, 'textalignx', 'left')
-    safe_set(status, 'textaligny', 'top')
-    safe_set(status, 'fontsizex', 14)
-    safe_set(status, 'font', 'Consolas')
-    # CRITICO: sin esto el word wrap del Text COMP trata los '\n' que genera
-    # diagnostics.py como si no existieran y aplasta las 11 lineas en un solo
-    # parrafo corrido, sin espacio entre lo que eran lineas distintas. La
-    # caja ya tiene ancho de sobra para texto monoespaciado a 14px, asi que
-    # desactivar el wrap no corta nada.
-    safe_set_first(status, ['wordwrap', 'wrapwords', 'wrap'], False)
-    for p, v in (('bgcolorr', 0.06), ('bgcolorg', 0.06), ('bgcolorb', 0.07)):
-        safe_set(status, p, v)
+    status_h = max(120, py - c.DASH_MARGIN - 12)
+    build_status_panel(dash, px, c.DASH_MARGIN, c.PROGRAM_W, status_h)
 
     log('DASHBOARD: {} tiles + monitor + status'.format(len(thumbs)))
     return dash
+
+
+def build_status_panel(dash, x, y, w, h):
+    """Panel de diagnostico como TOP, no como Text COMP.
+
+    El parametro 'text' de un Text COMP tuvo un problema real: los saltos de
+    linea que genera diagnostics.py llegaban aplastados en un solo parrafo
+    corrido, sin espacio entre lo que eran lineas distintas. Cambiar el
+    parametro de word wrap no lo arreglo -- la causa no era esa.
+
+    En vez de seguir adivinando el nombre de parametro correcto en un Text
+    COMP (que varia de semantica entre builds de TD), se usa el mismo
+    mecanismo que YA funciona en este dashboard: los thumbnails de escena
+    son TOPs mostrados dentro de un container via 'top' = path. Un Text DAT
+    SIEMPRE preserva saltos de linea tal cual -- es como ya funcionan
+    control_script y diagnostics -- y un Text TOP renderiza ese contenido
+    como imagen respetando cada linea. Cero ambiguedad.
+    """
+    src = dash.create(textDAT, 'system_status_src')
+    src.nodeX, src.nodeY = -200, -200
+    src.text = 'SYSTEM INITIALIZING...'
+
+    render = dash.create(textTOP, 'system_status_render')
+    render.nodeX, render.nodeY = -200, -350
+    safe_expr(render, 'text', "op('{}').text".format(src.path))
+    safe_set_first(render, ['wordwrap', 'wrapwords'], False)
+    safe_set_first(render, ['alignx', 'justifyx', 'textalignx'], 'left')
+    safe_set_first(render, ['aligny', 'justifyy', 'textaligny'], 'top')
+    safe_set_first(render, ['fontsizex', 'fontsize'], 14)
+    safe_set_first(render, ['font', 'fontname'], 'Consolas')
+    for p, v in (('fontcolorr', 0.90), ('fontcolorg', 0.94), ('fontcolorb', 0.90)):
+        safe_set(render, p, v)
+    for p, v in (('bgcolorr', 0.06), ('bgcolorg', 0.06), ('bgcolorb', 0.07)):
+        safe_set(render, p, v)
+    safe_set(render, 'outputresolution', 'custom')
+    safe_set(render, 'resolutionw', int(w))
+    safe_set(render, 'resolutionh', int(h))
+
+    panel = dash.create(containerCOMP, 'system_status')
+    safe_set(panel, 'x', x)
+    safe_set(panel, 'y', y)
+    safe_set(panel, 'w', w)
+    safe_set(panel, 'h', h)
+    safe_set(panel, 'top', render.path)
+    # 'fillaspect' es el mismo modo ya probado en los thumbnails y el
+    # monitor de program; el Text TOP se renderiza a la resolucion exacta
+    # del panel, asi que no hay reescalado real.
+    safe_set(panel, 'topfill', 'fillaspect')
+    safe_set(panel, 'enable', False)
+    return src, render, panel
 
 
 def _click_text():
