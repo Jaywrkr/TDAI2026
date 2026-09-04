@@ -22,7 +22,7 @@ except ImportError:
 
 
 from . import config
-from .tdutil import safe_set, log
+from .tdutil import safe_set, safe_set_first, log
 
 BORDER = 3
 
@@ -98,6 +98,12 @@ def build(proj, thumbs, program_clean):
     safe_set(status, 'textaligny', 'top')
     safe_set(status, 'fontsizex', 14)
     safe_set(status, 'font', 'Consolas')
+    # CRITICO: sin esto el word wrap del Text COMP trata los '\n' que genera
+    # diagnostics.py como si no existieran y aplasta las 11 lineas en un solo
+    # parrafo corrido, sin espacio entre lo que eran lineas distintas. La
+    # caja ya tiene ancho de sobra para texto monoespaciado a 14px, asi que
+    # desactivar el wrap no corta nada.
+    safe_set_first(status, ['wordwrap', 'wrapwords', 'wrap'], False)
     for p, v in (('bgcolorr', 0.06), ('bgcolorg', 0.06), ('bgcolorb', 0.07)):
         safe_set(status, p, v)
 
