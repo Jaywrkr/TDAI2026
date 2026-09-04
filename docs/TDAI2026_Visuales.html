@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TDAI2026 - Guía de Visuales</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 { font-size: 3em; margin-bottom: 10px; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .visual-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+            padding: 25px;
+            border-left: 4px solid #667eea;
+        }
+
+        .visual-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .visual-number {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+
+        .description {
+            background: #f0f4ff;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-style: italic;
+            color: #555;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 15px;
+            margin-bottom: 10px;
+        }
+
+        .controls-list { list-style: none; padding-left: 0; }
+        .controls-list li { padding: 5px 0; font-size: 0.95em; color: #555; }
+
+        .footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 30px;
+            margin-top: 60px;
+            border-top: 3px solid #667eea;
+        }
+
+        @media print {
+            body { background: white; }
+            .visual-card { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎨 TDAI2026</h1>
+        <p>Guía Completa de Visuales • 20 Escenas Interactivas</p>
+    </div>
+
+    <div class="container">
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 00</span>
+            <div class="visual-title">VEINS</div>
+            <div class="description">Red vascular luminosa con pulsos de flujo, reactiva a audio.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad global (uTime ya viene integrado: sin saltos de fase)</li><li>Density  cuanta red se ve (abre la mascara de cobertura) + capilares</li><li>Hue      paleta completa: sangre / cyan / violeta...</li><li>Chaos    domain warp = que tan retorcidas van</li><li>Bass     brillo de lo que ya esta claro (audioLift) -- ya NO el grosor</li><li>Kick     flash instantaneo</li><li>Beat     empuja los pulsos de flujo</li><li>High     brillo de los capilares + vibracion micro de las intersecciones</li><li>Level    halo (brillo), NO la respiracion -- esa es solo tiempo ahora</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 01</span>
+            <div class="visual-title">NEURAL</div>
+            <div class="description">Red de segmentos rectos con nodos brillantes, la hermana geometrica</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de los pulsos que recorren la red</li><li>Density  cuantas celdas hay (mas celdas = red mas fina)</li><li>Hue      paleta</li><li>Chaos    cuanto se alejan los sitios del centro de su celda -- mas</li><li>Chaos = red mas irregular, menos = mas ordenada/rejilla</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve en los nodos</li><li>High     vibracion micro de los sitios (excepcion del contrato)</li><li>@D1: grosor de los segmentos</li><li>@D2: tamano de los nodos</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 02</span>
+            <div class="visual-title">INK</div>
+            <div class="description">Tinta difundiendose en agua. Bordes suaves a proposito -- es la</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de la deriva</li><li>Density  frecuencia del campo base (mas Density = mas zarcillos,</li><li>mas finos)</li><li>Hue      color de la tinta</li><li>Chaos    intensidad del domain warp encadenado -- cuanto se pliega</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro del segundo warp (excepcion del contrato)</li><li>@D1: ancho del borde difuso (nitido <-> muy difuminado)</li><li>@D2: cuanto se separa el segundo warp del primero (mas capas de pliegue)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 03</span>
+            <div class="visual-title">METABALL</div>
+            <div class="description">3 a 7 gotas grandes que se funden y separan. Contorno fino sobre</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de traslacion de las gotas</li><li>Density  cuantas gotas hay (3 a 7)</li><li>Hue      color del contorno</li><li>Chaos    cuanto se desvian las gotas de su orbita (mas caotico el</li><li>movimiento)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro de la posicion (excepcion del contrato)</li><li>@D1: grosor del contorno</li><li>@D2: umbral de fusion -- mas D2 = gotas mas chicas y separadas, menos</li><li>D2 = se funden mas facil</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 04</span>
+            <div class="visual-title">CAUSTICS</div>
+            <div class="description">Red de luz ondulando, como el fondo de una piscina al sol.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de la ondulacion</li><li>Density  escala del patron (mas Density = red mas fina)</li><li>Hue      color de la luz</li><li>Chaos    intensidad del desplazamiento entre iteraciones -- mas</li><li>Chaos = patron mas retorcido</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro de fase (excepcion del contrato)</li><li>@D1: contraste / brillo general de la red de luz</li><li>@D2: cuantas iteraciones se acumulan (mas D2 = red mas compleja)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 05</span>
+            <div class="visual-title">FLOW</div>
+            <div class="description">Campo de flujo. Lineas de corriente, sin simular particulas reales.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de la corriente</li><li>Density  cuantas lineas de corriente hay</li><li>Hue      color de las lineas</li><li>Chaos    cuanto se dobla cada linea (turbulencia)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro del doblez (excepcion del contrato)</li><li>@D1: grosor de las lineas</li><li>@D2: frecuencia espacial del campo de flujo (corrientes anchas <-></li><li>finas y apretadas)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 06</span>
+            <div class="visual-title">GRID</div>
+            <div class="description">Reticula que se deforma y se colorea por celda, estilo Felipe Pantone.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de rotacion + desplazamiento de la rejilla</li><li>Density  cuantas celdas hay (frecuencia de la rejilla)</li><li>Hue      paleta de color por celda</li><li>Chaos    cuanto se curva la rejilla (domain warp)</li><li>Bass     brillo de las lineas (audioLift)</li><li>Mid      tinte del color de celda (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro de la fase de la rejilla (excepcion del</li><li>contrato de audio, ya suavizado)</li><li>@D1: grosor de las lineas</li><li>@D2: mezcla bloque de color / rejilla de lineas</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 07</span>
+            <div class="visual-title">SPECTRUM</div>
+            <div class="description">Bandas de degradado espectral puro, estilo Pantone. Casi gratis.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    las bandas viajan a lo largo de su propio eje</li><li>Density  cuantas bandas caben en pantalla</li><li>Hue      punto de partida del espectro</li><li>Chaos    ondula el borde de las bandas (deja de ser recto)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro del borde de banda (excepcion del contrato)</li><li>@D1: dureza del borde entre bandas (suave <-> duro)</li><li>@D2: angulo de las bandas</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 08</span>
+            <div class="visual-title">MOIRE</div>
+            <div class="description">Dos familias de lineas paralelas rotando, entramado con nodos de color.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de rotacion de la segunda familia sobre la primera</li><li>Density  frecuencia de las lineas (mas Density = patron mas fino)</li><li>Hue      paleta: color de cada familia + el brillo de los nodos</li><li>Chaos    separacion angular entre las dos familias -- 0 casi las</li><li>alinea (celdas del entramado grandes y alargadas), mas</li><li>separacion = celdas mas chicas y cuadradas</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro del angulo (excepcion del contrato)</li><li>@D1: grosor de las lineas</li><li>@D2: separacion angular extra, encima de Chaos</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 09</span>
+            <div class="visual-title">SCANLINE</div>
+            <div class="description">Glitch de bandas horizontales con separacion cromatica, estilo VHS/CRT.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad a la que el tinte de fondo recorre la paleta</li><li>Density  cuantas bandas horizontales hay</li><li>Hue      color base del degradado</li><li>Chaos    cuanto se desplazan las bandas Y cuanta estatica hay en</li><li>total -- en 0 es un color liso y calmo, sin ruido</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     glitch de pantalla completa, breve</li><li>High     temblor micro adicional del offset (excepcion del contrato)</li><li>@D1: cantidad de aberracion cromatica</li><li>@D2: que tan seguido cambia el desplazamiento de cada banda</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 10</span>
+            <div class="visual-title">CHROMA</div>
+            <div class="description">Aberracion cromatica radial sobre anillos concentricos.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    los anillos viajan hacia afuera (o adentro con Speed<->tiempo)</li><li>Density  cuantos anillos caben (frecuencia radial)</li><li>Hue      color base</li><li>Chaos    distorsion angular de los anillos (dejan de ser circulos</li><li>perfectos)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     onda expansiva: un anillo extra se dispara hacia afuera</li><li>High     vibracion micro del radio (excepcion del contrato)</li><li>@D1: cantidad de aberracion cromatica</li><li>@D2: grosor de los anillos</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 11</span>
+            <div class="visual-title">LINES</div>
+            <div class="description">Pocas lineas paralelas que se curvan suave. Lo mas minimal del set.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad a la que viaja la curvatura</li><li>Density  cuantas lineas hay (2 a 10 -- pocas, a proposito)</li><li>Hue      color de las lineas</li><li>Chaos    cuanto se curvan (amplitud de la ondulacion)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro de la curva (excepcion del contrato)</li><li>@D1: grosor de las lineas</li><li>@D2: frecuencia de la ondulacion (cuantas curvas por linea)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 12</span>
+            <div class="visual-title">CONTOUR</div>
+            <div class="description">Curvas de nivel topograficas de un campo de ruido lento.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    el terreno se desplaza lento</li><li>Density  cuantas curvas de nivel hay (3 a 10)</li><li>Hue      color de las curvas</li><li>Chaos    rugosidad del terreno (domain warp + octavas efectivas)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro de las curvas (excepcion del contrato)</li><li>@D1: grosor de las curvas</li><li>@D2: escala del terreno (mas D2 = terreno mas fino y detallado)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 13</span>
+            <div class="visual-title">RIPPLE</div>
+            <div class="description">Ondas concentricas desde 1 a 3 puntos, disparadas por el ritmo.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de deriva de las fuentes + respaldo sin audio</li><li>Density  cuantas fuentes hay (1 a 3)</li><li>Hue      color de las ondas</li><li>Chaos    cuanto se mueven las fuentes en su circulo propio</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     empuja una onda nueva en cada fuente</li><li>Beat     fase continua de la expansion de las ondas</li><li>High     vibracion micro del radio (excepcion del contrato)</li><li>@D1: grosor de las ondas</li><li>@D2: separacion entre ondas (frecuencia radial)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 14</span>
+            <div class="visual-title">ORBIT</div>
+            <div class="description">Pocas orbitas circulares de trazo fino, con un nodo viajando en cada una.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de traslacion de los nodos</li><li>Density  cuantas orbitas hay (2 a 6)</li><li>Hue      paleta: cada orbita un matiz distinto, derivados de Hue</li><li>Chaos    cuanto respira el radio de cada orbita (deja de ser un</li><li>circulo perfecto y quieto)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve en todos los nodos</li><li>High     vibracion micro del angulo (excepcion del contrato)</li><li>@D1: visibilidad del trazo de la orbita (circulo guia)</li><li>@D2: tamano del nodo</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 15</span>
+            <div class="visual-title">DOTS</div>
+            <div class="description">Matriz de puntos que responde por zonas, estilo panel de LEDs.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad a la que viaja el campo de zonas</li><li>Density  cuantos puntos hay (resolucion de la rejilla)</li><li>Hue      paleta, con variacion leve por zona</li><li>Chaos    turbulencia del campo de zonas</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro de la posicion del punto (excepcion del</li><li>contrato)</li><li>@D1: tamano base de los puntos</li><li>@D2: escala del campo de zonas (zonas grandes <-> zonas chicas)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 16</span>
+            <div class="visual-title">STARFIELD</div>
+            <div class="description">Campo de puntos con profundidad, muy lento. Tres capas de paralaje.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de deriva de las capas</li><li>Density  cuantas celdas tienen estrella (mas Density = campo mas denso)</li><li>Hue      tinte de las estrellas (quedan casi blancas, saturacion baja)</li><li>Chaos    velocidad del titileo</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     destello breve en todo el campo</li><li>High     vibracion micro de posicion (excepcion del contrato)</li><li>@D1: tamano de las estrellas</li><li>@D2: escala de la rejilla (cuantas celdas caben por capa)</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 17</span>
+            <div class="visual-title">BLOCKS</div>
+            <div class="description">Bloques rectangulares que aparecen y desaparecen. Pantone puro.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    la rejilla entera se desliza lento (efecto marquesina)</li><li>Density  cuantos bloques hay (resolucion de la rejilla)</li><li>Hue      paleta, con variacion por bloque</li><li>Chaos    velocidad del parpadeo (cuantos cambios por segundo)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     todos los bloques se encienden un instante</li><li>High     vibracion micro del borde del bloque (excepcion del</li><li>contrato)</li><li>@D1: tamano de los bloques dentro de su celda</li><li>@D2: proporcion de bloques encendidos en cada paso</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 18</span>
+            <div class="visual-title">TUNNEL</div>
+            <div class="description">Tunel en coordenadas polares. Sin raymarching, por eso es barato.</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de vuelo hacia el centro</li><li>Density  cuantos anillos hay (frecuencia "hacia adentro")</li><li>Hue      color del tunel</li><li>Chaos    cuanto se retuerce el tunel (deja de ser recto)</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     flash breve</li><li>High     vibracion micro del angulo (excepcion del contrato)</li><li>@D1: grosor de las lineas de la rejilla</li><li>@D2: cuantos segmentos radiales hay (frecuencia "alrededor")</li></ul>
+            
+        </div>
+
+        <div class="visual-card">
+            <span class="visual-number">Escena 19</span>
+            <div class="visual-title">VOID</div>
+            <div class="description">Casi negro total, un solo elemento sutil. La escena de bajada, para</div>
+
+            <div class="section-title">🎮 Controles</div><ul class="controls-list"><li>Speed    velocidad de deriva del orbe</li><li>Density  radio de la orbita que recorre</li><li>Hue      color del orbe</li><li>Chaos    cuanto se desvia de una orbita perfecta</li><li>Bass     brillo de lo ya claro (audioLift)</li><li>Mid      tinte adicional (audioHue)</li><li>Kick     el orbe pulsa un instante</li><li>High     vibracion micro de posicion (excepcion del contrato)</li><li>@D1: tamano del orbe</li><li>@D2: brillo/opacidad del orbe</li></ul>
+            
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <p><strong>Controles MIDI:</strong> 6 Knobs + 5 Pads + 25 Teclas de Piano</p>
+        <p>Audio Reactivity en Bass, Mid, High, Kick</p>
+        <p style="margin-top: 20px; font-size: 0.9em;">
+            Generado automáticamente • TDAI2026 Visuales
+        </p>
+    </div>
+</body>
+</html>
