@@ -120,6 +120,16 @@ vec3 audioLift(vec3 col, float amount) {{
 // muchisimo mas barato que convertir RGB a HSV y volver. Uso tipico:
 // float h = audioHue(uHue, uMid * 0.05);
 float audioHue(float hue, float amount) {{ return fract(hue + amount); }}
+
+// Linea de ancho CONSTANTE EN PIXELES a partir de una funcion de distancia
+// con signo (vale 0 exactamente sobre la linea -- por ejemplo fract(x)-0.5
+// para una rejilla, o n-0.5 para el conjunto de nivel de un fbm). Sin
+// fwidth() el ancho cambia con la escala del campo y aparecen manchones.
+// pxWidth tipico: 1-2 fino, 4-8 grueso.
+float edgeLine(float sdf, float pxWidth) {{
+    float g = max(fwidth(sdf), 1e-6);
+    return 1.0 - smoothstep(0.0, pxWidth * g, abs(sdf));
+}}
 // ============== FIN HEADER - tu codigo empieza abajo ==============
 
 """

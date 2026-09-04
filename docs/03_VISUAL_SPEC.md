@@ -67,6 +67,7 @@ vec2  centered(vec2 uv)                  // x∈[-aspect,aspect], y∈[-1,1]
 float vignette(vec2 uv, float amt)
 vec3  audioLift(vec3 col, float amount)  // ver "Contrato de audio" abajo
 float audioHue(float hue, float amount)  // ver "Contrato de audio" abajo
+float edgeLine(float sdf, float pxWidth) // linea de ancho constante en pixeles
 ```
 
 Constantes: `PI`, `TAU`.

@@ -57,6 +57,11 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
   float vignette(vec2 uv, float amt)
   vec3  audioLift(vec3 col, float amount)   ver regla 4, USAR para bajos/nivel
   float audioHue(float hue, float amount)   ver regla 4, USAR para medios
+  float edgeLine(float sdf, float pxWidth)  linea de ancho CONSTANTE EN
+                                             PIXELES a partir de una distancia
+                                             con signo (0 sobre la linea).
+                                             Usalo para cualquier rejilla o
+                                             contorno en vez de threshold
   Constantes: PI, TAU
 
 === REGLAS DE CALIDAD ===
