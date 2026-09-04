@@ -36,6 +36,12 @@
 //
 // @D1: cantidad de aberracion cromatica
 // @D2: que tan seguido cambia el desplazamiento de cada banda
+//
+// SIMPLIFICADA: se veia demasiado ocupada por defecto (muchas bandas
+// finas + estatica densa a la vez). Bajado el rango de bandas, la
+// resolucion de la estatica y cuanto Chaos mezcla de estatica por
+// defecto -- los knobs siguen pudiendo llevarla a full glitch, pero el
+// reposo ahora es mucho mas liso.
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -44,7 +50,7 @@ vec4 render(vec2 uv)
 
     // Cuantas bandas, y a que paso de tiempo cambian (mas D2 = cambios mas
     // frecuentes, menos D2 = bandas que se quedan quietas mas rato).
-    float bands = 6.0 + uDensity * 40.0;
+    float bands = 4.0 + uDensity * 14.0;
     float bandId = floor(uv.y * bands);
     float step_t = floor(t * (0.6 + uD2 * 4.0));
 
@@ -62,7 +68,7 @@ vec4 render(vec2 uv)
     shift += uHigh * 0.01 * sin(t * 20.0 + bandId);
 
     // Aberracion cromatica: cada canal muestrea con su propio offset extra.
-    float aberr = 0.006 + uD1 * 0.03;
+    float aberr = 0.003 + uD1 * 0.022;
     float xR = uv.x + shift + aberr;
     float xG = uv.x + shift;
     float xB = uv.x + shift - aberr;
@@ -70,7 +76,7 @@ vec4 render(vec2 uv)
     // Estatica de columna: ruido de alta frecuencia en x, distinto por
     // banda. Esto es lo que hace VISIBLE el desplazamiento -- sin detalle
     // fino, un corrimiento horizontal no se nota en nada.
-    float cols = 60.0 + uDensity * 220.0;
+    float cols = 24.0 + uDensity * 70.0;
     float nR = hash21(vec2(floor(xR * cols), bandId));
     float nG = hash21(vec2(floor(xG * cols), bandId));
     float nB = hash21(vec2(floor(xB * cols), bandId));
@@ -86,7 +92,7 @@ vec4 render(vec2 uv)
     // textura -- en Chaos=0 esto es un color liso y calmo (sin esto, la
     // escena nunca tenia un extremo minimal de verdad, siempre se veia
     // ruidosa aunque Density estuviera baja).
-    vec3 col = mix(base, staticCol, 0.15 + uChaos * 0.85);
+    vec3 col = mix(base, staticCol, 0.05 + uChaos * 0.55);
 
     // Lineas de barrido sutiles (el propio "scanline" del nombre): una
     // banda oscura fina cada cierta cantidad de filas.

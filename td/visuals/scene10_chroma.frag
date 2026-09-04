@@ -27,6 +27,10 @@
 //
 // @D1: cantidad de aberracion cromatica
 // @D2: grosor de los anillos
+//
+// SIMPLIFICADA: menos anillos por defecto (mas grandes y separados),
+// mas gruesos, y con menos fleco cromatico en reposo -- se veia
+// demasiado ocupada con muchos anillos finos a la vez.
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -43,14 +47,14 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado desde el core.
     r += uHigh * 0.01 * sin(t * 15.0 + ang * 8.0);
 
-    float freq = 3.0 + uDensity * 14.0;
+    float freq = 2.0 + uDensity * 6.0;
     float travel = t * (0.15 + uSpeed * 0.5);
 
     // Kick: una onda expansiva extra, mas rapida, que se superpone.
     float kickWave = uKick * 6.0;
 
-    float aberr = 0.003 + uD1 * 0.03;
-    float ringW = 0.7 + uD2 * 2.5;
+    float aberr = 0.002 + uD1 * 0.020;
+    float ringW = 1.3 + uD2 * 2.8;
 
     // Cada canal evalua el patron de anillos con un radio propio.
     float rR = r + aberr;
