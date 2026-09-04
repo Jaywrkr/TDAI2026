@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.toe.*
+Backup/
+td/config/midi_map.json
+td/config/presets.json
+
+*.whl
+*.tar.gz

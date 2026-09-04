@@ -1,0 +1,184 @@
+"""Compone el shader final que va dentro de cada GLSL TOP.
+
+Un visual del usuario (o generado por una IA) es SOLO un archivo .frag que
+define:
+
+    vec4 render(vec2 uv)
+
+El header y el footer los inyecta este modulo. Asi el autor del visual nunca
+escribe plumbing de TouchDesigner y no puede romper el contrato de salida.
+
+Los controles llegan por una TEXTURA (input 0 del GLSL TOP), no por uniforms.
+Motivo: los nombres de los parametros de uniform del GLSL TOP cambian entre
+builds de TD; una textura de 1xN es identica en todas las versiones y cuesta
+practicamente cero.
+"""
+
+import os
+
+VISUALS_DIRNAME = 'visuals'
+TEMPLATE_NAME = '_TEMPLATE.frag'
+
+_HEADER_TOP = """// ===============================================================
+// TD-VJ AUTO HEADER - NO EDITAR (se regenera en cada build/reload)
+// ===============================================================
+#define TDVJ 1
+#define uScene {scene}
+
+// Los controles viven en input 0: textura de 1 px de ancho x N canales de alto.
+float _ctrl(int i) {{ return texelFetch(sTD2DInputs[0], ivec2(0, i), 0).r; }}
+{defines}
+#define uAspect (uResW / max(uResH, 1.0))
+
+out vec4 fragColor;
+
+// ---------------- utilidades comunes ----------------
+#define TAU 6.2831853072
+#define PI  3.1415926536
+
+mat2 rot2(float a) {{ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }}
+
+float hash21(vec2 p) {{
+    p = fract(p * vec2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}}
+
+vec2 hash22(vec2 p) {{
+    vec3 a = fract(vec3(p.xyx) * vec3(123.34, 234.34, 345.65));
+    a += dot(a, a + 34.45);
+    return fract(vec2(a.x * a.y, a.y * a.z));
+}}
+
+// Ruido de gradiente 2D, [0,1]
+float noise21(vec2 p) {{
+    vec2 i = floor(p), f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f);
+    float a = dot(hash22(i + vec2(0, 0)) - 0.5, f - vec2(0, 0));
+    float b = dot(hash22(i + vec2(1, 0)) - 0.5, f - vec2(1, 0));
+    float c = dot(hash22(i + vec2(0, 1)) - 0.5, f - vec2(0, 1));
+    float d = dot(hash22(i + vec2(1, 1)) - 0.5, f - vec2(1, 1));
+    return clamp(0.5 + 1.6 * mix(mix(a, b, u.x), mix(c, d, u.x), u.y), 0.0, 1.0);
+}}
+
+float fbm(vec2 p, int oct, float rough) {{
+    float s = 0.0, a = 0.5, n = 0.0;
+    for (int i = 0; i < 8; i++) {{
+        if (i >= oct) break;
+        s += a * noise21(p);
+        n += a;
+        a *= rough;
+        p = rot2(0.6) * p * 2.02 + 13.7;
+    }}
+    return s / max(n, 1e-5);
+}}
+
+float fbm(vec2 p, int oct) {{ return fbm(p, oct, 0.5); }}
+
+// Cresta: convierte un campo de ruido en filamentos finos.
+float ridge(float n, float sharp) {{
+    return pow(clamp(1.0 - abs(n * 2.0 - 1.0), 0.0, 1.0), sharp);
+}}
+
+vec3 hsv2rgb(vec3 c) {{
+    vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}}
+
+// uv centrado y con aspecto corregido: x en [-a,a], y en [-1,1]
+vec2 centered(vec2 uv) {{ return (uv - 0.5) * vec2(uAspect, 1.0) * 2.0; }}
+
+float vignette(vec2 uv, float amt) {{
+    vec2 d = (uv - 0.5) * 2.0;
+    return mix(1.0, clamp(1.0 - dot(d, d) * 0.55, 0.0, 1.0), amt);
+}}
+// ============== FIN HEADER - tu codigo empieza abajo ==============
+
+"""
+
+_FOOTER = """
+
+// ===============================================================
+// TD-VJ AUTO FOOTER - NO EDITAR
+// ===============================================================
+void main() {
+    vec4 c = render(vUV.st);
+    c.rgb = max(c.rgb, vec3(0.0));
+    c.a = 1.0;
+    fragColor = TDOutputSwizzle(c);
+}
+"""
+
+
+# Nombre bonito del uniform por canal. Lo que no este aqui se capitaliza.
+NAME_MAP = {
+    'resw': 'ResW',
+    'resh': 'ResH',
+    'rtime': 'RTime',
+}
+
+
+def uniform_name(chan):
+    return 'u' + NAME_MAP.get(chan, chan[0].upper() + chan[1:])
+
+
+def _defines(channels):
+    """#define uSpeed _ctrl(0) ... generado desde el orden REAL del CHOP."""
+    lines = []
+    for i, name in enumerate(channels):
+        lines.append('#define {:<10} _ctrl({})'.format(uniform_name(name), i))
+    return '\n'.join(lines)
+
+
+def make_header(scene_index, channels):
+    return _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+
+
+def repo_root():
+    """Carpeta td/ del repo (dos niveles arriba de este archivo)."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def visuals_dir():
+    return os.path.join(repo_root(), VISUALS_DIRNAME)
+
+
+def find_visual(scene_index):
+    """Busca visuals/sceneNN*.frag. Devuelve la ruta o None."""
+    d = visuals_dir()
+    if not os.path.isdir(d):
+        return None
+    prefix = 'scene{:02d}'.format(scene_index)
+    for fn in sorted(os.listdir(d)):
+        if fn.startswith(prefix) and fn.endswith('.frag'):
+            return os.path.join(d, fn)
+    return None
+
+
+def template_path():
+    return os.path.join(visuals_dir(), TEMPLATE_NAME)
+
+
+def read_body(scene_index):
+    """Devuelve (codigo, ruta_usada). Cae al template si no hay visual propio."""
+    path = find_visual(scene_index)
+    if path is None:
+        path = template_path()
+    if not os.path.isfile(path):
+        return _FALLBACK_BODY, '<fallback embebido>'
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read(), path
+
+
+def compose(scene_index, channels):
+    body, path = read_body(scene_index)
+    return make_header(scene_index, channels) + body + _FOOTER, path
+
+
+_FALLBACK_BODY = """
+vec4 render(vec2 uv) {
+    float h = fract(float(uScene) * 0.137 + uHue);
+    vec3 c = hsv2rgb(vec3(h, 0.6, 0.25 + 0.25 * uLevel));
+    return vec4(c * vignette(uv, 0.8), 1.0);
+}
+"""
