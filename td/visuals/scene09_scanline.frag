@@ -81,13 +81,25 @@ vec4 render(vec2 uv)
     float nG = hash21(vec2(floor(xG * cols), bandId));
     float nB = hash21(vec2(floor(xB * cols), bandId));
 
+    // La divergencia entre nR/nG/nB (de muestrear cada canal con su propio
+    // offset de aberracion) es lo que pintaba motas de colores sueltas
+    // (verdes, magentas...) por toda la estatica -- se ven demasiadas.
+    // Se devuelve la mayor parte de cada canal a su promedio (gris) y se
+    // deja solo una fraccion chica de esa divergencia: motas de color
+    // ocasionales, no una estatica arcoiris.
+    float nAvg = (nR + nG + nB) / 3.0;
+    float colorAmt = 0.22;
+    nR = mix(nAvg, nR, colorAmt);
+    nG = mix(nAvg, nG, colorAmt);
+    nB = mix(nAvg, nB, colorAmt);
+
     // Tinte base: un matiz que viaja lento con el tiempo, sin depender de x
     // (asi el color de fondo no compite con el shift -- el shift se lee en
     // la estatica, el matiz da la paleta).
     float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.05);
-    // Value bajado (era 1.0): la escena se veia demasiado clara/plana --
-    // ahora es oscura en reposo y Bass/Kick la hacen respirar mas claro.
-    vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.30));
+    // Value bajado (era 1.0, luego 0.30): mucho mas oscura en reposo --
+    // Bass/Kick la hacen respirar mas claro.
+    vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.16));
     vec3 staticCol = base * (0.30 + 0.70 * vec3(nR, nG, nB));
 
     // Chaos tambien controla CUANTA estatica hay en total, no solo su
