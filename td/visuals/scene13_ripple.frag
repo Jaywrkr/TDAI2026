@@ -1,32 +1,34 @@
 // ===============================================================
 // SCENE 13 - RIPPLE
-// Ondas concentricas desde 1 a 3 puntos, disparadas por el ritmo.
+// Un pulso de anillo (mas un par de ecos detras) que respira con el
+// ritmo, desde el centro. Reescrita para ser mas simple y distinta de
+// scene10_chroma (que usa el mismo campo de anillos periodico infinito
+// -- esta es un solo pulso finito, sin ese patron).
 // ===============================================================
 //
 // COMO FUNCIONA
 //
-// Cada fuente es un punto que se desplaza lento en un circulo propio.
-// Alrededor de cada uno, el mismo patron de anillos de scene10 (sawtooth
-// de distancia -> edgeLine), pero en vez de viajar con el tiempo de forma
-// continua, la fase esta ligada a uBeat: cada golpe empuja una onda nueva
-// hacia afuera. Sin audio, las ondas igual viajan con uTime como respaldo
-// (si no hay musica sonando, la escena no se queda estatica).
-//
-// Bucle de conteo fijo (max 3) con corte temprano segun Density.
+// Nada de fract() ni patron periodico de anillos: hay UN radio de anillo
+// (ringR) que respira lento con el tiempo como respaldo sin musica, y que
+// Beat/Kick empujan hacia afuera en cada golpe. Alrededor de ese radio se
+// dibuja un solo pulso gaussiano (exp(-(r-ringR)^2/w^2)) -- suave, no un
+// borde nitido. Density agrega hasta 2 ecos mas detras del principal,
+// cada uno mas tenue, en un bucle finito de a lo sumo 3 -- no un campo
+// infinito de anillos como en chroma.
 //
 // CONTROLES
-//   Speed    velocidad de deriva de las fuentes + respaldo sin audio
-//   Density  cuantas fuentes hay (1 a 3)
-//   Hue      color de las ondas
-//   Chaos    cuanto se mueven las fuentes en su circulo propio
+//   Speed    velocidad de respiracion del radio de reposo (respaldo sin
+//            musica)
+//   Density  cuantos ecos hay detras del anillo principal (1 a 3)
+//   Hue      color del pulso
+//   Chaos    separacion entre el anillo principal y sus ecos
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
-//   Kick     empuja una onda nueva en cada fuente
-//   Beat     fase continua de la expansion de las ondas
+//   Kick     empuje extra e instantaneo del radio, mas flash
 //   High     vibracion micro del radio (excepcion del contrato)
 //
-// @D1: grosor de las ondas
-// @D2: separacion entre ondas (frecuencia radial)
+// @D1: ancho del pulso (fino y nitido <-> ancho y difuso)
+// @D2: cuanto empuja Beat el radio hacia afuera en cada golpe
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -34,52 +36,45 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    int   n = 1 + int(floor(uDensity * 2.99));
-    float freq = 4.0 + uD2 * 12.0;
-    float ringW = 0.7 + uD1 * 2.5;
+    // Radio de reposo: respira lento, respaldo para cuando no hay musica.
+    float restR = 0.30 + 0.12 * sin(t * (0.15 + uSpeed * 0.3));
 
-    // La fase avanza con uBeat (empuja al tocar) y con el tiempo como
-    // respaldo, para que la escena no se quede quieta sin musica.
-    float phase = t * (0.3 + uSpeed * 0.6) + uBeat * 3.0;
+    // Beat empuja el anillo hacia afuera en cada golpe (D2 = cuanto);
+    // Kick suma un empujon extra, instantaneo.
+    float ringR = restR + uBeat * (0.35 + uD2 * 0.9) + uKick * 0.15;
+
+    // uHigh: vibracion micro del radio -- unica excepcion del contrato,
+    // amplitud pequena, ya suavizado.
+    ringR += uHigh * 0.006 * sin(t * 12.0);
+
+    float r = length(p);
+    float width = 0.03 + uD1 * 0.12;
 
     float h = audioHue(uHue, uMid * 0.05);
-    vec3 waveCol = hsv2rgb(vec3(h, 0.80, 1.0));
+    vec3 waveCol = hsv2rgb(vec3(h, 0.75, 1.0));
+
+    int echoes = 1 + int(floor(uDensity * 2.99));
+    float spacing = 0.10 + uChaos * 0.10;
 
     vec3 col = vec3(0.0);
-
     for (int i = 0; i < 3; i++) {
-        if (i >= n) break;
+        if (i >= echoes) break;
 
         float fi = float(i);
-        float orbitR = 0.15 + fi * 0.12;
-        float orbitSpeed = 0.05 + fi * 0.03;
-        vec2 src = orbitR * (0.3 + uChaos * 0.7)
-                 * vec2(cos(t * orbitSpeed + fi * 2.1),
-                        sin(t * orbitSpeed * 0.8 + fi * 2.1));
+        float rr = ringR - fi * spacing;
+        float d = r - rr;
+        float wave = exp(-d * d / (width * width)) * exp(-fi * 0.6);
 
-        float r = length(p - src);
-
-        // uHigh: vibracion micro del radio -- unica excepcion del
-        // contrato, amplitud pequena, ya suavizado.
-        r += uHigh * 0.008 * sin(t * 14.0 + fi * 5.0);
-
-        float ring = edgeLine(fract(r * freq - phase - fi * 0.33) - 0.5, ringW);
-
-        // La onda se apaga con la distancia, como una onda real perdiendo
-        // energia -- sin esto los anillos lejanos se ven igual de fuertes
-        // que los cercanos y no se lee como "expansion".
-        float falloff = exp(-r * 0.9);
-
-        col += waveCol * ring * falloff;
+        col += waveCol * wave;
     }
 
-    // Kick: flash breve en el momento del golpe (ademas del empuje de fase).
-    col += col * uKick * 0.5;
+    // Kick: flash breve, ademas del empujon de radio de arriba.
+    col += col * uKick * 0.4;
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
 
-    col *= vignette(uv, 0.35);
+    col *= vignette(uv, 0.4);
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.01;
 
     return vec4(col, 1.0);
