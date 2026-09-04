@@ -24,7 +24,7 @@
 // veia solo por tener la matematica del shift.
 //
 // CONTROLES
-//   Speed    velocidad a la que cada banda cambia de desplazamiento
+//   Speed    velocidad a la que el tinte de fondo recorre la paleta
 //   Density  cuantas bandas horizontales hay
 //   Hue      color base del degradado
 //   Chaos    cuanto se desplazan las bandas Y cuanta estatica hay en
@@ -78,7 +78,7 @@ vec4 render(vec2 uv)
     // Tinte base: un matiz que viaja lento con el tiempo, sin depender de x
     // (asi el color de fondo no compite con el shift -- el shift se lee en
     // la estatica, el matiz da la paleta).
-    float hBase = audioHue(fract(uHue + t * 0.05), uMid * 0.05);
+    float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.05);
     vec3 base = hsv2rgb(vec3(hBase, 0.70, 1.0));
     vec3 staticCol = base * (0.30 + 0.70 * vec3(nR, nG, nB));
 

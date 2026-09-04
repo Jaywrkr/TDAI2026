@@ -37,7 +37,7 @@ vec4 render(vec2 uv)
 {
     float t = uTime;
     vec2  p = centered(uv);
-    p += vec2(t * 0.02, t * 0.015);
+    p += vec2(t * (0.008 + uSpeed * 0.05), t * (0.006 + uSpeed * 0.035));
 
     // Primer warp.
     vec2 w1 = vec2(fbm(p * 0.55 + 1.0, 4), fbm(p * 0.55 - 3.0, 4)) - 0.5;

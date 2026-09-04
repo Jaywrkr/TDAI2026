@@ -37,7 +37,7 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
 
     float scale = 0.5 + uD2 * 1.5;
-    vec2 warpP = p * scale + vec2(t * 0.03, t * 0.02);
+    vec2 warpP = p * scale + vec2(t * (0.01 + uSpeed * 0.06), t * (0.008 + uSpeed * 0.04));
 
     // uChaos anade un domain warp que rompe la simetria del ruido base --
     // sin esto el terreno se ve demasiado regular.
