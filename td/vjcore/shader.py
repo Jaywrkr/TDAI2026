@@ -130,6 +130,30 @@ float edgeLine(float sdf, float pxWidth) {{
     float g = max(fwidth(sdf), 1e-6);
     return 1.0 - smoothstep(0.0, pxWidth * g, abs(sdf));
 }}
+
+// ---------------- pulido final (Fase "profesionalidad") ----------------
+// Grade compartido: se aplica UNA vez, en el footer, a la salida de las
+// 20 escenas por igual -- no dentro de cada .frag. Da cohesion al set
+// completo (todas pasan por la misma curva final) en vez de que cada
+// visual tenga su propio nivel de contraste/saturacion de brillos.
+// Sutil a proposito: no es un tonemap fuerte (cada escena ya maneja su
+// propio rango), es el pulido de encima, como una LUT compartida.
+vec3 grade(vec3 col) {{
+    // Contraste tipo S suave: mezcla parcial con un smoothstep, no un
+    // reemplazo total -- sube el contraste en medios tonos sin aplastar
+    // negros ni quemar blancos.
+    vec3 contrasted = smoothstep(vec3(0.0), vec3(1.0), col);
+    col = mix(col, contrasted, 0.22);
+
+    // Desaturacion leve de brillos: a mas luminancia, un poco mas cerca
+    // del blanco -- look filmico, evita que los brillos se vean como un
+    // color plano sin limite.
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    float desat = smoothstep(0.55, 1.5, lum) * 0.18;
+    col = mix(col, vec3(lum), desat);
+
+    return col;
+}}
 // ============== FIN HEADER - tu codigo empieza abajo ==============
 
 """
@@ -154,6 +178,9 @@ void main() {
         float ring = exp(-d * 5.0) * uKeypulse * (0.16 + uKeyvel * 0.30);
         c.rgb += ring;
     }
+
+    // Pulido final compartido por las 20 escenas -- ver grade() arriba.
+    c.rgb = grade(c.rgb);
 
     c.a = 1.0;
     fragColor = TDOutputSwizzle(c);
