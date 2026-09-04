@@ -19,13 +19,18 @@ Cada fase termina en un **checkpoint**: qué debes ver, y qué hacer si no lo ve
 
 ---
 
-## Fase 1 — Validar los shaders sin abrir TouchDesigner *(opcional)*
+## Fase 1 — Validar sin abrir TouchDesigner *(opcional pero rápido)*
 
 Si tienes Python en esa máquina:
 
 ```bash
+python3 td/tools/smoke_import.py
 python3 td/tools/validate_shaders.py
 ```
+
+El primero comprueba que el paquete importa y que `vjcore.build()` resuelve a
+lo que debe — atrapa errores que si no solo verías al pulsar *Run Script*.
+Debe terminar en `RESULTADO: TODO OK`.
 
 **Checkpoint 1**
 
@@ -82,7 +87,8 @@ VERIFICACION DEL BUILD
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| `ModuleNotFoundError: No module named 'vjcore'` | La ruta `REPO` está mal | Comprueba que `REPO` apunta a la carpeta `td/`, no a la raíz del repo, y que usa `/` |
+| `ModuleNotFoundError: No module named 'vjcore'` | La ruta `REPO` está mal | Comprueba que `REPO` apunta a la carpeta `td/`, no a la raíz del repo |
+| `AttributeError: 'function' object has no attribute 'build'` | Versión antigua del repo | Actualiza: se corrigió renombrando `build.py` a `builder.py` |
 | `[!!] ctrl tiene canales -> 0 canales` | Normal si el CHOP aún no cocinó | Corre el script otra vez; si persiste, mira los `AVISO` de más arriba |
 | `[!!] visuals/ encontrado` | El repo está incompleto | Faltan `td/visuals/*.frag` |
 | Líneas `AVISO set <op>.<par>` | Un nombre de parámetro cambió en tu build de TD | Anótalas y pásamelas: el build sigue, pero ese parámetro quedó sin poner |

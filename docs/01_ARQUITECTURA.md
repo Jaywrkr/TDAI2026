@@ -16,11 +16,14 @@ TDAI2026/
 │   │   ├── program.py         bus A/B, crossfade, master fade
 │   │   ├── dashboard.py       UI clickable
 │   │   ├── shader.py          composición header + .frag + footer
-│   │   ├── build.py           orquestación + verificación
+│   │   ├── builder.py         orquestación + verificación
 │   │   └── dats/              código que corre DENTRO de TD como módulo
 │   ├── visuals/               <- un .frag por escena. Aquí trabajas tú y la IA
 │   ├── config/                mapeo MIDI y presets (generados, no versionados)
-│   └── tools/                 validador y preview fuera de TD
+│   └── tools/                 verificación fuera de TD:
+│                                smoke_import.py     · el paquete importa bien
+│                                validate_shaders.py · los .frag compilan
+│                                preview_veins_cpu.py· render en CPU
 └── docs/
 ```
 
@@ -173,7 +176,7 @@ Ver [02 — MIDI](02_MIDI_MINILAB_MKII.md).
 
 ## Verificación del build
 
-`build.py` termina con `verify()`, que comprueba en la Textport:
+`builder.py` termina con `verify()`, que comprueba en la Textport:
 
 - que `/project1/ctrl` tenga canales y no falte ninguno,
 - que ambos switches tengan las 20 entradas,
@@ -184,3 +187,19 @@ Ver [02 — MIDI](02_MIDI_MINILAB_MKII.md).
 Esto importa porque un script que construye redes no se puede testear fuera
 de TouchDesigner. Si algo salió mal, aparece como `[!!]` y no como un visual
 negro sin explicación.
+
+
+---
+
+## Una regla al añadir módulos
+
+**Ningún submódulo puede llamarse igual que una función pública de
+`vjcore/__init__.py`.**
+
+Python asigna el submódulo como atributo del paquete en cuanto se importa. Un
+`vjcore/build.py` pisa a la función `vjcore.build()` la primera vez que se
+importa, y a partir de ahí `vjcore.build()` intenta llamar a un módulo. Por eso
+el orquestador se llama `builder.py` y no `build.py`.
+
+`td/tools/smoke_import.py` verifica esto: compara las funciones públicas del
+paquete contra `_SUBMODULES` y falla si se solapan.

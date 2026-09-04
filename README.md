@@ -54,6 +54,7 @@ Luego en TD: `/project1` → **System** → `Recargar Shaders`.
 ## Verificación fuera de TouchDesigner
 
 ```bash
+python3 td/tools/smoke_import.py         # el paquete importa y resuelve bien
 python3 td/tools/validate_shaders.py     # compila los .frag con glslangValidator
 python3 td/tools/preview_veins_cpu.py out.png "{'density':0.8,'hue':0.5}"
 ```
@@ -67,7 +68,8 @@ shader generado por IA que pase esto ya no te va a romper el show en vivo.
 
 **Verificado en este repo:**
 
-- Los 18 módulos de Python parsean.
+- `smoke_import.py`: el paquete importa y los puntos de entrada resuelven.
+- Los módulos de Python parsean.
 - Los dos `.frag` **compilan de verdad** con `glslangValidator`, con el mismo
   header y footer que TouchDesigner inyecta.
 - El shader de venas se renderizó en CPU para validar el look (las imágenes de
