@@ -58,6 +58,10 @@ def build_scene(scenes, i, channels):
     from .tdutil import add_int, add_string
     add_int(page, 'Sceneindex', 'Scene Index', i, 0, config.N_SCENES - 1)
     add_string(page, 'Shaderfile', 'Shader File', '')
+    # Leyenda de las perillas Detail 1-6 para ESTA escena, parseada de los
+    # comentarios @D1..@D6 del .frag. control_script.py la lee al activar
+    # la escena y la muestra en el dashboard.
+    add_string(page, 'Detaillegend', 'Detail Legend', '')
 
     content = sc.create(baseCOMP, 'content')
     content.nodeX, content.nodeY = 0, 0
@@ -122,6 +126,13 @@ def load_shader(sc, i, channels):
         return False
     src.text = text
     safe_set(sc, 'Shaderfile', path)
+
+    try:
+        body, _ = shadermod.read_body(i)
+        safe_set(sc, 'Detaillegend', shadermod.parse_detail_legend(body))
+    except Exception as e:
+        log('AVISO scene{} leyenda de detail: {}'.format(i, e))
+
     return True
 
 

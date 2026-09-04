@@ -36,6 +36,12 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
                                  fase. USA ESTE, no uRTime*uSpeed.
   uRTime                         segundos reales, independientes de Speed
   uResW uResH uAspect uScene
+  uKeypulse uKeypos uKeyvel      piano: pulso/tono/fuerza de la ultima tecla
+                                 tocada. El anillo base YA sale gratis del
+                                 footer -- usa esto solo para un efecto propio
+                                 ADEMAS del anillo, no para reemplazarlo
+  uD1 uD2 uD3 uD4 uD5 uD6        perillas de Detail, 0..1. Ver seccion
+                                 "PERILLAS DE DETAIL" abajo -- documentalas
 
 === HELPERS YA DISPONIBLES (no los redefinas) ===
 
@@ -93,6 +99,23 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
    brillantes, para que no se claven en blanco plano.
 7. Añade dither anti-banding si hay degradados oscuros amplios:
    col += (hash21(uv*uResW + fract(uRTime)*17.0) - 0.5) * 0.012;
+
+=== PERILLAS DE DETAIL (uD1..uD6) ===
+
+Usa 2 o 3 de las 6 (no hace falta usarlas todas). Cada una debe cambiar algo
+CONCRETO y VISIBLE -- igual que Speed/Density/Hue/Chaos, una perilla que no
+se nota es una perilla desperdiciada. Ideas: cantidad de elementos, un
+segundo parametro de forma que Density no cubre, velocidad de un efecto
+secundario, intensidad de una capa extra, ángulo de algo.
+
+Documenta cada una que uses con un comentario, en cualquier parte del
+archivo (cerca de la cabecera es lo normal):
+
+    // @D1: cantidad de nodos
+    // @D2: grosor de linea
+
+Esto alimenta la leyenda que se muestra en el dashboard al activar la
+escena -- sin el comentario, nadie sabe qué hace esa perilla en vivo.
 
 === TÉCNICAS QUE FUNCIONAN BIEN AQUÍ ===
 

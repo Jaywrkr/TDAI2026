@@ -68,7 +68,7 @@ un shader no compila, solo que más tarde.
 ==========================================================
 VERIFICACION DEL BUILD
 ==========================================================
-  [OK] ctrl tiene canales -> 15 canales
+  [OK] ctrl tiene canales -> 24 canales
   [OK] sin canales de control faltantes
   [OK] program_a con 20 inputs -> 20
   [OK] program_b con 20 inputs -> 20
@@ -188,7 +188,7 @@ Prueba también:
 2. Pon música.
 
 **Checkpoint 6** — activa el viewer de **`/project1/ctrl`** (Null CHOP). Debes
-ver 15 canales, y `level`, `bass`, `mid`, `high` **moviéndose con la música**.
+ver 24 canales, y `level`, `bass`, `mid`, `high` **moviéndose con la música**.
 
 Ajusta en `/project1` → pestaña **Audio**:
 

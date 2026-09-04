@@ -204,9 +204,28 @@ def _finishFade(token):
 
         setSceneCooking({target})
         updateHighlight()
+        updateDetailLegend(target)
     except Exception as e:
         print('_finishFade FAILSAFE:', e)
         abortTransition()
+
+
+def updateDetailLegend(index):
+    """Refleja en el dashboard que hace cada perilla Detail EN esta escena.
+
+    Evento infrecuente (solo al cambiar de escena), cero costo por frame.
+    Si la escena no documento ningun @D1..@D6 en su .frag, se muestra un
+    texto por defecto en vez de dejar la leyenda vieja pegada.
+    """
+    sc = _scene(index)
+    dst = op('/project1/dashboard_ui/detail_legend_src')
+    if not sc or not dst:
+        return
+    legend = ''
+    par = getattr(sc.par, 'Detaillegend', None)
+    if par is not None:
+        legend = str(par.eval()).strip()
+    dst.text = legend or '(esta escena no documento perillas Detail)'
 
 
 def abortTransition():
@@ -280,6 +299,7 @@ def reloadShaders():
 
 MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
+              'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
               'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
 
 
@@ -373,7 +393,8 @@ def loadMidiMap():
 # PRESETS POR ESCENA
 # ---------------------------------------------------------------
 
-PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos']
+PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',
+               'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6']
 
 
 def _presets_path():
@@ -466,6 +487,7 @@ def safeStartup():
 
         setSceneCooking({0})
         updateHighlight()
+        updateDetailLegend(0)
 
         d = op('/project1/diagnostics')
         if d:

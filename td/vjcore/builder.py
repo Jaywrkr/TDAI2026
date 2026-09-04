@@ -86,6 +86,13 @@ def _parameters(proj):
     add_toggle(pr, 'Usepresets', 'Recall al cambiar escena', True)
     add_pulse(pr, 'Snapshot', 'Snapshot escena activa')
 
+    # Fase 3: perillas de detalle. Significan algo distinto en cada escena
+    # -- el .frag las documenta con comentarios @D1.._at6 y el dashboard
+    # muestra esa leyenda para la escena activa. Ver docs/03_VISUAL_SPEC.md.
+    d = proj.appendCustomPage('Detail')
+    for i in range(1, 7):
+        add_float(d, 'Detail{}'.format(i), 'Detail {}'.format(i), 0.5, 0, 1)
+
     s = proj.appendCustomPage('System')
     add_string(s, 'Repopath', 'Repo td/ Path', '')
     add_toggle(s, 'Safestartblackout', 'Safe Start Blackout', True)
@@ -94,6 +101,12 @@ def _parameters(proj):
     add_toggle(s, 'Systemready', 'System Ready', False)
     add_pulse(s, 'Reloadshaders', 'Recargar Shaders')
     add_pulse(s, 'Rebuild', 'Reconstruir Todo')
+    # Estado interno del piano (Fase 3) -- no se tocan a mano, los escribe
+    # midi_logic.py en cada tecla. Viven aca porque necesitan ser
+    # parametros custom reales para que el Parameter CHOP los pueda leer.
+    add_float(s, 'Keypos', 'Keypos (interno)', 0.5, 0, 1)
+    add_float(s, 'Keyvel', 'Keyvel (interno)', 0.0, 0, 1)
+    add_float(s, 'Keypulseraw', 'Keypulseraw (interno)', 0.0, 0, 1)
 
 
 # ---------------------------------------------------------------
@@ -202,8 +215,9 @@ def build(verbose=True):
 
     # --- audio + control + midi ---
     audio_chop = audio.build(proj)
-    ctrl_chop, ctrl_tex = control.build(proj, audio_chop)
     midi.build(proj, _dat_text('midi_logic'))
+    key_chop = midi.build_keypulse(proj)
+    ctrl_chop, ctrl_tex = control.build(proj, audio_chop, key_chop)
 
     channels = control.resolve_channels(proj)
     log('CTRL canales: {}'.format(channels))
