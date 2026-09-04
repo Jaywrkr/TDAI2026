@@ -44,6 +44,9 @@
 //   Beat     empuja los pulsos de flujo
 //   High     brillo de los capilares + vibracion micro de las intersecciones
 //   Level    halo (brillo), NO la respiracion -- esa es solo tiempo ahora
+//
+// @D1: grosor general de la red (troncos + capilares juntos)
+// @D2: intensidad del halo/resplandor alrededor de los troncos
 // ===============================================================
 
 // Baja estas octavas si te faltan fps en una GPU modesta (ver docs/05).
@@ -102,14 +105,18 @@ vec4 render(vec2 uv)
     // El ancho de linea es geometria: ya NO depende de uBass (era la otra
     // causa grande del temblor -- las venas engordaban y adelgazaban con
     // cada golpe de graves). Bass ahora solo sube el brillo, mas abajo.
-    float wT = 1.3 + (1.0 - uDensity) * 1.0;
+    // D1 es un multiplicador de grosor GENERAL (troncos y capilares juntos),
+    // independiente de Density -- rango amplio a proposito, de casi hilo a
+    // notablemente grueso.
+    float widthMul = 0.5 + uD1 * 1.7;
+    float wT = (1.3 + (1.0 - uDensity) * 1.0) * widthMul;
     float trunk  = vein(na, wT);
     float tGlow  = vein(na, wT * 7.0);        // halo ancho, gratis
 
     // ---------------- CAPILARES ----------------
     vec2  wb = warp(p * 2.6 + 7.1, t * 1.30, 0.15 + uChaos * 0.45 + uHigh * 0.04);
     float nb = fbm(wb * 2.2, OCT_CAP, 0.55);
-    float wC = 0.8 + (1.0 - uDensity) * 0.5;
+    float wC = (0.8 + (1.0 - uDensity) * 0.5) * widthMul;
     float hug = smoothstep(0.05, 0.45, tGlow);   // solo cerca de un tronco
     float cap   = vein(nb, wC) * hug * (0.35 + uDensity * 0.90);
     float cGlow = vein(nb, wC * 6.0) * hug;
@@ -125,8 +132,11 @@ vec4 render(vec2 uv)
     float pulse = smoothstep(0.00, 0.30, flow) * smoothstep(0.90, 0.55, flow);
 
     float core = veins * (0.35 + 1.20 * pulse + 1.00 * uKick);
+    // D2: intensidad del halo -- rango amplio, de casi apagado a resplandor
+    // fuerte, independiente de lo que ya module el audio (Level/Beat).
     float halo = (tGlow * 0.75 + cGlow * 0.30)
-               * (0.45 + 0.55 * uLevel + 0.85 * uBeat);
+               * (0.45 + 0.55 * uLevel + 0.85 * uBeat)
+               * (0.25 + uD2 * 1.6);
 
     // ---------------- COLOR ----------------
     float h = uHue;
@@ -135,8 +145,8 @@ vec4 render(vec2 uv)
     vec3 cCore = hsv2rgb(vec3(fract(h + 0.06), 0.40, 1.0));         // nucleo caliente
 
     vec3 col = cDeep * (0.14 + 1.00 * halo)
-             + cBody * core * 1.25
-             + cCore * pow(core, 3.0) * 2.20
+             + cBody * core * 1.45
+             + cCore * pow(core, 3.0) * 2.60
              + cBody * halo * 0.75
              + cCore * cap * uHigh * 0.35;
 
@@ -145,8 +155,15 @@ vec4 render(vec2 uv)
     // se queda oscuro por construccion.
     col = audioLift(col, uBass * 0.8);
 
-    // Tonemap: evita que los nucleos se claven en blanco plano.
-    col = col / (1.0 + col);
+    // Tonemap POR LUMINANCIA, no por canal: dividir cada canal por separado
+    // (col/(1+col) directo sobre un vec3) empuja los tonos saturados hacia
+    // blanco -- un rojo intenso (3.0, 0.2, 0.1) se aplasta a (0.75, 0.17,
+    // 0.09), mucho menos saturado que el original. Escalando los TRES
+    // canales por el mismo factor (basado en la luminancia) se evita el
+    // recorte sin lavar el color -- esto es lo que hacia que los defaults
+    // se vieran menos vivos que en la paleta pensada.
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    col *= 1.0 / (1.0 + lum);
 
     col *= vignette(uv, 0.55);
 

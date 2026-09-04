@@ -20,7 +20,7 @@
 //
 // CONTROLES
 //   Speed    velocidad de traslacion de las gotas
-//   Density  cuantas gotas hay (3 a 7)
+//   Density  que tan lejos del centro orbitan (spread por la pantalla)
 //   Hue      color del contorno
 //   Chaos    cuanto se desvian las gotas de su orbita (mas caotico el
 //            movimiento)
@@ -32,6 +32,8 @@
 // @D1: grosor del contorno
 // @D2: umbral de fusion -- mas D2 = gotas mas chicas y separadas, menos
 //      D2 = se funden mas facil
+// @D3: cantidad de gotas (2 a 14) -- de pocas y grandes a un enjambre que
+//      se funde por todos lados
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -39,16 +41,18 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    int   n = 3 + int(floor(uDensity * 4.99));
+    int   n = 2 + int(floor(uD3 * 12.99));
     float field = 0.0;
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 14; i++) {
         if (i >= n) break;
 
         float fi = float(i);
         vec2  seed = vec2(fi, fi * 3.7);
 
-        float orbitR = 0.25 + hash21(seed) * 0.55;
+        // Density empuja el radio de orbita: mas Density = gotas repartidas
+        // en mas lugares de la pantalla, no amontonadas cerca del centro.
+        float orbitR = (0.15 + uDensity * 0.55) + hash21(seed) * 0.35;
         float speed = 0.08 + hash21(seed + 1.0) * 0.18 + uSpeed * 0.25;
         float phase = hash21(seed + 2.0) * 6.28;
 

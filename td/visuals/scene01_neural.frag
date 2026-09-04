@@ -16,8 +16,10 @@
 // Es continuo en todas partes (a diferencia del sawtooth de scene06/08),
 // asi que no hay ningun riesgo de aliasing en el borde.
 //
-// Los nodos son simplemente un brillo que crece cerca de cada sitio
-// (1/distancia al sitio mas cercano) -- ahi es donde "laten" los pulsos.
+// Sin puntos de nodo: solo la red de segmentos, mas un resplandor (glow)
+// suave alrededor de cada linea que le da profundidad neon sin llenar el
+// centro de cada celda de manchas -- reusa dist2-dist1, asi que no cuesta
+// nada extra.
 //
 // CONTROLES
 //   Speed    velocidad de los pulsos que recorren la red
@@ -27,11 +29,11 @@
 //            Chaos = red mas irregular, menos = mas ordenada/rejilla
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve en los nodos
+//   Kick     flash breve en la red
 //   High     vibracion micro de los sitios (excepcion del contrato)
 //
 // @D1: grosor de los segmentos
-// @D2: tamano de los nodos
+// @D2: cantidad de resplandor (glow) alrededor de los segmentos
 // ===============================================================
 
 // Punto aleatorio pero animado dentro de cada celda -- se mueve poco a
@@ -55,14 +57,17 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    float freq = 3.0 + uDensity * 9.0;
+    // Celdas mas grandes que antes (freq base bajo): antes iba de 3 a 12,
+    // ahora de 1.6 a 7.6 -- Density sigue funcionando igual de proporcional,
+    // solo que el rango entero da celdas mas grandes en cualquier posicion
+    // de la perilla.
+    float freq = 1.6 + uDensity * 6.0;
     vec2  g = p * freq;
     vec2  cellId = floor(g);
     vec2  cellF = fract(g);
 
     float dist1 = 1e5;
     float dist2 = 1e5;
-    float siteDist = 1e5;
 
     for (int oy = -1; oy <= 1; oy++) {
         for (int ox = -1; ox <= 1; ox++) {
@@ -77,30 +82,34 @@ vec4 render(vec2 uv)
             } else if (d < dist2) {
                 dist2 = d;
             }
-
-            // Distancia al sitio de la propia celda central (para el nodo).
-            if (ox == 0 && oy == 0) {
-                siteDist = d;
-            }
         }
     }
 
-    float edgeWidth = 0.015 + uD1 * 0.05;
-    float edge = 1.0 - smoothstep(0.0, edgeWidth, dist2 - dist1);
+    float gap = dist2 - dist1;
 
-    float nodeSize = 0.06 + uD2 * 0.18;
-    float node = exp(-siteDist * siteDist / (nodeSize * nodeSize) * 3.0);
+    // D1: grosor del segmento nitido. Rango mas amplio que antes (0.008 a
+    // 0.10) para que se note en toda la perilla, no solo en la mitad de
+    // arriba.
+    float edgeWidth = 0.008 + uD1 * 0.10;
+    float edge = 1.0 - smoothstep(0.0, edgeWidth, gap);
+
+    // D2: resplandor (glow) ancho alrededor de cada segmento -- en 0 no
+    // hay nada extra (solo la linea nitida de arriba), en 1 cada linea
+    // tiene un halo neon notable. Reusa 'gap', cero costo de muestreo
+    // adicional.
+    float glowWidth = 0.03 + uD2 * 0.55;
+    float glow = exp(-max(gap, 0.0) / glowWidth) * uD2;
 
     float h = audioHue(uHue, uMid * 0.05);
     vec3 edgeCol = hsv2rgb(vec3(h, 0.80, 0.85));
-    vec3 nodeCol = hsv2rgb(vec3(fract(h + 0.06), 0.35, 1.0));
+    vec3 glowCol = hsv2rgb(vec3(fract(h + 0.04), 0.55, 1.0));
 
     // Pulso que recorre la red: modula el brillo de los segmentos segun
     // su distancia al centro, viajando con el tiempo.
     float pulse = 0.5 + 0.5 * sin(length(p) * 3.0 - t * (0.6 + uSpeed * 1.5));
 
-    vec3 col = edgeCol * edge * (0.5 + 0.5 * pulse);
-    col += nodeCol * node * (1.0 + uKick * 1.2);
+    vec3 col = edgeCol * edge * (0.5 + 0.5 * pulse) * (1.0 + uKick * 1.2);
+    col += glowCol * glow * 0.8 * (0.6 + 0.4 * pulse);
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

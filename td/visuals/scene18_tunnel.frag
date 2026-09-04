@@ -30,6 +30,10 @@
 //
 // @D1: grosor de las lineas de la rejilla
 // @D2: cuantos segmentos radiales hay (frecuencia "alrededor")
+//
+// SIMPLIFICADA: menos anillos y segmentos por defecto, lineas mas
+// gruesas, y el relleno de tablero de ajedrez mucho mas tenue -- se
+// veia demasiado ocupada con los valores default.
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -50,21 +54,21 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado.
     ang += uHigh * 0.01 * sin(t * 12.0 + depth * 3.0);
 
-    float angFreq = 4.0 + uD2 * 10.0;
-    float ringFreq = 4.0 + uDensity * 10.0;
+    float angFreq = 3.0 + uD2 * 5.0;
+    float ringFreq = 3.0 + uDensity * 5.0;
 
     float segCoord = ang / TAU * angFreq;
     float ringCoord = depth * ringFreq * 0.25;
 
-    float lineW = 0.8 + uD1 * 2.5;
+    float lineW = 1.2 + uD1 * 3.0;
     float ringLine = edgeLine(fract(ringCoord) - 0.5, lineW);
     float segLine = edgeLine(fract(segCoord) - 0.5, lineW);
     float lines = max(ringLine, segLine);
 
-    // Relleno tipo tablero de ajedrez, tenue -- le da volumen a la
-    // rejilla sin competir con las lineas.
+    // Relleno tipo tablero de ajedrez, MUY tenue -- apenas le da volumen
+    // a la rejilla, sin competir con las lineas.
     float checker = mod(floor(segCoord) + floor(ringCoord), 2.0);
-    float fill = checker * 0.15;
+    float fill = checker * 0.06;
 
     float h = audioHue(uHue, uMid * 0.05);
     vec3 col = hsv2rgb(vec3(h, 0.70, 1.0)) * (lines + fill);

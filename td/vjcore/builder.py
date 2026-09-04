@@ -231,7 +231,7 @@ def build(verbose=True):
     # --- escenas + program + dashboard ---
     _, outs, thumbs = scenes.build_all(proj, channels)
     ops = program.build(proj, outs)
-    dashboard.build(proj, thumbs, ops['clean'])
+    dashboard.build(proj, thumbs, ops['bloom'])
 
     # --- error log ---
     err = proj.create(errorDAT, 'system_errors')

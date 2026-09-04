@@ -36,6 +36,12 @@
 //
 // @D1: cantidad de aberracion cromatica
 // @D2: que tan seguido cambia el desplazamiento de cada banda
+//
+// SIMPLIFICADA: se veia demasiado ocupada por defecto (muchas bandas
+// finas + estatica densa a la vez). Bajado el rango de bandas, la
+// resolucion de la estatica y cuanto Chaos mezcla de estatica por
+// defecto -- los knobs siguen pudiendo llevarla a full glitch, pero el
+// reposo ahora es mucho mas liso.
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -44,7 +50,7 @@ vec4 render(vec2 uv)
 
     // Cuantas bandas, y a que paso de tiempo cambian (mas D2 = cambios mas
     // frecuentes, menos D2 = bandas que se quedan quietas mas rato).
-    float bands = 6.0 + uDensity * 40.0;
+    float bands = 4.0 + uDensity * 14.0;
     float bandId = floor(uv.y * bands);
     float step_t = floor(t * (0.6 + uD2 * 4.0));
 
@@ -62,7 +68,7 @@ vec4 render(vec2 uv)
     shift += uHigh * 0.01 * sin(t * 20.0 + bandId);
 
     // Aberracion cromatica: cada canal muestrea con su propio offset extra.
-    float aberr = 0.006 + uD1 * 0.03;
+    float aberr = 0.003 + uD1 * 0.022;
     float xR = uv.x + shift + aberr;
     float xG = uv.x + shift;
     float xB = uv.x + shift - aberr;
@@ -70,23 +76,45 @@ vec4 render(vec2 uv)
     // Estatica de columna: ruido de alta frecuencia en x, distinto por
     // banda. Esto es lo que hace VISIBLE el desplazamiento -- sin detalle
     // fino, un corrimiento horizontal no se nota en nada.
-    float cols = 60.0 + uDensity * 220.0;
+    float cols = 24.0 + uDensity * 70.0;
     float nR = hash21(vec2(floor(xR * cols), bandId));
     float nG = hash21(vec2(floor(xG * cols), bandId));
     float nB = hash21(vec2(floor(xB * cols), bandId));
+
+    // La divergencia entre nR/nG/nB (de muestrear cada canal con su propio
+    // offset de aberracion) es lo que pintaba motas de colores sueltas
+    // (verdes, magentas...) por toda la estatica -- se ven demasiadas.
+    // Se devuelve la mayor parte de cada canal a su promedio (gris) y se
+    // deja solo una fraccion chica de esa divergencia: motas de color
+    // ocasionales, no una estatica arcoiris.
+    float nAvg = (nR + nG + nB) / 3.0;
+    float colorAmt = 0.22;
+    nR = mix(nAvg, nR, colorAmt);
+    nG = mix(nAvg, nG, colorAmt);
+    nB = mix(nAvg, nB, colorAmt);
 
     // Tinte base: un matiz que viaja lento con el tiempo, sin depender de x
     // (asi el color de fondo no compite con el shift -- el shift se lee en
     // la estatica, el matiz da la paleta).
     float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.05);
-    vec3 base = hsv2rgb(vec3(hBase, 0.70, 1.0));
+    // Value bajado (era 1.0, luego 0.30): mucho mas oscura en reposo --
+    // Bass/Kick la hacen respirar mas claro.
+    vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.16));
     vec3 staticCol = base * (0.30 + 0.70 * vec3(nR, nG, nB));
 
     // Chaos tambien controla CUANTA estatica hay en total, no solo su
     // textura -- en Chaos=0 esto es un color liso y calmo (sin esto, la
     // escena nunca tenia un extremo minimal de verdad, siempre se veia
     // ruidosa aunque Density estuviera baja).
-    vec3 col = mix(base, staticCol, 0.15 + uChaos * 0.85);
+    vec3 col = mix(base, staticCol, 0.05 + uChaos * 0.55);
+
+    // Motas que SI brillan: sobre el promedio de nR/nG/nB (antes de que se
+    // aplaste hacia gris), un umbral alto agarra solo las celdas mas
+    // "encendidas" del ruido -- pocas, casi blancas -- y se suman APARTE
+    // del mix de arriba, para que siempre esten presentes aunque Chaos este
+    // bajo y el resto de la escena quede lisa y oscura.
+    float highlight = smoothstep(0.94, 0.995, nAvg);
+    col += vec3(1.0) * highlight * 0.9;
 
     // Lineas de barrido sutiles (el propio "scanline" del nombre): una
     // banda oscura fina cada cierta cantidad de filas.

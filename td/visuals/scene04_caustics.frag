@@ -54,7 +54,10 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado.
     v += uHigh * 0.03 * sin(t * 16.0 + p.x * 4.0);
 
-    float contrast = 0.4 + uD1 * 1.0;
+    // Rango bajado (era 0.4-1.4): se veia demasiado claro/lavado con
+    // valores por defecto -- D1 sigue teniendo el mismo rol, solo que
+    // el techo y el piso son mas oscuros.
+    float contrast = 0.22 + uD1 * 0.70;
     v *= contrast;
 
     float h = audioHue(uHue, uMid * 0.05);

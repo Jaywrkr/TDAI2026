@@ -29,6 +29,13 @@
 //   Kick     flash breve
 //   High     vibracion micro del segundo warp (excepcion del contrato)
 //
+// FOG: ademas del cuerpo de tinta, una segunda capa de niebla -- un campo
+// de ruido MUY grande y lento e independiente del cuerpo principal, con un
+// smoothstep ancho y una version bien desaturada del color. No compite con
+// la forma principal (es mucho mas grande y mas tenue), da la sensacion de
+// que la tinta esta suspendida en un liquido con su propia bruma, no
+// flotando sobre negro plano.
+//
 // @D1: ancho del borde difuso (nitido <-> muy difuminado)
 // @D2: cuanto se separa el segundo warp del primero (mas capas de pliegue)
 // ===============================================================
@@ -56,7 +63,9 @@ vec4 render(vec2 uv)
     float ink = fbm(p3 * freq, 5, 0.55);
 
     // Borde ANCHO y difuso -- D1 controla que tan nitido o difuminado es.
-    float softness = 0.22 - uD1 * 0.18;
+    // Rango mas amplio que antes (hasta 0.30) para un maximo bien
+    // "disuelto en agua", no solo levemente suave.
+    float softness = 0.30 - uD1 * 0.26;
     float shape = smoothstep(0.5 - softness, 0.5 + softness, ink);
 
     float h = audioHue(uHue, uMid * 0.05);
@@ -68,6 +77,16 @@ vec4 render(vec2 uv)
     // dar sensacion de profundidad dentro de la propia tinta.
     float core = smoothstep(0.65, 0.95, ink);
     col += hsv2rgb(vec3(fract(h + 0.03), 0.55, 1.0)) * core * 0.4;
+
+    // ---------------- NIEBLA (fog) ----------------
+    // Campo independiente, mucho mas grande y lento que el cuerpo de tinta
+    // -- una segunda deriva propia, no la misma que anima el cuerpo, para
+    // que la niebla no quede pegada a la forma principal.
+    vec2 fogP = p * 0.16 + vec2(t * 0.010, -t * 0.007) + 21.0;
+    float fogField = fbm(fogP, 3, 0.5);
+    float fog = smoothstep(0.30, 0.85, fogField);
+    vec3 fogCol = hsv2rgb(vec3(fract(h + 0.02), 0.20, 1.0));  // casi gris, tenue
+    col += fogCol * fog * 0.30;
 
     // Kick: flash breve.
     col += col * uKick * 0.4;

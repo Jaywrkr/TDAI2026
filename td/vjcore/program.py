@@ -27,6 +27,77 @@ from . import config
 from .tdutil import safe_set, safe_set_first, safe_expr, connect, log
 
 
+# ---------------------------------------------------------------
+# BLOOM - post-proceso de UNA sola pasada GLSL sobre la salida final
+# ---------------------------------------------------------------
+# Extrae brillos por encima de un umbral y los difumina con un anillo de
+# muestras (16 + centro): una aproximacion barata de un blur ancho en una
+# sola pasada, sin downsample/upsample. Se suma sobre la imagen original.
+#
+# A proposito UN SOLO GLSL TOP, no una cadena de Blur TOP + Level TOP +
+# Composite TOP: esa es exactamente la arquitectura que este rig evita
+# (ver la nota al principio de scenes.py) -- ademas los nombres de
+# parametro de Blur/Level TOP varian entre builds de TD y no se pueden
+# verificar sin la app abierta, mientras que este shader se valida solo
+# con glslangValidator, igual que las 20 escenas.
+#
+# Umbral/cantidad/radio quedan fijos (no son perillas en vivo) -- es un
+# acabado esteticto del programa completo, no un parametro de performance
+# que el VJ necesite tocar escena por escena.
+_BLOOM_FRAG = """
+out vec4 fragColor;
+
+float luminance(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+
+void main() {
+    const float TAU = 6.2831853072;
+    const float THRESH = 0.55;
+    const float AMOUNT = 0.55;
+    const float RADIUS = 3.0;
+
+    vec2 uv = vUV.st;
+    vec2 texel = uTD2DInfos[0].res.zw;
+
+    vec3 base = texture(sTD2DInputs[0], uv).rgb;
+
+    vec3 glow = vec3(0.0);
+    float wsum = 0.0;
+
+    // Anillo interno (8 muestras a RADIUS) + anillo externo (8 muestras a
+    // 2*RADIUS).
+    for (int i = 0; i < 16; i++) {
+        float ring = (i < 8) ? 1.0 : 2.0;
+        int idx = (i < 8) ? i : i - 8;
+        float ang = (float(idx) / 8.0) * TAU;
+        vec2 off = vec2(cos(ang), sin(ang)) * texel * RADIUS * ring;
+        vec3 s = texture(sTD2DInputs[0], uv + off).rgb;
+        float bright = max(luminance(s) - THRESH, 0.0);
+        float w = 1.0 / ring;
+        glow += s * bright * w;
+        wsum += w;
+    }
+    glow /= max(wsum, 1e-5);
+
+    vec3 col = base + glow * AMOUNT;
+    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+}
+"""
+
+
+def _build_bloom(proj, src_top):
+    src = proj.create(textDAT, 'bloom_src')
+    src.nodeX, src.nodeY = 1160, 160
+    src.text = _BLOOM_FRAG
+
+    glsl = proj.create(glslTOP, 'program_bloom')
+    glsl.nodeX, glsl.nodeY = 1160, 380
+    safe_set_first(glsl, ['pixeldat', 'pixelshader'], src.path)
+    connect(glsl, src_top, 0)
+    safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
+    log('BLOOM: post-proceso de una pasada OK')
+    return glsl
+
+
 def build(proj, scene_outs):
     # --- puentes locales a cada escena ---
     srcs = []
@@ -87,6 +158,8 @@ def build(proj, scene_outs):
     clean.nodeX, clean.nodeY = 1160, 280
     connect(clean, cross)
 
+    bloom = _build_bloom(proj, clean)
+
     # --- master fade / blackout (solo en SHOW OUT) ---
     black = proj.create(constantTOP, 'black')
     black.nodeX, black.nodeY = 960, 60
@@ -96,7 +169,7 @@ def build(proj, scene_outs):
     master = proj.create(crossTOP, 'master_fade')
     master.nodeX, master.nodeY = 1160, 60
     connect(master, black, 0)
-    connect(master, clean, 1)
+    connect(master, bloom, 1)
     safe_expr(master, 'cross',
               "0 if op('/project1').par.Blackout.eval() "
               "else op('/project1').par.Brightness.eval()")
@@ -106,7 +179,7 @@ def build(proj, scene_outs):
     connect(show, master)
 
     # Resolucion global solo donde hace falta declararla.
-    for t in (black, cross, clean, master, show):
+    for t in (black, cross, clean, bloom, master, show):
         safe_set(t, 'outputresolution', 'custom')
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
         safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")
@@ -123,4 +196,4 @@ def build(proj, scene_outs):
 
     log('PROGRAM: bus A/B + crossfade nativo + master fade OK')
     return {'a': sw_a, 'b': sw_b, 'cross': cross, 'clean': clean,
-            'master': master, 'show': show, 'window': win}
+            'bloom': bloom, 'master': master, 'show': show, 'window': win}
