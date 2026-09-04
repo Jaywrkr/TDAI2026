@@ -63,21 +63,28 @@ PAR_CHANNELS = [
 # ---------------------------------------------------------------
 # MIDI - Arturia MiniLab MkII
 # ---------------------------------------------------------------
-# OJO: estos son los valores de fabrica REPORTADOS de la Memoria 1.
-# NO los des por ciertos: usa MIDI Learn (ver docs/02_MIDI_MINILAB_MKII.md).
-# Los pads de fabrica salen por canal 10, no por canal 1.
+# Estos son los canales REALES confirmados con MIDI Learn en la unidad de
+# produccion (TouchDesigner Build 2025.32820, macOS). NO coinciden con los
+# CC de fabrica de la Memoria 1 documentados por Arturia -- ese build de TD
+# nombra los canales como 'ch1ctrl<N>' en vez de 'ch1cc<N>', y el preset
+# activo en el teclado tampoco es el de fabrica. Ver docs/02 para el detalle.
+#
+# Con esto ya escrito, /project1/midi1 solo necesita el Device seleccionado
+# para que los 6 knobs y los 5 pads funcionen desde el primer arranque, sin
+# pasar por Learn. Learn sigue disponible para remapear o para otro
+# controlador.
 DEFAULT_MIDI = {
-    'Speed':      'ch1cc112',   # Encoder 1
-    'Density':    'ch1cc74',    # Encoder 2
-    'Hue':        'ch1cc71',    # Encoder 3
-    'Chaos':      'ch1cc76',    # Encoder 4
-    'Brightness': 'ch1cc77',    # Encoder 5
-    'Transition': 'ch1cc93',    # Encoder 6
-    'Next':       'ch10n36',    # Pad 1
-    'Prev':       'ch10n37',    # Pad 2
-    'Blackout':   'ch10n38',    # Pad 3
-    'Snapshot':   'ch10n39',    # Pad 4
-    'Reset':      'ch10n40',    # Pad 5
+    'Speed':      'ch1ctrl76',
+    'Density':    'ch1ctrl73',
+    'Hue':        'ch1ctrl74',
+    'Chaos':      'ch1ctrl80',
+    'Brightness': 'ch1ctrl94',
+    'Transition': 'ch1ctrl92',
+    'Next':       'ch1ctrl30',
+    'Prev':       'ch1ctrl29',
+    'Blackout':   'ch1ctrl28',
+    'Snapshot':   'ch1ctrl27',
+    'Reset':      'ch1ctrl26',
 }
 
 # Orden en que aparecen en la pagina MIDI Mapping.

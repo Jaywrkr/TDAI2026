@@ -1,13 +1,44 @@
 # MIDI — Arturia MiniLab MkII
 
-## Lo primero: no confíes en ninguna tabla, usa MIDI Learn
+## Mapeo por defecto — confirmado en vivo, no adivinado
 
-El rig trae un mapeo por defecto, pero el MiniLab MkII es **reprogramable**
-desde el MIDI Control Center. Si alguien tocó esa unidad alguna vez —o si
-Arturia cambió la memoria de fábrica entre revisiones— la tabla que sea deja
-de aplicar.
+Estos son los canales reales, verificados con MIDI Learn sobre la unidad de
+producción (TouchDesigner Build 2025.32820, macOS). Con `/project1/midi1` →
+Device en `Arturia MiniLab mkII`, los 6 knobs y los 5 pads funcionan desde
+el primer arranque — **no hace falta pasar por Learn**.
 
-Por eso el flujo correcto es aprender, no configurar:
+| Slot | Canal MIDI | Control físico | Qué hace |
+|---|---|---|---|
+| Speed | `ch1ctrl76` | Encoder 1 | Velocidad global de los visuales |
+| Density | `ch1ctrl73` | Encoder 2 | Densidad / cantidad de detalle |
+| Hue | `ch1ctrl74` | Encoder 3 | Paleta de color |
+| Chaos | `ch1ctrl80` | Encoder 4 | Distorsión / turbulencia |
+| Brightness | `ch1ctrl94` | Encoder 5 | Master fade |
+| Transition | `ch1ctrl92` | Encoder 6 | Duración del fundido (0.05–2 s) |
+| Next | `ch1ctrl30` | Pad 1 | Siguiente escena |
+| Prev | `ch1ctrl29` | Pad 2 | Escena anterior |
+| Blackout | `ch1ctrl28` | Pad 3 | Blackout on/off |
+| Snapshot | `ch1ctrl27` | Pad 4 | Guardar knobs de la escena activa |
+| Reset | `ch1ctrl26` | Pad 5 | Reset de controles |
+
+Dos cosas que no calzan con lo que dice Arturia en su documentación, y está
+bien que no calcen:
+
+- **`ch1ctrl<N>`, no `ch1cc<N>`.** Este build de TouchDesigner nombra los
+  canales de control continuo con el prefijo `ctrl`, no `cc`. Es una
+  diferencia de nomenclatura entre versiones de TD, no un error.
+- **Los pads salen como `ch1ctrl<N>` también, no como notas (`ch1n<N>`).**
+  El preset activo en esta unidad tiene los pads configurados para mandar
+  CC en vez de Note — común en modo DAW o con un preset de usuario distinto
+  al de fábrica. Funcionan igual de bien como triggers: un pad configurado
+  así salta entre 0 y 127 al presionar/soltar, así que el cruce por cero que
+  dispara la acción sigue siendo confiable.
+
+## Si tocas otra unidad, o alguien reprogramó esta
+
+El MiniLab MkII es reprogramable desde el MIDI Control Center de Arturia. Si
+la tabla de arriba deja de aplicar (otra unidad, otro preset, alguien tocó la
+configuración), el mapeo se rehace con Learn, sin editar código:
 
 1. `/project1/midi1` → parámetro **Device** → `Arturia MiniLab mkII`.
 2. `/project1` → pestaña **MIDI Mapping**.
@@ -17,31 +48,16 @@ Por eso el flujo correcto es aprender, no configurar:
 5. Repite para Density, Hue, Chaos, Brightness, Transition, y los pads.
 
 **`Cancelar Learn`** desarma sin asignar. **`Guardar Mapeo`** / **`Cargar
-Mapeo`** escriben `td/config/midi_map.json`, que se recarga en cada arranque.
+Mapeo`** escriben `td/config/midi_map.json`, que se recarga en cada arranque
+y sobreescribe lo que haya en `config.py`.
 
 ---
 
-## Mapeo por defecto que trae el rig
+## CC de fábrica de los 16 encoders (referencia histórica, no confíes en esto)
 
-| Slot | Canal MIDI | Control físico | Qué hace |
-|---|---|---|---|
-| Speed | `ch1cc112` | Encoder 1 | Velocidad global de los visuales |
-| Density | `ch1cc74` | Encoder 2 | Densidad / cantidad de detalle |
-| Hue | `ch1cc71` | Encoder 3 | Paleta de color |
-| Chaos | `ch1cc76` | Encoder 4 | Distorsión / turbulencia |
-| Brightness | `ch1cc77` | Encoder 5 | Master fade |
-| Transition | `ch1cc93` | Encoder 6 | Duración del fundido (0.05–2 s) |
-| Next | `ch10n36` | Pad 1 | Siguiente escena |
-| Prev | `ch10n37` | Pad 2 | Escena anterior |
-| Blackout | `ch10n38` | Pad 3 | Blackout on/off |
-| Snapshot | `ch10n39` | Pad 4 | Guardar knobs de la escena activa |
-| Reset | `ch10n40` | Pad 5 | Reset de controles |
-
----
-
-## CC de fábrica de los 16 encoders
-
-Memoria 1 (Analog Lab), **canal 1**:
+Esto es lo que documenta Arturia para la Memoria 1 (Analog Lab), canal 1 —
+**no coincide** con la tabla de arriba en esta unidad. Se deja aquí solo
+como referencia si algún día reseteas el teclado a fábrica.
 
 | Knob | CC | Knob | CC |
 |---|---|---|---|
@@ -54,22 +70,24 @@ Memoria 1 (Analog Lab), **canal 1**:
 | 7 | 73 | 15 | 79 |
 | 8 | 75 | 16 | 72 |
 
-Los 8 pads salen por **canal 10**, notas **36–43** (banco 1) y **44–51**
-(banco 2).
+Pads de fábrica: **canal 10**, notas **36–43** (banco 1) y **44–51** (banco
+2) — en esta unidad los pads no siguen este esquema (ver arriba).
 
-> Los CC no son consecutivos. El script original asumía 112–116; solo 112 y
-> 114 existen de verdad. Verifica siempre en el visor del MIDI In CHOP: abre
-> `/project1/midi1`, mueve un knob, y mira qué nombre de canal aparece.
+> La lección de todo esto: nunca confíes en una tabla de CCs sin verificarla.
+> Verifica siempre en el visor del MIDI In CHOP: abre `/project1/midi1`,
+> mueve un knob, y mira qué nombre de canal aparece de verdad.
 
 ---
 
 ## Cómo se leen los nombres de canal
 
-TouchDesigner nombra los canales del MIDI In CHOP así:
+TouchDesigner nombra los canales del MIDI In CHOP así, aunque el prefijo
+exacto (`cc` vs `ctrl`) varía entre versiones de TD:
 
 ```
-ch<canal>cc<número>     control continuo   → ch1cc112
-ch<canal>n<nota>        nota               → ch10n36
+ch<canal>cc<número>     control continuo (builds antiguos)   → ch1cc112
+ch<canal>ctrl<número>   control continuo (build 2025.32820)  → ch1ctrl76
+ch<canal>n<nota>        nota                                 → ch10n36
 ```
 
 Un canal **no aparece hasta que ese control se mueve por primera vez**. Si
