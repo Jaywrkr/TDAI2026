@@ -51,14 +51,17 @@ vec4 render(vec2 uv)
     float stepT = floor(t * rate);
     float visHash = hash21(cellId + stepT * 7.3);
 
-    // D2 corre el umbral: mas D2 = mas bloques encendidos por paso.
-    float threshold = 0.75 - uD2 * 0.55;
+    // D2 corre el umbral: mas D2 = mas bloques encendidos por paso. Rango
+    // bajado (era 0.25-0.80 de bloques encendidos) -- por defecto se ven
+    // claramente pocos encendidos, no mas de la mitad de la rejilla.
+    float threshold = 0.92 - uD2 * 0.35;
     float on = step(threshold, visHash);
 
     // Encendido total con el kick, sin importar el hash de esa celda.
     on = max(on, uKick * step(0.5, hash21(cellId + floor(t * 30.0))));
 
-    float fillSize = 0.28 + uD1 * 0.19;
+    // Bloques mucho mas chicos dentro de su celda (era 0.28-0.47).
+    float fillSize = 0.10 + uD1 * 0.14;
     vec2  d = abs(cellUv) - vec2(fillSize);
     float rect = 1.0 - smoothstep(0.0, 0.025, max(d.x, d.y));
 
