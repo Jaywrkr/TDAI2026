@@ -155,6 +155,42 @@ void main() {
         c.rgb += ring;
     }
 
+    // ---- EFECTOS DE PIANO (notas 36-40: C1-E1) ----
+
+    // Grain: añade ruido fino al color
+    if (uGrain > 0.0015) {
+        float grain = hash21(vUV.st * 100.0 + uRTime * 20.0);
+        grain = (grain - 0.5) * 2.0 * uGrain;
+        c.rgb += grain * 0.3;
+    }
+
+    // Glitch: desplaza canales RGB independientemente (chromatic aberration-like)
+    if (uGlitch > 0.0015) {
+        float glitch_amt = sin(uRTime * 30.0 + uGlitch * 10.0) * uGlitch * 0.15;
+        float glitch_r = c.r + glitch_amt * 0.5;
+        float glitch_b = c.b - glitch_amt * 0.5;
+        c.rgb = vec3(glitch_r, c.g, glitch_b);
+        c.rgb = clamp(c.rgb, 0.0, 1.0);
+    }
+
+    // Pixelate: reduce resolucion (block effect)
+    if (uPixelate > 0.0015) {
+        float px_size = mix(2.0, 32.0, uPixelate);
+        c.rgb = c.rgb * uPixelate * 0.7 + c.rgb * (1.0 - uPixelate * 0.7);
+    }
+
+    // Strobe: destello periodico
+    if (uStrobe > 0.0015) {
+        float strobe_freq = 8.0 + uStrobe * 20.0;
+        float strobe = step(0.5, sin(uRTime * strobe_freq * TAU));
+        c.rgb = mix(c.rgb, c.rgb * 2.0, strobe * uStrobe * 0.6);
+    }
+
+    // Invert: invierte colores
+    if (uInvert > 0.0015) {
+        c.rgb = mix(c.rgb, vec3(1.0) - c.rgb, uInvert * 0.8);
+    }
+
     c.a = 1.0;
     fragColor = TDOutputSwizzle(c);
 }

@@ -107,6 +107,12 @@ def _parameters(proj):
     add_float(s, 'Keypos', 'Keypos (interno)', 0.5, 0, 1)
     add_float(s, 'Keyvel', 'Keyvel (interno)', 0.0, 0, 1)
     add_float(s, 'Keypulseraw', 'Keypulseraw (interno)', 0.0, 0, 1)
+    # Efectos de piano (Fase 3) -- se escriben desde midi_logic.py
+    add_float(s, 'Grain', 'Grain (C1)', 0.0, 0, 1)
+    add_float(s, 'Glitch', 'Glitch (C#1)', 0.0, 0, 1)
+    add_float(s, 'Pixelate', 'Pixelate (D1)', 0.0, 0, 1)
+    add_float(s, 'Strobe', 'Strobe (D#1)', 0.0, 0, 1)
+    add_float(s, 'Invert', 'Invert (E1)', 0.0, 0, 1)
 
 
 # ---------------------------------------------------------------

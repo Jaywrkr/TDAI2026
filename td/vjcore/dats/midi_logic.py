@@ -41,24 +41,51 @@ def _handlePianoKey(note, val):
     p = op('/project1')
     if not p:
         return
-    pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
-    vel = max(0.0, min(1.0, float(val) / 127.0))
 
-    for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
-        par = getattr(p.par, par_name, None)
+    # Notas 36-40 (C1-E1): efectos en lugar de posicion de piano
+    effect_map = {
+        36: 'Grain',      # C1
+        37: 'Glitch',     # C#1
+        38: 'Pixelate',   # D1
+        39: 'Strobe',     # D#1
+        40: 'Invert',     # E1
+    }
+
+    if note in effect_map:
+        # Trigger de efecto
+        effect_name = effect_map[note]
+        par = getattr(p.par, effect_name, None)
         if par is not None:
-            par.val = v
+            par.val = max(0.0, min(1.0, float(val) / 127.0))
+        run("op('/project1/midi_logic').module._resetEffect('{}')".format(effect_name), delayFrames=2)
+    else:
+        # Piano normal: notas 41-60 (F1-C3)
+        pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
+        vel = max(0.0, min(1.0, float(val) / 127.0))
 
-    # Se resetea un par de frames despues para que la SIGUIENTE tecla
-    # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
-    # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
-    run("op('/project1/midi_logic').module._resetKeypulse()", delayFrames=2)
+        for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
+            par = getattr(p.par, par_name, None)
+            if par is not None:
+                par.val = v
+
+        # Se resetea un par de frames despues para que la SIGUIENTE tecla
+        # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
+        # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
+        run("op('/project1/midi_logic').module._resetKeypulse()", delayFrames=2)
 
 
 def _resetKeypulse():
     p = op('/project1')
     if p:
         par = getattr(p.par, 'Keypulseraw', None)
+        if par is not None:
+            par.val = 0.0
+
+
+def _resetEffect(effect_name):
+    p = op('/project1')
+    if p:
+        par = getattr(p.par, effect_name, None)
         if par is not None:
             par.val = 0.0
 

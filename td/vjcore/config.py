@@ -47,13 +47,20 @@ CTRL_CHANNELS = [
     'keypulse', # 11 pulso al tocar cualquier tecla del piano, decae solo
     'keypos',   # 12 grave..agudo de la ULTIMA tecla tocada, 0..1
     'keyvel',   # 13 fuerza de esa tecla, 0..1
+    # Fase 3 - efectos de piano (teclas bajas C1-E1, notas 36-40).
+    # Decaen solos tras cada pulsacion, como 'beat' y 'keypulse'.
+    'grain',    # 14 efecto de grano (C1, nota 36)
+    'glitch',   # 15 desplazamiento RGB (C#1, nota 37)
+    'pixelate', # 16 pixelacion (D1, nota 38)
+    'strobe',   # 17 destello (D#1, nota 39)
+    'invert',   # 18 inversion de color (E1, nota 40)
     # Fase 3 - perillas de detalle, significan algo distinto por escena.
     # Ver @D1.._at6 en el .frag y docs/03_VISUAL_SPEC.md.
-    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 14-19
-    'time',     # 20 tiempo YA escalado por Speed (usar este para animar)
-    'rtime',    # 21 tiempo real en segundos (independiente de Speed)
-    'resw',     # 22 ancho de salida
-    'resh',     # 23 alto de salida
+    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 19-24
+    'time',     # 25 tiempo YA escalado por Speed (usar este para animar)
+    'rtime',    # 26 tiempo real en segundos (independiente de Speed)
+    'resw',     # 27 ancho de salida
+    'resh',     # 28 alto de salida
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -68,6 +75,12 @@ PAR_CHANNELS = [
     ('Outputheight', 'resh'),
     ('Keypos', 'keypos'),
     ('Keyvel', 'keyvel'),
+    ('Keypulseraw', 'keypulse'),
+    ('Grain', 'grain'),
+    ('Glitch', 'glitch'),
+    ('Pixelate', 'pixelate'),
+    ('Strobe', 'strobe'),
+    ('Invert', 'invert'),
     ('Detail1', 'd1'),
     ('Detail2', 'd2'),
     ('Detail3', 'd3'),
