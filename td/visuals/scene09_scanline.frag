@@ -108,6 +108,14 @@ vec4 render(vec2 uv)
     // ruidosa aunque Density estuviera baja).
     vec3 col = mix(base, staticCol, 0.05 + uChaos * 0.55);
 
+    // Motas que SI brillan: sobre el promedio de nR/nG/nB (antes de que se
+    // aplaste hacia gris), un umbral alto agarra solo las celdas mas
+    // "encendidas" del ruido -- pocas, casi blancas -- y se suman APARTE
+    // del mix de arriba, para que siempre esten presentes aunque Chaos este
+    // bajo y el resto de la escena quede lisa y oscura.
+    float highlight = smoothstep(0.94, 0.995, nAvg);
+    col += vec3(1.0) * highlight * 0.9;
+
     // Lineas de barrido sutiles (el propio "scanline" del nombre): una
     // banda oscura fina cada cierta cantidad de filas.
     // OJO: la frecuencia importa. "* PI" da un ciclo cada 2 pixeles
