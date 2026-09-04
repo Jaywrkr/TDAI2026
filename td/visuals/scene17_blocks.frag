@@ -26,6 +26,10 @@
 //
 // @D1: tamano de los bloques dentro de su celda
 // @D2: proporcion de bloques encendidos en cada paso
+//
+// SIMPLIFICADA: menos bloques por defecto (mas grandes), parpadeo mas
+// lento, y menos variacion de matiz entre bloques -- se veia demasiado
+// ocupada/arcoiris con los valores default.
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -34,7 +38,7 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
     p += vec2(t * uSpeed * 0.08, t * uSpeed * 0.05);
 
-    float freq = 3.0 + uDensity * 10.0;
+    float freq = 2.0 + uDensity * 5.0;
     vec2  g = p * freq;
     vec2  cellId = floor(g);
     vec2  cellUv = fract(g) - 0.5;
@@ -43,7 +47,7 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado.
     cellUv += uHigh * 0.015 * vec2(sin(t * 8.0 + cellId.x), cos(t * 6.0 + cellId.y));
 
-    float rate = 0.4 + uChaos * 3.0;
+    float rate = 0.3 + uChaos * 1.8;
     float stepT = floor(t * rate);
     float visHash = hash21(cellId + stepT * 7.3);
 
@@ -58,7 +62,7 @@ vec4 render(vec2 uv)
     vec2  d = abs(cellUv) - vec2(fillSize);
     float rect = 1.0 - smoothstep(0.0, 0.025, max(d.x, d.y));
 
-    float hue = audioHue(fract(uHue + hash21(cellId + 11.0) * 0.25), uMid * 0.05);
+    float hue = audioHue(fract(uHue + hash21(cellId + 11.0) * 0.12), uMid * 0.05);
     vec3 blockCol = hsv2rgb(vec3(hue, 0.85, 1.0));
 
     vec3 col = blockCol * rect * on;
