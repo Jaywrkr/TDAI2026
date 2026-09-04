@@ -11,6 +11,10 @@ CONTINUOUS = {
     'Chaos': ('Chaos', 0.0, 1.0),
     'Brightness': ('Brightness', 0.0, 1.0),
     'Transition': ('Transitionseconds', 0.05, 2.0),
+    'Audioamount': ('Audioamount', 0.0, 1.0),
+    'Bassamount': ('Bassamount', 0.0, 1.0),
+    'Midamount': ('Midamount', 0.0, 1.0),
+    'Highamount': ('Highamount', 0.0, 1.0),
 }
 
 TRIGGERS = {

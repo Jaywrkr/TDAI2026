@@ -279,6 +279,7 @@ def reloadShaders():
 # ---------------------------------------------------------------
 
 MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
+              'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
               'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
 
 

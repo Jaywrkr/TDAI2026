@@ -61,6 +61,13 @@ def _parameters(proj):
     add_float(a, 'Kickwindow', 'Kick Window (s)', 0.35, 0.05, 2.0)
     add_float(a, 'Kickgain', 'Kick Gain', 9.0, 0.1, 60)
     add_float(a, 'Kickthreshold', 'Beat Threshold', 0.30, 0.01, 1.0)
+    # Perillas de performance: cuanto deja pasar el audio hacia los visuales.
+    # Default 1.0 = no cambia nada hasta que se toquen (sin sorpresas para
+    # quien ya tenia el rig funcionando).
+    add_float(a, 'Audioamount', 'Audio Amount (master)', 1.0, 0, 1)
+    add_float(a, 'Bassamount', 'Bass Amount', 1.0, 0, 1)
+    add_float(a, 'Midamount', 'Mid Amount', 1.0, 0, 1)
+    add_float(a, 'Highamount', 'High Amount', 1.0, 0, 1)
 
     perf = proj.appendCustomPage('Performance')
     add_toggle(perf, 'Performancemode', 'Freeze Inactive Scenes', True)

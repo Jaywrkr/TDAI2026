@@ -21,6 +21,26 @@ el primer arranque — **no hace falta pasar por Learn**.
 | Snapshot | `ch1ctrl27` | Pad 4 | Guardar knobs de la escena activa |
 | Reset | `ch1ctrl26` | Pad 5 | Reset de controles |
 
+## Perillas de audio (Fase 2) — sin CC por defecto todavía
+
+Estas 4 se agregaron después de confirmar el mapeo de arriba. No tengo sus
+CC reales, así que **no van a funcionar hasta que hagas Learn una vez**:
+
+| Slot | Qué hace |
+|---|---|
+| Audioamount | Master: cuánto deja pasar el audio hacia los visuales en general. En 0, ningún visual reacciona al sonido |
+| Bassamount | Cuánto pesan los graves específicamente |
+| Midamount | Cuánto pesan los medios específicamente |
+| Highamount | Cuánto pesan los agudos específicamente |
+
+Con tus 16 encoders, la cuenta cierra así: 6 ya mapeados arriba + estos 4 +
+6 libres para los knobs de "Detail" que trae cada escena (ver
+`docs/03_VISUAL_SPEC.md`) = 16.
+
+`/project1` → MIDI Mapping → `Learn Audioamount` → mueve el knob que
+quieras para eso. Repite con `Bassamount`, `Midamount`, `Highamount`. Queda
+guardado solo, igual que los demás.
+
 Dos cosas que no calzan con lo que dice Arturia en su documentación, y está
 bien que no calcen:
 

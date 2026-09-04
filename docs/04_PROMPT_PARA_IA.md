@@ -49,6 +49,8 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
   vec3  hsv2rgb(vec3 hsv)
   vec2  centered(vec2 uv)
   float vignette(vec2 uv, float amt)
+  vec3  audioLift(vec3 col, float amount)   ver regla 4, USAR para bajos/nivel
+  float audioHue(float hue, float amount)   ver regla 4, USAR para medios
   Constantes: PI, TAU
 
 === REGLAS DE CALIDAD ===
@@ -62,8 +64,29 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
    - Density → cuánta imagen hay: cobertura, cantidad de elementos, detalle
    - Hue     → paleta COMPLETA, no un tinte
    - Chaos   → desorden: turbulencia, distorsión, ruptura
-4. El audio debe leerse: uKick/uBeat para acentos, uBass para peso,
-   uHigh para chispa. Que no sea solo un multiplicador de brillo global.
+4. CONTRATO DE AUDIO -- regla dura, casi sin excepciones:
+   EL AUDIO NUNCA MUEVE GEOMETRIA. Nunca posicion, ancho de linea, radio,
+   umbral de cobertura, ni cantidad de elementos. Solo brillo y color.
+   Motivo: con un microfono de ambiente el nivel nunca esta perfectamente
+   quieto, y cualquier cosa cuya FORMA dependa de el tiembla sin parar en
+   vivo -- no se lee como "reacciona a la musica", se lee como un glitch.
+     - uBass / uLevel -> SOLO brillo, con audioLift:
+           col = audioLift(col, uBass * 0.8);
+       Sube el brillo SOLO donde ya hay algo brillante (col*(1+x) sigue
+       siendo 0 si col era 0) -- lo oscuro se queda oscuro por
+       construccion, no por ajuste fino.
+     - uMid -> SOLO color, con audioHue, ANTES de convertir a RGB:
+           float h = audioHue(uHue, uMid * 0.05);
+       amount pequeno (centesimas de vuelta): es un tinte, no un carrusel.
+     - uHigh -> la UNICA excepcion. Puede tocar geometria, pero SOLO a
+       escala micro (unos pocos pixeles/unidades como mucho) -- una
+       vibracion de detalle en las intersecciones o los bordes, nunca una
+       reestructuracion. Ejemplo real en scene00_veins.frag:
+           vec2 wa = warp(p, t, 0.25 + uChaos*0.80 + uHigh*0.05);
+       (uHigh ya llega suavizado desde el core, asi que no reintroduce
+       temblor aunque toque geometria a esta escala).
+     - uKick / uBeat -> acentos puntuales (flash, pulso), NO modulacion
+       continua. Esto ya estaba bien, no cambia.
 5. Presupuesto: menos de 2 ms de GPU a 1280x720. Máximo ~24 octavas de ruido
    por píxel en total. Pon las octavas en #define arriba del archivo.
 6. Termina con un tonemap col = col/(1.0+col) si el visual tiene núcleos
@@ -147,3 +170,4 @@ dónde pegar.
 | Redefinen `noise()` o `hash()` | "Ya existen `noise21`, `hash21`, `hash22`, `fbm`. Úsalos." |
 | Devuelven algo casi negro | "TouchDesigner no aplica gamma. Sube los valores." |
 | Meten 8 octavas en 3 capas | "Máximo ~24 octavas de ruido por píxel en total." |
+| Usan uBass/uLevel para escalar posición, ancho o radio | "El audio no mueve geometría, ver regla 4. Usa `audioLift` para brillo." |

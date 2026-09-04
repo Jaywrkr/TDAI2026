@@ -61,9 +61,57 @@ float ridge(float n, float sharp)        // 1-|2n-1| elevado: filamentos
 vec3  hsv2rgb(vec3 hsv)
 vec2  centered(vec2 uv)                  // x∈[-aspect,aspect], y∈[-1,1]
 float vignette(vec2 uv, float amt)
+vec3  audioLift(vec3 col, float amount)  // ver "Contrato de audio" abajo
+float audioHue(float hue, float amount)  // ver "Contrato de audio" abajo
 ```
 
 Constantes: `PI`, `TAU`.
+
+---
+
+## Contrato de audio: solo brillo y color, nunca geometría
+
+Regla dura, sin excepciones salvo una: **el audio no mueve posición, ancho
+de línea, radio, umbral de cobertura ni cantidad de elementos.** Solo brillo
+y color.
+
+Motivo: con un micrófono de ambiente el nivel nunca está perfectamente
+quieto. Cualquier cosa cuya *forma* dependa de él tiembla sin parar — no se
+lee como "reacciona a la música", se lee como un glitch. `scene00_veins.frag`
+tenía exactamente este bug (el nivel escalaba la posición de cada píxel, los
+graves engordaban el ancho de línea) y así se manifestaba.
+
+**La única excepción es `uHigh`**, y solo a escala micro (un par de píxeles
+como mucho) — una vibración de detalle, nunca una reestructuración. `uHigh`
+además llega ya suavizado desde `audio.py` (ver Fase 2), así que no
+reintroduce temblor aunque toque geometría.
+
+### `audioLift` — cómo deben usar bajos/nivel
+
+```glsl
+col = audioLift(col, uBass * 0.8);
+```
+
+Sube el brillo **solo donde ya hay algo brillante**: `col * (1+x)` sigue
+siendo `0` si `col` era `0`, así que lo oscuro se queda oscuro por
+construcción, no por ajuste fino. Pesa por la luminancia existente para que
+un halo tenue no se encienda igual que el núcleo.
+
+### `audioHue` — cómo deben usar medios
+
+```glsl
+float h = audioHue(uHue, uMid * 0.05);
+vec3 col = hsv2rgb(vec3(h, sat, val));
+```
+
+Rota el matiz **antes** de convertir a RGB — mucho más barato que convertir
+RGB→HSV→RGB. `amount` debe ser pequeño (unas pocas centésimas de vuelta):
+esto es un tinte que se mueve con la música, no un carrusel de colores.
+
+### Kick / Beat
+
+Son acentos puntuales (flash, pulso), no modulación continua — están bien
+donde ya se usan en `scene00_veins.frag`, ese patrón no cambia.
 
 ---
 
