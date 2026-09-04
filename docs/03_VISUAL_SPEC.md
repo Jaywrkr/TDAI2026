@@ -38,6 +38,10 @@ No los declares: ya están.
 | `uResW`, `uResH` | px | Resolución de salida |
 | `uAspect` | — | `uResW / uResH` |
 | `uScene` | 0–19 | Índice de esta escena |
+| `uD1`…`uD6` | 0–1 | Perillas de Detail. **Significan lo que tú definas** — documéntalo con `@D1`…`@D6`, ver abajo |
+| `uKeypulse` | 0–1 | Pulso al tocar cualquier tecla del piano, decae solo (~0.35 s). El anillo base ya sale gratis del footer — usa esto si quieres un efecto propio además |
+| `uKeypos` | 0–1 | Grave→agudo de la última tecla tocada |
+| `uKeyvel` | 0–1 | Fuerza de esa tecla |
 
 ### Por qué `uTime` y no `uRTime * uSpeed`
 
@@ -112,6 +116,36 @@ esto es un tinte que se mueve con la música, no un carrusel de colores.
 
 Son acentos puntuales (flash, pulso), no modulación continua — están bien
 donde ya se usan en `scene00_veins.frag`, ese patrón no cambia.
+
+---
+
+## Perillas de Detail (`uD1`…`uD6`) y su leyenda
+
+Cada escena tiene 6 perillas propias, `uD1` a `uD6`, 0–1. Qué hace cada una
+lo decide el autor del visual — no hay convención fija, y **eso es a
+propósito**: en una escena `D1` puede ser "cantidad de nodos" y en otra
+"velocidad de rotación".
+
+El problema obvio de eso es que nadie se acuerda qué hace cada perilla en
+cada una de 20 escenas. Se resuelve documentándolo en el propio `.frag`:
+
+```glsl
+// @D1: cantidad de nodos
+// @D2: grosor de linea
+// @D3: velocidad de rotacion
+```
+
+Una línea `// @D<N>: texto` por perilla que uses, en cualquier parte del
+archivo (van bien juntas cerca de la cabecera). El build las lee y las
+muestra en el dashboard, en un panel dedicado que se actualiza solo cada vez
+que cambias de escena — no hace falta memorizar nada mientras tocas.
+
+No hace falta documentar las 6: si tu visual solo usa `uD1` y `uD3`, escribe
+solo esas dos líneas. Un visual que no usa ninguna Detail no necesita
+comentarios — el panel muestra un texto por defecto.
+
+`Detail1`–`Detail6` también se guardan por escena con el sistema de
+presets (`Snapshot`), igual que Speed/Density/Hue/Chaos.
 
 ---
 

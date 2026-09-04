@@ -87,55 +87,66 @@ def build(proj, thumbs, program_clean):
     safe_set(mon, 'topfill', 'fillaspect')
     safe_set(mon, 'enable', False)
 
-    status_h = max(120, py - c.DASH_MARGIN - 12)
-    build_status_panel(dash, px, c.DASH_MARGIN, c.PROGRAM_W, status_h)
+    # Columna derecha, de abajo hacia arriba: leyenda de Detail (chica, la
+    # escena activa la reescribe en cada cambio), status (el resto).
+    legend_h = 110
+    legend_gap = 10
+    status_h = max(120, py - c.DASH_MARGIN - legend_h - legend_gap - 12)
+    status_y = c.DASH_MARGIN + legend_h + legend_gap
 
-    log('DASHBOARD: {} tiles + monitor + status'.format(len(thumbs)))
+    build_status_panel(dash, px, status_y, c.PROGRAM_W, status_h)
+    build_detail_legend_panel(dash, px, c.DASH_MARGIN, c.PROGRAM_W, legend_h)
+
+    log('DASHBOARD: {} tiles + monitor + status + detail legend'.format(len(thumbs)))
     return dash
 
 
-def build_status_panel(dash, x, y, w, h):
-    """Panel de diagnostico como TOP, no como Text COMP.
+def _build_text_panel(dash, prefix, x, y, w, h, initial_text,
+                      fontsize=14, fontcolor=(0.90, 0.94, 0.90),
+                      bgcolor=(0.06, 0.06, 0.07)):
+    """Panel de texto multilinea como TOP, no como Text COMP.
 
     El parametro 'text' de un Text COMP tuvo un problema real: los saltos de
-    linea que genera diagnostics.py llegaban aplastados en un solo parrafo
-    corrido, sin espacio entre lo que eran lineas distintas. Cambiar el
-    parametro de word wrap no lo arreglo -- la causa no era esa.
+    linea llegaban aplastados en un solo parrafo corrido, sin espacio entre
+    lo que eran lineas distintas. Cambiar el parametro de word wrap no lo
+    arreglo -- la causa no era esa.
 
     En vez de seguir adivinando el nombre de parametro correcto en un Text
     COMP (que varia de semantica entre builds de TD), se usa el mismo
     mecanismo que YA funciona en este dashboard: los thumbnails de escena
     son TOPs mostrados dentro de un container via 'top' = path. Un Text DAT
-    SIEMPRE preserva saltos de linea tal cual -- es como ya funcionan
-    control_script y diagnostics -- y un Text TOP renderiza ese contenido
-    como imagen respetando cada linea. Cero ambiguedad.
-    """
-    src = dash.create(textDAT, 'system_status_src')
-    src.nodeX, src.nodeY = -200, -200
-    src.text = 'SYSTEM INITIALIZING...'
+    SIEMPRE preserva saltos de linea tal cual -- y un Text TOP renderiza ese
+    contenido como imagen respetando cada linea. Cero ambiguedad.
 
-    render = dash.create(textTOP, 'system_status_render')
+    Devuelve (src, render, panel). 'src' es el Text DAT que hay que
+    actualizar (src.text = '...') para cambiar lo que se ve.
+    """
+    src = dash.create(textDAT, prefix + '_src')
+    src.nodeX, src.nodeY = -200, -200
+    src.text = initial_text
+
+    render = dash.create(textTOP, prefix + '_render')
     render.nodeX, render.nodeY = -200, -350
     safe_expr(render, 'text', "op('{}').text".format(src.path))
     safe_set_first(render, ['wordwrap', 'wrapwords'], False)
     safe_set_first(render, ['alignx', 'justifyx', 'textalignx'], 'left')
     safe_set_first(render, ['aligny', 'justifyy', 'textaligny'], 'top')
-    safe_set_first(render, ['fontsizex', 'fontsize'], 14)
+    safe_set_first(render, ['fontsizex', 'fontsize'], fontsize)
     # 'Consolas' es de Windows y no existe en macOS: TD la sustituye por
     # Helvetica en cada cook y lo registra como warning en system_errors,
     # que tiene un limite de 60 lineas -- eso puede tapar un error real.
     # 'Courier New' es monoespaciada y viene instalada de fabrica en
     # Windows, macOS y la mayoria de Linux.
     safe_set_first(render, ['font', 'fontname'], 'Courier New')
-    for p, v in (('fontcolorr', 0.90), ('fontcolorg', 0.94), ('fontcolorb', 0.90)):
+    for p, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'), fontcolor):
         safe_set(render, p, v)
-    for p, v in (('bgcolorr', 0.06), ('bgcolorg', 0.06), ('bgcolorb', 0.07)):
+    for p, v in zip(('bgcolorr', 'bgcolorg', 'bgcolorb'), bgcolor):
         safe_set(render, p, v)
     safe_set(render, 'outputresolution', 'custom')
     safe_set(render, 'resolutionw', int(w))
     safe_set(render, 'resolutionh', int(h))
 
-    panel = dash.create(containerCOMP, 'system_status')
+    panel = dash.create(containerCOMP, prefix)
     safe_set(panel, 'x', x)
     safe_set(panel, 'y', y)
     safe_set(panel, 'w', w)
@@ -147,6 +158,23 @@ def build_status_panel(dash, x, y, w, h):
     safe_set(panel, 'topfill', 'fillaspect')
     safe_set(panel, 'enable', False)
     return src, render, panel
+
+
+def build_status_panel(dash, x, y, w, h):
+    return _build_text_panel(dash, 'system_status', x, y, w, h,
+                             'SYSTEM INITIALIZING...')
+
+
+def build_detail_legend_panel(dash, x, y, w, h):
+    """Que hace cada perilla Detail 1-6 EN LA ESCENA ACTIVA ahora mismo.
+
+    control_script.py actualiza el Text DAT (_src) cada vez que cambia la
+    escena activa -- no hay costo por frame, es un evento infrecuente.
+    """
+    return _build_text_panel(
+        dash, 'detail_legend', x, y, w, h,
+        '(esta escena no documento perillas Detail)',
+        fontsize=13, fontcolor=(0.75, 0.85, 1.0), bgcolor=(0.05, 0.055, 0.08))
 
 
 def _click_text():

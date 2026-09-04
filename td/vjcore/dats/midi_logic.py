@@ -2,7 +2,66 @@
 
 El MIDI ESCRIBE en los parametros; no los secuestra con expresiones.
 Solo corre Python cuando algo se mueve de verdad.
+
+PIANO (Fase 3): a diferencia de los knobs/pads, las 25 teclas NO se mapean
+con Learn -- son un rango fijo de notas siempre activo. El nombre exacto
+que TD le da a un canal de nota puede variar entre builds (ya paso con los
+CC: 'ch1cc112' en un build, 'ch1ctrl76' en otro), asi que _piano_note()
+prueba varios patrones en vez de asumir uno solo. Si el patron real no es
+ninguno de estos, el sintoma es "el anillo de tecla no aparece nunca" --
+nunca rompe nada mas. Reportar el nombre real del canal (visor de midi1)
+si eso pasa.
 """
+
+import re
+
+# 2 octavas, C1-C3 -- el default de fabrica del MiniLab MkII. Los botones
+# Octave -/+ del teclado corren esto sin avisar al software.
+PIANO_LO = 36
+PIANO_HI = 60
+
+_NOTE_PATTERNS = [
+    re.compile(r'^ch\d+n(\d+)$', re.IGNORECASE),
+    re.compile(r'^ch\d+note(\d+)$', re.IGNORECASE),
+    re.compile(r'^ch\d+key(\d+)$', re.IGNORECASE),
+]
+
+
+def _piano_note(name):
+    for pat in _NOTE_PATTERNS:
+        m = pat.match(name)
+        if m:
+            note = int(m.group(1))
+            if PIANO_LO <= note <= PIANO_HI:
+                return note
+    return None
+
+
+def _handlePianoKey(note, val):
+    p = op('/project1')
+    if not p:
+        return
+    pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
+    vel = max(0.0, min(1.0, float(val) / 127.0))
+
+    for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
+        par = getattr(p.par, par_name, None)
+        if par is not None:
+            par.val = v
+
+    # Se resetea un par de frames despues para que la SIGUIENTE tecla
+    # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
+    # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
+    run("op('/project1/midi_logic').module._resetKeypulse()", delayFrames=2)
+
+
+def _resetKeypulse():
+    p = op('/project1')
+    if p:
+        par = getattr(p.par, 'Keypulseraw', None)
+        if par is not None:
+            par.val = 0.0
+
 
 CONTINUOUS = {
     'Speed': ('Speed', 0.0, 1.0),
@@ -61,6 +120,10 @@ def onValueChange(channel, sampleIndex, val, prev):
 
 
 def onOffToOn(channel, sampleIndex, val, prev):
+    note = _piano_note(channel.name)
+    if note is not None:
+        _handlePianoKey(note, val)
+        return
     _handle(channel, val, True)
     return
 

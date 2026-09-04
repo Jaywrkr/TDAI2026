@@ -28,7 +28,7 @@ from . import config
 from .tdutil import safe_set, safe_set_first, safe_expr, connect, log, chan_names
 
 
-def build(proj, audio_chop):
+def build(proj, audio_chop, key_chop=None):
     # --- parametros custom -> canales ---
     par_chop = proj.create(parameterCHOP, 'par_ctrl')
     par_chop.nodeX, par_chop.nodeY = -1400, 200
@@ -75,6 +75,8 @@ def build(proj, audio_chop):
     srcs = [par_ren, t_scaled_n, t_real_n]
     if audio_chop is not None:
         srcs.insert(1, audio_chop)
+    if key_chop is not None:
+        srcs.insert(1, key_chop)
     for i, s in enumerate(srcs):
         connect(merge, s, i)
 

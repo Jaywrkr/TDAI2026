@@ -15,6 +15,7 @@ practicamente cero.
 """
 
 import os
+import re
 
 from . import config
 
@@ -131,6 +132,19 @@ _FOOTER = """
 void main() {
     vec4 c = render(vUV.st);
     c.rgb = max(c.rgb, vec3(0.0));
+
+    // Anillo universal de teclas del piano (Fase 3). Horneado aca, no en
+    // cada .frag: las 20 escenas reaccionan igual sin que el autor del
+    // visual tenga que acordarse de implementarlo. uKeypulse decae solo
+    // tras cada tecla (ver audio.py / midi_logic.py); en reposo vale 0 y
+    // esto no cuesta nada (el if lo salta).
+    if (uKeypulse > 0.0015) {
+        vec2 kp = centered(vec2(mix(0.14, 0.86, uKeypos), 0.5));
+        float d = length(centered(vUV.st) - kp);
+        float ring = exp(-d * 5.0) * uKeypulse * (0.16 + uKeyvel * 0.30);
+        c.rgb += ring;
+    }
+
     c.a = 1.0;
     fragColor = TDOutputSwizzle(c);
 }
@@ -231,6 +245,27 @@ def read_body(scene_index):
 def compose(scene_index, channels):
     body, path = read_body(scene_index)
     return make_header(scene_index, channels) + body + _FOOTER, path
+
+
+_DETAIL_RE = re.compile(r'^\s*//\s*@D([1-6])\s*:\s*(.+?)\s*$')
+
+
+def parse_detail_legend(body):
+    """Lee los comentarios '// @D1: texto' .. '// @D6: texto' de un .frag.
+
+    Devuelve texto listo para mostrar ('D1: texto\\nD2: texto...'), o
+    cadena vacia si el visual no documento ninguno (por ejemplo, un visual
+    que no usa perillas de Detail). No falla si faltan algunos: solo
+    incluye los que si estan.
+    """
+    found = {}
+    for line in body.split('\n'):
+        m = _DETAIL_RE.match(line)
+        if m:
+            found[int(m.group(1))] = m.group(2)
+    if not found:
+        return ''
+    return '\n'.join('D{}: {}'.format(i, found[i]) for i in sorted(found))
 
 
 _FALLBACK_BODY = """
