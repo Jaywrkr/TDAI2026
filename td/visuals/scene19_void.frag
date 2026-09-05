@@ -23,6 +23,8 @@
 //
 // @D1: tamano del orbe
 // @D2: brillo/opacidad del orbe
+// @D3: nitidez del orbe (punto muy afilado <-> resplandor difuso y ancho)
+// @D4: saturacion del color (casi blanco <-> color muy vivido)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -41,13 +43,17 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado.
     pos += uHigh * 0.004 * vec2(sin(t * 9.0), cos(t * 8.0));
 
+    // D3: nitidez -- exponente alto da un punto muy afilado, bajo un
+    // resplandor difuso y ancho.
     float d = length(p - pos);
     float size = 0.05 + uD1 * 0.14;
-    float orb = exp(-d * d / (size * size) * 2.0);
+    float sharpness = 0.6 + uD3 * 3.0;
+    float orb = exp(-d * d / (size * size) * sharpness);
 
     float h = audioHue(uHue, uMid * 0.16);
     float opacity = 0.15 + uD2 * 0.45;
-    vec3 col = hsv2rgb(vec3(h, 0.50, 1.0)) * orb * opacity;
+    // D4: saturacion -- casi blanco (bajo) <-> color muy vivido (alto).
+    vec3 col = hsv2rgb(vec3(h, 0.15 + uD4 * 0.80, 1.0)) * orb * opacity;
 
     // Kick: el orbe pulsa un instante.
     col += col * uKick * 0.8;

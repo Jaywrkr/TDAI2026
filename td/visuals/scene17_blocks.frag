@@ -26,6 +26,9 @@
 //
 // @D1: tamano de los bloques dentro de su celda
 // @D2: proporcion de bloques encendidos en cada paso
+// @D3: redondez de las esquinas (cuadrados nitidos <-> casi circulos)
+// @D4: variacion de matiz entre bloques (paleta casi plana <-> muy
+//      variada)
 //
 // SIMPLIFICADA: menos bloques por defecto (mas grandes), parpadeo mas
 // lento, y menos variacion de matiz entre bloques -- se veia demasiado
@@ -61,11 +64,15 @@ vec4 render(vec2 uv)
     on = max(on, uKick * step(0.5, hash21(cellId + floor(t * 30.0))));
 
     // Bloques mucho mas chicos dentro de su celda (era 0.28-0.47).
+    // D3: redondez de esquinas -- SDF de caja redondeada estandar
+    // (length(max(d,0)) + min(max(d.x,d.y),0) - radio).
     float fillSize = 0.10 + uD1 * 0.14;
-    vec2  d = abs(cellUv) - vec2(fillSize);
-    float rect = 1.0 - smoothstep(0.0, 0.025, max(d.x, d.y));
+    float corner = uD3 * fillSize * 0.9;
+    vec2  d = abs(cellUv) - vec2(fillSize) + corner;
+    float boxSdf = length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - corner;
+    float rect = 1.0 - smoothstep(0.0, 0.025, boxSdf);
 
-    float hue = audioHue(fract(uHue + hash21(cellId + 11.0) * 0.12), uMid * 0.16);
+    float hue = audioHue(fract(uHue + hash21(cellId + 11.0) * uD4 * 0.9), uMid * 0.16);
     vec3 blockCol = hsv2rgb(vec3(hue, 0.85, 1.0));
 
     vec3 col = blockCol * rect * on;

@@ -30,6 +30,10 @@
 //
 // @D1: grosor de las lineas de la rejilla
 // @D2: cuantos segmentos radiales hay (frecuencia "alrededor")
+// @D3: visibilidad del relleno tipo tablero de ajedrez (casi nada <->
+//      bien marcado)
+// @D4: profundidad de la niebla (tunel poco profundo <-> se pierde en
+//      la distancia)
 //
 // SIMPLIFICADA: menos anillos y segmentos por defecto, lineas mas
 // gruesas, y el relleno de tablero de ajedrez mucho mas tenue -- se
@@ -53,6 +57,9 @@ vec4 render(vec2 uv)
     // uHigh: vibracion micro del angulo -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado.
     ang += uHigh * 0.01 * sin(t * 12.0 + depth * 3.0);
+    // Bass: un poco de movimiento del angulo ademas del brillo de mas
+    // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
+    ang += uBass * 0.04 * sin(depth * 0.8 + t * 0.5);
 
     float angFreq = 3.0 + uD2 * 5.0;
     float ringFreq = 3.0 + uDensity * 5.0;
@@ -65,17 +72,20 @@ vec4 render(vec2 uv)
     float segLine = edgeLine(fract(segCoord) - 0.5, lineW);
     float lines = max(ringLine, segLine);
 
-    // Relleno tipo tablero de ajedrez, MUY tenue -- apenas le da volumen
-    // a la rejilla, sin competir con las lineas.
+    // Relleno tipo tablero de ajedrez -- D3 controla su visibilidad, de
+    // casi nada a bien marcado, sin competir con las lineas por default.
     float checker = mod(floor(segCoord) + floor(ringCoord), 2.0);
-    float fill = checker * 0.06;
+    float fill = checker * uD3 * 0.5;
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 col = hsv2rgb(vec3(h, 0.70, 1.0)) * (lines + fill);
 
     // Niebla: se apaga hacia el centro (que es "lejos" en este mapeo),
-    // para reforzar la sensacion de profundidad infinita.
-    float fog = clamp(1.0 - r * 0.15, 0.15, 1.0);
+    // para reforzar la sensacion de profundidad infinita. D4 controla
+    // que tan rapido -- poco profundo (casi no se apaga) <-> se pierde
+    // rapido en la distancia.
+    float fogRate = 0.04 + uD4 * 0.35;
+    float fog = clamp(1.0 - r * fogRate, 0.05, 1.0);
     col *= fog;
 
     // Kick: flash breve.
