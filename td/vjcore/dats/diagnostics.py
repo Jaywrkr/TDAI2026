@@ -153,13 +153,14 @@ def update():
         _par_val('Detail4'), _par_val('Detail5'), _par_val('Detail6')))
 
     # Medidores VU: una barra en texto por banda, mas facil de leer de
-    # reojo en vivo que solo el numero.
+    # reojo en vivo que solo el numero. 2 lineas (no 4) para no inflar el
+    # panel -- barras mas cortas (8, no 14) para que quepan dos por linea.
     bass, mid, high, kick = (_chan_val('/project1/ctrl', n)
                              for n in ('bass', 'mid', 'high', 'kick'))
-    lines.append('Bass  {} {:.2f}'.format(_bar(bass), bass))
-    lines.append('Mid   {} {:.2f}'.format(_bar(mid), mid))
-    lines.append('High  {} {:.2f}'.format(_bar(high), high))
-    lines.append('Kick  {} {:.2f}'.format(_bar(kick), kick))
+    lines.append('Bass {} {:.2f}   Mid  {} {:.2f}'.format(
+        _bar(bass, 8), bass, _bar(mid, 8), mid))
+    lines.append('High {} {:.2f}   Kick {} {:.2f}'.format(
+        _bar(high, 8), high, _bar(kick, 8), kick))
 
     try:
         autopilot_on = bool(p.par.Autopilot.eval())

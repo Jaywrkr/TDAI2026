@@ -72,7 +72,14 @@ def _parameters(proj):
 
     perf = proj.appendCustomPage('Performance')
     add_toggle(perf, 'Performancemode', 'Freeze Inactive Scenes', True)
-    add_toggle(perf, 'Previewall', 'Preview All (caro)', False)
+    # Default cambiado a True: con Performance Mode solo, 19 de los 20
+    # tiles del dashboard quedan CONGELADOS (negros) hasta que se los
+    # visita una vez -- se ve como un dashboard roto (foto real del
+    # usuario: solo la escena activa se veia, el resto pura pantalla
+    # negra). El usuario confirmo que el FPS no es un problema por ahora,
+    # asi que el costo extra de las 20 escenas cocinando a la vez vale la
+    # pena por tener el grid completo siempre visible.
+    add_toggle(perf, 'Previewall', 'Preview All (caro)', True)
     add_int(perf, 'Prewarmframes', 'Prewarm Frames', 2, 0, 30)
 
     ap = proj.appendCustomPage('Autopilot')
@@ -94,9 +101,13 @@ def _parameters(proj):
     # Fase 3: perillas de detalle. Significan algo distinto en cada escena
     # -- el .frag las documenta con comentarios @D1.._at6 y el dashboard
     # muestra esa leyenda para la escena activa. Ver docs/03_VISUAL_SPEC.md.
+    # Default cambiado de 0.5 a 0.0 (pedido explicito): todas las escenas
+    # arrancan en su version mas subtil/apagada, y el efecto de cada
+    # Detail crece a medida que la perilla sube -- no un punto medio ya
+    # con la mitad del efecto puesto.
     d = proj.appendCustomPage('Detail')
     for i in range(1, 7):
-        add_float(d, 'Detail{}'.format(i), 'Detail {}'.format(i), 0.5, 0, 1)
+        add_float(d, 'Detail{}'.format(i), 'Detail {}'.format(i), 0.0, 0, 1)
 
     s = proj.appendCustomPage('System')
     add_string(s, 'Repopath', 'Repo td/ Path', '')

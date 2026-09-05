@@ -75,6 +75,14 @@ vec4 render(vec2 uv)
                      * ampBand
                      + uHigh * 0.01 * sin(t * 12.0 + p.x * 8.0 + float(i));
 
+        // Mezcla con algo MENOS lineal -- pedido explicito. Un fbm de
+        // baja frecuencia, distinto por linea, se suma al seno puro: la
+        // onda deja de ser un periodo perfecto y se lee organica, como
+        // scene05 (flow), sin perder la familia de lineas paralelas.
+        float bendNoise = (fbm(vec2(p.x * 0.5 + t * 0.08, float(i) * 3.7), 3) - 0.5)
+                         * (0.20 + uChaos * 0.5);
+        wobble += bendNoise;
+
         float sdf = p.y - (baseY + wobble);
         // sdf es solo distancia VERTICAL a la curva -- en los tramos con
         // pendiente alta (ondulacion fuerte) esa distancia ingenua se
@@ -86,8 +94,10 @@ vec4 render(vec2 uv)
         float sdfG = length(vec2(dFdx(sdf), dFdy(sdf)));
         float sdfN = sdf / max(sdfG, 1e-4);
 
-        // D3: variacion de color por linea.
-        vec3 lineCol = hsv2rgb(vec3(fract(h + float(i) * 0.09 * uD3), 0.75, 1.0));
+        // D3: variacion de color por linea -- baseline de 0.05 (no 0.0)
+        // para que por defecto ya haya mas de un color en pantalla, no
+        // todas las lineas identicas hasta que se suba la perilla.
+        vec3 lineCol = hsv2rgb(vec3(fract(h + float(i) * (0.05 + uD3 * 0.09)), 0.75, 1.0));
         float line = edgeLine(sdfN, lineW);
         // D4: resplandor ademas del trazo nitido.
         float glow = exp(-sdfN * sdfN / (0.004 + uD4 * 0.05)) * uD4;

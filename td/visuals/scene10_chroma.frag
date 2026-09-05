@@ -63,6 +63,13 @@ vec4 render(vec2 uv)
     // contraen de forma notoria, no solo un temblor sutil.
     r *= 1.0 + uBass * 0.10;
 
+    // Estilo noise: los anillos dejan de ser curvas matematicamente
+    // perfectas -- un fbm de baja frecuencia los deforma un poco, como
+    // ondas de agua reales en vez de circulos de compas. Pedido explicito
+    // de "mas estilo noise".
+    float noiseWarp = (fbm(p * 2.6 + t * 0.08, 3) - 0.5) * (0.06 + uChaos * 0.18);
+    r += noiseWarp;
+
     // Simplificada de nuevo a pedido del usuario: aun menos anillos por
     // defecto (freq base bajada) y mas gruesos -- el maximo de Density
     // sigue pudiendo llenar la pantalla si se quiere.

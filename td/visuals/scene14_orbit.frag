@@ -46,9 +46,17 @@ vec4 render(vec2 uv)
     vec3 col = vec3(0.0);
 
     // Inclinacion de perspectiva falsa: los circulos pasan a elipses,
-    // aplastadas en Y segun Mid -- simula ver las orbitas en 3D desde un
-    // angulo, en vez de circulos perfectos de frente.
-    float squish = 1.0 - uMid * 0.35;
+    // aplastadas en Y -- simula ver las orbitas en 3D desde un angulo,
+    // como un sistema solar visto de costado, en vez de circulos
+    // perfectos de frente. Base FIJA (0.62, no 1.0) para que el tilt se
+    // note SIEMPRE por defecto -- pedido explicito ("que se note que hay
+    // un tilt") -- Mid todavia lo acentua un poco mas encima.
+    float squish = 0.62 - uMid * 0.22;
+
+    // "Sol" en el centro: nucleo calido y brillante, para reforzar el
+    // look de sistema solar (las orbitas alrededor de una estrella, no
+    // solo lineas sueltas). Respira un poco con los bajos.
+    col += vec3(1.0, 0.82, 0.45) * exp(-r * r / (0.0035 + uBass * 0.002)) * 1.3;
 
     for (int i = 0; i < 6; i++) {
         if (i >= n) break;

@@ -53,7 +53,15 @@ vec3 basePattern(vec2 uv, float t)
     float rowId = floor(uv.y * 14.0);
     float cellHash = hash21(vec2(colId, rowId) + floor(t * (0.3 + uSpeed * 0.6)));
     float hue = fract(uHue + cellHash * 0.6);
-    float val = 0.35 + 0.5 * hash21(vec2(colId, rowId) + 7.0);
+    // Mayoria de celdas casi negras -- pedido explicito de "que se vea
+    // mas oscuro y solo detalles del glitch": antes CADA celda tenia
+    // color, llenando toda la pantalla como un mosaico. Ahora solo una
+    // fraccion chica de celdas se "prende" (acento de color); el resto
+    // queda negro, asi el tearing/aberracion cromatica/burst (que SI se
+    // ven sobre negro) son lo que de verdad protagoniza el visual.
+    float litHash = hash21(vec2(colId, rowId) + 7.0);
+    float isLit = step(0.82, litHash);
+    float val = isLit * (0.4 + 0.5 * hash21(vec2(colId, rowId) + 13.0));
     return hsv2rgb(vec3(hue, 0.75, val));
 }
 

@@ -32,14 +32,24 @@ def build(proj, thumbs, program_clean):
     grid_w = c.GRID_COLS * c.THUMB_W + (c.GRID_COLS - 1) * c.GAP
     grid_h = c.GRID_ROWS * c.THUMB_H + (c.GRID_ROWS - 1) * c.GAP
     dash_w = c.DASH_MARGIN * 2 + grid_w + 24 + c.PROGRAM_W
-    # +210 alcanzaba para status+legend antes de que status sumara la
-    # seccion de "valores en vivo" (perillas + audio) -- +190 de reserva
-    # para esas lineas nuevas (4 barras de VU en vez de 1 sola linea de
-    # audio). BEAT_STRIP_RESERVE aparte: una franja propia arriba del
-    # monitor de program para la luz de beat.
+
+    # El panel de status quedo CORTADO en un build real (foto del usuario):
+    # el supuesto de "~16px por linea" era muy optimista -- el interlineado
+    # real de un Text TOP a fontsize 12 es mas cerca de 1.6-1.7x el
+    # fontsize. Calculado explicito por CANTIDAD DE LINEAS en vez de una
+    # reserva de pixeles adivinada, con el peor caso (Learn armado +
+    # Autopilot ON a la vez) contemplado.
+    STATUS_FONTSIZE = 12
+    STATUS_LINE_H = STATUS_FONTSIZE * 1.7
+    STATUS_MAX_LINES = 24
+    status_h = int(STATUS_MAX_LINES * STATUS_LINE_H) + 16
+
     BEAT_STRIP_H = 40
     BEAT_GAP = 8
-    dash_h = (max(grid_h, c.PROGRAM_H + 210 + 220 + BEAT_STRIP_H + BEAT_GAP)
+    legend_h = 110
+    legend_gap = 10
+    dash_h = (max(grid_h, c.PROGRAM_H + BEAT_STRIP_H + BEAT_GAP
+                  + legend_h + legend_gap + status_h + legend_gap + 12)
               + c.DASH_MARGIN * 2)
 
     dash = proj.create(containerCOMP, 'dashboard_ui')
@@ -105,13 +115,12 @@ def build(proj, thumbs, program_clean):
     build_beat_light(dash, px, beat_y, BEAT_STRIP_H)
 
     # Columna derecha, de abajo hacia arriba: leyenda de Detail (chica, la
-    # escena activa la reescribe en cada cambio), status (el resto).
-    legend_h = 110
-    legend_gap = 10
-    status_h = max(120, py - c.DASH_MARGIN - legend_h - legend_gap - 12)
+    # escena activa la reescribe en cada cambio), status (el resto). Altura
+    # ya reservada arriba en dash_h -- esto solo posiciona.
     status_y = c.DASH_MARGIN + legend_h + legend_gap
 
-    build_status_panel(dash, px, status_y, c.PROGRAM_W, status_h)
+    build_status_panel(dash, px, status_y, c.PROGRAM_W, status_h,
+                       fontsize=STATUS_FONTSIZE)
     build_detail_legend_panel(dash, px, c.DASH_MARGIN, c.PROGRAM_W, legend_h)
 
     log('DASHBOARD: {} tiles + monitor + beat light + status + detail legend'.format(len(thumbs)))
@@ -177,9 +186,9 @@ def _build_text_panel(dash, prefix, x, y, w, h, initial_text,
     return src, render, panel
 
 
-def build_status_panel(dash, x, y, w, h):
+def build_status_panel(dash, x, y, w, h, fontsize=14):
     return _build_text_panel(dash, 'system_status', x, y, w, h,
-                             'SYSTEM INITIALIZING...')
+                             'SYSTEM INITIALIZING...', fontsize=fontsize)
 
 
 def build_beat_light(dash, x, y, h):

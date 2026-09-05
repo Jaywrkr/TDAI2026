@@ -105,6 +105,14 @@ vec4 render(vec2 uv)
 
     vec3 col = hsv2rgb(vec3(h, 0.85, 1.0)) * bright * colMask * interlace;
 
+    // Linea de scanner: un lector de codigo de barras real barre con un
+    // laser rojo -- pedido de "dale mas profesionalidad", un detalle de
+    // producto real en vez de solo columnas de color.
+    float scanY = fract(t * (0.15 + uSpeed * 0.4));
+    float scanDist = abs(uv.y - scanY);
+    float scanLine = exp(-scanDist * scanDist / 0.0004);
+    col += vec3(1.0, 0.12, 0.10) * scanLine * (0.6 + colMask * 0.4);
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

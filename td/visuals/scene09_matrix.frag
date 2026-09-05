@@ -111,6 +111,23 @@ vec4 render(vec2 uv)
     vec3 col = streamCol * bright * glyphAlpha * (1.0 - kickDepth * 0.4);
     col = mix(col, vec3(0.85, 1.0, 0.9), isHead * glyphAlpha * (0.9 + kickDepth));
 
+    // CRT scanlines: filas finas y oscuras, look de monitor viejo de
+    // verdad -- pedido de "mucho mas profesional, con detalles".
+    float scanline = 0.82 + 0.18 * sin(uv.y * uResH * PI);
+    col *= scanline;
+
+    // Glitch de columna: cada tanto UNA columna entera "falla" un
+    // instante -- se invierte a casi blanco, como un error de
+    // decodificacion en la señal. Hash contra el tiempo cuantizado a un
+    // paso mas lento que el parpadeo de caracteres, asi se lee como un
+    // evento aparte, no como mas parpadeo normal.
+    float glitchStep = floor(t * 2.0);
+    float glitchHash = hash21(vec2(colId, glitchStep) + 31.0);
+    float glitchOn = step(0.985, glitchHash);
+    float glitchPhase = fract(t * 2.0);
+    float glitchEnv = smoothstep(0.0, 0.1, glitchPhase) * smoothstep(0.4, 0.1, glitchPhase);
+    col = mix(col, vec3(0.8, 1.0, 0.9), glitchOn * glitchEnv * 0.85);
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

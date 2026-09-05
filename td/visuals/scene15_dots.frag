@@ -47,10 +47,20 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    float freq = 4.0 + uDensity * 20.0;
+    // Rango bajado (era 4-24): con una rejilla tan tupida por defecto se
+    // leia como una textura de LEDs, no como constelacion -- pocas
+    // estrellas grandes y bien separadas es parte del pedido ("mas tipo
+    // constelacion").
+    float freq = 2.2 + uDensity * 9.0;
     vec2  g = p * freq;
     vec2  cellId = floor(g);
     vec2  cellUv = fract(g) - 0.5;
+
+    // Dispersion tipo estrellas reales: cada punto se corre un poco de la
+    // rejilla perfecta (fijo por celda, no anima) -- pedido de "mas tipo
+    // constelacion", una rejilla de LEDs se ve demasiado ordenada para
+    // eso. Geometria pura, sin audio (contrato de la escena).
+    cellUv += (hash22(cellId + 5.0) - 0.5) * 0.55;
 
     // uHigh: vibracion micro de la posicion dentro de la celda -- unica
     // excepcion del contrato, amplitud pequena, ya suavizado.
@@ -73,6 +83,12 @@ vec4 render(vec2 uv)
     float dist = length(cellUv);
     float dotShape = smoothstep(size, size * 0.6, dist);
 
+    // Titileo tipo estrella: brillo (nunca tamano) de cada punto varia
+    // solo, a su propio ritmo -- refuerza el look de constelacion real.
+    float twinkle = 0.65 + 0.35 * sin(t * (0.4 + hash21(cellId + 40.0) * 1.6)
+                                     + hash21(cellId + 9.0) * TAU);
+    dotShape *= twinkle;
+
     // D4: variacion de color entre zonas.
     float hueZone = audioHue(fract(uHue + zone * uD4 * 0.9), uMid * 0.16);
     vec3 col = hsv2rgb(vec3(hueZone, 0.70, 1.0)) * dotShape;
@@ -82,7 +98,10 @@ vec4 render(vec2 uv)
     // los bajos, asi la red se extiende/reduce con la musica (el mismo
     // espiritu de "perimetro bailando" aplicado a una red en vez de un
     // circulo).
-    float connectThresh = 0.55 - uBass * 0.22;
+    // Umbral subido (0.55->0.68): con lineas conectando casi cualquier
+    // celda vecina se veia como una red densa, no una constelacion --
+    // ahora solo las zonas realmente "encendidas juntas" se conectan.
+    float connectThresh = 0.68 - uBass * 0.22;
     vec2  curDotPos = p - cellUv / freq;
     for (int ny = -1; ny <= 1; ny++) {
         for (int nx = -1; nx <= 1; nx++) {

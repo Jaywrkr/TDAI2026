@@ -121,9 +121,17 @@ vec4 render(vec2 uv)
     // de casi invisible a bruma densa que casi compite con el cuerpo.
     // Rango bajado (0.85->0.55): por defecto (D3=0.5) sumaba demasiado
     // brillo/elementos encima del cuerpo -- ahora es mas discreta.
-    vec2 fogP = p * 0.16 + vec2(t * 0.010, -t * 0.007) + 21.0;
+    // La niebla ahora se mueve CON la musica -- pedido explicito del
+    // usuario ("que se muevan las nubes con la musica"). Bass/Mid
+    // aceleran la deriva (ya suavizados, Fase 2, no reintroducen
+    // temblor); High agrega un vaiven propio, mas rapido y chico, para
+    // que la niebla tambien "respire" en las frecuencias altas.
+    vec2 fogP = p * 0.16 + vec2(t * (0.010 + uBass * 0.028), -t * (0.007 + uMid * 0.022)) + 21.0;
+    fogP += uHigh * 0.05 * vec2(sin(t * 2.4), cos(t * 1.9));
     float fogField = fbm(fogP, 3, 0.5);
     float fog = smoothstep(0.35, 0.90, fogField);
+    // Densidad de la niebla tambien pulsa un poco con el kick.
+    fog *= 1.0 + uKick * 0.35;
     vec3 fogCol = hsv2rgb(vec3(fract(h + 0.02), 0.20, 0.65));  // casi gris, tenue
     col += fogCol * fog * uD3 * 0.55;
 

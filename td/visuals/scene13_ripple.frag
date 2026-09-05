@@ -63,6 +63,16 @@ vec4 render(vec2 uv)
     // el golpe se note mas fuerte.
     float kickPush = uKick * 0.32;
 
+    // Distorsion tipo vortice: pedido explicito de "mezclar con algo
+    // loco" -- las ondas dejan de expandirse en circulos perfectos, la
+    // pantalla entera se retuerce en espiral segun la distancia al
+    // centro antes de medir contra cada fuente. Chaos controla cuanto.
+    float swirlAmt = (0.5 + uChaos * 1.6) * 0.3;
+    float ang0 = atan(p.y, p.x);
+    float rad0 = length(p);
+    float swirl = sin(rad0 * 3.0 - t * 0.4) * swirlAmt;
+    vec2 pw = rad0 * vec2(cos(ang0 + swirl), sin(ang0 + swirl));
+
     vec3 col = vec3(0.0);
 
     for (int s = 0; s < 5; s++) {
@@ -83,7 +93,7 @@ vec4 render(vec2 uv)
         float localT = fract(t * pulseRate + phase);
         float frontR = localT * 0.85 + kickPush;
 
-        float d = length(p - srcPos);
+        float d = length(pw - srcPos);
         for (int e = 0; e < 4; e++) {
             if (e >= echoes) break;
             float fe = float(e);

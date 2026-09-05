@@ -62,20 +62,19 @@ vec4 render(vec2 uv)
         q += amp * vec2(sin(q.y * 2.3 + t * speed + fi * 1.9 + uBass * 0.4),
                         cos(q.x * 2.1 + t * speed * 0.8 + fi * 2.7 + uBass * 0.3));
 
-        v += 1.0 / (1.0 + sharpness * abs(sin(q.x * netFreq) * sin(q.y * netFreq)));
+        float layerV = 1.0 / (1.0 + sharpness * abs(sin(q.x * netFreq) * sin(q.y * netFreq)));
+
+        // Cada capa "baila" con su PROPIA frecuencia/fase de onda (fi
+        // desfasa cada una) -- pedido explicito de que se note frecuencia
+        // en cada linea, no un solo brillo subiendo/bajando parejo en
+        // toda la pantalla junto.
+        float layerWave = sin(q.x * 1.8 + q.y * 1.3 - t * (1.0 + uSpeed * 2.0) + fi * 2.6);
+        v += layerV * (1.0 + layerWave * 0.45);
     }
 
     // uHigh: vibracion micro de fase -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado.
     v += uHigh * 0.03 * sin(t * 16.0 + p.x * 4.0);
-
-    // Onda viajera: pedido explicito del usuario ("que la onda se note
-    // en cada linea"). Es brillo, no geometria -- module 'v' (ya
-    // calculado) con una onda que recorre la pantalla en diagonal, asi
-    // CUALQUIER filamento que este visible se ve claramente pulsar/viajar
-    // en vez de solo brillar parejo.
-    float travelWave = sin(p.x * 2.2 + p.y * 1.6 - t * (1.0 + uSpeed * 2.2));
-    v *= 1.0 + travelWave * 0.35;
 
     // Rango bajado (era 0.4-1.4): se veia demasiado claro/lavado con
     // valores por defecto -- D1 sigue teniendo el mismo rol, solo que

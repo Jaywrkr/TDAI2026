@@ -47,6 +47,13 @@ vec4 render(vec2 uv)
     float rotAmt = uD4 * 0.6;
     p = rot2(rotAmt) * p;
 
+    // Mezcla con noise -- pedido explicito de "formas raras": un domain
+    // warp deforma el espacio ANTES de calcular la rejilla, asi los
+    // triangulos dejan de ser perfectamente equilateros y se doblan en
+    // formas irregulares, con Chaos controlando cuanto.
+    vec2 warp = vec2(fbm(p * 1.5 + 3.0, 3), fbm(p * 1.5 - 7.0, 3)) - 0.5;
+    p += warp * (0.18 + uChaos * 0.4);
+
     float freq = 2.0 + uDensity * 5.5;
     vec2  g = p * freq;
     vec2  cellId = floor(g);

@@ -1,55 +1,47 @@
 // ===============================================================
 // SCENE 16 - PARTICLES
-// Enjambre de particulas brillantes que fluyen con un campo de ruido
-// (curl-noise-like), cada una con una cola corta tipo cometa. Reemplaza
-// a "starfield".
+// Reemplazada por completo (pedido explicito: "reemplaza por algo con
+// noise bien lineal"): la version anterior era un enjambre de particulas
+// en Lissajous+fbm (nubes orbitando). Esta es un campo de flujo -- cada
+// particula es un STREAK corto que sigue la direccion de un campo de
+// ruido, como limaduras de hierro alineandose a un campo magnetico. El
+// resultado son lineas de flujo bien definidas, no nubes difusas.
 // ===============================================================
 //
 // COMO FUNCIONA
 //
-// Nada de simulacion con estado (un GLSL TOP no tiene memoria entre
-// frames) -- la posicion de cada particula en el instante t se calcula
-// de forma CERRADA: un punto "guia" que viaja en un Lissajous lento
-// (dos senos de frecuencia distinta) mas un desplazamiento de un fbm
-// evaluado en (guia, t), que le da el aspecto de fluir en un campo de
-// viento turbulento en vez de una orbita perfecta. La cola sale de
-// evaluar la MISMA formula con un t un poco menor (varias muestras) y
-// dibujar puntos cada vez mas tenues -- barato, sin necesidad de guardar
-// ninguna posicion anterior real.
+// Un GLSL TOP no tiene memoria entre frames, asi que no hay integracion
+// real acumulada -- en cambio, cada streak se "marcha" desde un punto de
+// partida (hash por particula) dando K pasos fijos hacia adelante, donde
+// cada paso avanza en la direccion que da flowAngle() en ESE punto (un
+// angulo sacado de un fbm). Es un mini-integrador de Euler desenrollado en
+// un bucle de conteo fijo, recalculado entero cada frame -- barato, y el
+// campo mismo deriva lento con el tiempo asi el dibujo no queda clavado.
 //
 // CONTROLES
-//   Speed    velocidad de flujo de las particulas
-//   Density  cuantas particulas hay
+//   Speed    (no usado directo en el paso -- el campo deriva a tasa fija;
+//            Speed queda libre para futuros ajustes de velocidad de deriva)
+//   Density  cuantos streaks hay
 //   Hue      paleta base
-//   Chaos    intensidad de la turbulencia (cuanto se desvian del
-//            Lissajous base)
+//   Chaos    intensidad de la turbulencia del campo (cuanto se curva la
+//            direccion de flujo)
 //   Bass     brillo de lo ya claro (audioLift) + tamano de las
 //            particulas respira con los graves (ya suavizado)
-//   Mid      tinte adicional (audioHue)
-//   Kick     destello breve en todo el enjambre -- ya llega con
-//            envolvente de golpe-y-caida (audio.py)
+//   Mid      corrimiento de tono a lo largo de cada streak
+//   Kick     destello breve en todo el campo -- ya llega con envolvente
+//            de golpe-y-caida (audio.py)
 //   High     vibracion micro de posicion (excepcion del contrato)
 //
-// @D1: tamano de las particulas
-// @D2: longitud de la cola tipo cometa
-// @D3: velocidad/alcance de la turbulencia (flujo suave <-> muy agitado)
-// @D4: dispersion del enjambre (agrupado al centro <-> repartido por
-//      toda la pantalla)
+// @D1: tamano (grosor) de cada punto del streak
+// @D2: largo del streak (cuantos pasos de flujo se dibujan)
+// @D3: intensidad de la turbulencia del campo de ruido
+// @D4: dispersion del campo (agrupado al centro <-> repartido por toda
+//      la pantalla)
 // ===============================================================
 
-vec2 particlePos(vec2 seed, float t, float turbAmt, float spread)
+float flowAngle(vec2 pos, float t, float turbAmt)
 {
-    float speedX = 0.15 + hash21(seed) * 0.35;
-    float speedY = 0.12 + hash21(seed + 1.0) * 0.30;
-    float phaseX = hash21(seed + 2.0) * TAU;
-    float phaseY = hash21(seed + 3.0) * TAU;
-
-    vec2 guide = spread * vec2(sin(t * speedX + phaseX),
-                               cos(t * speedY + phaseY));
-
-    vec2 turb = vec2(fbm(guide * 1.5 + seed + t * 0.15, 3),
-                     fbm(guide * 1.5 + seed - t * 0.12 + 5.0, 3)) - 0.5;
-    return guide + turb * turbAmt;
+    return (fbm(pos * (0.6 + turbAmt) + t * 0.06, 3) - 0.5) * TAU * 3.0;
 }
 
 vec4 render(vec2 uv)
@@ -57,17 +49,17 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    // Acotado a proposito (max 45 particulas x 5 muestras de cola = 225
-    // evaluaciones de fbm por pixel en el peor caso) -- mas que eso en un
-    // doble bucle con fbm adentro se vuelve caro de verdad.
-    int   n = 10 + int(floor(uDensity * 34.99));
-    float size = 0.010 + uD1 * 0.022;
-    int   trailN = 1 + int(floor(uD2 * 4.99));
-    float turbAmt = 0.10 + uD3 * 0.55;
-    // El "perimetro" del enjambre (cuanto se dispersa) respira con los
+    // Acotado a proposito (max 24 streaks x 10 pasos = 240 evaluaciones de
+    // fbm por pixel en el peor caso, similar orden de costo que el enjambre
+    // anterior).
+    int   n = 6 + int(floor(uDensity * 18.99));
+    float size = 0.006 + uD1 * 0.014;
+    int   steps = 3 + int(floor(uD2 * 8.99));
+    float turbAmt = 0.10 + uD3 * 0.9;
+    // El "perimetro" del campo (cuanto se dispersa) respira con los
     // bajos -- uBass ya suavizado (Fase 2), mismo patron que las
     // metaballs.
-    float spread = (0.20 + uD4 * 0.65) * (1.0 + uBass * 0.25);
+    float spread = (0.25 + uD4 * 0.65) * (1.0 + uBass * 0.25);
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
@@ -75,34 +67,44 @@ vec4 render(vec2 uv)
     // Bass: tamano respira con los graves, ademas del brillo de mas
     // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
     float sizeNow = size * (1.0 + uBass * 0.4);
+    float stepLen = 0.028;
 
-    for (int i = 0; i < 45; i++) {
+    for (int i = 0; i < 24; i++) {
         if (i >= n) break;
         float fi = float(i);
         vec2 seed = vec2(fi * 12.9, fi * 7.3);
 
-        for (int k = 0; k < 6; k++) {
-            if (k >= trailN) break;
-            float fk = float(k);
-            float tt = t - fk * 0.045 * (0.5 + uSpeed);
+        // Punto de partida del streak, repartido por el campo (D4) y
+        // desplazandose lento (para que no quede siempre clavado igual).
+        vec2 pos = spread * (hash22(seed) * 2.0 - 1.0);
+        pos += 0.06 * vec2(sin(t * 0.05 + hash21(seed) * 6.0),
+                          cos(t * 0.04 + hash21(seed + 1.0) * 6.0));
 
-            vec2 pos = particlePos(seed, tt, turbAmt, spread);
-            // uHigh: vibracion micro de posicion -- unica excepcion del
-            // contrato, amplitud pequena, ya suavizado.
-            pos += uHigh * 0.006 * vec2(sin(t * 10.0 + fi), cos(t * 9.0 + fi));
+        for (int k = 0; k < 10; k++) {
+            if (k >= steps) break;
+            float fk = float(k);
+            float trailFade = 1.0 - fk / float(steps + 1);
 
             float d = length(p - pos);
-            float trailFade = 1.0 - fk / float(trailN + 1);
+            // uHigh: vibracion micro de posicion -- unica excepcion del
+            // contrato, amplitud pequena, ya suavizado.
             float dot = exp(-d * d / (sizeNow * sizeNow)) * trailFade;
-            // La cola cambia de tono a lo largo de si misma -- velocidad
-            // del corrimiento segun Mid, look mas magico/energetico.
-            vec3 trailCol = hsv2rgb(vec3(fract(h + hash21(seed + 4.0) * 0.12
-                                              + fk * (0.03 + uMid * 0.06)), 0.65, 1.0));
-            col += trailCol * dot;
+            // El tono se corre a lo largo del streak -- velocidad segun
+            // Mid, look mas energetico.
+            vec3 streakCol = hsv2rgb(vec3(fract(h + hash21(seed + 4.0) * 0.12
+                                              + fk * (0.02 + uMid * 0.05)), 0.7, 1.0));
+            col += streakCol * dot;
+
+            // Avanza un paso mas siguiendo el campo de flujo -- ESTO es
+            // lo que da el "noise lineal": la direccion en cada punto
+            // sale de un angulo de ruido, no de un Lissajous cerrado.
+            float ang = flowAngle(pos, t, turbAmt);
+            pos += stepLen * vec2(cos(ang), sin(ang))
+                 + uHigh * 0.004 * vec2(sin(t * 10.0 + fi), cos(t * 9.0 + fi));
         }
     }
 
-    // Kick: destello breve en todo el enjambre.
+    // Kick: destello breve en todo el campo.
     col += col * uKick * 0.6;
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
