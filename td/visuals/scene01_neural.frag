@@ -114,7 +114,9 @@ vec4 render(vec2 uv)
     // tiene un halo neon grueso, tipo tubo de luz. Reusa 'gap', cero costo
     // de muestreo adicional. Rango subido de nuevo (0.06-1.1) para que el
     // maximo sea un resplandor que casi funde la red entera.
-    float glowWidth = 0.06 + uD2 * 1.10;
+    // El glow respira con los bajos -- mismo patron que el perimetro de
+    // las metaballs, uBass ya suavizado (Fase 2).
+    float glowWidth = (0.06 + uD2 * 1.10) * (1.0 + uBass * 0.3);
     float glow = exp(-max(gap, 0.0) / glowWidth) * (0.20 + uD2 * 1.0);
 
     float h = audioHue(uHue, uMid * 0.16);
@@ -128,8 +130,17 @@ vec4 render(vec2 uv)
     float pulseFreq = 1.0 + uD3 * 7.0;
     float pulse = 0.5 + 0.5 * sin(length(p) * pulseFreq - t * (0.6 + uSpeed * 1.5));
 
+    // "Paquetes de datos": un segundo anillo, mas angosto y rapido, que
+    // SOLO se ve sobre los segmentos ya encendidos (edge) -- se lee como
+    // un pulso viajando por la red, no como otro halo generico. La
+    // velocidad sube con Mid/High, como si mas agudos = mas trafico.
+    float packetFreq = pulseFreq * 2.3;
+    float packetPhase = fract(length(p) * packetFreq * 0.15 - t * (0.8 + uMid * 2.0 + uHigh * 1.5));
+    float packet = smoothstep(0.08, 0.0, abs(packetPhase - 0.5)) * edge;
+
     vec3 col = edgeCol * edge * (0.5 + 0.5 * pulse) * (1.0 + uKick * 1.2);
     col += glowCol * glow * 1.3 * (0.6 + 0.4 * pulse);
+    col += vec3(1.0) * packet * 1.4;
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

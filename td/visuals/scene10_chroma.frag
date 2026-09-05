@@ -57,6 +57,11 @@ vec4 render(vec2 uv)
     // Bass: un poco de movimiento del radio ademas del brillo de mas
     // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
     r += uBass * 0.02 * sin(t * 1.8 + ang * 3.0);
+    // El radio TAMBIEN respira de verdad con los bajos -- pedido
+    // explicito del usuario (perimetro bailando, igual que las
+    // metaballs): escala 'r' entero, asi los anillos se expanden y
+    // contraen de forma notoria, no solo un temblor sutil.
+    r *= 1.0 + uBass * 0.10;
 
     // Simplificada de nuevo a pedido del usuario: aun menos anillos por
     // defecto (freq base bajada) y mas gruesos -- el maximo de Density
@@ -90,6 +95,16 @@ vec4 render(vec2 uv)
     // Nucleo central -- D4 controla que tan prominente es, de un tinte
     // apenas perceptible a un resplandor central notorio.
     col += tint * (0.02 + uD4 * 0.35) * exp(-r * 3.0);
+
+    // Lens flare: un par de anillos fantasma chicos, desplazados del
+    // centro sobre el eje opuesto al angulo actual -- destellan fuerte
+    // en el kick, como el reflejo de una lente real.
+    vec2 flarePos = -p * 0.4;
+    float dFlare1 = length(p - flarePos);
+    float dFlare2 = length(p - flarePos * 1.8);
+    float flare = (exp(-dFlare1 * dFlare1 / 0.004) + exp(-dFlare2 * dFlare2 / 0.008) * 0.6)
+                * uKick * 1.5;
+    col += tint * flare;
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

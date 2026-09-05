@@ -66,8 +66,10 @@ vec4 render(vec2 uv)
     // queda casi limpia (todos los efectos de abajo casi no se notan).
     float glitchAmt = 0.05 + uChaos * 0.95;
 
-    // 1. PIXELADO -- D1 controla el tamano de bloque.
-    float pixelSize = mix(1.0, 60.0, uD1 * glitchAmt);
+    // 1. PIXELADO -- D1 controla el tamano de bloque. El tamano tambien
+    // respira con los bajos (mismo patron que el perimetro de las
+    // metaballs): mas bass = bloques mas grandes por un instante.
+    float pixelSize = mix(1.0, 60.0, uD1 * glitchAmt) / (1.0 + uBass * 0.5);
     vec2 uvPix = floor(uv * pixelSize) / max(pixelSize, 1.0);
 
     // 3. TEARING -- bloques horizontales que se desplazan en X a saltos.
@@ -106,7 +108,11 @@ vec4 render(vec2 uv)
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.6);
 
-    col *= vignette(uv, 0.15);
+    // Grano de pelicula + vinieta -- ambos se intensifican en el kick,
+    // como una señal rota que "tose" con el golpe.
+    float grain = (hash21(uv * uResW + fract(uRTime) * 23.0) - 0.5) * (0.02 + uKick * 0.06);
+    col += grain;
+    col *= vignette(uv, 0.15 + uKick * 0.25);
 
     return vec4(col, 1.0);
 }

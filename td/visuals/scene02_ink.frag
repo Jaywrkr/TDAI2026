@@ -70,7 +70,17 @@ vec4 render(vec2 uv)
     // Rango mas amplio que antes (hasta 0.30) para un maximo bien
     // "disuelto en agua", no solo levemente suave.
     float softness = 0.30 - uD1 * 0.26;
-    float shape = smoothstep(0.5 - softness, 0.5 + softness, ink);
+    // La silueta misma respira con los bajos -- pedido explicito del
+    // usuario (perimetro bailando, como las metaballs). Desplaza el
+    // umbral entero: mas bass = el cuerpo de tinta se "hincha" un poco.
+    // uBass ya suavizado (Fase 2), escala chica.
+    float bassGrow = uBass * 0.05;
+    float shape = smoothstep(0.5 - softness - bassGrow, 0.5 + softness - bassGrow, ink);
+
+    // Highlight especular: un brillo angosto justo en el BORDE de la
+    // silueta (donde 'shape' pasa de 0 a 1), que se enciende con el
+    // kick -- simula luz reflejandose en la superficie de la tinta.
+    float rim = (1.0 - abs(shape * 2.0 - 1.0)) * uKick;
 
     // Value bajado (era 1.0): a pedido del usuario quedaba "demasiado
     // claro" -- ahora el cuerpo de tinta es notablemente mas oscuro por
@@ -79,6 +89,7 @@ vec4 render(vec2 uv)
     vec3 inkCol = hsv2rgb(vec3(h, 0.80, 0.55));
 
     vec3 col = inkCol * shape;
+    col += vec3(1.0) * rim * 0.6;
 
     // Un nucleo mas saturado donde el campo esta mas "concentrado", para
     // dar sensacion de profundidad dentro de la propia tinta. D4: rango

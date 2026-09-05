@@ -59,7 +59,9 @@ vec4 render(vec2 uv)
 
     // Kick: empuje de radio sincronizado en TODAS las fuentes, ademas
     // del flash de mas abajo -- ya llega con envolvente de golpe-y-caida.
-    float kickPush = uKick * 0.18;
+    // Subido (0.18->0.32): pedido explicito de que el salto de radio en
+    // el golpe se note mas fuerte.
+    float kickPush = uKick * 0.32;
 
     vec3 col = vec3(0.0);
 
@@ -94,6 +96,14 @@ vec4 render(vec2 uv)
             col += waveCol * exp(-dd * dd / (width * width)) * fade;
         }
     }
+
+    // Destello de interferencia: donde varias ondas se suman (los picos
+    // de brillo naturales de superponer fuentes), un extra que se
+    // enciende con Agudos -- se lee como reflejos de agua real en los
+    // nodos de interferencia.
+    float interfLum = dot(col, vec3(0.299, 0.587, 0.114));
+    float sparkle = smoothstep(0.55, 1.5, interfLum) * uHigh * 1.4;
+    col += vec3(1.0) * sparkle;
 
     // Kick: flash breve, ademas del empujon de radio de arriba.
     col += col * uKick * 0.35;

@@ -42,7 +42,9 @@ vec4 render(vec2 uv)
 
     float count = 3.0 + floor(uDensity * 7.0);
     float spacing = 2.0 / (count + 1.0);
-    float lineW = 0.6 + uD1 * 2.5;
+    // El grosor respira con los bajos -- mismo patron que el perimetro
+    // de las metaballs, uBass ya suavizado (Fase 2).
+    float lineW = (0.6 + uD1 * 2.5) * (1.0 + uBass * 0.2);
     float flowFreq = 0.4 + uD2 * 1.4;
 
     vec3 col = vec3(0.0);
@@ -75,7 +77,14 @@ vec4 render(vec2 uv)
         // nada extra, en 1 cada linea tiene un halo notable.
         float glow = exp(-abs(sdf) * abs(sdf) / (0.004 + uD4 * 0.05)) * uD4;
 
-        col += lineCol * (line + glow * 0.6);
+        // Chispa viajando a lo largo de la corriente -- solo se ve sobre
+        // la propia linea. Kick le da un salto de velocidad instantaneo,
+        // ademas del brillo de mas abajo.
+        float sparkPhase = fract(p.x * 0.35 - t * (0.3 + uSpeed * 0.9 + uKick * 3.0) + fi * 1.3);
+        float spark = smoothstep(0.05, 0.0, abs(sparkPhase - 0.5))
+                    * smoothstep(lineW * 3.0, 0.0, abs(sdf));
+
+        col += lineCol * (line + glow * 0.6 + spark * 1.6);
     }
 
     // Kick: flash breve.

@@ -121,7 +121,11 @@ vec4 render(vec2 uv)
     // D1 es un multiplicador de grosor GENERAL (troncos y capilares juntos),
     // independiente de Density -- rango amplio a proposito, de casi hilo a
     // notablemente grueso.
-    float widthMul = 0.5 + uD1 * 1.7;
+    // El grosor respira con los bajos -- pedido explicito del usuario
+    // (mismo patron que el perimetro de las metaballs). Seguro: uBass ya
+    // llega suavizado (Fase 2), escala chica y contenida (+-15%), no
+    // reintroduce el temblor que el contrato de audio evita.
+    float widthMul = (0.5 + uD1 * 1.7) * (1.0 + uBass * 0.15);
     float wT = (1.3 + (1.0 - uDensity) * 1.0) * widthMul;
     float trunk  = vein(na, wT);
     float tGlow  = vein(na, wT * 7.0);        // halo ancho, gratis
@@ -151,7 +155,15 @@ vec4 render(vec2 uv)
     float flow  = fract(phase * 3.5 - t * 0.30 - uBeat * 0.20);
     float pulse = smoothstep(0.00, 0.30, flow) * smoothstep(0.90, 0.55, flow);
 
-    float core = veins * (0.35 + 1.20 * pulse + 1.00 * uKick);
+    // Chispa: un pulso angosto y brillante que recorre la MISMA fase que
+    // la banda de flujo, pero mas rapido -- se lee como un corpusculo
+    // viajando por la vena, no la banda ancha de fondo. Su velocidad
+    // sube con Beat, asi el "latido" se siente en el movimiento, no
+    // solo en el brillo.
+    float sparkPhase = fract(phase * 3.5 - t * (0.55 + uBeat * 1.2));
+    float spark = smoothstep(0.06, 0.0, abs(sparkPhase - 0.5)) * veins;
+
+    float core = veins * (0.35 + 1.20 * pulse + 1.00 * uKick) + spark * 1.8;
     // D2: intensidad del halo -- rango amplio, de casi apagado a resplandor
     // fuerte, independiente de lo que ya module el audio (Level/Beat).
     float halo = (tGlow * 0.75 + cGlow * 0.30)

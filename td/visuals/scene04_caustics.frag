@@ -48,7 +48,9 @@ vec4 render(vec2 uv)
 
     // D3: finura de la red -- escala la frecuencia de los senos que forman
     // la trama de luz. Rango amplio: celdas anchas <-> red muy apretada.
-    float netFreq = 0.8 + uD3 * 2.6;
+    // Respira con los bajos (uBass ya suavizado, Fase 2) -- la red se ve
+    // "latir" mas tupida/floja con la musica, no solo mas brillante.
+    float netFreq = (0.8 + uD3 * 2.6) * (1.0 + uBass * 0.18);
     // D4: nitidez de los filamentos -- que tan afilados son los picos de
     // brillo. Bajo = resplandor difuso y ancho, alto = lineas muy finas.
     float sharpness = 3.0 + uD4 * 30.0;
@@ -81,8 +83,13 @@ vec4 render(vec2 uv)
     float contrast = 0.22 + uD1 * 0.70;
     v *= contrast;
 
+    // Dispersion tipo prisma: el hue se desvia un poco segun el brillo
+    // local -- barato (sin recalcular la red 3 veces por canal), pero da
+    // el mismo fringing de arcoiris que un prisma real separando colores
+    // por intensidad.
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 col = hsv2rgb(vec3(h, 0.55, 1.0)) * v;
+    float hueDisp = fract(h + v * 0.12);
+    vec3 col = hsv2rgb(vec3(hueDisp, 0.55, 1.0)) * v;
 
     // Tonemap: v puede crecer bastante en los picos, sin esto se clavan
     // en blanco plano.

@@ -90,7 +90,8 @@ vec4 render(vec2 uv)
     // Mascara de celda: un bloque con margen (deja ver la rejilla como
     // caracteres separados, no una columna solida). D1 controla que tan
     // grande es el bloque dentro de su celda.
-    float fill = 0.30 + uD1 * 0.55 + cellJitter;
+    // El bloque respira con los bajos -- uBass ya suavizado (Fase 2).
+    float fill = 0.30 + uD1 * 0.55 + cellJitter + uBass * 0.06;
     float cellMaskX = 1.0 - smoothstep(fill, fill + 0.08, abs(colX - 0.5) * 2.0);
     float cellMaskY = 1.0 - smoothstep(fill, fill + 0.08, abs(rowY - 0.5) * 2.0);
     float cellMask = cellMaskX * cellMaskY;
@@ -102,8 +103,13 @@ vec4 render(vec2 uv)
     float h = fract(uHue + 0.33 + uMid * 0.10);
     vec3 streamCol = hsv2rgb(vec3(h, 0.85, 1.0));
 
-    vec3 col = streamCol * bright * glyphAlpha;
-    col = mix(col, vec3(0.85, 1.0, 0.9), isHead * glyphAlpha * 0.9);
+    // "Empuje" hacia adelante en el kick: la cola se apaga un poco mas
+    // (simula que se desenfoca hacia atras) mientras la cabeza se
+    // dispara mas brillante -- una version barata de profundidad de
+    // campo reaccionando al golpe, sin muestreo de vecinos.
+    float kickDepth = uKick * 0.5;
+    vec3 col = streamCol * bright * glyphAlpha * (1.0 - kickDepth * 0.4);
+    col = mix(col, vec3(0.85, 1.0, 0.9), isHead * glyphAlpha * (0.9 + kickDepth));
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

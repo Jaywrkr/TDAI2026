@@ -64,7 +64,10 @@ vec4 render(vec2 uv)
     float size = 0.010 + uD1 * 0.022;
     int   trailN = 1 + int(floor(uD2 * 4.99));
     float turbAmt = 0.10 + uD3 * 0.55;
-    float spread = 0.20 + uD4 * 0.65;
+    // El "perimetro" del enjambre (cuanto se dispersa) respira con los
+    // bajos -- uBass ya suavizado (Fase 2), mismo patron que las
+    // metaballs.
+    float spread = (0.20 + uD4 * 0.65) * (1.0 + uBass * 0.25);
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
@@ -77,8 +80,6 @@ vec4 render(vec2 uv)
         if (i >= n) break;
         float fi = float(i);
         vec2 seed = vec2(fi * 12.9, fi * 7.3);
-
-        vec3 pcol = hsv2rgb(vec3(fract(h + hash21(seed + 4.0) * 0.12), 0.65, 1.0));
 
         for (int k = 0; k < 6; k++) {
             if (k >= trailN) break;
@@ -93,7 +94,11 @@ vec4 render(vec2 uv)
             float d = length(p - pos);
             float trailFade = 1.0 - fk / float(trailN + 1);
             float dot = exp(-d * d / (sizeNow * sizeNow)) * trailFade;
-            col += pcol * dot;
+            // La cola cambia de tono a lo largo de si misma -- velocidad
+            // del corrimiento segun Mid, look mas magico/energetico.
+            vec3 trailCol = hsv2rgb(vec3(fract(h + hash21(seed + 4.0) * 0.12
+                                              + fk * (0.03 + uMid * 0.06)), 0.65, 1.0));
+            col += trailCol * dot;
         }
     }
 

@@ -101,6 +101,13 @@ vec4 render(vec2 uv)
     float inside = smoothstep(threshold - 0.5, threshold + 1.5, field);
     col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * 0.06;
 
+    // Rim light: una banda angosta justo por dentro del contorno, tipo
+    // gota de mercurio -- se enciende fuerte en el kick, como si la luz
+    // rebotara en la superficie con el golpe.
+    float rim = smoothstep(threshold - 0.4, threshold, field)
+             * smoothstep(threshold + 2.2, threshold + 0.6, field);
+    col += vec3(1.0) * rim * (0.12 + uKick * 0.9);
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

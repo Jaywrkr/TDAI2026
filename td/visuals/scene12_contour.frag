@@ -59,20 +59,25 @@ vec4 render(vec2 uv)
     float lineW = 0.6 + uD1 * 2.2;
     float levels = 3.0 + floor(uDensity * 7.0);
 
+    // El "terreno" respira con los bajos -- escala el campo de altura
+    // entero, asi el espaciado entre curvas se comprime/expande con la
+    // musica (uBass ya suavizado, Fase 2), en vez de quedar fijo.
+    float hBreath = h * (1.0 + uBass * 0.15);
+
     float hCol = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
 
     // D4: relleno tenue segun la altura del terreno, debajo de las
     // lineas -- en 0 solo se ven las curvas sobre negro, en 1 se lee
     // como un mapa topografico relleno.
-    col += hsv2rgb(vec3(hCol, 0.5, clamp(h, 0.0, 1.0))) * uD4 * 0.35;
+    col += hsv2rgb(vec3(hCol, 0.5, clamp(hBreath, 0.0, 1.0))) * uD4 * 0.35;
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 curvas.
     for (int i = 0; i < 10; i++) {
         if (i >= int(levels)) break;
 
         float threshold = (float(i) + 0.5) / levels;
-        float line = edgeLine(h - threshold, lineW);
+        float line = edgeLine(hBreath - threshold, lineW);
 
         // Mas alto = un poco mas brillante, como en un mapa real. D3:
         // contraste -- en 0, TODAS las curvas quedan igual de medias; en
@@ -89,6 +94,14 @@ vec4 render(vec2 uv)
         float bright = mix(0.5, mix(0.08, 0.92, mod(float(i), 2.0)), uD3);
         col += hsv2rgb(vec3(hCol, 0.65, bright)) * line;
     }
+
+    // Oclusion ambiental: donde el terreno es mas escarpado (muchas
+    // curvas de nivel apretadas en pocos pixeles) se oscurece un poco,
+    // dando relieve real en vez de lineas planas. Se acentua en el
+    // kick, como si la sombra "pesara" mas con el golpe.
+    float bandDensity = levels * length(vec2(dFdx(hBreath), dFdy(hBreath)));
+    float ao = smoothstep(0.4, 3.0, bandDensity) * (0.25 + uKick * 0.5);
+    col *= 1.0 - ao * 0.45;
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

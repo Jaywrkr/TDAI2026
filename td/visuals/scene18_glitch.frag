@@ -81,6 +81,15 @@ vec4 render(vec2 uv)
     // amplitud pequena, ya suavizado.
     xShift += uHigh * 0.008 * sin(t * 20.0 + bandId);
 
+    // VHS tracking: una banda horizontal ancha que barre la pantalla de
+    // arriba a abajo con una ondulacion grande -- variedad extra sobre
+    // el tearing por bloques. Su amplitud respira con los bajos y se
+    // dispara mas fuerte en el kick.
+    float vhsSweepY = fract(t * 0.12);
+    float vhsBand = smoothstep(0.10, 0.0, abs(uv.y - vhsSweepY));
+    float vhsAmt = (0.015 + uBass * 0.05) * (1.0 + uKick * 3.0);
+    xShift += sin(uv.y * 35.0 + t * 9.0) * vhsAmt * vhsBand;
+
     vec2 uvT = uv + vec2(xShift, 0.0);
 
     // D2: separacion cromatica -- cada canal muestrea el patron con su

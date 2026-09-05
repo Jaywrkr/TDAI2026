@@ -49,7 +49,9 @@ vec4 render(vec2 uv)
     // Rango bajado (era 0.09-0.33): a pedido del usuario, cortinas mucho
     // mas finas por defecto -- D1 sigue yendo de fino a ancho, solo que
     // todo el rango es mas contenido.
-    float glowW = 0.035 + (1.0 - uD1) * 0.13;
+    // El ancho (su "perimetro") respira con los bajos, ademas del rango
+    // de D1 -- uBass ya suavizado (Fase 2).
+    float glowW = (0.035 + (1.0 - uD1) * 0.13) * (1.0 + uBass * 0.35);
 
     vec3 col = vec3(0.0);
     float h0 = audioHue(uHue, uMid * 0.16);
@@ -91,7 +93,11 @@ vec4 render(vec2 uv)
 
         // D4: dispersion de color -- en 0 todas las cortinas casi
         // comparten hue, en 1 se reparten por toda la rueda de color.
-        float hueI = audioHue(fract(h0 + fi * (0.03 + uD4 * 0.20)), uMid * 0.16);
+        // Ademas, degradado de hue vertical (arriba/abajo de la propia
+        // cortina) que se desplaza con los Medios -- como una aurora
+        // real que cambia de verde a rosa segun la altura.
+        float vertHue = (p.y * 0.15) + t * (0.02 + uMid * 0.12);
+        float hueI = audioHue(fract(h0 + fi * (0.03 + uD4 * 0.20) + vertHue), uMid * 0.16);
         vec3 curtainCol = hsv2rgb(vec3(hueI, 0.62, 1.0));
         col += curtainCol * curtain;
     }

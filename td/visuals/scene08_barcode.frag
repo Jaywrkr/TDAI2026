@@ -50,9 +50,14 @@ vec4 render(vec2 uv)
     float colId = floor(colF);
     float colX = fract(colF);
 
-    // Espacio negro entre columnas (D2).
-    float gapW = 0.04 + uD2 * 0.28;
+    // Espacio negro entre columnas (D2) -- respira con los bajos (uBass
+    // ya suavizado, Fase 2), como si las columnas "inhalaran".
+    float gapW = (0.04 + uD2 * 0.28) * (1.0 + uBass * 0.3);
     float colMask = smoothstep(0.0, gapW, colX) * smoothstep(1.0, 1.0 - gapW, colX);
+
+    // Parpadeo de entrelazado tipo CRT: filas alternas levemente mas
+    // oscuras, con ritmo de Agudos -- da autenticidad de video viejo.
+    float interlace = 0.85 + 0.15 * sin(uv.y * uResH * PI * 0.5 + t * (4.0 + uHigh * 30.0));
 
     // Jitter por columna: frecuencia y fase distinta -- Chaos aumenta la
     // irregularidad entre columnas vecinas.
@@ -98,7 +103,7 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.16);
     h = fract(h + isAccent1 * 0.42 + isAccent2 * 0.55);
 
-    vec3 col = hsv2rgb(vec3(h, 0.85, 1.0)) * bright * colMask;
+    vec3 col = hsv2rgb(vec3(h, 0.85, 1.0)) * bright * colMask * interlace;
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

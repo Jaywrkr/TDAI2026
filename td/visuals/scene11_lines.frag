@@ -82,7 +82,15 @@ vec4 render(vec2 uv)
         // D4: resplandor ademas del trazo nitido.
         float glow = exp(-sdf * sdf / (0.004 + uD4 * 0.05)) * uD4;
 
-        col += lineCol * (line + glow * 0.6);
+        // Punto de "peak" en la cresta de la onda -- refuerza el look de
+        // ecualizador/VU meter. Su tamano pulsa con los bajos (perimetro
+        // bailando otra vez).
+        float wavePhase = p.x * waveFreq + t * (0.3 + uSpeed * 0.6) + float(i) * 1.7;
+        float crestDist = abs(mod(wavePhase - PI * 0.5 + PI, TAU) - PI);
+        float peakSize = 0.25 + uBass * 0.35;
+        float peak = smoothstep(peakSize, 0.0, crestDist) * smoothstep(lineW * 2.5 * (1.0 / max(waveFreq, 0.5)), 0.0, abs(sdf));
+
+        col += lineCol * (line + glow * 0.6) + vec3(1.0) * peak * 0.8;
     }
 
     // Kick: flash breve.

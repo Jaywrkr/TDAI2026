@@ -67,9 +67,17 @@ vec4 render(vec2 uv)
     // Distancia tambien a los bordes exteriores de la celda.
     float edgeDist = min(min(cellF.x, 1.0 - cellF.x), min(cellF.y, 1.0 - cellF.y));
 
-    float margin = 0.03 + (1.0 - uD1) * 0.16;
+    // El tamano del triangulo (via el margen) respira con los bajos --
+    // uBass ya suavizado (Fase 2), mismo patron que el perimetro de las
+    // metaballs: mas bajo = margen mas chico = triangulos mas grandes.
+    float margin = (0.03 + (1.0 - uD1) * 0.16) * (1.0 - uBass * 0.35);
     float inTri = smoothstep(margin, margin + 0.02, diagDist)
                 * smoothstep(margin * 0.6, margin * 0.6 + 0.02, edgeDist);
+
+    // Sombreado falso-3D: mas cerca del centro del triangulo, mas
+    // brillante (como si estuviera extruido/biselado hacia la camara).
+    float distToEdge = min(diagDist, edgeDist);
+    float bevel = 0.55 + 0.55 * smoothstep(0.0, margin * 3.0, distToEdge);
 
     float rate = 0.3 + uChaos * 1.8;
     float stepT = floor(t * rate);
@@ -84,7 +92,7 @@ vec4 render(vec2 uv)
     float hue = audioHue(fract(uHue + hash21(cellId + triId * 5.1 + 11.0) * uD3 * 0.9), uMid * 0.16);
     vec3 triCol = hsv2rgb(vec3(hue, 0.85, 1.0));
 
-    vec3 col = triCol * inTri * on;
+    vec3 col = triCol * inTri * on * bevel;
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

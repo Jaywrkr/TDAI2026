@@ -82,7 +82,9 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
 
     int   n = 2 + int(floor(uDensity * 5.99));
-    float lineW = 0.7 + uD1 * 2.5;
+    // El grosor del rayo respira con los bajos -- uBass ya suavizado
+    // (Fase 2), mismo patron que el perimetro de las metaballs.
+    float lineW = (0.7 + uD1 * 2.5) * (1.0 + uBass * 0.3);
     float glowAmt = 0.15 + uD2 * 1.3;
     float zigzagAmt = 0.025 + uD3 * 0.24;
     int   nBranches = int(floor(uD4 * 2.99));   // 0 a 2 ramas

@@ -45,19 +45,28 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
 
+    // Inclinacion de perspectiva falsa: los circulos pasan a elipses,
+    // aplastadas en Y segun Mid -- simula ver las orbitas en 3D desde un
+    // angulo, en vez de circulos perfectos de frente.
+    float squish = 1.0 - uMid * 0.35;
+
     for (int i = 0; i < 6; i++) {
         if (i >= n) break;
 
-        // D3: separacion entre orbitas.
+        // D3: separacion entre orbitas. El radio TAMBIEN respira con los
+        // bajos (perimetro bailando, igual que las metaballs) ademas del
+        // pequeno temblor de fase que ya tenia.
         float fi = float(i);
-        float radius = 0.10 + fi * (0.05 + uD3 * 0.18)
+        float radius = (0.10 + fi * (0.05 + uD3 * 0.18)) * (1.0 + uBass * 0.14)
                      + uChaos * 0.02 * sin(t * 0.3 + fi * 1.3)
                      + uBass * 0.015 * sin(t * 1.2 + fi * 1.7);
 
         vec3 orbitCol = hsv2rgb(vec3(fract(h + fi * 0.09), 0.65, 1.0));
 
-        // Trazo tenue del circulo -- guia, no protagonista.
-        float track = edgeLine(r - radius, 1.0);
+        // Trazo tenue del circulo -- guia, no protagonista. Distancia
+        // elipticamente aplastada para que coincida con la inclinacion.
+        float rEllipse = length(vec2(p.x, p.y / squish));
+        float track = edgeLine(rEllipse - radius, 1.0);
         col += orbitCol * track * trackAlpha;
 
         // Nodo viajando sobre la orbita.
@@ -68,7 +77,7 @@ vec4 render(vec2 uv)
         // contrato, amplitud pequena, ya suavizado.
         ang += uHigh * 0.02 * sin(t * 11.0 + fi);
 
-        vec2 dotPos = radius * vec2(cos(ang), sin(ang));
+        vec2 dotPos = radius * vec2(cos(ang), sin(ang) * squish);
         float d = length(p - dotPos);
         float dot = smoothstep(dotSize, dotSize * 0.25, d);
 
@@ -83,7 +92,7 @@ vec4 render(vec2 uv)
             if (k > trailN) break;
             float fk = float(k);
             float trailAng = ang - fk * (0.05 + uD4 * 0.10);
-            vec2 trailPos = radius * vec2(cos(trailAng), sin(trailAng));
+            vec2 trailPos = radius * vec2(cos(trailAng), sin(trailAng) * squish);
             float dTrail = length(p - trailPos);
             float trailFade = 1.0 - fk / float(trailN + 1);
             col += orbitCol * smoothstep(dotSize * 1.3, dotSize * 0.3, dTrail)

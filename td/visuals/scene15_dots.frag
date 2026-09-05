@@ -34,6 +34,14 @@
 //      por zona)
 // ===============================================================
 
+float segDist15(vec2 pp, vec2 a, vec2 b)
+{
+    vec2 ab = b - a;
+    vec2 ap = pp - a;
+    float hh = clamp(dot(ap, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+    return length(ap - ab * hh);
+}
+
 vec4 render(vec2 uv)
 {
     float t = uTime;
@@ -68,6 +76,32 @@ vec4 render(vec2 uv)
     // D4: variacion de color entre zonas.
     float hueZone = audioHue(fract(uHue + zone * uD4 * 0.9), uMid * 0.16);
     vec3 col = hsv2rgb(vec3(hueZone, 0.70, 1.0)) * dotShape;
+
+    // Constelacion: conecta con lineas finas a las celdas vecinas cuya
+    // zona tambien esta "encendida" -- el umbral de conexion BAJA con
+    // los bajos, asi la red se extiende/reduce con la musica (el mismo
+    // espiritu de "perimetro bailando" aplicado a una red en vez de un
+    // circulo).
+    float connectThresh = 0.55 - uBass * 0.22;
+    vec2  curDotPos = p - cellUv / freq;
+    for (int ny = -1; ny <= 1; ny++) {
+        for (int nx = -1; nx <= 1; nx++) {
+            if (nx == 0 && ny == 0) continue;
+            vec2 neighbor = vec2(float(nx), float(ny));
+            vec2 nCellId = cellId + neighbor;
+            float nZone = fbm(nCellId * zoneScale + t * (0.05 + uSpeed * 0.1), 3);
+            nZone += uChaos * 0.25 * sin(t * 0.2 + nCellId.x * 0.4 + nCellId.y * 0.4);
+            nZone = clamp(nZone, 0.0, 1.0);
+            float avgZone = (zone + nZone) * 0.5;
+            if (avgZone < connectThresh) continue;
+
+            vec2 nDotPos = curDotPos + neighbor / freq;
+            float dLine = segDist15(p, curDotPos, nDotPos);
+            float lineBright = smoothstep(0.008, 0.0, dLine)
+                             * (avgZone - connectThresh) / max(1.0 - connectThresh, 1e-3);
+            col += vec3(0.8, 0.9, 1.0) * lineBright * 0.4;
+        }
+    }
 
     // Kick: flash breve.
     col += col * uKick * 0.4;
