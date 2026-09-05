@@ -363,7 +363,8 @@ def _midi_slots():
                 'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
                 'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
                 'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset',
-                'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert']
+                'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
+                'Mirror', 'Zoom', 'Posterize']
 
 
 def _midi_path():

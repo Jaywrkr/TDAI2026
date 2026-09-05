@@ -65,20 +65,24 @@ CTRL_CHANNELS = [
     'keypulse', # 11 pulso al tocar cualquier tecla del piano, decae solo
     'keypos',   # 12 grave..agudo de la ULTIMA tecla tocada, 0..1
     'keyvel',   # 13 fuerza de esa tecla, 0..1
-    # Fase 3 - efectos de piano (teclas bajas C1-E1, notas 36-40).
-    # Decaen solos tras cada pulsacion, como 'beat' y 'keypulse'.
-    'grain',    # 14 efecto de grano (C1, nota 36)
-    'glitch',   # 15 desplazamiento RGB (C#1, nota 37)
-    'pixelate', # 16 pixelacion (D1, nota 38)
-    'strobe',   # 17 destello (D#1, nota 39)
-    'invert',   # 18 inversion de color (E1, nota 40)
+    # Fase 3 - efectos de pad (8, pads 9-16 = ch10 notas 45-52 del MiniLab
+    # mkII, ver DEFAULT_MIDI). Decaen solos tras cada golpe, como 'beat' y
+    # 'keypulse'.
+    'grain',     # 14 efecto de grano
+    'glitch',    # 15 desplazamiento RGB
+    'pixelate',  # 16 pixelacion (geometrico, se aplica antes de render())
+    'strobe',    # 17 destello
+    'invert',    # 18 inversion de color
+    'mirror',    # 19 espejo horizontal (geometrico, antes de render())
+    'zoom',      # 20 acercamiento al centro (geometrico, antes de render())
+    'posterize', # 21 cuantizacion de color
     # Fase 3 - perillas de detalle, significan algo distinto por escena.
     # Ver @D1.._at6 en el .frag y docs/03_VISUAL_SPEC.md.
-    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 19-24
-    'time',     # 25 tiempo YA escalado por Speed (usar este para animar)
-    'rtime',    # 26 tiempo real en segundos (independiente de Speed)
-    'resw',     # 27 ancho de salida
-    'resh',     # 28 alto de salida
+    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 22-27
+    'time',     # 28 tiempo YA escalado por Speed (usar este para animar)
+    'rtime',    # 29 tiempo real en segundos (independiente de Speed)
+    'resw',     # 30 ancho de salida
+    'resh',     # 31 alto de salida
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -99,6 +103,9 @@ PAR_CHANNELS = [
     ('Pixelate', 'pixelate'),
     ('Strobe', 'strobe'),
     ('Invert', 'invert'),
+    ('Mirror', 'mirror'),
+    ('Zoom', 'zoom'),
+    ('Posterize', 'posterize'),
     ('Detail1', 'd1'),
     ('Detail2', 'd2'),
     ('Detail3', 'd3'),
@@ -110,13 +117,16 @@ PAR_CHANNELS = [
 # ---------------------------------------------------------------
 # PIANO - teclado de 25 teclas del MiniLab MkII
 # ---------------------------------------------------------------
-# Rango por defecto: 2 octavas, C1-C3 (36-60), el default de fabrica segun
-# Arturia. Los botones Octave -/+ del teclado corren este rango sin avisar
-# al software -- si tocas con la octava desplazada, keypos se descalibra
-# (sigue funcionando, solo que "grave/agudo" deja de ser preciso). No hay
-# auto-calibracion todavia; ver docs/02_MIDI_MINILAB_MKII.md.
-PIANO_LO_NOTE = 36
-PIANO_HI_NOTE = 60
+# Confirmado en la unidad de produccion: el teclado manda en CANAL 13,
+# notas 49-73 (25 teclas). Antes se asumia un rango generico 36-60 sin
+# canal fijo -- pero los PADS del banco B (ver DEFAULT_MIDI) mandan notas
+# 45-52 en canal 10, que se pisan numericamente con 49-52 del piano. Sin
+# distinguir por canal un pad quedaria mal detectado como tecla. El rango
+# real y el chequeo de canal viven en dats/midi_logic.py
+# (PIANO_CHANNEL/PIANO_LO/PIANO_HI); estas dos constantes son solo
+# documentacion para quien lea este archivo.
+PIANO_LO_NOTE = 49
+PIANO_HI_NOTE = 73
 
 # ---------------------------------------------------------------
 # MIDI - Arturia MiniLab MkII
@@ -158,15 +168,18 @@ DEFAULT_MIDI = {
     'Detail4': 'ch1ctrl73',
     'Detail5': '',
     'Detail6': '',
-    # Efectos que antes vivian fijos en las teclas C1-E1 del piano --
-    # movidos a pads (aprendidos con Learn) para dejar las 25 teclas
-    # libres para el movimiento de firma de cada escena. Sin default: se
-    # aprenden con Learn Grain / Learn Glitch / etc, igual que Next/Prev.
-    'Grain': '',
-    'Glitch': '',
-    'Pixelate': '',
-    'Strobe': '',
-    'Invert': '',
+    # 8 efectos en los 8 pads del banco B del MiniLab mkII (pads 9-16),
+    # confirmados por el usuario: canal 10, notas 45-52 consecutivas. Ya
+    # vienen con default -- no hace falta Learn para que funcionen desde
+    # el primer arranque (igual que los knobs).
+    'Grain':     'ch10n45',
+    'Glitch':    'ch10n46',
+    'Pixelate':  'ch10n47',
+    'Strobe':    'ch10n48',
+    'Invert':    'ch10n49',
+    'Mirror':    'ch10n50',
+    'Zoom':      'ch10n51',
+    'Posterize': 'ch10n52',
 }
 
 # Orden en que aparecen en la pagina MIDI Mapping. Esto es lo unico que
@@ -179,7 +192,8 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
               'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
               'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset',
-              'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert']
+              'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
+              'Mirror', 'Zoom', 'Posterize']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

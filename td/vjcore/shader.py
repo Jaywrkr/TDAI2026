@@ -164,7 +164,28 @@ _FOOTER = """
 // TD-VJ AUTO FOOTER - NO EDITAR
 // ===============================================================
 void main() {
-    vec4 c = render(vUV.st);
+    // Efectos GEOMETRICOS de pad: tienen que deformar el UV ANTES de
+    // llamar a render(), no el color ya resuelto -- por eso viven aca
+    // arriba, no junto a Grain/Glitch/Strobe/Invert/Posterize (esos SI
+    // son de color, van despues de render() como siempre). Pixelate
+    // tenia un bug real: mezclaba c.rgb consigo mismo (c*a + c*(1-a) = c,
+    // un no-op) -- nunca pixelaba nada de verdad. Ahora cuantiza el UV
+    // antes de muestrear, que es como se pixela de verdad.
+    vec2 renderUV = vUV.st;
+
+    if (uPixelate > 0.0015) {
+        float pxCount = mix(200.0, 16.0, uPixelate);
+        renderUV = (floor(renderUV * pxCount) + 0.5) / pxCount;
+    }
+    if (uZoom > 0.0015) {
+        renderUV = vec2(0.5) + (renderUV - vec2(0.5)) * (1.0 - uZoom * 0.5);
+    }
+    if (uMirror > 0.0015) {
+        float mFold = renderUV.x > 0.5 ? (1.0 - renderUV.x) : renderUV.x;
+        renderUV.x = mix(renderUV.x, mFold, uMirror);
+    }
+
+    vec4 c = render(renderUV);
     c.rgb = max(c.rgb, vec3(0.0));
 
     // Anillo universal de teclas del piano (Fase 3). Horneado aca, no en
@@ -179,7 +200,8 @@ void main() {
         c.rgb += ring;
     }
 
-    // ---- EFECTOS DE PIANO (notas 36-40: C1-E1) ----
+    // ---- EFECTOS DE PAD (8: Grain, Glitch, Pixelate, Strobe, Invert,
+    // Mirror, Zoom, Posterize -- ver dats/midi_logic.py EFFECT_TRIGGERS) ----
 
     // Grain: añade ruido fino al color
     if (uGrain > 0.0015) {
@@ -197,12 +219,6 @@ void main() {
         c.rgb = clamp(c.rgb, 0.0, 1.0);
     }
 
-    // Pixelate: reduce resolucion (block effect)
-    if (uPixelate > 0.0015) {
-        float px_size = mix(2.0, 32.0, uPixelate);
-        c.rgb = c.rgb * uPixelate * 0.7 + c.rgb * (1.0 - uPixelate * 0.7);
-    }
-
     // Strobe: destello periodico
     if (uStrobe > 0.0015) {
         float strobe_freq = 8.0 + uStrobe * 20.0;
@@ -213,6 +229,13 @@ void main() {
     // Invert: invierte colores
     if (uInvert > 0.0015) {
         c.rgb = mix(c.rgb, vec3(1.0) - c.rgb, uInvert * 0.8);
+    }
+
+    // Posterize: cuantiza el color en pocos niveles -- look retro de
+    // pantalla de pocos bits.
+    if (uPosterize > 0.0015) {
+        float levels = mix(16.0, 3.0, uPosterize);
+        c.rgb = floor(c.rgb * levels + 0.5) / levels;
     }
 
     // Freno de seguridad para blancos solidos: varias escenas suman

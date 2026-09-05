@@ -132,14 +132,17 @@ def _parameters(proj):
     add_float(s, 'Keypos', 'Keypos (interno)', 0.5, 0, 1)
     add_float(s, 'Keyvel', 'Keyvel (interno)', 0.0, 0, 1)
     add_float(s, 'Keypulseraw', 'Keypulseraw (interno)', 0.0, 0, 1)
-    # Efectos de pad (Fase 3, movidos del piano C1-E1 a pads aprendidos
-    # con Learn -- ver pagina MIDI Mapping) -- se escriben desde
-    # midi_logic.py (EFFECT_TRIGGERS).
+    # Efectos de pad (Fase 3, 8 pads del banco B del MiniLab mkII, ver
+    # config.DEFAULT_MIDI) -- se escriben desde midi_logic.py
+    # (EFFECT_TRIGGERS).
     add_float(s, 'Grain', 'Grain', 0.0, 0, 1)
     add_float(s, 'Glitch', 'Glitch', 0.0, 0, 1)
     add_float(s, 'Pixelate', 'Pixelate', 0.0, 0, 1)
     add_float(s, 'Strobe', 'Strobe', 0.0, 0, 1)
     add_float(s, 'Invert', 'Invert', 0.0, 0, 1)
+    add_float(s, 'Mirror', 'Mirror', 0.0, 0, 1)
+    add_float(s, 'Zoom', 'Zoom', 0.0, 0, 1)
+    add_float(s, 'Posterize', 'Posterize', 0.0, 0, 1)
 
 
 # ---------------------------------------------------------------

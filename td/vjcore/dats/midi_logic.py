@@ -15,15 +15,19 @@ si eso pasa.
 
 import re
 
-# 2 octavas, C1-C3 -- el default de fabrica del MiniLab MkII. Los botones
-# Octave -/+ del teclado corren esto sin avisar al software.
-PIANO_LO = 36
-PIANO_HI = 60
+# Confirmado en la unidad de produccion: el teclado de 25 teclas manda en
+# CANAL 13, notas 49-73. Los pads del banco B (ver EFFECT_TRIGGERS mas
+# abajo) mandan canal 10, notas 45-52 -- esas notas 49-52 SE PISAN con el
+# piano si solo se mira el numero de nota, por eso el chequeo de canal es
+# obligatorio, no cosmetico.
+PIANO_CHANNEL = 13
+PIANO_LO = 49
+PIANO_HI = 73
 
 _NOTE_PATTERNS = [
-    re.compile(r'^ch\d+n(\d+)$', re.IGNORECASE),
-    re.compile(r'^ch\d+note(\d+)$', re.IGNORECASE),
-    re.compile(r'^ch\d+key(\d+)$', re.IGNORECASE),
+    re.compile(r'^ch(\d+)n(\d+)$', re.IGNORECASE),
+    re.compile(r'^ch(\d+)note(\d+)$', re.IGNORECASE),
+    re.compile(r'^ch(\d+)key(\d+)$', re.IGNORECASE),
 ]
 
 
@@ -31,8 +35,9 @@ def _piano_note(name):
     for pat in _NOTE_PATTERNS:
         m = pat.match(name)
         if m:
-            note = int(m.group(1))
-            if PIANO_LO <= note <= PIANO_HI:
+            chan = int(m.group(1))
+            note = int(m.group(2))
+            if chan == PIANO_CHANNEL and PIANO_LO <= note <= PIANO_HI:
                 return note
     return None
 
@@ -42,13 +47,13 @@ def _handlePianoKey(note, val):
     if not p:
         return
 
-    # Piano COMPLETO (36-60, las 25 teclas): Keypos/Keyvel/Keypulse para
-    # el movimiento de firma propio de cada escena. Grain/Glitch/
-    # Pixelate/Strobe/Invert YA NO viven hardcodeados en C1-E1 -- se
-    # movieron a pads aprendidos con Learn (ver EFFECT_TRIGGERS mas abajo)
-    # para dejar las 25 teclas libres, pedido explicito del usuario al
-    # descubrir que su controlador tiene 16 pads (2 bancos de 8) y no
-    # necesita sacrificar teclas para los efectos.
+    # Piano COMPLETO (canal 13, notas 49-73, las 25 teclas):
+    # Keypos/Keyvel/Keypulse para el movimiento de firma propio de cada
+    # escena. Los 8 efectos (Grain/Glitch/Pixelate/Strobe/Invert/Mirror/
+    # Zoom/Posterize) viven en los pads del banco B (canal 10, notas
+    # 45-52, ver EFFECT_TRIGGERS mas abajo), no en el teclado -- pedido
+    # explicito del usuario al descubrir que su controlador tiene 16 pads
+    # (2 bancos de 8) y no necesita sacrificar teclas para los efectos.
     pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
     vel = max(0.0, min(1.0, float(val) / 127.0))
 
@@ -112,12 +117,14 @@ TRIGGERS = {
     'Reset': 'resetControls',
 }
 
-# Efectos que antes vivian fijos en las teclas C1-E1 del piano -- ahora
-# son pads como cualquier otro TRIGGER (se aprenden con Learn), solo que
-# en vez de llamar una funcion sin argumentos, escriben la velocidad del
-# pad (0..1) en su parametro y se resetean solas un par de frames despues
-# -- mismo patron/funcion (_resetEffect) que ya usaba el piano.
-EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert']
+# 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas
+# 45-52, ver config.DEFAULT_MIDI) -- se comportan como cualquier otro
+# TRIGGER (se pueden reaprender con Learn), solo que en vez de llamar una
+# funcion sin argumentos, escriben la velocidad del pad (0..1) en su
+# parametro y se resetean solas un par de frames despues -- mismo patron/
+# funcion (_resetEffect) que ya usaba el piano.
+EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
+                    'Mirror', 'Zoom', 'Posterize']
 
 
 def _ctx():
