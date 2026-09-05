@@ -138,9 +138,24 @@ def selectScene(index):
         if index == active and not moving:
             return
 
-        # El lado entrante es aquel hacia el que NO vamos ahora mismo.
-        target_val = float(p.par.Xfadetarget.eval())
-        incoming = 'A' if target_val > 0.5 else 'B'
+        # El lado entrante se calcula SIEMPRE a partir de 'active_side'
+        # (que solo cambia en _finishFade, cuando una transicion de verdad
+        # termina), nunca releyendo Xfadetarget aca. Xfadetarget es el
+        # PARAMETRO que _startFade ya invierte apenas arranca la rampa --
+        # si un segundo click llega mientras la primera transicion sigue
+        # en curso (rampa a mitad de camino), Xfadetarget YA vale el
+        # destino nuevo, y recalcular 'incoming' desde ahi da el lado
+        # EQUIVOCADO (el que esta por desaparecer, no el que esta
+        # apareciendo) -- eso pisaba el lado saliente a mitad de fundido y
+        # el click de verdad no llevaba a ningun lado (el bug reportado de
+        # "a veces el next/click no funciona"). Con 'active_side' fijo
+        # durante toda la transicion, cualquier cantidad de clicks
+        # seguidos siempre apunta al mismo lado entrante, y solo cambia
+        # QUE escena va a aparecer ahi.
+        active_side = str(p.fetch('active_side', 'A') or 'A')
+        incoming = 'B' if active_side == 'A' else 'A'
+        p.store('incoming_side', incoming)
+
         sw = op('/project1/program_' + incoming.lower())
         if not sw:
             return
@@ -157,6 +172,13 @@ def selectScene(index):
         if bool(p.par.Usepresets.eval()):
             recallPreset(index)
 
+        # Se agenda un _startFade nuevo SIEMPRE, incluso si ya habia una
+        # transicion en curso -- eso invalida (por token) el _startFade/
+        # _finishFade pendientes del click anterior y hace que el fundito
+        # se reinicie apuntando al destino mas reciente, en vez de quedar
+        # con dos ciclos de fade compitiendo o -peor- ninguno terminando
+        # nunca (_finishFade viejo abortando por token viejo sin que haya
+        # uno nuevo agendado que reemplace lo que hacia).
         prewarm = max(0, int(p.par.Prewarmframes.eval()))
         if prewarm <= 0:
             _startFade(token)
@@ -173,8 +195,13 @@ def _startFade(token):
     if not p or int(p.fetch('transition_token', -1)) != int(token):
         return
     try:
-        cur = float(p.par.Xfadetarget.eval())
-        p.par.Xfadetarget = 0.0 if cur > 0.5 else 1.0
+        # Xfadetarget se fija a partir de 'incoming_side' (guardado por
+        # selectScene), no invirtiendo ciegamente el valor actual -- asi
+        # coincide siempre con el lado que de verdad tiene la escena
+        # nueva cargada, sin importar cuantos clicks se acumularon antes
+        # de que esta func corriera.
+        incoming = str(p.fetch('incoming_side', 'B') or 'B')
+        p.par.Xfadetarget = 1.0 if incoming == 'B' else 0.0
 
         fps = max(1.0, float(project.cookRate))
         secs = max(0.02, float(p.par.Transitionseconds.eval()))
@@ -193,6 +220,7 @@ def _finishFade(token):
     try:
         target = int(p.par.Targetindex.eval())
         p.par.Activeindex = target
+        p.store('active_side', str(p.fetch('incoming_side', 'B') or 'B'))
         p.store('transitioning', False)
 
         # Igualar el switch saliente al entrante: a partir de aqui solo hay
@@ -246,16 +274,30 @@ def abortTransition():
     updateHighlight()
 
 
+def _navBase(p):
+    """Desde que indice contar el +1/-1 de Next/Prev.
+
+    Si ya hay una transicion en curso, contar desde Activeindex (que
+    todavia NO se actualizo, se actualiza recien en _finishFade) hace
+    que pulsar Next dos veces seguidas rapido calcule el MISMO destino
+    las dos veces -- se ve como si el boton no respondiera al segundo
+    toque. Contando desde Targetindex mientras se esta moviendo, cada
+    pulsada avanza una escena mas alla de la ultima que se pidio.
+    """
+    moving = bool(p.fetch('transitioning', False))
+    return int(p.par.Targetindex.eval()) if moving else int(p.par.Activeindex.eval())
+
+
 def nextScene():
     p = _p()
     if p:
-        selectScene((int(p.par.Activeindex.eval()) + 1) % N_SCENES)
+        selectScene((_navBase(p) + 1) % N_SCENES)
 
 
 def prevScene():
     p = _p()
     if p:
-        selectScene((int(p.par.Activeindex.eval()) - 1) % N_SCENES)
+        selectScene((_navBase(p) - 1) % N_SCENES)
 
 
 def toggleBlackout():
@@ -563,6 +605,8 @@ def safeStartup():
         p.store('transition_token', 0)
         p.store('transitioning', False)
         p.store('learn_slot', '')
+        p.store('active_side', 'A')
+        p.store('incoming_side', 'B')
 
         p.par.Activeindex = 0
         p.par.Targetindex = 0

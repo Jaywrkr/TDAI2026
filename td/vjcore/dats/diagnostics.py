@@ -1,8 +1,45 @@
 """/project1/diagnostics  -  panel de estado del sistema."""
 
+import os
+
 
 def _p():
     return op('/project1')
+
+
+def _par_val(name, default=0.0):
+    p = _p()
+    par = getattr(p.par, name, None) if p else None
+    try:
+        return float(par.eval()) if par is not None else default
+    except Exception:
+        return default
+
+
+def _chan_val(path, name, default=0.0):
+    o = op(path)
+    if not o:
+        return default
+    try:
+        return float(o[name][0])
+    except Exception:
+        return default
+
+
+def _sceneName(index):
+    """'INK', 'METABALL', etc a partir del nombre del archivo .frag --
+    para que el panel diga que escena esta activa, no solo el numero."""
+    try:
+        import vjcore.shader as shader
+        path = shader.find_visual(index)
+    except Exception:
+        path = None
+    if not path:
+        return ''
+    stem = os.path.basename(path).split('.')[0]
+    parts = stem.split('_', 1)
+    name = parts[1] if len(parts) > 1 else stem
+    return name.upper().replace('_', ' ')
 
 
 def _chans(path):
@@ -91,6 +128,26 @@ def update():
     if learn:
         lines.append('')
         lines.append('>> MIDI LEARN ARMADO: {}'.format(learn))
+
+    # Valores en vivo: contexto pedido explicitamente -- saber en que
+    # posicion esta cada perilla (y cada banda de audio) sin tener que
+    # adivinar mirando solo el visual. Mismo tick que el resto del panel
+    # (Diagnosticinterval, ~5x por segundo por defecto) -- suficiente
+    # para leer una perilla en movimiento sin gastar mas costo por frame.
+    lines.append('')
+    lines.append('ESCENA      {:02d} {}'.format(active, _sceneName(active)))
+    lines.append('')
+    lines.append('VALORES EN VIVO')
+    lines.append('Speed {:.2f}  Density {:.2f}  Hue {:.2f}  Chaos {:.2f}  Bright {:.2f}'.format(
+        _par_val('Speed'), _par_val('Density'), _par_val('Hue'),
+        _par_val('Chaos'), _par_val('Brightness')))
+    lines.append('Detail  D1 {:.2f}  D2 {:.2f}  D3 {:.2f}  D4 {:.2f}  D5 {:.2f}  D6 {:.2f}'.format(
+        _par_val('Detail1'), _par_val('Detail2'), _par_val('Detail3'),
+        _par_val('Detail4'), _par_val('Detail5'), _par_val('Detail6')))
+    lines.append('Audio   Bass {:.2f}  Mid {:.2f}  High {:.2f}  Kick {:.2f}  Beat {:.2f}'.format(
+        _chan_val('/project1/ctrl', 'bass'), _chan_val('/project1/ctrl', 'mid'),
+        _chan_val('/project1/ctrl', 'high'), _chan_val('/project1/ctrl', 'kick'),
+        _chan_val('/project1/ctrl', 'beat')))
 
     status.text = '\n'.join(lines)
     try:

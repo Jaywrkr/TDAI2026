@@ -32,7 +32,10 @@ def build(proj, thumbs, program_clean):
     grid_w = c.GRID_COLS * c.THUMB_W + (c.GRID_COLS - 1) * c.GAP
     grid_h = c.GRID_ROWS * c.THUMB_H + (c.GRID_ROWS - 1) * c.GAP
     dash_w = c.DASH_MARGIN * 2 + grid_w + 24 + c.PROGRAM_W
-    dash_h = max(grid_h, c.PROGRAM_H + 210) + c.DASH_MARGIN * 2
+    # +210 alcanzaba para status+legend antes de que status sumara la
+    # seccion de "valores en vivo" (perillas + audio) -- +120 mas de
+    # reserva para que esas lineas nuevas no se corten en el panel.
+    dash_h = max(grid_h, c.PROGRAM_H + 210 + 120) + c.DASH_MARGIN * 2
 
     dash = proj.create(containerCOMP, 'dashboard_ui')
     dash.nodeX, dash.nodeY = 700, 900

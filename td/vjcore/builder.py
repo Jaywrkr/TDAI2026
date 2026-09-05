@@ -97,7 +97,12 @@ def _parameters(proj):
     add_string(s, 'Repopath', 'Repo td/ Path', '')
     add_toggle(s, 'Safestartblackout', 'Safe Start Blackout', True)
     add_int(s, 'Fpswarning', 'FPS Warning', 55, 1, 240)
-    add_int(s, 'Diagnosticinterval', 'Diagnostic Interval Frames', 30, 5, 600)
+    # Bajado de 30 a 12 (~5x/seg a 60fps, ~4x/seg a 50fps): este panel
+    # ahora tambien muestra los valores en vivo de las perillas y del
+    # audio (diagnostics.py), asi que se lee como un medidor, no solo
+    # como un chequeo de sistema ocasional -- 30 frames (~0.5s) se sentia
+    # con retraso notable al mover una perilla.
+    add_int(s, 'Diagnosticinterval', 'Diagnostic Interval Frames', 12, 5, 600)
     add_toggle(s, 'Systemready', 'System Ready', False)
     add_pulse(s, 'Reloadshaders', 'Recargar Shaders')
     add_pulse(s, 'Rebuild', 'Reconstruir Todo')
