@@ -72,14 +72,18 @@ def _parameters(proj):
 
     perf = proj.appendCustomPage('Performance')
     add_toggle(perf, 'Performancemode', 'Freeze Inactive Scenes', True)
-    # Default cambiado a True: con Performance Mode solo, 19 de los 20
-    # tiles del dashboard quedan CONGELADOS (negros) hasta que se los
-    # visita una vez -- se ve como un dashboard roto (foto real del
-    # usuario: solo la escena activa se veia, el resto pura pantalla
-    # negra). El usuario confirmo que el FPS no es un problema por ahora,
-    # asi que el costo extra de las 20 escenas cocinando a la vez vale la
-    # pena por tener el grid completo siempre visible.
-    add_toggle(perf, 'Previewall', 'Preview All (caro)', True)
+    # Default vuelto a False (habia pasado a True con 20 escenas para que
+    # el dashboard no se viera todo negro -- ver comentario historico
+    # abajo). Con 34 escenas eso hundio el FPS a ~9 al abrir el viewer
+    # del dashboard (34 shaders completos cocinando a la vez, no 20):
+    # pedido explicito del usuario de que SOLO cocine la escena activa y
+    # la que esta por entrar durante una transicion, no las 34 juntas.
+    # setSceneCooking() ya hace exactamente eso con Previewall=False --
+    # indices = visibleScenes() = {activa} o {activa, entrante} mientras
+    # dura el fundido. El resto del grid queda con el ultimo frame que
+    # llego a cocinar (negro hasta la primera vez que se visita esa
+    # escena, snapshot fijo despues) en vez de una miniatura siempre viva.
+    add_toggle(perf, 'Previewall', 'Preview All (caro)', False)
     add_int(perf, 'Prewarmframes', 'Prewarm Frames', 2, 0, 30)
 
     ap = proj.appendCustomPage('Autopilot')
