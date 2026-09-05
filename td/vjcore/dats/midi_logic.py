@@ -101,6 +101,18 @@ CONTINUOUS = {
     'Bassamount': ('Bassamount', 0.0, 1.0),
     'Midamount': ('Midamount', 0.0, 1.0),
     'Highamount': ('Highamount', 0.0, 1.0),
+    # BUG encontrado en vivo: Learn Detail1..6 guardaba bien el mapeo
+    # (midiMap() lo devolvia correcto), pero como estos 6 slots NUNCA
+    # estuvieron en este diccionario, _handle() nunca escribia el valor
+    # en ningun par -- el knob quedaba "conectado" pero mudo. Sintoma
+    # exacto reportado: el panel Detail se queda fijo en 0.5 pase lo que
+    # pase con el knob fisico, aunque el Learn si se haya hecho bien.
+    'Detail1': ('Detail1', 0.0, 1.0),
+    'Detail2': ('Detail2', 0.0, 1.0),
+    'Detail3': ('Detail3', 0.0, 1.0),
+    'Detail4': ('Detail4', 0.0, 1.0),
+    'Detail5': ('Detail5', 0.0, 1.0),
+    'Detail6': ('Detail6', 0.0, 1.0),
 }
 
 TRIGGERS = {
