@@ -597,6 +597,41 @@ def startMediaCycles():
         _scheduleMediaAdvance(idx)
 
 
+# ---------------------------------------------------------------
+# AUTOPILOT (avance de escena hands-free)
+# ---------------------------------------------------------------
+
+def _autopilotTick():
+    p = _p()
+    if p:
+        try:
+            if bool(p.par.Autopilot.eval()):
+                nextScene()
+        except Exception as e:
+            print('_autopilotTick ERROR:', e)
+    _scheduleAutopilot()
+
+
+def _scheduleAutopilot():
+    """Se reagenda solo, siempre, este prendido o no el toggle Autopilot
+    -- revisa el toggle en cada tick (_autopilotTick) y solo avanza si
+    esta prendido. Asi prender/apagar el toggle no tiene que arrancar ni
+    parar ningun loop, igual que Previewall con setSceneCooking."""
+    p = _p()
+    if not p:
+        return
+    try:
+        secs = max(1.0, float(p.par.Autopilotseconds.eval()))
+    except Exception:
+        secs = 20.0
+    run("op('/project1/control_script').module._autopilotTick()",
+        delayMilliSeconds=int(secs * 1000))
+
+
+def startAutopilot():
+    _scheduleAutopilot()
+
+
 def safeStartup():
     p = _p()
     if not p:
@@ -626,6 +661,7 @@ def safeStartup():
         updateHighlight()
         updateDetailLegend(0)
         startMediaCycles()
+        startAutopilot()
 
         d = op('/project1/diagnostics')
         if d:

@@ -13,7 +13,8 @@ except ImportError:
 
 import os
 
-from . import config, audio, control, midi, scenes, program, dashboard, shader, media
+from . import (config, audio, control, midi, scenes, program, dashboard, shader,
+              media, keyboard, autopilot)
 from .tdutil import (safe_set, safe_expr, add_float, add_int, add_toggle,
                      add_string, add_pulse, log, clear_log, chan_names)
 
@@ -73,6 +74,10 @@ def _parameters(proj):
     add_toggle(perf, 'Performancemode', 'Freeze Inactive Scenes', True)
     add_toggle(perf, 'Previewall', 'Preview All (caro)', False)
     add_int(perf, 'Prewarmframes', 'Prewarm Frames', 2, 0, 30)
+
+    ap = proj.appendCustomPage('Autopilot')
+    add_toggle(ap, 'Autopilot', 'Autopilot (hands-free)', False)
+    add_float(ap, 'Autopilotseconds', 'Autopilot Seconds', 20.0, 3.0, 120.0)
 
     m = proj.appendCustomPage('MIDI Mapping')
     for slot in c.MIDI_SLOTS:
@@ -234,7 +239,13 @@ def build(verbose=True):
     log('CTRL canales: {}'.format(channels))
 
     # --- avance de imagen/GIF por beat (config.MEDIA_SCENES) ---
-    media.build(proj)
+    beat_chan, _media_logic = media.build(proj)
+
+    # --- autopilot (avance de ESCENA hands-free, por tiempo + beat) ---
+    autopilot.build(proj, beat_chan)
+
+    # --- atajos de teclado (respaldo del MIDI) ---
+    keyboard.build(proj)
 
     # --- escenas + program + dashboard ---
     _, outs, thumbs = scenes.build_all(proj, channels)

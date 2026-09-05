@@ -33,9 +33,14 @@ def build(proj, thumbs, program_clean):
     grid_h = c.GRID_ROWS * c.THUMB_H + (c.GRID_ROWS - 1) * c.GAP
     dash_w = c.DASH_MARGIN * 2 + grid_w + 24 + c.PROGRAM_W
     # +210 alcanzaba para status+legend antes de que status sumara la
-    # seccion de "valores en vivo" (perillas + audio) -- +120 mas de
-    # reserva para que esas lineas nuevas no se corten en el panel.
-    dash_h = max(grid_h, c.PROGRAM_H + 210 + 120) + c.DASH_MARGIN * 2
+    # seccion de "valores en vivo" (perillas + audio) -- +190 de reserva
+    # para esas lineas nuevas (4 barras de VU en vez de 1 sola linea de
+    # audio). BEAT_STRIP_RESERVE aparte: una franja propia arriba del
+    # monitor de program para la luz de beat.
+    BEAT_STRIP_H = 40
+    BEAT_GAP = 8
+    dash_h = (max(grid_h, c.PROGRAM_H + 210 + 220 + BEAT_STRIP_H + BEAT_GAP)
+              + c.DASH_MARGIN * 2)
 
     dash = proj.create(containerCOMP, 'dashboard_ui')
     dash.nodeX, dash.nodeY = 700, 900
@@ -79,7 +84,10 @@ def build(proj, thumbs, program_clean):
 
     # --- monitor de program ---
     px = c.DASH_MARGIN + grid_w + 24
-    py = dash_h - c.DASH_MARGIN - c.PROGRAM_H
+    # Franja de BEAT_STRIP_H+BEAT_GAP reservada arriba del monitor (ver
+    # dash_h mas arriba) para la luz de beat -- el monitor queda ese tanto
+    # mas abajo de lo que estaria pegado al techo del dashboard.
+    py = dash_h - c.DASH_MARGIN - c.PROGRAM_H - BEAT_STRIP_H - BEAT_GAP
 
     mon = dash.create(containerCOMP, 'program_monitor')
     safe_set(mon, 'x', px)
@@ -89,6 +97,12 @@ def build(proj, thumbs, program_clean):
     safe_set(mon, 'top', program_clean.path)
     safe_set(mon, 'topfill', 'fillaspect')
     safe_set(mon, 'enable', False)
+
+    # --- luz de beat: destella con cada golpe detectado (confirmacion
+    # visual de que el beat-detection esta afinado, sin tener que mirar
+    # el visual para notarlo) ---
+    beat_y = dash_h - c.DASH_MARGIN - BEAT_STRIP_H
+    build_beat_light(dash, px, beat_y, BEAT_STRIP_H)
 
     # Columna derecha, de abajo hacia arriba: leyenda de Detail (chica, la
     # escena activa la reescribe en cada cambio), status (el resto).
@@ -100,7 +114,7 @@ def build(proj, thumbs, program_clean):
     build_status_panel(dash, px, status_y, c.PROGRAM_W, status_h)
     build_detail_legend_panel(dash, px, c.DASH_MARGIN, c.PROGRAM_W, legend_h)
 
-    log('DASHBOARD: {} tiles + monitor + status + detail legend'.format(len(thumbs)))
+    log('DASHBOARD: {} tiles + monitor + beat light + status + detail legend'.format(len(thumbs)))
     return dash
 
 
@@ -166,6 +180,53 @@ def _build_text_panel(dash, prefix, x, y, w, h, initial_text,
 def build_status_panel(dash, x, y, w, h):
     return _build_text_panel(dash, 'system_status', x, y, w, h,
                              'SYSTEM INITIALIZING...')
+
+
+def build_beat_light(dash, x, y, h):
+    """Cuadrado que destella en blanco con cada golpe detectado.
+
+    Usa una EXPRESION nativa de TD sobre bgcolor (leyendo el canal 'beat'
+    de /project1/ctrl directo), no un valor que Python empuje por tick --
+    asi actualiza cada frame de verdad, con la resolucion temporal real de
+    la envolvente de beat, en vez de a la cadencia (mas lenta, pensada
+    para lectura humana) del panel de status/valores en vivo.
+    """
+    box = dash.create(containerCOMP, 'beat_light')
+    safe_set(box, 'x', x)
+    safe_set(box, 'y', y)
+    safe_set(box, 'w', h)
+    safe_set(box, 'h', h)
+    safe_set(box, 'opacity', 1)
+    expr = "max(0.05, min(1.0, op('/project1/ctrl')['beat'][0]))"
+    for p in ('bgcolorr', 'bgcolorg', 'bgcolorb'):
+        safe_expr(box, p, expr)
+
+    label = dash.create(containerCOMP, 'beat_label')
+    safe_set(label, 'x', x + h + 8)
+    safe_set(label, 'y', y)
+    safe_set(label, 'w', 90)
+    safe_set(label, 'h', h)
+    for p, v in (('bgcolorr', 0.03), ('bgcolorg', 0.03), ('bgcolorb', 0.035)):
+        safe_set(label, p, v)
+
+    txt = label.create(textTOP, 'beat_label_render')
+    safe_set(txt, 'text', 'BEAT')
+    safe_set_first(txt, ['wordwrap', 'wrapwords'], False)
+    safe_set_first(txt, ['alignx', 'justifyx', 'textalignx'], 'left')
+    safe_set_first(txt, ['aligny', 'justifyy', 'textaligny'], 'middle')
+    safe_set_first(txt, ['fontsizex', 'fontsize'], 16)
+    safe_set_first(txt, ['font', 'fontname'], 'Courier New')
+    for p, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'), (0.75, 0.85, 1.0)):
+        safe_set(txt, p, v)
+    for p, v in zip(('bgcolorr', 'bgcolorg', 'bgcolorb'), (0.03, 0.03, 0.035)):
+        safe_set(txt, p, v)
+    safe_set(txt, 'outputresolution', 'custom')
+    safe_set(txt, 'resolutionw', 90)
+    safe_set(txt, 'resolutionh', int(h))
+    safe_set(label, 'top', txt.path)
+    safe_set(label, 'topfill', 'fillaspect')
+    safe_set(label, 'enable', False)
+    return box
 
 
 def build_detail_legend_panel(dash, x, y, w, h):

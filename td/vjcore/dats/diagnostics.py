@@ -26,6 +26,13 @@ def _chan_val(path, name, default=0.0):
         return default
 
 
+def _bar(v, width=14):
+    """Barra tipo VU meter en texto monoespaciado: '[#######-------]'."""
+    v = max(0.0, min(1.0, float(v)))
+    n = int(round(v * width))
+    return '[' + ('#' * n) + ('-' * (width - n)) + ']'
+
+
 def _sceneName(index):
     """'INK', 'METABALL', etc a partir del nombre del archivo .frag --
     para que el panel diga que escena esta activa, no solo el numero."""
@@ -144,10 +151,27 @@ def update():
     lines.append('Detail  D1 {:.2f}  D2 {:.2f}  D3 {:.2f}  D4 {:.2f}  D5 {:.2f}  D6 {:.2f}'.format(
         _par_val('Detail1'), _par_val('Detail2'), _par_val('Detail3'),
         _par_val('Detail4'), _par_val('Detail5'), _par_val('Detail6')))
-    lines.append('Audio   Bass {:.2f}  Mid {:.2f}  High {:.2f}  Kick {:.2f}  Beat {:.2f}'.format(
-        _chan_val('/project1/ctrl', 'bass'), _chan_val('/project1/ctrl', 'mid'),
-        _chan_val('/project1/ctrl', 'high'), _chan_val('/project1/ctrl', 'kick'),
-        _chan_val('/project1/ctrl', 'beat')))
+
+    # Medidores VU: una barra en texto por banda, mas facil de leer de
+    # reojo en vivo que solo el numero.
+    bass, mid, high, kick = (_chan_val('/project1/ctrl', n)
+                             for n in ('bass', 'mid', 'high', 'kick'))
+    lines.append('Bass  {} {:.2f}'.format(_bar(bass), bass))
+    lines.append('Mid   {} {:.2f}'.format(_bar(mid), mid))
+    lines.append('High  {} {:.2f}'.format(_bar(high), high))
+    lines.append('Kick  {} {:.2f}'.format(_bar(kick), kick))
+
+    try:
+        autopilot_on = bool(p.par.Autopilot.eval())
+    except Exception:
+        autopilot_on = False
+    if autopilot_on:
+        try:
+            secs = float(p.par.Autopilotseconds.eval())
+        except Exception:
+            secs = 0.0
+        lines.append('')
+        lines.append('>> AUTOPILOT ON  (cada {:.0f}s + por beat)'.format(secs))
 
     status.text = '\n'.join(lines)
     try:
