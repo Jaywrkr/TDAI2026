@@ -29,13 +29,18 @@
 //   Hue      color base del degradado
 //   Chaos    cuanto se desplazan las bandas Y cuanta estatica hay en
 //            total -- en 0 es un color liso y calmo, sin ruido
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            desplazamiento (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     glitch de pantalla completa, breve
+//   Kick     glitch de pantalla completa -- ya llega con envolvente de
+//            golpe-y-caida (audio.py)
 //   High     temblor micro adicional del offset (excepcion del contrato)
 //
 // @D1: cantidad de aberracion cromatica
 // @D2: que tan seguido cambia el desplazamiento de cada banda
+// @D3: brillo base de la escena (muy oscura y contenida <-> bien
+//      iluminada)
+// @D4: cantidad de motas brillantes en la estatica
 //
 // SIMPLIFICADA: se veia demasiado ocupada por defecto (muchas bandas
 // finas + estatica densa a la vez). Bajado el rango de bandas, la
@@ -66,6 +71,9 @@ vec4 render(vec2 uv)
     // uHigh: temblor micro adicional -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado desde el core.
     shift += uHigh * 0.01 * sin(t * 20.0 + bandId);
+    // Bass: un poco de movimiento del shift ademas del brillo de mas
+    // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
+    shift += uBass * 0.03 * sin(t * 2.0 + bandId * 0.7);
 
     // Aberracion cromatica: cada canal muestrea con su propio offset extra.
     float aberr = 0.003 + uD1 * 0.022;
@@ -97,9 +105,9 @@ vec4 render(vec2 uv)
     // (asi el color de fondo no compite con el shift -- el shift se lee en
     // la estatica, el matiz da la paleta).
     float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.16);
-    // Value bajado (era 1.0, luego 0.30): mucho mas oscura en reposo --
-    // Bass/Kick la hacen respirar mas claro.
-    vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.16));
+    // D3: brillo base -- de muy oscura y contenida a bien iluminada.
+    // Bass/Kick siguen haciendola respirar mas claro encima de esto.
+    vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.08 + uD3 * 0.55));
     vec3 staticCol = base * (0.30 + 0.70 * vec3(nR, nG, nB));
 
     // Chaos tambien controla CUANTA estatica hay en total, no solo su
@@ -113,8 +121,9 @@ vec4 render(vec2 uv)
     // "encendidas" del ruido -- pocas, casi blancas -- y se suman APARTE
     // del mix de arriba, para que siempre esten presentes aunque Chaos este
     // bajo y el resto de la escena quede lisa y oscura.
-    float highlight = smoothstep(0.94, 0.995, nAvg);
-    col += vec3(1.0) * highlight * 0.9;
+    // D4: cantidad de motas -- umbral mas bajo deja pasar mas celdas.
+    float highlight = smoothstep(0.97 - uD4 * 0.35, 0.995, nAvg);
+    col += vec3(1.0) * highlight * (0.3 + uD4 * 0.8);
 
     // Lineas de barrido sutiles (el propio "scanline" del nombre): una
     // banda oscura fina cada cierta cantidad de filas.

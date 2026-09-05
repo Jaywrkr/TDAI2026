@@ -20,13 +20,18 @@
 //   Hue      color base
 //   Chaos    distorsion angular de los anillos (dejan de ser circulos
 //            perfectos)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            radio (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     onda expansiva: un anillo extra se dispara hacia afuera
+//   Kick     onda expansiva -- ya llega con envolvente de golpe-y-caida
+//            (audio.py)
 //   High     vibracion micro del radio (excepcion del contrato)
 //
 // @D1: cantidad de aberracion cromatica
 // @D2: grosor de los anillos
+// @D3: cuantos "petalos" tiene la distorsion angular (circulos casi
+//      perfectos <-> flor con muchos petalos)
+// @D4: prominencia del nucleo central brillante
 //
 // SIMPLIFICADA: menos anillos por defecto (mas grandes y separados),
 // mas gruesos, y con menos fleco cromatico en reposo -- se veia
@@ -39,13 +44,19 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
 
     // Distorsion angular: los anillos dejan de ser circulos perfectos.
+    // D3: cuantos petalos -- pocos y suaves (casi circular) <-> muchos,
+    // como una flor.
     float ang = atan(p.y, p.x);
-    float radDist = 1.0 + sin(ang * 5.0 + t * 0.3) * uChaos * 0.15;
+    float petals = 2.0 + uD3 * 10.0;
+    float radDist = 1.0 + sin(ang * petals + t * 0.3) * uChaos * 0.15;
     float r = length(p) * radDist;
 
     // uHigh: vibracion micro del radio -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado desde el core.
     r += uHigh * 0.01 * sin(t * 15.0 + ang * 8.0);
+    // Bass: un poco de movimiento del radio ademas del brillo de mas
+    // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
+    r += uBass * 0.02 * sin(t * 1.8 + ang * 3.0);
 
     // Aun mas simplificada: menos anillos todavia (2 a 5), mas gruesos, y
     // menos fringing por defecto.
@@ -75,8 +86,9 @@ vec4 render(vec2 uv)
     // un solo color plano.
     vec3 col = vec3(cR, cG, cB) * tint;
 
-    // Nucleo central tenue, para que no quede un agujero negro en el medio.
-    col += tint * 0.06 * exp(-r * 3.0);
+    // Nucleo central -- D4 controla que tan prominente es, de un tinte
+    // apenas perceptible a un resplandor central notorio.
+    col += tint * (0.02 + uD4 * 0.5) * exp(-r * 3.0);
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

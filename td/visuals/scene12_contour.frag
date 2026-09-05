@@ -22,13 +22,17 @@
 //   Density  cuantas curvas de nivel hay (3 a 10)
 //   Hue      color de las curvas
 //   Chaos    rugosidad del terreno (domain warp + octavas efectivas)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            terreno (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de las curvas (excepcion del contrato)
 //
 // @D1: grosor de las curvas
 // @D2: escala del terreno (mas D2 = terreno mas fino y detallado)
+// @D3: contraste del gradiente de brillo (parejo <-> valles oscuros muy
+//      marcados contra picos brillantes)
+// @D4: relleno tenue entre curvas de nivel (solo lineas <-> mapa relleno)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -40,9 +44,11 @@ vec4 render(vec2 uv)
     vec2 warpP = p * scale + vec2(t * (0.01 + uSpeed * 0.06), t * (0.008 + uSpeed * 0.04));
 
     // uChaos anade un domain warp que rompe la simetria del ruido base --
-    // sin esto el terreno se ve demasiado regular.
+    // sin esto el terreno se ve demasiado regular. Bass suma un poco de
+    // movimiento ademas del brillo de mas abajo -- seguro porque uBass ya
+    // llega suavizado (Fase 2).
     vec2 warp = vec2(fbm(warpP + 4.0, 3), fbm(warpP - 2.0, 3)) - 0.5;
-    warpP += warp * (0.15 + uChaos * 0.6);
+    warpP += warp * (0.15 + uChaos * 0.6 + uBass * 0.08);
 
     float h = fbm(warpP, 4, 0.5);
 
@@ -56,6 +62,11 @@ vec4 render(vec2 uv)
     float hCol = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
 
+    // D4: relleno tenue segun la altura del terreno, debajo de las
+    // lineas -- en 0 solo se ven las curvas sobre negro, en 1 se lee
+    // como un mapa topografico relleno.
+    col += hsv2rgb(vec3(hCol, 0.5, clamp(h, 0.0, 1.0))) * uD4 * 0.35;
+
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 curvas.
     for (int i = 0; i < 10; i++) {
         if (i >= int(levels)) break;
@@ -63,8 +74,10 @@ vec4 render(vec2 uv)
         float threshold = (float(i) + 0.5) / levels;
         float line = edgeLine(h - threshold, lineW);
 
-        // Mas alto = un poco mas brillante, como en un mapa real.
-        float bright = 0.5 + 0.5 * (float(i) / max(levels - 1.0, 1.0));
+        // Mas alto = un poco mas brillante, como en un mapa real. D3:
+        // contraste de ese gradiente -- parejo (D3=0) <-> valles oscuros
+        // muy marcados contra picos brillantes (D3=1).
+        float bright = mix(0.7, 0.12 + 0.88 * (float(i) / max(levels - 1.0, 1.0)), uD3);
         col += hsv2rgb(vec3(hCol, 0.65, bright)) * line;
     }
 

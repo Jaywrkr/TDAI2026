@@ -22,13 +22,17 @@
 //   Density  cuantas lineas hay (2 a 10 -- pocas, a proposito)
 //   Hue      color de las lineas
 //   Chaos    cuanto se curvan (amplitud de la ondulacion)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
+//            la curva (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de la curva (excepcion del contrato)
 //
 // @D1: grosor de las lineas
 // @D2: frecuencia de la ondulacion (cuantas curvas por linea)
+// @D3: variacion de color entre lineas (todas iguales <-> cada una un
+//      tono bien distinto)
+// @D4: resplandor (glow) alrededor de las lineas, ademas del trazo nitido
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -46,7 +50,6 @@ vec4 render(vec2 uv)
 
     vec3 col = vec3(0.0);
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 lineCol = hsv2rgb(vec3(h, 0.75, 1.0));
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 lineas,
     // asi el costo esta acotado sin importar el knob.
@@ -57,15 +60,22 @@ vec4 render(vec2 uv)
 
         // uHigh: vibracion micro de la curva -- unica excepcion del
         // contrato, amplitud pequena, ya suavizado.
+        // Bass: un poco de movimiento ademas del brillo de mas abajo --
+        // seguro porque uBass ya llega suavizado (Fase 2).
         float wobble = sin(p.x * waveFreq + t * (0.3 + uSpeed * 0.6)
                           + float(i) * 1.7)
                      * amp
-                     + uHigh * 0.01 * sin(t * 12.0 + p.x * 8.0 + float(i));
+                     + uHigh * 0.01 * sin(t * 12.0 + p.x * 8.0 + float(i))
+                     + uBass * 0.03 * sin(t * 1.5 + float(i) * 2.1);
 
         float sdf = p.y - (baseY + wobble);
+        // D3: variacion de color por linea.
+        vec3 lineCol = hsv2rgb(vec3(fract(h + float(i) * 0.09 * uD3), 0.75, 1.0));
         float line = edgeLine(sdf, lineW);
+        // D4: resplandor ademas del trazo nitido.
+        float glow = exp(-sdf * sdf / (0.004 + uD4 * 0.05)) * uD4;
 
-        col += lineCol * line;
+        col += lineCol * (line + glow * 0.6);
     }
 
     // Kick: flash breve.
