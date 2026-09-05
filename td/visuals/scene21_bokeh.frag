@@ -68,6 +68,17 @@ vec4 render(vec2 uv)
         col += vec3(1.0, 0.55, 0.75) * ring * pulse * uD2 * 0.5;
     }
 
+    // PIANO: una luciernaga se enciende enorme en el punto que elige
+    // uKeypos con cada tecla -- uKeypulse decae solo, uKeyvel escala
+    // que tan grande llega a ser el bokeh.
+    if (uKeypulse > 0.0015) {
+        vec2 flarePos = (vec2(uKeypos, fract(uKeypos * 3.1)) - 0.5) * 1.6;
+        float dFlareB = length(p - flarePos);
+        float sizeB = 0.15 + uKeyvel * 0.25;
+        float flareB = exp(-dFlareB * dFlareB / (sizeB * sizeB)) * uKeypulse;
+        col += hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0)) * flareB;
+    }
+
     col += col * uKick * 0.4;
     col = audioLift(col, uBass * 0.4);
     col *= vignette(uv, 0.4);

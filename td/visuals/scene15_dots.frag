@@ -122,6 +122,20 @@ vec4 render(vec2 uv)
         }
     }
 
+    // PIANO: una estrella fugaz cruza la constelacion en diagonal con
+    // cada tecla -- uKeypos elige el angulo, uKeypulse decae solo
+    // (avanza mientras dura el pulso), con una cola corta detras.
+    if (uKeypulse > 0.0015) {
+        float shootAng = uKeypos * TAU;
+        vec2 shootDir = vec2(cos(shootAng), sin(shootAng));
+        float shootT = (1.0 - uKeypulse) * 2.0 - 1.0;
+        float dShoot = length(p - shootDir * shootT);
+        float shoot = exp(-dShoot * dShoot / 0.0008) * uKeypulse * (0.6 + uKeyvel * 1.2);
+        float dTailS = length(p - shootDir * (shootT - 0.12));
+        shoot += exp(-dTailS * dTailS / 0.003) * uKeypulse * 0.45;
+        col += vec3(1.0) * shoot;
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.4;
 

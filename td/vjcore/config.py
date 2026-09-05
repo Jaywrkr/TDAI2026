@@ -132,27 +132,30 @@ PIANO_HI_NOTE = 60
 # pasar por Learn. Learn sigue disponible para remapear o para otro
 # controlador.
 DEFAULT_MIDI = {
-    'Speed':      'ch1ctrl76',
-    'Density':    'ch1ctrl73',
-    'Hue':        'ch1ctrl74',
-    'Chaos':      'ch1ctrl80',
+    # Actualizado con el mapeo REAL confirmado via MIDI Learn en la pagina
+    # MIDI Mapping del usuario (todos los knobs/perillas ya aprendidos,
+    # no solo los 6 originales) -- ver captura de la sesion. Detail5/6
+    # se dejan sin default: el controlador no tiene mas perillas libres
+    # ("ya no tengo perillas libres", dicho explicitamente antes).
+    'Speed':      'ch1ctrl75',
+    'Density':    'ch1ctrl72',
+    'Hue':        'ch1ctrl77',
+    'Chaos':      'ch1ctrl78',
     'Brightness': 'ch1ctrl94',
-    'Transition': 'ch1ctrl92',
+    'Transition': 'ch1ctrl74',
     'Next':       'ch1ctrl30',
     'Prev':       'ch1ctrl29',
     'Blackout':   'ch1ctrl28',
     'Snapshot':   'ch1ctrl27',
     'Reset':      'ch1ctrl26',
-    # Sin default: no tengo confirmados los CC de estos knobs todavia.
-    # Se mapean con Learn (Learn Audioamount, Learn Detail1, etc.).
-    'Audioamount': '',
-    'Bassamount': '',
-    'Midamount': '',
-    'Highamount': '',
-    'Detail1': '',
-    'Detail2': '',
-    'Detail3': '',
-    'Detail4': '',
+    'Audioamount': 'ch1ctrl76',
+    'Bassamount': 'ch1ctrl19',
+    'Midamount': 'ch1ctrl20',
+    'Highamount': 'ch1ctrl17',
+    'Detail1': 'ch1ctrl18',
+    'Detail2': 'ch1ctrl92',
+    'Detail3': 'ch1ctrl80',
+    'Detail4': 'ch1ctrl73',
     'Detail5': '',
     'Detail6': '',
 }

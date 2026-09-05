@@ -95,6 +95,17 @@ vec4 render(vec2 uv)
     // en blanco plano.
     col = col / (1.0 + col);
 
+    // PIANO: onda de choque circular cruza toda la red desde el centro
+    // en cada tecla, iluminando lo que toca a su paso -- uKeypulse decae
+    // solo (el radio del frente avanza mientras dura el pulso), uKeypos
+    // tiñe la onda, uKeyvel escala su brillo.
+    if (uKeypulse > 0.0015) {
+        float waveR = (1.0 - uKeypulse) * 1.8;
+        float dWave = abs(length(p) - waveR);
+        float shock = exp(-dWave * dWave / 0.002) * uKeypulse * (0.6 + uKeyvel * 1.4);
+        col += hsv2rgb(vec3(fract(uKeypos), 0.4, 1.0)) * shock;
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.4;
 

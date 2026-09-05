@@ -123,6 +123,13 @@ vec4 render(vec2 uv)
     float burstMix = step(0.5, hash21(vec2(burstStep, 5.0)));
     col = mix(col, mix(invCol, staticCol, burstMix), burstOn * burstEnv);
 
+    // PIANO: "frame freeze" -- la pantalla entera se corrompe a
+    // estatica/invertido con cada tecla, ademas del burst automatico de
+    // arriba. uKeypulse decae solo, uKeyvel escala cuanto se corrompe.
+    if (uKeypulse > 0.0015) {
+        col = mix(col, mix(invCol, staticCol, uKeypos), uKeypulse * (0.4 + uKeyvel * 0.5));
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.35;
 

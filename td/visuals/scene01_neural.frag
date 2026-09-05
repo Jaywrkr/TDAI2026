@@ -142,6 +142,15 @@ vec4 render(vec2 uv)
     col += glowCol * glow * 1.3 * (0.6 + 0.4 * pulse);
     col += vec3(1.0) * packet * 1.4;
 
+    // PIANO: flash de sincronia -- toda la red se enciende junta un
+    // instante en cada tecla, como si de golpe todas las neuronas
+    // dispararan a la vez. uKeypulse decae solo; uKeypos tiñe el flash.
+    if (uKeypulse > 0.0015) {
+        vec3 flashCol = hsv2rgb(vec3(fract(uKeypos), 0.6, 1.0));
+        col += flashCol * edge * uKeypulse * (0.8 + uKeyvel * 1.5);
+        col += flashCol * glow * uKeypulse * (0.4 + uKeyvel * 0.8);
+    }
+
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
 

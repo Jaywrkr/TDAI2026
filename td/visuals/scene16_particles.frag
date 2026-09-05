@@ -107,6 +107,22 @@ vec4 render(vec2 uv)
         }
     }
 
+    // PIANO: una explosion dispersa streaks extra desde el punto que
+    // elige uKeypos -- uKeypulse decae solo (los fragmentos se alejan
+    // mientras dura el pulso), uKeyvel escala cuanto viajan.
+    if (uKeypulse > 0.0015) {
+        vec2 burstCenter = vec2((uKeypos - 0.5) * 2.2, cos(uKeypos * 8.0) * 0.6);
+        float burstDist = (1.0 - uKeypulse) * (0.4 + uKeyvel * 0.6);
+        for (int b = 0; b < 10; b++) {
+            float fb = float(b);
+            float burstAng = fb * (TAU / 10.0) + uKeypos * 3.0;
+            vec2 fragPos = burstCenter + vec2(cos(burstAng), sin(burstAng)) * burstDist;
+            float dFrag = length(p - fragPos);
+            float frag = exp(-dFrag * dFrag / 0.0006) * uKeypulse;
+            col += hsv2rgb(vec3(fract(h + fb * 0.05), 0.7, 1.0)) * frag;
+        }
+    }
+
     // Kick: destello breve en todo el campo.
     col += col * uKick * 0.6;
 

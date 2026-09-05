@@ -64,6 +64,16 @@ vec4 render(vec2 uv)
     // musica (uBass ya suavizado, Fase 2), en vez de quedar fijo.
     float hBreath = h * (1.0 + uBass * 0.15);
 
+    // PIANO: un pico nuevo se levanta al instante en el punto que elige
+    // uKeypos -- se suma directo al campo de altura (antes de las
+    // curvas de nivel), asi las curvas de verdad se deforman alrededor,
+    // como un terreno real empujado desde abajo. uKeypulse decae solo.
+    if (uKeypulse > 0.0015) {
+        vec2 peakPos = vec2((uKeypos - 0.5) * 2.6, sin(uKeypos * 7.0) * 0.8);
+        float dPeak = length(p - peakPos);
+        hBreath += exp(-dPeak * dPeak / 0.06) * uKeypulse * (0.5 + uKeyvel * 0.9);
+    }
+
     float hCol = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
 

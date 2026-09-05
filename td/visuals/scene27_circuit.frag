@@ -70,6 +70,15 @@ vec4 render(vec2 uv)
     float chipShape = 1.0 - smoothstep(0.24, 0.31, max(abs(cellF.x - 0.5), abs(cellF.y - 0.5)));
     col += vec3(1.0, 0.82, 0.3) * isChip * chipShape * 0.75;
 
+    // PIANO: sobrecarga -- un camino entero de la red (una diagonal de
+    // celdas, elegida por uKeypos) se enciende de golpe en blanco, como
+    // un pico de tension viajando por esa traza. uKeypulse decae solo.
+    if (uKeypulse > 0.0015) {
+        float surgeBand = fract((cellId.x + cellId.y) * 0.12 - uKeypos * 8.0);
+        float surge = smoothstep(0.1, 0.0, abs(surgeBand - 0.5)) * trace;
+        col += vec3(1.0) * surge * uKeypulse * (0.7 + uKeyvel * 1.0);
+    }
+
     col += col * uKick * 0.3;
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.2);

@@ -113,6 +113,15 @@ vec4 render(vec2 uv)
     float scanLine = exp(-scanDist * scanDist / 0.0004);
     col += vec3(1.0, 0.12, 0.10) * scanLine * (0.6 + colMask * 0.4);
 
+    // PIANO: un SEGUNDO laser salta a la altura que elige uKeypos y
+    // flashea con cada tecla -- uKeypulse decae solo, uKeyvel escala
+    // el brillo del flash.
+    if (uKeypulse > 0.0015) {
+        float scanDistP = abs(uv.y - uKeypos);
+        float scanLineP = exp(-scanDistP * scanDistP / 0.0006);
+        col += vec3(1.0, 1.0, 1.0) * scanLineP * uKeypulse * (0.6 + uKeyvel * 1.4);
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

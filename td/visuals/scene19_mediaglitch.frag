@@ -102,6 +102,18 @@ vec4 render(vec2 uv)
     float lum = dot(media, vec3(0.299, 0.587, 0.114));
     vec3 col = mix(media, tint * lum, uD4 * 0.85);
 
+    // PIANO: corrupcion extra sobre la imagen con cada tecla -- un
+    // pixelado grueso momentaneo (uKeypos elige el tamano de bloque) +
+    // tinte de color (uKeyvel escala la mezcla). uKeypulse decae solo.
+    if (uKeypulse > 0.0015) {
+        float pixSizeP = mix(4.0, 40.0, uKeypos);
+        vec2 uvPixP = floor(uv * pixSizeP) / pixSizeP;
+        vec3 mediaP = mediaTex(uvPixP).rgb;
+        vec3 tintP = hsv2rgb(vec3(fract(uKeypos + 0.5), 0.85, 1.0));
+        vec3 corrupted = mix(mediaP, tintP * dot(mediaP, vec3(0.299, 0.587, 0.114)), 0.5 + uKeyvel * 0.4);
+        col = mix(col, corrupted, uKeypulse);
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.3;
 

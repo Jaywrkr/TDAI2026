@@ -77,6 +77,20 @@ vec4 render(vec2 uv)
         col += vec3(1.0, 0.9, 0.55) * dot * (1.0 + uKick * 1.3);
     }
 
+    // PIANO: "nuevo contacto" -- un blip nuevo aparece en el angulo que
+    // elige uKeypos, con un anillo de alerta que se expande y avisa.
+    // uKeypulse decae solo, uKeyvel escala que tan lejos esta el blip.
+    if (uKeypulse > 0.0015) {
+        float newBlipAng = uKeypos * TAU;
+        float newBlipR = 0.2 + uKeyvel * 0.6;
+        vec2 newBlipPos = newBlipR * vec2(cos(newBlipAng), sin(newBlipAng));
+        float dNew = length(p - newBlipPos);
+        float newDot = smoothstep(0.02, 0.0, dNew) * uKeypulse;
+        float alertR = (1.0 - uKeypulse) * 0.25;
+        float alertRing = exp(-(dNew - alertR) * (dNew - alertR) / 0.0008) * uKeypulse;
+        col += vec3(1.0, 0.3, 0.25) * (newDot + alertRing);
+    }
+
     col += col * uKick * 0.3;
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.25);

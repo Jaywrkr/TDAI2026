@@ -46,6 +46,12 @@ vec4 render(vec2 uv)
     // Apertura real: crece con los graves y salta con el kick.
     float openR = clamp(0.10 + uBass * 0.22 + uKick * 0.3, 0.04, 0.75);
 
+    // PIANO: "disparo" de obturador -- el diafragma se abre a fondo y
+    // cierra solo con cada tecla, geometria real (no solo brillo).
+    // uKeypulse decae solo (como uKick), uKeyvel escala que tan a fondo
+    // se abre.
+    openR = clamp(openR + uKeypulse * (0.35 + uKeyvel * 0.4), 0.04, 0.9);
+
     float la = mod(ang - rot, sector) - sector * 0.5;
     float tilt = 0.15 + uD2 * 0.35;
     float bladeSDF = r * sin(la + tilt) - openR;

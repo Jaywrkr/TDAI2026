@@ -154,6 +154,18 @@ vec4 render(vec2 uv)
         col += vec3(1.0) * (coreK + glowK * 0.6) * uKick * 0.9;
     }
 
+    // PIANO: un rayo extra, apuntando a la X que elige uKeypos, cae con
+    // cada tecla -- reusa boltDist como el rayo del kick. uKeypulse
+    // decae solo, uKeyvel escala el brillo.
+    if (uKeypulse > 0.0015) {
+        vec2 seedP = vec2(11.0, 91.0);
+        float baseXP = (uKeypos - 0.5) * 2.6;
+        float dP = boltDist(p, seedP, 1.15, -1.15, 6, zigzagAmt, baseXP, 0.0);
+        float coreP = edgeLine(dP, lineW * 0.85);
+        float glowP = exp(-dP * dP / 0.01);
+        col += vec3(1.0) * (coreP + glowP * 0.6) * uKeypulse * (0.6 + uKeyvel * 1.2);
+    }
+
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.6);
 

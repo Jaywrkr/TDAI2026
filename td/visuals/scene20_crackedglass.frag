@@ -81,6 +81,19 @@ vec4 render(vec2 uv)
     float core = smoothstep(0.012, 0.0, crack);
     col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * uD3 * reveal;
 
+    // PIANO: un impacto EXTRA agrieta el vidrio en el punto que elige
+    // uKeypos, ademas de la revelacion central -- reusa la misma red de
+    // grietas (crack/edge/glow), solo cambia donde se revela. uKeypulse
+    // decae solo, uKeyvel escala que tan lejos llega el impacto.
+    if (uKeypulse > 0.0015) {
+        vec2 impactPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 9.0) * 0.8);
+        float rImpact = length(p - impactPos);
+        float impactR = (1.0 - uKeypulse) * (0.3 + uKeyvel * 0.5);
+        float revealP = smoothstep(impactR + 0.15, impactR - 0.15, rImpact) * uKeypulse;
+        col += hsv2rgb(vec3(fract(h + crack * 3.0), 0.55, 1.0)) * edge * revealP;
+        col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * revealP;
+    }
+
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.3);
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.01;

@@ -69,6 +69,18 @@ vec4 render(vec2 uv)
     float fogField = fbm(p * 0.2 + vec2(t * 0.01, -t * 0.008) + 13.0, 3);
     col += hsv2rgb(vec3(fract(h + 0.02), 0.2, 0.6)) * smoothstep(0.4, 0.9, fogField) * uD3 * 0.4;
 
+    // PIANO: un impacto directo grande cae en el punto que elige
+    // uKeypos, mas alla de lo que ya dispara el kick -- uKeypulse decae
+    // solo (se expande y se disuelve), uKeyvel escala el tamano.
+    if (uKeypulse > 0.0015) {
+        vec2 impactPosP = vec2((uKeypos - 0.5) * 2.2, cos(uKeypos * 8.0) * 0.7);
+        float impactR = (1.0 - uKeypulse) * (0.12 + uKeyvel * 0.25);
+        float dImpact = abs(length(p - impactPosP) - impactR);
+        float impactRing = exp(-dImpact * dImpact / 0.001) * uKeypulse;
+        float impactCore = exp(-length(p - impactPosP) * length(p - impactPosP) / 0.006) * uKeypulse * 0.6;
+        col += inkCol * (impactRing + impactCore);
+    }
+
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.4);

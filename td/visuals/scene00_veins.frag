@@ -199,6 +199,19 @@ vec4 render(vec2 uv)
 
     col *= vignette(uv, 0.55);
 
+    // PIANO: chispa que recorre la red desde una raiz al azar cada vez
+    // que se toca una tecla. uKeypulse decae solo (como uKick, ya
+    // suavizado) asi que la chispa viaja y se apaga sin temporizador
+    // propio; uKeypos elige la direccion, uKeyvel el brillo.
+    if (uKeypulse > 0.0015) {
+        float sparkAng = uKeypos * TAU;
+        float progress = 1.0 - uKeypulse;
+        vec2 sparkPos = vec2(cos(sparkAng), sin(sparkAng)) * progress * 1.3;
+        float dSpark = length(p - sparkPos);
+        float spark = exp(-dSpark * dSpark / 0.0025) * uKeypulse * (0.5 + uKeyvel * 1.2);
+        col += vec3(1.0, 0.55, 0.3) * spark;
+    }
+
     // Dither: mata el banding en los degradados oscuros. Casi gratis.
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.012;
 

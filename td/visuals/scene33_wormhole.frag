@@ -43,6 +43,11 @@ vec4 render(vec2 uv)
 
     float diskFreq = 3.0 + uD1 * 10.0;
     float rotSpeed = 0.3 + uSpeed * 1.0 + uBass * 1.6;
+    // PIANO: el disco invierte el giro un instante con cada tecla --
+    // geometria real (la velocidad de rotacion cambia de signo), no solo
+    // brillo. uKeypulse decae solo, asi vuelve a girar normal por su
+    // cuenta; uKeyvel escala que tan fuerte se invierte.
+    rotSpeed = mix(rotSpeed, -rotSpeed * (0.6 + uKeyvel * 0.8), uKeypulse);
     float disk = fbm(vec2(bentAng * 2.0 - t * rotSpeed, r * diskFreq), 3);
 
     float diskMask = smoothstep(horizonR, horizonR + 0.06, r) * smoothstep(0.9, 0.4, r);
@@ -59,6 +64,7 @@ vec4 render(vec2 uv)
     col += vec3(1.0, 0.85, 0.6) * horizonEdge * 1.4;
     col *= smoothstep(horizonR * 0.55, horizonR, r);
 
+    col += col * uKeypulse * 0.6;
     col += col * uKick * 0.4;
     col = audioLift(col, uBass * 0.4);
     col *= vignette(uv, 0.15);

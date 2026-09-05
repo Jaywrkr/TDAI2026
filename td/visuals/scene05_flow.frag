@@ -105,6 +105,16 @@ vec4 render(vec2 uv)
         col += lineCol * (line + glow * 0.6 + spark * 0.9);
     }
 
+    // PIANO: una corriente extra, brillante, aparece un instante en la
+    // altura que elige uKeypos -- uKeypulse decae solo, uKeyvel escala
+    // que tan gruesa/brillante sale.
+    if (uKeypulse > 0.0015) {
+        float guestY = mix(-0.95, 0.95, uKeypos);
+        float dGuest = abs(p.y - guestY);
+        float guestLine = exp(-dGuest * dGuest / 0.0012) * uKeypulse * (0.7 + uKeyvel * 1.3);
+        col += vec3(1.0) * guestLine;
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

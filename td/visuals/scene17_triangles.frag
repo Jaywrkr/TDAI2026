@@ -101,6 +101,17 @@ vec4 render(vec2 uv)
 
     vec3 col = triCol * inTri * on * bevel;
 
+    // PIANO: una onda de color invierte los triangulos que toca a su
+    // paso, viajando desde el punto que elige uKeypos -- uKeypulse
+    // decae solo (el radio del frente avanza mientras dura el pulso).
+    if (uKeypulse > 0.0015) {
+        vec2 waveCenter = vec2((uKeypos - 0.5) * 2.6, sin(uKeypos * 6.0) * 0.9);
+        float waveR = (1.0 - uKeypulse) * 2.0;
+        float dWaveT = abs(length(p - waveCenter) - waveR);
+        float invertMask = smoothstep(0.12 + uKeyvel * 0.15, 0.0, dWaveT) * uKeypulse;
+        col = mix(col, vec3(1.0) - col, invertMask * inTri * on);
+    }
+
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
 

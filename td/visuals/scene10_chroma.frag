@@ -113,6 +113,17 @@ vec4 render(vec2 uv)
                 * uKick * 1.5;
     col += tint * flare;
 
+    // PIANO: un lens-flare EXTRA en el angulo que elige uKeypos, ademas
+    // del que ya dispara el kick -- uKeypulse decae solo, uKeyvel
+    // escala el brillo.
+    if (uKeypulse > 0.0015) {
+        float flareAngP = uKeypos * TAU;
+        vec2 flarePosP = vec2(cos(flareAngP), sin(flareAngP)) * 0.5;
+        float dFlareP = length(p - flarePosP);
+        float flareP = exp(-dFlareP * dFlareP / 0.005) * uKeypulse * (0.6 + uKeyvel * 1.4);
+        col += tint * flareP;
+    }
+
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
 

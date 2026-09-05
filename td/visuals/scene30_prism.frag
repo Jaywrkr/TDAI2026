@@ -39,7 +39,15 @@ vec4 render(vec2 uv)
     float inPrism = smoothstep(0.012, -0.012, pTri);
 
     float beam = smoothstep(0.045, 0.0, abs(p.y)) * step(p.x, prismCenter.x - 0.08);
-    vec3 col = vec3(1.0) * beam * 0.8;
+    vec3 beamCol = vec3(1.0);
+    // PIANO: el haz incidente cambia de color un instante antes de
+    // entrar al prisma, con cada tecla -- uKeypos elige el tinte,
+    // uKeypulse decae solo (vuelve a blanco por su cuenta).
+    if (uKeypulse > 0.0015) {
+        vec3 tintBeam = hsv2rgb(vec3(fract(uKeypos), 0.8, 1.0));
+        beamCol = mix(vec3(1.0), tintBeam, uKeypulse * (0.6 + uKeyvel * 0.4));
+    }
+    vec3 col = beamCol * beam * 0.8;
     col = mix(col, vec3(0.55, 0.65, 0.72) * 0.3, inPrism);
 
     vec2 fanOrigin = prismCenter + vec2(0.2, 0.0);

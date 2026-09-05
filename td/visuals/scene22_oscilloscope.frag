@@ -40,6 +40,12 @@ vec4 render(vec2 uv)
     // Bass/Mid deciden la FORMA -- geometria real, no solo brillo.
     float fa = 1.0 + floor(uBass * 4.99) + floor(uD4 * 3.0);
     float fb = 1.0 + floor(uMid * 4.99) + floor(uD4 * 2.0);
+
+    // PIANO: la figura salta a una forma mas loca (mas lobulos, elegidos
+    // por uKeypos) y vuelve sola -- uKeypulse decae como uKick, asi que
+    // esto es geometria real que se revierte, no un color encima.
+    fa += floor(uKeypos * 6.0) * uKeypulse;
+    fb += floor(fract(uKeypos * 3.3) * 6.0) * uKeypulse * (0.5 + uKeyvel * 0.8);
     float phase = t * (0.15 + uSpeed * 0.4) + uHigh * 1.5;
     float amp = 0.45 + uChaos * 0.4;
 

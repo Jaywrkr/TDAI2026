@@ -111,6 +111,22 @@ vec4 render(vec2 uv)
         }
     }
 
+    // PIANO: un cometa cruza todo el sistema en diagonal con cada
+    // tecla -- uKeypos elige el angulo de cruce, uKeypulse decae solo
+    // (avanza mientras dura el pulso), con una cola corta detras.
+    if (uKeypulse > 0.0015) {
+        float cometAng = uKeypos * TAU;
+        vec2 cometDir = vec2(cos(cometAng), sin(cometAng));
+        float cometT = (1.0 - uKeypulse) * 2.0 - 1.0;
+        vec2 cometPos = cometDir * cometT;
+        float dComet = length(p - cometPos);
+        float comet = exp(-dComet * dComet / 0.0012) * uKeypulse * (0.6 + uKeyvel * 1.2);
+        vec2 tailPos = cometDir * (cometT - 0.15);
+        float dTail = length(p - tailPos);
+        comet += exp(-dTail * dTail / 0.004) * uKeypulse * 0.5;
+        col += vec3(1.0) * comet;
+    }
+
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
 

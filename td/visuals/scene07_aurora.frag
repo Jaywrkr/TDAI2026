@@ -102,6 +102,17 @@ vec4 render(vec2 uv)
         col += curtainCol * curtain;
     }
 
+    // PIANO: una franja de color afilada cruza la cortina de lado a
+    // lado en cada tecla -- uKeypos elige la X donde nace, uKeypulse
+    // decae solo (empieza angosta y se ensancha mientras se apaga).
+    if (uKeypulse > 0.0015) {
+        float bandX = mix(-1.4, 1.4, uKeypos);
+        float dBand = abs(p.x - bandX);
+        float bandW = 0.02 + (1.0 - uKeypulse) * 0.08;
+        float band = exp(-dBand * dBand / (bandW * bandW)) * uKeypulse * (0.6 + uKeyvel * 1.3);
+        col += hsv2rgb(vec3(fract(uKeypos + 0.3), 0.7, 1.0)) * band;
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

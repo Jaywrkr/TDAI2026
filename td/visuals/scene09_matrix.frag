@@ -135,6 +135,14 @@ vec4 render(vec2 uv)
     float glitchEnv = smoothstep(0.0, 0.1, glitchPhase) * smoothstep(0.4, 0.1, glitchPhase);
     col = mix(col, vec3(0.8, 1.0, 0.9), glitchOn * glitchEnv * 0.85);
 
+    // PIANO: "data dump" -- todas las celdas encendidas destellan casi
+    // blancas juntas un instante con cada tecla, como una descarga
+    // sincronizada de datos. uKeypulse decae solo, uKeyvel escala la
+    // fuerza del destello.
+    if (uKeypulse > 0.0015) {
+        col = mix(col, vec3(0.85, 1.0, 0.9), glyphAlpha * uKeypulse * (0.5 + uKeyvel * 0.5));
+    }
+
     // Kick: flash breve.
     col += col * uKick * 0.5;
 

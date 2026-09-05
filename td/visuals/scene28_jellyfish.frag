@@ -55,6 +55,12 @@ vec4 render(vec2 uv)
         basePos += 0.08 * vec2(sin(t * 0.08 + fi * 2.0), cos(t * 0.06 + fi * 1.7));
 
         float pulse = 0.16 + 0.05 * sin(t * (0.7 + uSpeed * 1.2) + fi * 2.0) + uBass * 0.07;
+
+        // PIANO: propulsion sincronizada -- TODAS las medusas contraen
+        // la campana juntas con cada tecla (geometria real, no solo
+        // brillo) y vuelven solas. uKeypulse decae solo, uKeyvel escala
+        // cuanto se contraen.
+        pulse -= uKeypulse * (0.05 + uKeyvel * 0.08);
         vec2 pl = p - basePos;
 
         float bell = bellShape(pl, pulse) * (0.4 + uD1 * 0.9);

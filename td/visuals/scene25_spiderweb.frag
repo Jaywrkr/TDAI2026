@@ -59,6 +59,23 @@ vec4 render(vec2 uv)
     float node = exp(-(spokeDist * spokeDist) * 8.0) * exp(-(ringSDF * ringSDF) * 30.0);
     col += hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0)) * node * uD4 * 2.0;
 
+    // PIANO: pulsada directa de UN radio especifico -- uKeypos elige
+    // cual (de los "spokes" que ya existen), uKeypulse decae solo (el
+    // radio pulsado brilla y vibra mas fuerte que el resto mientras dura
+    // el pulso), uKeyvel escala la vibracion.
+    if (uKeypulse > 0.0015) {
+        float pickedSpoke = floor(uKeypos * spokes);
+        float pickedAng = (pickedSpoke + 0.5) * spokeAng;
+        vec2 spokeDir = vec2(cos(pickedAng), sin(pickedAng));
+        vec2 spokeN = vec2(-spokeDir.y, spokeDir.x);
+        float alongSpoke = dot(p, spokeDir);
+        float perpSpoke = dot(p, spokeN);
+        float pluckWave = sin(alongSpoke * 10.0 - t * 6.0) * uKeypulse * (0.03 + uKeyvel * 0.05);
+        float dPluckSpoke = abs(perpSpoke - pluckWave);
+        float pluckLine = edgeLine(dPluckSpoke, 3.0) * step(0.0, alongSpoke) * step(alongSpoke, 1.2);
+        col += vec3(1.0) * pluckLine * uKeypulse;
+    }
+
     col += col * uKick * 0.4;
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.3);

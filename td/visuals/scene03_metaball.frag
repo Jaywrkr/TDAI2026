@@ -94,6 +94,18 @@ vec4 render(vec2 uv)
         field += ballSize * ballSize / (d2 + 0.0025);
     }
 
+    // PIANO: bola invitada extra que aparece con cada tecla y se FUNDE
+    // de verdad con las demas (se suma al mismo campo, antes del
+    // umbral) -- uKeypos elige el angulo donde aparece, uKeypulse decae
+    // solo (nace y se disuelve), uKeyvel escala su tamano.
+    if (uKeypulse > 0.0015) {
+        float guestAng = uKeypos * TAU;
+        vec2 guestPos = vec2(cos(guestAng), sin(guestAng)) * 0.35;
+        float guestSize = (0.10 + uKeyvel * 0.22) * uKeypulse;
+        float dGuest2 = dot(p - guestPos, p - guestPos);
+        field += guestSize * guestSize / (dGuest2 + 0.0025);
+    }
+
     float threshold = 2.5 + uD2 * 9.0;
     float contourW = 0.8 + uD1 * 3.0;
     float edge = edgeLine(field - threshold, contourW);

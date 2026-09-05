@@ -60,6 +60,16 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.1);
     vec3 col = hsv2rgb(vec3(h, 0.55, 1.0)) * (line + glow * 0.5);
 
+    // PIANO: un anillo especifico de la reticula (a la distancia del
+    // centro que elige uKeypos) pulsa mas brillante con cada tecla --
+    // uKeypulse decae solo, uKeyvel escala el brillo del pulso.
+    if (uKeypulse > 0.0015) {
+        float selectedR = mix(0.15, 1.1, uKeypos);
+        float dSelected = length(p) - selectedR;
+        float ringPulse = exp(-dSelected * dSelected / 0.0015) * uKeypulse * (0.6 + uKeyvel * 1.4);
+        col += hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0)) * ringPulse;
+    }
+
     col *= 1.0 + uBass * 0.3 + uKick * 0.9;
     col = audioLift(col, uBass * 0.4);
     col *= vignette(uv, 0.35);

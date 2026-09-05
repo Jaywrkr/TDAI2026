@@ -107,6 +107,17 @@ vec4 render(vec2 uv)
         }
     }
 
+    // PIANO: una fuente de onda EXTRA nace en el punto que elige
+    // uKeypos y emite un pulso propio -- uKeypulse decae solo (el
+    // frente crece mientras dura el pulso, se suma a las demas, asi que
+    // TAMBIEN interfiere de verdad con ellas). uKeyvel escala el radio.
+    if (uKeypulse > 0.0015) {
+        vec2 guestSrc = vec2((uKeypos - 0.5) * 1.4, cos(uKeypos * 9.0) * 0.5);
+        float guestFront = (1.0 - uKeypulse) * (0.5 + uKeyvel * 0.6);
+        float dGuest = length(pw - guestSrc) - guestFront;
+        col += waveCol * exp(-dGuest * dGuest / (width * width)) * uKeypulse;
+    }
+
     // Destello de interferencia: donde varias ondas se suman (los picos
     // de brillo naturales de superponer fuentes), un extra que se
     // enciende con Agudos -- se lee como reflejos de agua real en los

@@ -63,6 +63,19 @@ vec4 render(vec2 uv)
     float star = smoothstep(starSize, 0.0, starD) * isStar * twinkle;
     col += vec3(1.0) * star * (1.0 + uKick * 1.0);
 
+    // PIANO: un flash tipo supernova estalla en el punto que elige
+    // uKeypos con cada tecla -- uKeypulse decae solo (el anillo de la
+    // explosion se expande mientras dura el pulso), uKeyvel escala el
+    // brillo del nucleo.
+    if (uKeypulse > 0.0015) {
+        vec2 novaPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 7.0) * 0.8);
+        float dNova = length(p - novaPos);
+        float novaCore = exp(-dNova * dNova / 0.002) * uKeypulse * (0.8 + uKeyvel * 1.4);
+        float novaR = (1.0 - uKeypulse) * 0.5;
+        float novaRing = exp(-(dNova - novaR) * (dNova - novaR) / 0.0015) * uKeypulse * 0.7;
+        col += vec3(1.0, 0.85, 0.6) * (novaCore + novaRing);
+    }
+
     col += col * uKick * 0.3;
     col = audioLift(col, uBass * 0.6);
     col *= vignette(uv, 0.15);
