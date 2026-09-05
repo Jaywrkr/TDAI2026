@@ -163,14 +163,36 @@ def build(proj):
     # DESPUES de que kick ya tomo su entrada de bass_env, para no competir.
     bass = _smooth_out(proj, bass_env, 'a_bass_out', -580, 660)
 
-    kick = proj.create(mathCHOP, 'a_kick')
-    kick.nodeX, kick.nodeY = -280, 740
-    safe_expr(kick, 'gain', "op('/project1').par.Kickgain")
-    safe_set(kick, 'clamplow', True)
-    safe_set(kick, 'clamphigh', True)
-    safe_set_first(kick, ['clamplowvalue', 'clamplowval'], 0.0)
-    safe_set_first(kick, ['clamphighvalue', 'clamphighval'], 1.0)
-    connect(kick, diff)
+    kick_raw = proj.create(mathCHOP, 'a_kick_raw')
+    kick_raw.nodeX, kick_raw.nodeY = -280, 740
+    safe_expr(kick_raw, 'gain', "op('/project1').par.Kickgain")
+    safe_set(kick_raw, 'clamplow', True)
+    safe_set(kick_raw, 'clamphigh', True)
+    safe_set_first(kick_raw, ['clamplowvalue', 'clamplowval'], 0.0)
+    safe_set_first(kick_raw, ['clamphighvalue', 'clamphighval'], 1.0)
+    connect(kick_raw, diff)
+
+    # kick_raw es el valor INSTANTANEO del diferencial (bass_env rapido menos
+    # su media movil), frame a frame -- sin envolvente propia. Con musica
+    # real (o ruido de sala) el bass sube y baja todo el tiempo por razones
+    # que no son un bombo real (vibrato, sostenidos, mezcla de graves), asi
+    # que este valor cruza el clamp una y otra vez cada fraccion de segundo.
+    # Aplicado directo a un visual (col += col*uKick), eso ES el parpadeo
+    # "prende-apaga-prende-apaga" -- el mismo tipo de temblor que Fase 2 ya
+    # habia resuelto para 'level', reaparecido en el transitorio de kick.
+    #
+    # kick (lo que ven los visuales) es kick_raw pasado por una envolvente
+    # de pico-y-caida: ataque casi instantaneo (no pierde el golpe real),
+    # caida audible (0.22s) para que decaiga como un flash, no como ruido.
+    # A diferencia de 'beat' (Trigger CHOP, binario: siempre pega a 1.0),
+    # esto SI preserva la intensidad relativa del golpe -- un golpe suave
+    # sigue viendose mas chico que uno fuerte.
+    kick = proj.create(lagCHOP, 'a_kick')
+    kick.nodeX, kick.nodeY = -120, 700
+    safe_set(kick, 'lag1', 0.008)
+    safe_set(kick, 'lag2', 0.22)
+    safe_set_first(kick, ['lagmethod', 'method'], 'slew')
+    connect(kick, kick_raw)
 
     # ---- BEAT: envolvente AR nativa ----
     beat = proj.create(triggerCHOP, 'a_beat')
@@ -181,7 +203,7 @@ def build(proj):
     safe_set_first(beat, ['sustain', 'sustainlevel'], 1.0)
     safe_set_first(beat, ['release', 'releaselength'], 0.22)
     safe_set(beat, 'retrigger', True)
-    connect(beat, kick)
+    connect(beat, kick_raw)
 
     # ---- Renombrar y unir ----
     named = []

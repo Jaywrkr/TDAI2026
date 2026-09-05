@@ -50,7 +50,7 @@ vec4 render(vec2 uv)
     float r = length(p);
     float width = 0.03 + uD1 * 0.12;
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 waveCol = hsv2rgb(vec3(h, 0.75, 1.0));
 
     int echoes = 1 + int(floor(uDensity * 2.99));

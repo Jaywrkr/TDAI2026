@@ -45,7 +45,7 @@ vec4 render(vec2 uv)
     float size = 0.05 + uD1 * 0.14;
     float orb = exp(-d * d / (size * size) * 2.0);
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     float opacity = 0.15 + uD2 * 0.45;
     vec3 col = hsv2rgb(vec3(h, 0.50, 1.0)) * orb * opacity;
 

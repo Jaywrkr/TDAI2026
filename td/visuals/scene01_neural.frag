@@ -27,13 +27,17 @@
 //   Hue      paleta
 //   Chaos    cuanto se alejan los sitios del centro de su celda -- mas
 //            Chaos = red mas irregular, menos = mas ordenada/rejilla
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
+//            los sitios (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve en la red
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de los sitios (excepcion del contrato)
 //
 // @D1: grosor de los segmentos
 // @D2: cantidad de resplandor (glow) alrededor de los segmentos
+// @D3: frecuencia radial del pulso (pocos anillos anchos <-> muchos y finos)
+// @D4: velocidad de deriva de los sitios (rejilla casi fija <-> siempre
+//      reacomodandose)
 // ===============================================================
 
 // Punto aleatorio pero animado dentro de cada celda -- se mueve poco a
@@ -43,13 +47,21 @@
 // escalar con Chaos, no solo el drift animado -- si el offset base fuera
 // fijo, Chaos casi no cambiaria nada (se probo con un render en CPU: a
 // Chaos=0.05 la red se veia casi identica a Chaos=0.5).
-vec2 sitePoint(vec2 cellId, float t, float chaosAmt, float highAmt)
+// driftAmt (D4): escala tanto la VELOCIDAD del drift (t * driftRate) como
+// su alcance -- en 0 los sitios casi no se mueven (rejilla congelada), en 1
+// se reacomodan todo el tiempo, notablemente mas vivo que Chaos solo.
+// bassAmt: un poco de movimiento de los sitios con los graves, ademas del
+// brillo de mas abajo -- seguro porque uBass ya llega suavizado desde
+// audio.py (Fase 2), escala chica igual que la excepcion de uHigh.
+vec2 sitePoint(vec2 cellId, float t, float chaosAmt, float highAmt, float driftAmt, float bassAmt)
 {
     vec2 base = hash22(cellId);
-    vec2 drift = vec2(sin(t * 0.15 + base.x * 6.28), cos(t * 0.12 + base.y * 6.28));
+    float driftRate = 0.05 + driftAmt * 0.35;
+    vec2 drift = vec2(sin(t * driftRate + base.x * 6.28), cos(t * driftRate * 0.8 + base.y * 6.28));
     float spread = 0.08 + chaosAmt * 0.62;
-    return 0.5 + (base - 0.5) * spread + drift * (0.02 + chaosAmt * 0.10)
-         + highAmt * 0.02 * sin(t * 9.0 + cellId.x * 3.1 + cellId.y * 2.3);
+    return 0.5 + (base - 0.5) * spread + drift * (0.015 + driftAmt * 0.14)
+         + highAmt * 0.02 * sin(t * 9.0 + cellId.x * 3.1 + cellId.y * 2.3)
+         + bassAmt * 0.03 * sin(t * 2.0 + cellId.x * 1.3 + cellId.y * 1.7);
 }
 
 vec4 render(vec2 uv)
@@ -72,7 +84,7 @@ vec4 render(vec2 uv)
     for (int oy = -1; oy <= 1; oy++) {
         for (int ox = -1; ox <= 1; ox++) {
             vec2 neighbor = vec2(float(ox), float(oy));
-            vec2 site = sitePoint(cellId + neighbor, t, uChaos, uHigh);
+            vec2 site = sitePoint(cellId + neighbor, t, uChaos, uHigh, uD4, uBass);
             vec2 diff = neighbor + site - cellF;
             float d = length(diff);
 
@@ -100,13 +112,16 @@ vec4 render(vec2 uv)
     float glowWidth = 0.03 + uD2 * 0.55;
     float glow = exp(-max(gap, 0.0) / glowWidth) * uD2;
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 edgeCol = hsv2rgb(vec3(h, 0.80, 0.85));
     vec3 glowCol = hsv2rgb(vec3(fract(h + 0.04), 0.55, 1.0));
 
     // Pulso que recorre la red: modula el brillo de los segmentos segun
-    // su distancia al centro, viajando con el tiempo.
-    float pulse = 0.5 + 0.5 * sin(length(p) * 3.0 - t * (0.6 + uSpeed * 1.5));
+    // su distancia al centro, viajando con el tiempo. D3 controla cuantos
+    // anillos concentricos entran en pantalla -- pocos y anchos <-> muchos
+    // y finos, rango bien amplio para que se note en toda la perilla.
+    float pulseFreq = 1.0 + uD3 * 7.0;
+    float pulse = 0.5 + 0.5 * sin(length(p) * pulseFreq - t * (0.6 + uSpeed * 1.5));
 
     vec3 col = edgeCol * edge * (0.5 + 0.5 * pulse) * (1.0 + uKick * 1.2);
     col += glowCol * glow * 0.8 * (0.6 + 0.4 * pulse);

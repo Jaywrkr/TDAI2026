@@ -65,7 +65,7 @@ vec4 render(vec2 uv)
     vec2  d = abs(cellUv) - vec2(fillSize);
     float rect = 1.0 - smoothstep(0.0, 0.025, max(d.x, d.y));
 
-    float hue = audioHue(fract(uHue + hash21(cellId + 11.0) * 0.12), uMid * 0.05);
+    float hue = audioHue(fract(uHue + hash21(cellId + 11.0) * 0.12), uMid * 0.16);
     vec3 blockCol = hsv2rgb(vec3(hue, 0.85, 1.0));
 
     vec3 col = blockCol * rect * on;

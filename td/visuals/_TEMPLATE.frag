@@ -55,7 +55,7 @@ vec4 render(vec2 uv)
 
     // Cada escena sin visual propio sale de un color distinto. Asi, mientras
     // pruebas, VES que el cambio de escena ocurrio de verdad.
-    float h = audioHue(fract(uHue + float(uScene) * 0.137), uMid * 0.05);
+    float h = audioHue(fract(uHue + float(uScene) * 0.137), uMid * 0.16);
 
     vec3 col = hsv2rgb(vec3(fract(h + n * 0.25), 0.75, n * (0.35 + uKick * 0.5)));
 

@@ -42,7 +42,7 @@ vec4 render(vec2 uv)
     float flowFreq = 0.4 + uD2 * 1.4;
 
     vec3 col = vec3(0.0);
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 lineCol = hsv2rgb(vec3(h, 0.70, 1.0));
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 lineas.

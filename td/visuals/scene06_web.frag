@@ -98,7 +98,7 @@ vec4 render(vec2 uv)
     float hubDist = length(p - hub);
     float accent = exp(-hubDist * hubDist / 0.05);
     vec3 white = vec3(0.85);
-    vec3 accentCol = hsv2rgb(vec3(audioHue(uHue, uMid * 0.05), 0.75, 1.0));
+    vec3 accentCol = hsv2rgb(vec3(audioHue(uHue, uMid * 0.16), 0.75, 1.0));
     vec3 lineCol = mix(white, accentCol, accent * 0.75);
 
     vec3 col = lineCol * field + vec3(1.0) * dots * 0.8;

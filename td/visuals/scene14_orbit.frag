@@ -38,7 +38,7 @@ vec4 render(vec2 uv)
     float trackAlpha = 0.06 + uD1 * 0.35;
     float dotSize = 0.010 + uD2 * 0.030;
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
 
     for (int i = 0; i < 6; i++) {

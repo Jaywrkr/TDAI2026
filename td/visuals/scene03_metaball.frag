@@ -24,9 +24,10 @@
 //   Hue      color del contorno
 //   Chaos    cuanto se desvian las gotas de su orbita (mas caotico el
 //            movimiento)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
+//            orbita (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de la posicion (excepcion del contrato)
 //
 // @D1: grosor del contorno
@@ -34,6 +35,8 @@
 //      D2 = se funden mas facil
 // @D3: cantidad de gotas (2 a 14) -- de pocas y grandes a un enjambre que
 //      se funde por todos lados
+// @D4: tamano de las gotas (gotitas finas <-> masas grandes que dominan
+//      la pantalla)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -67,7 +70,13 @@ vec4 render(vec2 uv)
         // contrato, amplitud pequena, ya suavizado.
         pos += uHigh * 0.006 * vec2(sin(t * 10.0 + fi), cos(t * 9.0 + fi));
 
-        float ballSize = 0.14 + hash21(seed + 3.0) * 0.10;
+        // Bass: un poco de movimiento de orbita ademas del brillo de mas
+        // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
+        pos += uBass * 0.05 * vec2(sin(t * 1.4 + fi * 2.3), cos(t * 1.1 + fi * 1.9));
+
+        // D4: tamano de las gotas -- rango amplio, de gotitas finas a
+        // masas grandes que casi llenan la pantalla.
+        float ballSize = (0.05 + uD4 * 0.28) + hash21(seed + 3.0) * 0.10;
         float d2 = dot(p - pos, p - pos);
         field += ballSize * ballSize / (d2 + 0.0025);
     }
@@ -76,7 +85,7 @@ vec4 render(vec2 uv)
     float contourW = 0.8 + uD1 * 3.0;
     float edge = edgeLine(field - threshold, contourW);
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 col = hsv2rgb(vec3(h, 0.80, 1.0)) * edge;
 
     // Un halo tenue justo por dentro del contorno, para que la forma se

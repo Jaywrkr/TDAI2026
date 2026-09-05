@@ -96,7 +96,7 @@ vec4 render(vec2 uv)
     // Tinte base: un matiz que viaja lento con el tiempo, sin depender de x
     // (asi el color de fondo no compite con el shift -- el shift se lee en
     // la estatica, el matiz da la paleta).
-    float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.05);
+    float hBase = audioHue(fract(uHue + t * (0.02 + uSpeed * 0.12)), uMid * 0.16);
     // Value bajado (era 1.0, luego 0.30): mucho mas oscura en reposo --
     // Bass/Kick la hacen respirar mas claro.
     vec3 base = hsv2rgb(vec3(hBase, 0.70, 0.16));

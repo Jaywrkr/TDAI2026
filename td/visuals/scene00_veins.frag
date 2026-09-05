@@ -39,14 +39,19 @@
 //   Density  cuanta red se ve (abre la mascara de cobertura) + capilares
 //   Hue      paleta completa: sangre / cyan / violeta...
 //   Chaos    domain warp = que tan retorcidas van
-//   Bass     brillo de lo que ya esta claro (audioLift) -- ya NO el grosor
-//   Kick     flash instantaneo
+//   Bass     brillo de lo que ya esta claro (audioLift) + un poco de
+//            movimiento del warp (ya suavizado, no reintroduce temblor)
+//   Mid      tinte adicional (audioHue)
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   Beat     empuja los pulsos de flujo
 //   High     brillo de los capilares + vibracion micro de las intersecciones
 //   Level    halo (brillo), NO la respiracion -- esa es solo tiempo ahora
 //
 // @D1: grosor general de la red (troncos + capilares juntos)
 // @D2: intensidad del halo/resplandor alrededor de los troncos
+// @D3: alcance de los capilares -- cuanto se alejan del tronco antes de
+//      desvanecerse (cortos y pegados <-> largos, se extienden lejos)
+// @D4: separacion entre troncos -- pocos y muy separados <-> tupido y junto
 // ===============================================================
 
 // Baja estas octavas si te faltan fps en una GPU modesta (ver docs/05).
@@ -100,8 +105,16 @@ vec4 render(vec2 uv)
     // sobre una base de 0.25-1.05) es una vibracion de las intersecciones,
     // no una reestructuracion. Ademas uHigh ya llega suavizado (ver
     // audio.py Fase 2), asi que no reintroduce temblor.
-    vec2  wa = warp(p, t, 0.25 + uChaos * 0.80 + uHigh * 0.05);
-    float na = fbm(wa * 0.85, OCT_TRUNK, 0.50);
+    // Bass: un poco de movimiento del warp, ademas del brillo de mas abajo.
+    // Seguro porque uBass YA llega suavizado desde audio.py (ataque .05s /
+    // caida .20s, Fase 2) -- no es el nivel crudo, asi que esto no
+    // reintroduce el temblor que el contrato de audio evita. Escala chica
+    // (0.06), igual de contenida que la excepcion de uHigh.
+    vec2  wa = warp(p, t, 0.25 + uChaos * 0.80 + uHigh * 0.05 + uBass * 0.06);
+    // D4: separacion entre troncos -- frecuencia del campo base. D4 bajo =
+    // pocos troncos, muy separados; D4 alto = red mucho mas tupida y junta.
+    float trunkFreq = 0.50 + uD4 * 0.95;
+    float na = fbm(wa * trunkFreq, OCT_TRUNK, 0.50);
     // El ancho de linea es geometria: ya NO depende de uBass (era la otra
     // causa grande del temblor -- las venas engordaban y adelgazaban con
     // cada golpe de graves). Bass ahora solo sube el brillo, mas abajo.
@@ -117,7 +130,11 @@ vec4 render(vec2 uv)
     vec2  wb = warp(p * 2.6 + 7.1, t * 1.30, 0.15 + uChaos * 0.45 + uHigh * 0.04);
     float nb = fbm(wb * 2.2, OCT_CAP, 0.55);
     float wC = (0.8 + (1.0 - uDensity) * 0.5) * widthMul;
-    float hug = smoothstep(0.05, 0.45, tGlow);   // solo cerca de un tronco
+    // D3: alcance de los capilares. hugReach chico = el area "cerca del
+    // tronco" es angosta -> capilares cortos, pegados. hugReach grande =
+    // el area se extiende lejos del tronco -> capilares largos.
+    float hugReach = mix(0.42, 0.05, uD3);
+    float hug = smoothstep(0.02, hugReach, tGlow);   // cerca de un tronco
     float cap   = vein(nb, wC) * hug * (0.35 + uDensity * 0.90);
     float cGlow = vein(nb, wC * 6.0) * hug;
 
@@ -139,7 +156,7 @@ vec4 render(vec2 uv)
                * (0.25 + uD2 * 1.6);
 
     // ---------------- COLOR ----------------
-    float h = uHue;
+    float h = audioHue(uHue, uMid * 0.15);
     vec3 cDeep = hsv2rgb(vec3(fract(h + 0.60), 0.85, 1.0)) * 0.10;  // atmosfera
     vec3 cBody = hsv2rgb(vec3(fract(h + 0.98), 0.95, 1.0));         // vaso
     vec3 cCore = hsv2rgb(vec3(fract(h + 0.06), 0.40, 1.0));         // nucleo caliente

@@ -19,13 +19,16 @@
 //   Hue      color de la luz
 //   Chaos    intensidad del desplazamiento entre iteraciones -- mas
 //            Chaos = patron mas retorcido
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            desplazamiento (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de fase (excepcion del contrato)
 //
 // @D1: contraste / brillo general de la red de luz
 // @D2: cuantas iteraciones se acumulan (mas D2 = red mas compleja)
+// @D3: finura de la red (pocas celdas anchas <-> red muy fina y apretada)
+// @D4: nitidez de los filamentos (glow difuso <-> lineas de luz muy finas)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -40,14 +43,21 @@ vec4 render(vec2 uv)
 
     int layers = 2 + int(floor(uD2 * 2.99));
 
+    // D3: finura de la red -- escala la frecuencia de los senos que forman
+    // la trama de luz. Rango amplio: celdas anchas <-> red muy apretada.
+    float netFreq = 0.8 + uD3 * 2.6;
+    // D4: nitidez de los filamentos -- que tan afilados son los picos de
+    // brillo. Bajo = resplandor difuso y ancho, alto = lineas muy finas.
+    float sharpness = 3.0 + uD4 * 30.0;
+
     for (int i = 0; i < 4; i++) {
         if (i >= layers) break;
 
         float fi = float(i);
-        q += amp * vec2(sin(q.y * 2.3 + t * speed + fi * 1.9),
-                        cos(q.x * 2.1 + t * speed * 0.8 + fi * 2.7));
+        q += amp * vec2(sin(q.y * 2.3 + t * speed + fi * 1.9 + uBass * 0.4),
+                        cos(q.x * 2.1 + t * speed * 0.8 + fi * 2.7 + uBass * 0.3));
 
-        v += 1.0 / (1.0 + 9.0 * abs(sin(q.x * 1.6) * sin(q.y * 1.6)));
+        v += 1.0 / (1.0 + sharpness * abs(sin(q.x * netFreq) * sin(q.y * netFreq)));
     }
 
     // uHigh: vibracion micro de fase -- unica excepcion del contrato,
@@ -60,7 +70,7 @@ vec4 render(vec2 uv)
     float contrast = 0.22 + uD1 * 0.70;
     v *= contrast;
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 col = hsv2rgb(vec3(h, 0.55, 1.0)) * v;
 
     // Tonemap: v puede crecer bastante en los picos, sin esto se clavan

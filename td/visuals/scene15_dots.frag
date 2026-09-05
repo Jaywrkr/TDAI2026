@@ -58,7 +58,7 @@ vec4 render(vec2 uv)
     float dist = length(cellUv);
     float dotShape = smoothstep(size, size * 0.6, dist);
 
-    float hueZone = audioHue(fract(uHue + zone * 0.25), uMid * 0.05);
+    float hueZone = audioHue(fract(uHue + zone * 0.25), uMid * 0.16);
     vec3 col = hsv2rgb(vec3(hueZone, 0.70, 1.0)) * dotShape;
 
     // Kick: flash breve.

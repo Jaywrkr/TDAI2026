@@ -67,7 +67,7 @@ vec4 render(vec2 uv)
     float cG = edgeLine(fract(rG * freq - travel + kickWave) - 0.5, ringW);
     float cB = edgeLine(fract(rB * freq - travel + kickWave) - 0.5, ringW);
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 tint = hsv2rgb(vec3(h, 0.15, 1.0));
 
     // El color de cada canal es su propia intensidad de anillo, teñido

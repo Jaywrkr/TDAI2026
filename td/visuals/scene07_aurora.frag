@@ -44,7 +44,7 @@ vec4 render(vec2 uv)
     float glowW = 0.09 + (1.0 - uD1) * 0.24;
 
     vec3 col = vec3(0.0);
-    float h0 = audioHue(uHue, uMid * 0.05);
+    float h0 = audioHue(uHue, uMid * 0.16);
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 6 cortinas.
     for (int i = 0; i < 6; i++) {
@@ -69,7 +69,7 @@ vec4 render(vec2 uv)
         // luz viva.
         curtain *= 0.7 + 0.3 * sin(p.y * 1.5 - t * (0.2 + uSpeed * 0.4) + fi * 2.1);
 
-        float hueI = audioHue(fract(h0 + fi * 0.10), uMid * 0.05);
+        float hueI = audioHue(fract(h0 + fi * 0.10), uMid * 0.16);
         vec3 curtainCol = hsv2rgb(vec3(hueI, 0.62, 1.0));
         col += curtainCol * curtain;
     }

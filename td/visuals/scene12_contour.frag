@@ -53,7 +53,7 @@ vec4 render(vec2 uv)
     float lineW = 0.6 + uD1 * 2.2;
     float levels = 3.0 + floor(uDensity * 7.0);
 
-    float hCol = audioHue(uHue, uMid * 0.05);
+    float hCol = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 curvas.

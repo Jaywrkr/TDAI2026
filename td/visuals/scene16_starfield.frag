@@ -39,7 +39,7 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     float threshold = 0.92 - uDensity * 0.55;
     float dotBase = 0.012 + uD1 * 0.025;
     float cellSize = 0.35 - uD2 * 0.22;

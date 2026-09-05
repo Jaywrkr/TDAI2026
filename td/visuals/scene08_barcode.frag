@@ -84,7 +84,7 @@ vec4 render(vec2 uv)
     float accentPick = hash21(vec2(colId, 3.0));
     float isAccent1 = step(0.85, accentPick);
     float isAccent2 = step(0.78, accentPick) - isAccent1;
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     h = fract(h + isAccent1 * 0.42 + isAccent2 * 0.55);
 
     vec3 col = hsv2rgb(vec3(h, 0.85, 1.0)) * bright * colMask;

@@ -70,7 +70,7 @@ vec4 render(vec2 uv)
     float checker = mod(floor(segCoord) + floor(ringCoord), 2.0);
     float fill = checker * 0.06;
 
-    float h = audioHue(uHue, uMid * 0.05);
+    float h = audioHue(uHue, uMid * 0.16);
     vec3 col = hsv2rgb(vec3(h, 0.70, 1.0)) * (lines + fill);
 
     // Niebla: se apaga hacia el centro (que es "lejos" en este mapeo),
