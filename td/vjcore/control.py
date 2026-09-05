@@ -51,31 +51,27 @@ def build(proj, audio_chop, key_chop=None):
     # NO produce saltos de fase en los visuales (problema clasico de usar
     # absTime.seconds * Speed directamente).
     #
-    # Dos ajustes sobre la version anterior (que era "0.15 + Speed*1.85",
-    # lineal y siempre en movimiento aunque no sonara nada):
+    # CURVA NO LINEAL de la perilla: Speed^2.2 en vez de Speed. Con una
+    # recta, la mitad del recorrido de la perilla ya daba mas o menos la
+    # mitad del movimiento -- con la potencia, el primer tramo de la
+    # perilla queda casi plano (poco baile) y el ultimo tramo es donde
+    # de verdad se dispara -- la diferencia entre "perilla al minimo" y
+    # "perilla al maximo" es mucho mas grande.
     #
-    # 1. CURVA NO LINEAL de la perilla: Speed^2.2 en vez de Speed. Con una
-    #    recta, la mitad del recorrido de la perilla ya daba mas o menos la
-    #    mitad del movimiento -- con la potencia, el primer tramo de la
-    #    perilla queda casi plano (poco baile) y el ultimo tramo es donde
-    #    de verdad se dispara -- la diferencia entre "perilla al minimo" y
-    #    "perilla al maximo" es mucho mas grande.
-    #
-    # 2. COMPUERTA DE AUDIO: el rango que abre la perilla se multiplica por
-    #    'level' (RMS global, YA suavizado con ataque/caida en audio.py --
-    #    no es el nivel crudo, asi que esto no reintroduce temblor). Sin
-    #    musica (level ~0) el factor cae a ~0.08: practicamente estatico,
-    #    tenga la perilla la posicion que tenga. Con musica sonando (level
-    #    ~1) el factor sube a 1.0 y ahi si la perilla manda. 'level' puede
-    #    no existir todavia (sin device de audio) -- el condicional adentro
-    #    de la expresion cae a 0 en ese caso, mismo comportamiento que "sin
-    #    musica".
+    # OJO: NO metas aqui una compuerta multiplicativa por nivel de audio.
+    # Se probo (perilla * (0.08 + 0.92*level)) y esto reintroduce el mismo
+    # temblor que la Fase 2 elimino, solo que a otro nivel: 'time' es un
+    # SPEED CHOP que INTEGRA -- multiplicar su tasa de avance por un nivel
+    # de audio que fluctua (aun suavizado) hace que la VELOCIDAD del tiempo
+    # global cambie todo el tiempo, lo que se ve como tembleque en TODOS los
+    # visuales (todos dependen de uTime). Ademas, sin musica fuerte el
+    # factor caia a ~0.08 y todo quedaba casi congelado. El contrato de
+    # audio (ver header de shader.py) ya es claro: el audio toca brillo y
+    # color, nunca la velocidad global de tiempo.
     t_scaled = proj.create(speedCHOP, 'time_scaled')
     t_scaled.nodeX, t_scaled.nodeY = -1400, 60
     safe_expr(t_scaled, 'speed',
-              "0.02 + pow(max(0.0, min(1.0, op('/project1').par.Speed.eval())), 2.2) * 2.6"
-              " * (0.08 + 0.92 * max(0.0, min(1.0,"
-              " (op('/project1/audio_ctrl')['level'][0] if op('/project1/audio_ctrl') else 0.0))))")
+              "0.15 + pow(max(0.0, min(1.0, op('/project1').par.Speed.eval())), 2.2) * 1.85")
     t_scaled_n = proj.create(renameCHOP, 'time_scaled_named')
     t_scaled_n.nodeX, t_scaled_n.nodeY = -1240, 60
     safe_set(t_scaled_n, 'renamefrom', '*')
