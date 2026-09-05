@@ -74,12 +74,21 @@ vec4 render(vec2 uv)
 
         col += orbitCol * dot * (1.0 + uKick * 1.5);
 
-        // Estela detras del nodo, para que se lea el movimiento. D4:
-        // largo y prominencia -- casi nada <-> estela larga y notoria.
-        float trailAng = ang - (0.12 + uD4 * 0.55);
-        vec2 trailPos = radius * vec2(cos(trailAng), sin(trailAng));
-        float dTrail = length(p - trailPos);
-        col += orbitCol * smoothstep(dotSize * 1.5, dotSize * 0.3, dTrail) * (0.08 + uD4 * 0.55);
+        // Estela tipo cometa detras del nodo: varios puntos que se van
+        // apagando hacia atras. D4 controla CUANTOS puntos entran (largo
+        // de la cola) Y su brillo -- en 0 casi no hay estela, en 1 una
+        // cola larga y notoria. Bucle de conteo fijo, corto (max 6).
+        int trailN = 1 + int(floor(uD4 * 5.99));
+        for (int k = 1; k <= 6; k++) {
+            if (k > trailN) break;
+            float fk = float(k);
+            float trailAng = ang - fk * (0.05 + uD4 * 0.10);
+            vec2 trailPos = radius * vec2(cos(trailAng), sin(trailAng));
+            float dTrail = length(p - trailPos);
+            float trailFade = 1.0 - fk / float(trailN + 1);
+            col += orbitCol * smoothstep(dotSize * 1.3, dotSize * 0.3, dTrail)
+                 * trailFade * (0.15 + uD4 * 0.75);
+        }
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

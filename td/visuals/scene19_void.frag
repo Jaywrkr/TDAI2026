@@ -23,7 +23,7 @@
 //
 // @D1: tamano del orbe
 // @D2: brillo/opacidad del orbe
-// @D3: nitidez del orbe (punto muy afilado <-> resplandor difuso y ancho)
+// @D3: nitidez del orbe (resplandor difuso y ancho <-> punto muy afilado)
 // @D4: saturacion del color (casi blanco <-> color muy vivido)
 // ===============================================================
 

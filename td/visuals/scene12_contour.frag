@@ -75,9 +75,18 @@ vec4 render(vec2 uv)
         float line = edgeLine(h - threshold, lineW);
 
         // Mas alto = un poco mas brillante, como en un mapa real. D3:
-        // contraste de ese gradiente -- parejo (D3=0) <-> valles oscuros
-        // muy marcados contra picos brillantes (D3=1).
-        float bright = mix(0.7, 0.12 + 0.88 * (float(i) / max(levels - 1.0, 1.0)), uD3);
+        // contraste -- en 0, TODAS las curvas quedan igual de medias; en
+        // 1 se alternan MUY oscuras / MUY claras entre niveles vecinos
+        // (efecto de bandas, como una carta batimetrica de alto contraste).
+        //
+        // OJO: un degradado CONTINUO por indice (0.1 a 1.0 segun altura)
+        // siempre cruza el valor "parejo" en algun indice exacto -- si las
+        // curvas visibles en pantalla caen justo ahi, D3 parece no hacer
+        // nada. Alternar entre vecinos (par/impar) en vez de un degradado
+        // evita esto de raiz: el valor parejo (0.5) queda siempre A MITAD
+        // de camino entre los dos extremos alternados (0.08 y 0.92), asi
+        // que CUALQUIER indice cambia sustancialmente, no solo algunos.
+        float bright = mix(0.5, mix(0.08, 0.92, mod(float(i), 2.0)), uD3);
         col += hsv2rgb(vec3(hCol, 0.65, bright)) * line;
     }
 

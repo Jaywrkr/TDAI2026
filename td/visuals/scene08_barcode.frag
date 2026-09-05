@@ -73,8 +73,8 @@ vec4 render(vec2 uv)
 
     // Parche de baja frecuencia adicional: el brillo no queda parejo,
     // hay zonas mas claras y mas oscuras dentro de la misma columna.
-    float patch = 0.5 + 0.5 * sin(y * 0.15 + colHash * 6.28);
-    float bright = band * (0.5 + 0.5 * patch);
+    float patchV = 0.5 + 0.5 * sin(y * 0.15 + colHash * 6.28);
+    float bright = band * (0.5 + 0.5 * patchV);
 
     // D1: contraste/brillo general del patron.
     bright = pow(bright, 0.4 + (1.0 - uD1) * 0.9);

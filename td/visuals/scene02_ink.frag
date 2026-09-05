@@ -80,8 +80,14 @@ vec4 render(vec2 uv)
     // Un nucleo mas saturado donde el campo esta mas "concentrado", para
     // dar sensacion de profundidad dentro de la propia tinta. D4: rango
     // amplio, de tinta casi plana a un nucleo muy prominente.
-    float core = smoothstep(0.65, 0.95, ink);
-    col += hsv2rgb(vec3(fract(h + 0.03), 0.55, 1.0)) * core * (0.05 + uD4 * 1.1);
+    // D4 tambien baja el umbral de lo que cuenta como "nucleo" -- en 0 se
+    // necesita una concentracion casi extrema (nucleo raro y chico), en 1
+    // buena parte del cuerpo ya cuenta (nucleo grande y prominente). Sin
+    // esto el umbral fijo (0.65-0.95) casi nunca se alcanzaba y D4 no
+    // tenia nada que iluminar.
+    float coreLo = 0.75 - uD4 * 0.55;
+    float core = smoothstep(coreLo, coreLo + 0.30, ink);
+    col += hsv2rgb(vec3(fract(h + 0.03), 0.55, 1.0)) * core * (0.15 + uD4 * 1.1);
 
     // ---------------- NIEBLA (fog) ----------------
     // Campo independiente, mucho mas grande y lento que el cuerpo de tinta

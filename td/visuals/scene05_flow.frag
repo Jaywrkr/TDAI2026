@@ -55,9 +55,9 @@ vec4 render(vec2 uv)
         float fi = float(i);
         float baseY = -1.0 + spacing * (fi + 1.0);
 
-        vec2 sample = vec2(p.x * flowFreq, baseY * flowFreq + fi * 3.1)
+        vec2 samp = vec2(p.x * flowFreq, baseY * flowFreq + fi * 3.1)
                     + vec2(t * (0.04 + uSpeed * 0.12), 0.0);
-        float bend = (fbm(sample, 4) - 0.5) * (0.5 + uChaos * 1.4);
+        float bend = (fbm(samp, 4) - 0.5) * (0.5 + uChaos * 1.4);
 
         // uHigh: vibracion micro del doblez -- unica excepcion del
         // contrato, amplitud pequena, ya suavizado.

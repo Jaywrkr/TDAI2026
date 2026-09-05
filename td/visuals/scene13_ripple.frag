@@ -42,9 +42,11 @@ vec4 render(vec2 uv)
 
     // Radio de reposo: respira lento, respaldo para cuando no hay musica.
     // D4: escala el radio base -- chico y centrado <-> grande, casi
-    // llena la pantalla.
+    // llena la pantalla. D2 tambien escala CUANTO respira en reposo (ademas
+    // de cuanto empuja Beat mas abajo) -- asi el knob se nota aunque no
+    // haya musica sonando en ese momento, no solo cuando hay beat.
     float baseR = 0.12 + uD4 * 0.55;
-    float restR = baseR + 0.12 * sin(t * (0.15 + uSpeed * 0.3));
+    float restR = baseR + (0.04 + uD2 * 0.20) * sin(t * (0.15 + uSpeed * 0.3));
 
     // Beat empuja el anillo hacia afuera en cada golpe (D2 = cuanto);
     // Kick suma un empujon extra, instantaneo.

@@ -132,11 +132,14 @@ vec4 render(vec2 uv)
     float wC = (0.8 + (1.0 - uDensity) * 0.5) * widthMul;
     // D3: alcance de los capilares. hugReach chico = el area "cerca del
     // tronco" es angosta -> capilares cortos, pegados. hugReach grande =
-    // el area se extiende lejos del tronco -> capilares largos.
-    float hugReach = mix(0.42, 0.05, uD3);
-    float hug = smoothstep(0.02, hugReach, tGlow);   // cerca de un tronco
-    float cap   = vein(nb, wC) * hug * (0.35 + uDensity * 0.90);
-    float cGlow = vein(nb, wC * 6.0) * hug;
+    // el area se extiende lejos del tronco -> capilares largos. Rango
+    // extendido (0.55 a 0.03) y ademas D3 sube el brillo de los capilares
+    // en si (no solo su alcance), para que el cambio se note claramente.
+    float hugReach = mix(0.55, 0.03, uD3);
+    float hug = smoothstep(0.01, hugReach, tGlow);   // cerca de un tronco
+    float capBright = 0.5 + uD3 * 0.8;
+    float cap   = vein(nb, wC) * hug * (0.35 + uDensity * 0.90) * capBright;
+    float cGlow = vein(nb, wC * 6.0) * hug * capBright;
 
     float veins = max(trunk, cap) * cover;
     tGlow *= cover;
