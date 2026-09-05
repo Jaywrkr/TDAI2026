@@ -1,6 +1,13 @@
 """Configuracion global del rig. Editar aqui, no dentro del build."""
 
 N_SCENES = 20
+
+# Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
+# textura de control) -- hoy solo scene19 (efecto sobre imagen/GIF). Se
+# les agrega un Movie File In TOP como input 1 del GLSL TOP y un
+# parametro Mediafile en su pagina de escena. El resto de las escenas
+# jamas referencia sTD2DInputs[1] en su .frag, asi que no les afecta.
+MEDIA_SCENES = {19}
 GRID_COLS = 4
 GRID_ROWS = 5
 

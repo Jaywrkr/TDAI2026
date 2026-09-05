@@ -22,12 +22,16 @@ sys.path.insert(0, TD)
 
 from vjcore import config, shader  # noqa: E402
 
-# Prologo que TouchDesigner inyecta por su cuenta en cada GLSL TOP.
-TD_PROLOGUE = """#version 330
-uniform sampler2D sTD2DInputs[1];
+# Prologo que TouchDesigner inyecta por su cuenta en cada GLSL TOP. El
+# tamano de sTD2DInputs[] refleja la cantidad REAL de inputs de ESA
+# instancia de GLSL TOP (ver config.MEDIA_SCENES: esas escenas tienen un
+# input 1 extra para imagen/GIF, las demas 19 solo tienen input 0).
+def _td_prologue(n_inputs):
+    return """#version 330
+uniform sampler2D sTD2DInputs[{}];
 in vec3 vUV;
-vec4 TDOutputSwizzle(vec4 c) { return c; }
-"""
+vec4 TDOutputSwizzle(vec4 c) {{ return c; }}
+""".format(n_inputs)
 
 
 # Escenario degradado: TD arrancado SIN device de audio seleccionado.
@@ -43,7 +47,8 @@ def build_source(index, force_template=False, channels=None):
             body = f.read()
     else:
         body, path = shader.read_body(index)
-    src = (TD_PROLOGUE
+    n_inputs = 2 if index in config.MEDIA_SCENES else 1
+    src = (_td_prologue(n_inputs)
            + shader.make_header(index, channels or config.CTRL_CHANNELS)
            + body
            + shader._FOOTER)

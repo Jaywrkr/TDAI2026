@@ -58,16 +58,17 @@ vec4 render(vec2 uv)
     // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
     r += uBass * 0.02 * sin(t * 1.8 + ang * 3.0);
 
-    // Aun mas simplificada: menos anillos todavia (2 a 5), mas gruesos, y
-    // menos fringing por defecto.
-    float freq = 1.2 + uDensity * 3.2;
+    // Simplificada de nuevo a pedido del usuario: aun menos anillos por
+    // defecto (freq base bajada) y mas gruesos -- el maximo de Density
+    // sigue pudiendo llenar la pantalla si se quiere.
+    float freq = 0.8 + uDensity * 2.6;
     float travel = t * (0.15 + uSpeed * 0.5);
 
     // Kick: una onda expansiva extra, mas rapida, que se superpone.
     float kickWave = uKick * 6.0;
 
-    float aberr = 0.0015 + uD1 * 0.014;
-    float ringW = 1.8 + uD2 * 3.0;
+    float aberr = 0.0010 + uD1 * 0.012;
+    float ringW = 2.2 + uD2 * 3.0;
 
     // Cada canal evalua el patron de anillos con un radio propio.
     float rR = r + aberr;
@@ -88,7 +89,7 @@ vec4 render(vec2 uv)
 
     // Nucleo central -- D4 controla que tan prominente es, de un tinte
     // apenas perceptible a un resplandor central notorio.
-    col += tint * (0.02 + uD4 * 0.5) * exp(-r * 3.0);
+    col += tint * (0.02 + uD4 * 0.35) * exp(-r * 3.0);
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

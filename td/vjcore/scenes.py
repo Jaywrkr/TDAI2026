@@ -63,6 +63,15 @@ def build_scene(scenes, i, channels):
     # la escena y la muestra en el dashboard.
     add_string(page, 'Detaillegend', 'Detail Legend', '')
 
+    has_media = i in config.MEDIA_SCENES
+    if has_media:
+        # Ruta a la imagen/GIF/video que el .frag de esta escena procesa
+        # como input 1 (input 0 sigue siendo la textura de control, igual
+        # que las demas 19 escenas). Vacio por defecto: el Movie File In
+        # TOP sin archivo cargado sale negro, el shader debe verse bien
+        # igual (ver scene19_mediaglitch.frag).
+        add_string(page, 'Mediafile', 'Media File Path', '')
+
     content = sc.create(baseCOMP, 'content')
     content.nodeX, content.nodeY = 0, 0
 
@@ -78,6 +87,19 @@ def build_scene(scenes, i, channels):
     glsl.nodeX, glsl.nodeY = 0, 0
     safe_set_first(glsl, ['pixeldat', 'pixelshader'], src.path)
     connect(glsl, ctrl_in, 0)
+
+    if has_media:
+        # Input 1: imagen/GIF/video que el .frag de esta escena procesa.
+        # 'play' en loop para que un gif corto no se quede congelado en
+        # el primer frame. Sin archivo cargado, sale negro -- el .frag
+        # tiene que verse bien igual (ver contrato en scene19).
+        media_in = content.create(moviefileinTOP, 'media_in')
+        media_in.nodeX, media_in.nodeY = -200, 150
+        safe_expr(media_in, 'file',
+                  "op('{}').par.Mediafile".format(sc.path))
+        safe_set(media_in, 'play', True)
+        safe_set_first(media_in, ['cueloop', 'loop'], True)
+        connect(glsl, media_in, 1)
     # IMPORTANTE: sin esto el GLSL TOP hereda la resolucion del input 0,
     # que es la textura de control de 1 x 15 px.
     safe_set(glsl, 'outputresolution', 'custom')

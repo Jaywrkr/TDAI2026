@@ -24,7 +24,8 @@
 //   Hue      color del contorno
 //   Chaos    cuanto se desvian las gotas de su orbita (mas caotico el
 //            movimiento)
-//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
+//   Bass     brillo de lo ya claro (audioLift) + el PERIMETRO de cada
+//            gota respira con los graves, ademas del movimiento de
 //            orbita (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
@@ -76,7 +77,14 @@ vec4 render(vec2 uv)
 
         // D4: tamano de las gotas -- rango amplio, de gotitas finas a
         // masas grandes que casi llenan la pantalla.
-        float ballSize = (0.05 + uD4 * 0.28) + hash21(seed + 3.0) * 0.10;
+        // Bass: el PERIMETRO de cada gota respira con los graves --
+        // pedido explicito del usuario ("las bolas deben bailar con los
+        // bajos su perimetro"). Seguro: uBass ya llega suavizado desde
+        // audio.py (Fase 2), asi que el radio crece/encoge suave, no
+        // tiembla. Fase distinta por bola (fi) para que no "respiren"
+        // todas exactamente igual, se ve mas organico.
+        float bassPulse = 1.0 + uBass * (0.35 + 0.25 * sin(fi * 2.3));
+        float ballSize = ((0.05 + uD4 * 0.28) + hash21(seed + 3.0) * 0.10) * bassPulse;
         float d2 = dot(p - pos, p - pos);
         field += ballSize * ballSize / (d2 + 0.0025);
     }

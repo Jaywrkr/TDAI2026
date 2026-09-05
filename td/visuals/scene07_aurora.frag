@@ -24,7 +24,8 @@
 //   Density  cuantas cortinas hay (2 a 5)
 //   Hue      hue base; las demas cortinas son offsets chicos sobre este
 //   Chaos    cuanto se dobla cada cortina (turbulencia horizontal)
-//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//   Bass     brillo de lo ya claro (audioLift) + el ANGULO de las
+//            cortinas se inclina con los graves (shear), ademas del
 //            doblez (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
@@ -45,10 +46,20 @@ vec4 render(vec2 uv)
 
     float count = 2.0 + floor(uDensity * 3.99);
     float spacing = (0.5 + uD2 * 1.0) * 2.4 / (count + 1.0);
-    float glowW = 0.09 + (1.0 - uD1) * 0.24;
+    // Rango bajado (era 0.09-0.33): a pedido del usuario, cortinas mucho
+    // mas finas por defecto -- D1 sigue yendo de fino a ancho, solo que
+    // todo el rango es mas contenido.
+    float glowW = 0.035 + (1.0 - uD1) * 0.13;
 
     vec3 col = vec3(0.0);
     float h0 = audioHue(uHue, uMid * 0.16);
+
+    // Bass: el ANGULO de las cortinas se inclina con los graves (shear
+    // horizontal proporcional a Y) -- pedido explicito del usuario. Es
+    // geometria, pero uBass ya llega bien suavizado (Fase 2) y el shear
+    // es continuo/acotado, no un salto -- se ve como que la aurora entera
+    // se "peina" hacia un lado con el bajo, no como temblor.
+    float bassShear = uBass * 0.45;
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 6 cortinas.
     for (int i = 0; i < 6; i++) {
@@ -68,7 +79,7 @@ vec4 render(vec2 uv)
         // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
         bend += uBass * 0.05 * sin(t * 1.3 + fi * 1.9);
 
-        float dx = p.x - (baseX + bend);
+        float dx = (p.x - p.y * bassShear) - (baseX + bend);
         float curtain = exp(-dx * dx / (glowW * glowW));
 
         // Respiracion suave de brillo a lo largo de la cortina -- sin

@@ -104,19 +104,18 @@ vec4 render(vec2 uv)
 
     float gap = dist2 - dist1;
 
-    // D1: grosor del segmento nitido. Rango mas amplio que antes (0.008 a
-    // 0.10) para que se note en toda la perilla, no solo en la mitad de
-    // arriba.
-    float edgeWidth = 0.008 + uD1 * 0.10;
+    // D1: grosor del segmento nitido. Rango mucho mas amplio (0.005 a
+    // 0.20, era 0.008-0.10) para que el cambio sea imposible de no ver.
+    float edgeWidth = 0.005 + uD1 * 0.20;
     float edge = 1.0 - smoothstep(0.0, edgeWidth, gap);
 
     // D2: resplandor (glow) ancho alrededor de cada segmento -- en 0 no
     // hay nada extra (solo la linea nitida de arriba), en 1 cada linea
     // tiene un halo neon grueso, tipo tubo de luz. Reusa 'gap', cero costo
-    // de muestreo adicional. Base subida (antes 0.03-0.58) para que el
-    // halo por defecto ya se vea grueso, no apenas perceptible.
-    float glowWidth = 0.06 + uD2 * 0.80;
-    float glow = exp(-max(gap, 0.0) / glowWidth) * (0.25 + uD2 * 0.75);
+    // de muestreo adicional. Rango subido de nuevo (0.06-1.1) para que el
+    // maximo sea un resplandor que casi funde la red entera.
+    float glowWidth = 0.06 + uD2 * 1.10;
+    float glow = exp(-max(gap, 0.0) / glowWidth) * (0.20 + uD2 * 1.0);
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 edgeCol = hsv2rgb(vec3(h, 0.75, 1.0));

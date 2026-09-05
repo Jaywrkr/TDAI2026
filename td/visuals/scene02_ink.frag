@@ -72,8 +72,11 @@ vec4 render(vec2 uv)
     float softness = 0.30 - uD1 * 0.26;
     float shape = smoothstep(0.5 - softness, 0.5 + softness, ink);
 
+    // Value bajado (era 1.0): a pedido del usuario quedaba "demasiado
+    // claro" -- ahora el cuerpo de tinta es notablemente mas oscuro por
+    // defecto, Bass/Kick lo hacen respirar mas claro encima de esto.
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 inkCol = hsv2rgb(vec3(h, 0.75, 1.0));
+    vec3 inkCol = hsv2rgb(vec3(h, 0.80, 0.55));
 
     vec3 col = inkCol * shape;
 
@@ -87,18 +90,20 @@ vec4 render(vec2 uv)
     // tenia nada que iluminar.
     float coreLo = 0.75 - uD4 * 0.55;
     float core = smoothstep(coreLo, coreLo + 0.30, ink);
-    col += hsv2rgb(vec3(fract(h + 0.03), 0.55, 1.0)) * core * (0.15 + uD4 * 1.1);
+    col += hsv2rgb(vec3(fract(h + 0.03), 0.55, 0.85)) * core * (0.10 + uD4 * 0.75);
 
     // ---------------- NIEBLA (fog) ----------------
     // Campo independiente, mucho mas grande y lento que el cuerpo de tinta
     // -- una segunda deriva propia, no la misma que anima el cuerpo, para
     // que la niebla no quede pegada a la forma principal. D3: visibilidad,
     // de casi invisible a bruma densa que casi compite con el cuerpo.
+    // Rango bajado (0.85->0.55): por defecto (D3=0.5) sumaba demasiado
+    // brillo/elementos encima del cuerpo -- ahora es mas discreta.
     vec2 fogP = p * 0.16 + vec2(t * 0.010, -t * 0.007) + 21.0;
     float fogField = fbm(fogP, 3, 0.5);
-    float fog = smoothstep(0.30, 0.85, fogField);
-    vec3 fogCol = hsv2rgb(vec3(fract(h + 0.02), 0.20, 1.0));  // casi gris, tenue
-    col += fogCol * fog * uD3 * 0.85;
+    float fog = smoothstep(0.35, 0.90, fogField);
+    vec3 fogCol = hsv2rgb(vec3(fract(h + 0.02), 0.20, 0.65));  // casi gris, tenue
+    col += fogCol * fog * uD3 * 0.55;
 
     // Kick: flash breve.
     col += col * uKick * 0.4;

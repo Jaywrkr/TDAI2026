@@ -41,7 +41,10 @@ vec4 render(vec2 uv)
     float amp = 0.4 + uChaos * 0.6;
     float speed = 0.4 + uSpeed * 0.7;
 
-    int layers = 2 + int(floor(uD2 * 2.99));
+    // Bajado el default (era 2+floor(D2*2.99), minimo 2 capas siempre) --
+    // a pedido del usuario, salia "mucha cosa" de entrada. Ahora arranca
+    // en 1 capa (D2=0, minimalista) y llega a 4 en D2=1.
+    int layers = 1 + int(floor(uD2 * 3.99));
 
     // D3: finura de la red -- escala la frecuencia de los senos que forman
     // la trama de luz. Rango amplio: celdas anchas <-> red muy apretada.
@@ -63,6 +66,14 @@ vec4 render(vec2 uv)
     // uHigh: vibracion micro de fase -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado.
     v += uHigh * 0.03 * sin(t * 16.0 + p.x * 4.0);
+
+    // Onda viajera: pedido explicito del usuario ("que la onda se note
+    // en cada linea"). Es brillo, no geometria -- module 'v' (ya
+    // calculado) con una onda que recorre la pantalla en diagonal, asi
+    // CUALQUIER filamento que este visible se ve claramente pulsar/viajar
+    // en vez de solo brillar parejo.
+    float travelWave = sin(p.x * 2.2 + p.y * 1.6 - t * (1.0 + uSpeed * 2.2));
+    v *= 1.0 + travelWave * 0.35;
 
     // Rango bajado (era 0.4-1.4): se veia demasiado claro/lavado con
     // valores por defecto -- D1 sigue teniendo el mismo rol, solo que

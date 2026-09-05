@@ -275,8 +275,20 @@ def _defines(channels):
     return '\n'.join(lines)
 
 
+_MEDIA_HEADER = """
+// Input 1: imagen/GIF/video de esta escena (ver config.MEDIA_SCENES).
+// Sin archivo cargado, el Movie File In TOP sale negro -- mediaTex(uv)
+// simplemente devuelve negro en ese caso, el .frag debe seguir viendose
+// bien (nunca asumir que siempre hay una imagen real cargada).
+vec4 mediaTex(vec2 uv) { return texture(sTD2DInputs[1], uv); }
+"""
+
+
 def make_header(scene_index, channels):
-    return _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+    header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+    if scene_index in config.MEDIA_SCENES:
+        header += _MEDIA_HEADER
+    return header
 
 
 def repo_root():

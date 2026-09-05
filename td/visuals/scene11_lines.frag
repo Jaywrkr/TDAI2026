@@ -22,11 +22,13 @@
 //   Density  cuantas lineas hay (2 a 10 -- pocas, a proposito)
 //   Hue      color de las lineas
 //   Chaos    cuanto se curvan (amplitud de la ondulacion)
-//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
-//            la curva (ya suavizado, no reintroduce temblor)
-//   Mid      tinte adicional (audioHue)
+//   Bass/Mid/High  cada linea reacciona a UNA banda distinta (ciclando
+//            bass/mid/high entre lineas), como las barras de un
+//            ecualizador -- la AMPLITUD de su ondulacion sube y baja con
+//            esa banda especifica, ademas del brillo (audioLift). Las
+//            tres bandas ya llegan suavizadas desde audio.py (Fase 2),
+//            asi que esto no reintroduce temblor.
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro de la curva (excepcion del contrato)
 //
 // @D1: grosor de las lineas
 // @D2: frecuencia de la ondulacion (cuantas curvas por linea)
@@ -58,15 +60,20 @@ vec4 render(vec2 uv)
 
         float baseY = -1.0 + spacing * float(i + 1);
 
+        // Ecualizador: cada linea le toca UNA banda (ciclando de a 3),
+        // y esa banda escala la AMPLITUD de su propia ondulacion -- asi
+        // se leen como barras de frecuencia que suben y bajan con la
+        // musica, cada una a su ritmo.
+        float band = mod(float(i), 3.0);
+        float bandAmt = (band < 0.5) ? uBass : (band < 1.5) ? uMid : uHigh;
+        float ampBand = amp * (0.5 + bandAmt * 2.2);
+
         // uHigh: vibracion micro de la curva -- unica excepcion del
         // contrato, amplitud pequena, ya suavizado.
-        // Bass: un poco de movimiento ademas del brillo de mas abajo --
-        // seguro porque uBass ya llega suavizado (Fase 2).
         float wobble = sin(p.x * waveFreq + t * (0.3 + uSpeed * 0.6)
                           + float(i) * 1.7)
-                     * amp
-                     + uHigh * 0.01 * sin(t * 12.0 + p.x * 8.0 + float(i))
-                     + uBass * 0.03 * sin(t * 1.5 + float(i) * 2.1);
+                     * ampBand
+                     + uHigh * 0.01 * sin(t * 12.0 + p.x * 8.0 + float(i));
 
         float sdf = p.y - (baseY + wobble);
         // D3: variacion de color por linea.

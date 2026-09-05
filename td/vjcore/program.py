@@ -51,9 +51,12 @@ float luminance(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
 void main() {
     const float TAU = 6.2831853072;
-    const float THRESH = 0.55;
-    const float AMOUNT = 0.55;
-    const float RADIUS = 3.0;
+    // Bajado el umbral (0.55->0.35) y subidos amount/radio (0.55->1.1,
+    // 3.0->4.0): a pedido del usuario, el glow tiene que notarse SIEMPRE
+    // por defecto en las 20 escenas, no solo en las partes casi quemadas.
+    const float THRESH = 0.35;
+    const float AMOUNT = 1.1;
+    const float RADIUS = 4.0;
 
     vec2 uv = vUV.st;
     vec2 texel = uTD2DInfos[0].res.zw;
