@@ -19,13 +19,17 @@
 //   Hue      paleta: cada orbita un matiz distinto, derivados de Hue
 //   Chaos    cuanto respira el radio de cada orbita (deja de ser un
 //            circulo perfecto y quieto)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            radio (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve en todos los nodos
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro del angulo (excepcion del contrato)
 //
 // @D1: visibilidad del trazo de la orbita (circulo guia)
 // @D2: tamano del nodo
+// @D3: separacion entre orbitas (juntas y anidadas <-> muy separadas,
+//      llenan toda la pantalla)
+// @D4: longitud/prominencia de la estela detras del nodo
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -44,9 +48,11 @@ vec4 render(vec2 uv)
     for (int i = 0; i < 6; i++) {
         if (i >= n) break;
 
+        // D3: separacion entre orbitas.
         float fi = float(i);
-        float radius = 0.15 + fi * 0.11
-                     + uChaos * 0.02 * sin(t * 0.3 + fi * 1.3);
+        float radius = 0.10 + fi * (0.05 + uD3 * 0.18)
+                     + uChaos * 0.02 * sin(t * 0.3 + fi * 1.3)
+                     + uBass * 0.015 * sin(t * 1.2 + fi * 1.7);
 
         vec3 orbitCol = hsv2rgb(vec3(fract(h + fi * 0.09), 0.65, 1.0));
 
@@ -68,11 +74,12 @@ vec4 render(vec2 uv)
 
         col += orbitCol * dot * (1.0 + uKick * 1.5);
 
-        // Estela corta detras del nodo, para que se lea el movimiento.
-        float trailAng = ang - 0.25;
+        // Estela detras del nodo, para que se lea el movimiento. D4:
+        // largo y prominencia -- casi nada <-> estela larga y notoria.
+        float trailAng = ang - (0.12 + uD4 * 0.55);
         vec2 trailPos = radius * vec2(cos(trailAng), sin(trailAng));
         float dTrail = length(p - trailPos);
-        col += orbitCol * smoothstep(dotSize * 1.5, dotSize * 0.3, dTrail) * 0.25;
+        col += orbitCol * smoothstep(dotSize * 1.5, dotSize * 0.3, dTrail) * (0.08 + uD4 * 0.55);
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

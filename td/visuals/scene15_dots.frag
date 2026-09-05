@@ -28,6 +28,10 @@
 //
 // @D1: tamano base de los puntos
 // @D2: escala del campo de zonas (zonas grandes <-> zonas chicas)
+// @D3: contraste de tamano entre zonas (puntos casi uniformes <-> zonas
+//      que crecen y encogen mucho mas)
+// @D4: variacion de color entre zonas (paleta casi plana <-> arcoiris
+//      por zona)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -52,13 +56,17 @@ vec4 render(vec2 uv)
     zone += uChaos * 0.25 * sin(t * 0.2 + cellId.x * 0.4 + cellId.y * 0.4);
     zone = clamp(zone, 0.0, 1.0);
 
+    // D3: contraste de tamano entre zonas -- bajo = puntos casi
+    // uniformes, alto = zonas que crecen y encogen mucho mas.
+    float zoneContrast = 0.15 + uD3 * 0.85;
     float baseSize = 0.12 + uD1 * 0.32;
-    float size = baseSize * (0.35 + 0.65 * zone);
+    float size = baseSize * (1.0 - zoneContrast + zoneContrast * zone);
 
     float dist = length(cellUv);
     float dotShape = smoothstep(size, size * 0.6, dist);
 
-    float hueZone = audioHue(fract(uHue + zone * 0.25), uMid * 0.16);
+    // D4: variacion de color entre zonas.
+    float hueZone = audioHue(fract(uHue + zone * uD4 * 0.9), uMid * 0.16);
     vec3 col = hsv2rgb(vec3(hueZone, 0.70, 1.0)) * dotShape;
 
     // Kick: flash breve.

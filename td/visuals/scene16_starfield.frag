@@ -32,6 +32,10 @@
 //
 // @D1: tamano de las estrellas
 // @D2: escala de la rejilla (cuantas celdas caben por capa)
+// @D3: contraste de profundidad (capas casi igual de brillantes <-> las
+//      lejanas casi desaparecen frente a las cercanas)
+// @D4: cuanto se diferencia la velocidad entre capas (paralaje sutil <->
+//      muy marcado)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -48,11 +52,17 @@ vec4 render(vec2 uv)
 
     // Tres capas fijas: no dependen de ningun knob, la profundidad es
     // parte de la identidad de la escena.
+    // D4: cuanto se diferencia la velocidad entre capas -- paralaje
+    // sutil (todas casi igual de rapido) <-> muy marcado. Solo afecta la
+    // velocidad, no el tamano/brillo por profundidad (eso sigue en 'depth').
+    float parallaxAmt = 0.25 + uD4 * 2.5;
+
     for (int layer = 0; layer < 3; layer++) {
         float fl = float(layer);
         float depth = 1.0 + fl * 1.6;
+        float speedDepth = 1.0 + fl * 1.6 * parallaxAmt;
 
-        float speed = (0.015 + uSpeed * 0.03) / depth;
+        float speed = (0.015 + uSpeed * 0.03) / speedDepth;
         vec2 pl = p * depth + vec2(t * speed, t * speed * 0.4);
 
         vec2 g = pl / cellSize;
@@ -76,8 +86,11 @@ vec4 render(vec2 uv)
         float twinkle = 0.55 + 0.45 * sin(t * twinkleRate
                                          + starHash * 30.0);
 
+        // D3: contraste de profundidad -- bajo = las 3 capas casi igual
+        // de brillantes, alto = las lejanas casi desaparecen.
+        float depthFalloff = pow(depth, 0.3 + uD3 * 2.0);
         vec3 starCol = hsv2rgb(vec3(fract(h + starHash * 0.08), 0.12, 1.0));
-        col += starCol * star * twinkle / depth;
+        col += starCol * star * twinkle / depthFalloff;
     }
 
     // Kick: destello breve.

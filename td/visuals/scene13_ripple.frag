@@ -24,11 +24,15 @@
 //   Chaos    separacion entre el anillo principal y sus ecos
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
-//   Kick     empuje extra e instantaneo del radio, mas flash
+//   Kick     empuje extra del radio + flash -- ya llega con envolvente de
+//            golpe-y-caida (audio.py)
 //   High     vibracion micro del radio (excepcion del contrato)
 //
 // @D1: ancho del pulso (fino y nitido <-> ancho y difuso)
 // @D2: cuanto empuja Beat el radio hacia afuera en cada golpe
+// @D3: caida de los ecos (todos brillan casi igual <-> se apagan rapido)
+// @D4: radio base del pulso en reposo (chico y centrado <-> grande,
+//      casi llena la pantalla)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -37,7 +41,10 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
 
     // Radio de reposo: respira lento, respaldo para cuando no hay musica.
-    float restR = 0.30 + 0.12 * sin(t * (0.15 + uSpeed * 0.3));
+    // D4: escala el radio base -- chico y centrado <-> grande, casi
+    // llena la pantalla.
+    float baseR = 0.12 + uD4 * 0.55;
+    float restR = baseR + 0.12 * sin(t * (0.15 + uSpeed * 0.3));
 
     // Beat empuja el anillo hacia afuera en cada golpe (D2 = cuanto);
     // Kick suma un empujon extra, instantaneo.
@@ -55,6 +62,9 @@ vec4 render(vec2 uv)
 
     int echoes = 1 + int(floor(uDensity * 2.99));
     float spacing = 0.10 + uChaos * 0.10;
+    // D3: que tan rapido se apagan los ecos -- bajo = todos casi igual de
+    // brillantes, alto = el primero domina y el resto casi no se ve.
+    float echoDecay = 0.15 + uD3 * 1.6;
 
     vec3 col = vec3(0.0);
     for (int i = 0; i < 3; i++) {
@@ -63,7 +73,7 @@ vec4 render(vec2 uv)
         float fi = float(i);
         float rr = ringR - fi * spacing;
         float d = r - rr;
-        float wave = exp(-d * d / (width * width)) * exp(-fi * 0.6);
+        float wave = exp(-d * d / (width * width)) * exp(-fi * echoDecay);
 
         col += waveCol * wave;
     }
