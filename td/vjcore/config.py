@@ -158,34 +158,28 @@ DEFAULT_MIDI = {
     'Detail4': 'ch1ctrl73',
     'Detail5': '',
     'Detail6': '',
+    # Efectos que antes vivian fijos en las teclas C1-E1 del piano --
+    # movidos a pads (aprendidos con Learn) para dejar las 25 teclas
+    # libres para el movimiento de firma de cada escena. Sin default: se
+    # aprenden con Learn Grain / Learn Glitch / etc, igual que Next/Prev.
+    'Grain': '',
+    'Glitch': '',
+    'Pixelate': '',
+    'Strobe': '',
+    'Invert': '',
 }
 
-# Orden en que aparecen en la pagina MIDI Mapping.
+# Orden en que aparecen en la pagina MIDI Mapping. Esto es lo unico que
+# builder.py/control_script.py necesitan para crear los pares Midi<slot>/
+# Learn<slot> -- el COMPORTAMIENTO real de cada slot (si es un knob
+# continuo, un pad de disparo, o un pad de efecto) vive en
+# dats/midi_logic.py (CONTINUOUS/TRIGGERS/EFFECT_TRIGGERS), que es quien
+# de verdad lo usa en runtime.
 MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
               'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
-              'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
-
-# Slots continuos (knobs) vs slots de disparo (pads).
-MIDI_CONTINUOUS = {
-    'Speed': 'Speed',
-    'Density': 'Density',
-    'Hue': 'Hue',
-    'Chaos': 'Chaos',
-    'Brightness': 'Brightness',
-    'Transition': 'Transitionseconds',
-    'Audioamount': 'Audioamount',
-    'Bassamount': 'Bassamount',
-    'Midamount': 'Midamount',
-    'Highamount': 'Highamount',
-    'Detail1': 'Detail1',
-    'Detail2': 'Detail2',
-    'Detail3': 'Detail3',
-    'Detail4': 'Detail4',
-    'Detail5': 'Detail5',
-    'Detail6': 'Detail6',
-}
-MIDI_TRIGGERS = ['Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
+              'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset',
+              'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

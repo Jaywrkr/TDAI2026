@@ -42,36 +42,25 @@ def _handlePianoKey(note, val):
     if not p:
         return
 
-    # Notas 36-40 (C1-E1): efectos en lugar de posicion de piano
-    effect_map = {
-        36: 'Grain',      # C1
-        37: 'Glitch',     # C#1
-        38: 'Pixelate',   # D1
-        39: 'Strobe',     # D#1
-        40: 'Invert',     # E1
-    }
+    # Piano COMPLETO (36-60, las 25 teclas): Keypos/Keyvel/Keypulse para
+    # el movimiento de firma propio de cada escena. Grain/Glitch/
+    # Pixelate/Strobe/Invert YA NO viven hardcodeados en C1-E1 -- se
+    # movieron a pads aprendidos con Learn (ver EFFECT_TRIGGERS mas abajo)
+    # para dejar las 25 teclas libres, pedido explicito del usuario al
+    # descubrir que su controlador tiene 16 pads (2 bancos de 8) y no
+    # necesita sacrificar teclas para los efectos.
+    pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
+    vel = max(0.0, min(1.0, float(val) / 127.0))
 
-    if note in effect_map:
-        # Trigger de efecto
-        effect_name = effect_map[note]
-        par = getattr(p.par, effect_name, None)
+    for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
+        par = getattr(p.par, par_name, None)
         if par is not None:
-            par.val = max(0.0, min(1.0, float(val) / 127.0))
-        run("op('/project1/midi_logic').module._resetEffect('{}')".format(effect_name), delayFrames=2)
-    else:
-        # Piano normal: notas 41-60 (F1-C3)
-        pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
-        vel = max(0.0, min(1.0, float(val) / 127.0))
+            par.val = v
 
-        for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
-            par = getattr(p.par, par_name, None)
-            if par is not None:
-                par.val = v
-
-        # Se resetea un par de frames despues para que la SIGUIENTE tecla
-        # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
-        # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
-        run("op('/project1/midi_logic').module._resetKeypulse()", delayFrames=2)
+    # Se resetea un par de frames despues para que la SIGUIENTE tecla
+    # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
+    # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
+    run("op('/project1/midi_logic').module._resetKeypulse()", delayFrames=2)
 
 
 def _resetKeypulse():
@@ -123,6 +112,13 @@ TRIGGERS = {
     'Reset': 'resetControls',
 }
 
+# Efectos que antes vivian fijos en las teclas C1-E1 del piano -- ahora
+# son pads como cualquier otro TRIGGER (se aprenden con Learn), solo que
+# en vez de llamar una funcion sin argumentos, escriben la velocidad del
+# pad (0..1) en su parametro y se resetean solas un par de frames despues
+# -- mismo patron/funcion (_resetEffect) que ya usaba el piano.
+EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert']
+
 
 def _ctx():
     return op('/project1'), op('/project1/control_script')
@@ -151,6 +147,11 @@ def _handle(channel, val, is_trigger):
             par.val = lo + (hi - lo) * max(0.0, min(1.0, float(val) / 127.0))
     elif is_trigger and slot in TRIGGERS:
         getattr(m, TRIGGERS[slot])()
+    elif is_trigger and slot in EFFECT_TRIGGERS:
+        par = getattr(p.par, slot, None)
+        if par is not None:
+            par.val = max(0.0, min(1.0, float(val) / 127.0))
+        run("op('/project1/midi_logic').module._resetEffect('{}')".format(slot), delayFrames=2)
 
 
 def onValueChange(channel, sampleIndex, val, prev):

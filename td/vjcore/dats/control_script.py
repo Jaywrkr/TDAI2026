@@ -349,10 +349,21 @@ def reloadShaders():
 # MIDI MAPPING (persistente)
 # ---------------------------------------------------------------
 
-MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
-              'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
-              'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
-              'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset']
+def _midi_slots():
+    """Antes esto era una lista duplicada a mano (igual que N_SCENES) que
+    habia que mantener sincronizada con vjcore.config.MIDI_SLOTS -- se lee
+    directo de la fuente de verdad para que agregar un slot (como Grain/
+    Glitch/Pixelate/Strobe/Invert al moverlos del piano a pads) nunca
+    vuelva a desincronizar este script standalone."""
+    try:
+        import vjcore.config as _vjconfig
+        return _vjconfig.MIDI_SLOTS
+    except Exception:
+        return ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
+                'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
+                'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
+                'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset',
+                'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert']
 
 
 def _midi_path():
@@ -366,7 +377,7 @@ def midiMap():
     out = {}
     if not p:
         return out
-    for slot in MIDI_SLOTS:
+    for slot in _midi_slots():
         par = getattr(p.par, 'Midi' + slot.lower(), None)
         if par is None:
             continue
@@ -415,7 +426,7 @@ def saveMidiMap():
         return
     p = _p()
     data = {s: str(getattr(p.par, 'Midi' + s.lower()).eval())
-            for s in MIDI_SLOTS if getattr(p.par, 'Midi' + s.lower(), None)}
+            for s in _midi_slots() if getattr(p.par, 'Midi' + s.lower(), None)}
     try:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
