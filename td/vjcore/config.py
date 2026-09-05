@@ -1,6 +1,9 @@
 """Configuracion global del rig. Editar aqui, no dentro del build."""
 
-N_SCENES = 20
+# Subido de 20 a 34: 4 escenas promovidas desde los prototipos de "ideas
+# nuevas" (cracked glass, bokeh, osciloscopio, nebulosa) + 10 escenas
+# totalmente nuevas.
+N_SCENES = 34
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control) -- hoy solo scene19 (efecto sobre imagen/GIF). Se
@@ -8,8 +11,11 @@ N_SCENES = 20
 # parametro Mediafile en su pagina de escena. El resto de las escenas
 # jamas referencia sTD2DInputs[1] en su .frag, asi que no les afecta.
 MEDIA_SCENES = {19}
-GRID_COLS = 4
-GRID_ROWS = 5
+# 6x6 = 36 casilleros para 34 escenas (2 casilleros de sobra en la
+# ultima fila, sin usar -- el loop del dashboard solo crea tiles para
+# escenas que existen de verdad).
+GRID_COLS = 6
+GRID_ROWS = 6
 
 # TouchDesigner NON-COMMERCIAL limita la salida a 1280x1280.
 DEFAULT_OUTPUT_W = 1280
@@ -17,9 +23,12 @@ DEFAULT_OUTPUT_H = 720
 MAX_OUTPUT = 1280
 
 # Dashboard
-THUMB_W = 208
-THUMB_H = 117
-GAP = 10
+# Thumbnails achicados (208x117 -> 150x84, misma proporcion) al pasar de
+# 20 a 34 escenas -- si se mantenia el tamano viejo con 36 casilleros el
+# dashboard entero quedaba enorme.
+THUMB_W = 150
+THUMB_H = 84
+GAP = 8
 DASH_MARGIN = 18
 PROGRAM_W = 640
 PROGRAM_H = 360
@@ -27,9 +36,11 @@ PROGRAM_H = 360
 DEFAULT_TRANSITION_SECONDS = 0.45
 
 # Resolucion de los thumbnails del dashboard.
-# 20 thumbnails a resolucion de salida es uno de los costos ocultos mas grandes.
-THUMB_RES_W = 256
-THUMB_RES_H = 144
+# Con Previewall default True (ver builder.py) las 34 escenas cocinan
+# siempre -- resolucion de thumbnail bajada (256x144 -> 192x108) para que
+# ese costo no crezca proporcional a la cantidad de escenas.
+THUMB_RES_W = 192
+THUMB_RES_H = 108
 
 # ---------------------------------------------------------------
 # CONTRATO DE CONTROL

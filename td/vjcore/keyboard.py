@@ -2,7 +2,7 @@
 se desconecta a mitad de show, o para probar sin tener el hardware a mano:
 
     0-9             salta directo a esa escena (0..9)
-    flecha izq/der  Prev/Next (relativo -- llega a las 20 escenas con
+    flecha izq/der  Prev/Next (relativo -- llega a todas las escenas con
                     toques repetidos, igual que el MIDI y el pulso del
                     panel)
     espacio         Blackout on/off

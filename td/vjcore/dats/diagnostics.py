@@ -103,10 +103,16 @@ def update():
     moving = bool(p.fetch('transitioning', False))
     learn = str(p.fetch('learn_slot', '') or '')
 
+    try:
+        import vjcore.config as _vjconfig
+        n_scenes = _vjconfig.N_SCENES
+    except Exception:
+        n_scenes = 34
+
     cooking = 0
     scenes = op('/project1/scenes')
     if scenes:
-        for i in range(20):
+        for i in range(n_scenes):
             sc = scenes.op('scene{}'.format(i))
             if sc and sc.allowCooking:
                 cooking += 1
@@ -128,7 +134,7 @@ def update():
         'ACTIVA      ESCENA {:02d}'.format(active),
         'DESTINO     {}'.format(
             'ESCENA {:02d}'.format(target) if moving else '-'),
-        'COOCINANDO  {} / 20 escenas'.format(cooking),
+        'COOCINANDO  {} / {} escenas'.format(cooking, n_scenes),
         'BLACKOUT    {}'.format('ON' if p.par.Blackout.eval() else 'OFF'),
         'ERRORES     {}'.format(errors),
     ]

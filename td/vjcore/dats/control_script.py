@@ -7,7 +7,17 @@ Se carga como texto dentro de un Text DAT. Se accede como
 import json
 import os
 
-N_SCENES = 20
+
+def _n_scenes():
+    """Antes esto era una constante duplicada (N_SCENES = 20) que habia
+    que recordar mantener sincronizada a mano con vjcore.config.N_SCENES
+    -- se leyo directo de la fuente de verdad para que agregar escenas
+    (config.py) nunca vuelva a desincronizar este script standalone."""
+    try:
+        import vjcore.config as _vjconfig
+        return _vjconfig.N_SCENES
+    except Exception:
+        return 34
 
 
 # ---------------------------------------------------------------
@@ -86,7 +96,7 @@ def setSceneCooking(indices=None):
     except Exception:
         preview = False
 
-    for i in range(N_SCENES):
+    for i in range(_n_scenes()):
         sc = scenes.op('scene{}'.format(i))
         if not sc:
             continue
@@ -108,7 +118,7 @@ def updateHighlight():
     except Exception:
         return
 
-    for i in range(N_SCENES):
+    for i in range(_n_scenes()):
         tile = dash.op('scene_btn{}'.format(i))
         if not tile:
             continue
@@ -128,7 +138,7 @@ def selectScene(index):
     if not p:
         return
     try:
-        index = max(0, min(N_SCENES - 1, int(index)))
+        index = max(0, min(_n_scenes() - 1, int(index)))
         if not _valid(index):
             print('SCENE {} INVALIDA - ignorada'.format(index))
             return
@@ -291,13 +301,13 @@ def _navBase(p):
 def nextScene():
     p = _p()
     if p:
-        selectScene((_navBase(p) + 1) % N_SCENES)
+        selectScene((_navBase(p) + 1) % _n_scenes())
 
 
 def prevScene():
     p = _p()
     if p:
-        selectScene((_navBase(p) - 1) % N_SCENES)
+        selectScene((_navBase(p) - 1) % _n_scenes())
 
 
 def toggleBlackout():

@@ -351,7 +351,7 @@ def verify(proj, channels):
         if not (sc and sc.op('out1') and sc.op('content/shader')
                 and sc.op('content/content_out') and sc.op('thumb')):
             bad.append(i)
-    check('20 escenas completas', not bad, 'faltan en {}'.format(bad))
+    check('{} escenas completas'.format(config.N_SCENES), not bad, 'faltan en {}'.format(bad))
 
     check('ctrl_tex existe', bool(proj.op('ctrl_tex')))
     check('dashboard existe', bool(proj.op('dashboard_ui')))
