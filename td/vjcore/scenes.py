@@ -65,12 +65,14 @@ def build_scene(scenes, i, channels):
 
     has_media = i in config.MEDIA_SCENES
     if has_media:
-        # Ruta a la imagen/GIF/video que el .frag de esta escena procesa
-        # como input 1 (input 0 sigue siendo la textura de control, igual
-        # que las demas 19 escenas). Vacio por defecto: el Movie File In
-        # TOP sin archivo cargado sale negro, el shader debe verse bien
-        # igual (ver scene19_mediaglitch.frag).
-        add_string(page, 'Mediafile', 'Media File Path', '')
+        # Carpeta con las imagenes/GIFs/videos que esta escena va rotando
+        # sola -- no un archivo unico. control_script.py escanea la
+        # carpeta (_scanMediaFolder), y el indice actual (Mediaindex,
+        # interno) avanza automaticamente: por tiempo (ritmo segun Speed,
+        # ver _scheduleMediaAdvance) y ademas en cada golpe de bombo
+        # (dats/media_logic.py) -- sin gastar ninguna perilla nueva.
+        add_string(page, 'Mediafolder', 'Media Folder Path', '')
+        add_int(page, 'Mediaindex', 'Media Index (interno)', 0, 0, 9999)
 
     content = sc.create(baseCOMP, 'content')
     content.nodeX, content.nodeY = 0, 0
@@ -96,7 +98,7 @@ def build_scene(scenes, i, channels):
         media_in = content.create(moviefileinTOP, 'media_in')
         media_in.nodeX, media_in.nodeY = -200, 150
         safe_expr(media_in, 'file',
-                  "op('{}').par.Mediafile".format(sc.path))
+                  "op('/project1/control_script').module.currentMediaPath({})".format(i))
         safe_set(media_in, 'play', True)
         safe_set_first(media_in, ['cueloop', 'loop'], True)
         connect(glsl, media_in, 1)

@@ -462,6 +462,99 @@ def loadPresets():
 # ARRANQUE SEGURO
 # ---------------------------------------------------------------
 
+def _mediaScenePath(scene_index):
+    return '/project1/scenes/scene{}'.format(scene_index)
+
+
+_MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
+              '.mov', '.mp4', '.webp')
+
+
+def _scanMediaFolder(scene_index):
+    """Lista ordenada de archivos de imagen/video en Mediafolder. Vacia si
+    la carpeta no esta seteada, no existe, o no tiene archivos validos --
+    nunca tira excepcion (esto se llama desde una expresion de parametro,
+    que no puede fallar sin romper el TOP)."""
+    sc = op(_mediaScenePath(scene_index))
+    if not sc:
+        return []
+    folder = str(sc.par.Mediafolder.eval() or '').strip()
+    if not folder or not os.path.isdir(folder):
+        return []
+    try:
+        names = sorted(f for f in os.listdir(folder)
+                       if f.lower().endswith(_MEDIA_EXTS))
+    except Exception as e:
+        print('scanMediaFolder ERROR:', e)
+        return []
+    return [os.path.join(folder, n) for n in names]
+
+
+def currentMediaPath(scene_index):
+    """Llamada por la expresion 'file' del Movie File In TOP de esta
+    escena (ver scenes.py). Vacio = TOP sin archivo = sale negro, no
+    error -- el .frag esta pensado para eso."""
+    files = _scanMediaFolder(scene_index)
+    if not files:
+        return ''
+    sc = op(_mediaScenePath(scene_index))
+    idx = int(sc.par.Mediaindex.eval()) % len(files) if sc else 0
+    return files[idx]
+
+
+def advanceMediaIndex(scene_index):
+    """Avanza a la siguiente imagen/video de la carpeta (con loop). La
+    llaman dos cosas de forma independiente: el ciclo automatico por
+    tiempo (_mediaTick) y cada golpe de bombo (dats/media_logic.py) --
+    asi el avance se siente reactivo a la musica sin depender solo de
+    ella (sin audio, el ciclo por tiempo lo sigue moviendo igual)."""
+    sc = op(_mediaScenePath(scene_index))
+    if not sc:
+        return
+    files = _scanMediaFolder(scene_index)
+    if not files:
+        return
+    cur = int(sc.par.Mediaindex.eval())
+    sc.par.Mediaindex.val = (cur + 1) % len(files)
+
+
+def _mediaTick(scene_index):
+    advanceMediaIndex(scene_index)
+    _scheduleMediaAdvance(scene_index)
+
+
+def _scheduleMediaAdvance(scene_index):
+    """Se reagenda solo, como tickDiag() en runtime_manager.py. El
+    intervalo lo controla Speed -- perilla alta = ciclo mas rapido, sin
+    necesitar ninguna perilla nueva (pedido explicito del usuario: 'ya no
+    tengo perillas libres')."""
+    p = _p()
+    if not p:
+        return
+    try:
+        speed = max(0.0, min(1.0, float(p.par.Speed.eval())))
+    except Exception:
+        speed = 0.5
+    seconds = 8.0 - speed * 6.5   # Speed=0 -> 8s, Speed=1 -> 1.5s
+    run("op('/project1/control_script').module._mediaTick({})".format(scene_index),
+        delayMilliSeconds=int(seconds * 1000))
+
+
+def startMediaCycles():
+    """Arranca el auto-avance para cada escena de config.MEDIA_SCENES.
+    Se llama una vez desde safeStartup(). Import absoluto (no relativo):
+    este script corre como Text DAT independiente, no como parte del
+    paquete vjcore -- mismo patron que 'import vjcore' en builder.py."""
+    try:
+        import vjcore.config as _vjconfig
+        media_scenes = _vjconfig.MEDIA_SCENES
+    except Exception as e:
+        print('startMediaCycles: no se pudo leer MEDIA_SCENES:', e)
+        return
+    for idx in media_scenes:
+        _scheduleMediaAdvance(idx)
+
+
 def safeStartup():
     p = _p()
     if not p:
@@ -488,6 +581,7 @@ def safeStartup():
         setSceneCooking({0})
         updateHighlight()
         updateDetailLegend(0)
+        startMediaCycles()
 
         d = op('/project1/diagnostics')
         if d:

@@ -13,7 +13,7 @@ except ImportError:
 
 import os
 
-from . import config, audio, control, midi, scenes, program, dashboard, shader
+from . import config, audio, control, midi, scenes, program, dashboard, shader, media
 from .tdutil import (safe_set, safe_expr, add_float, add_int, add_toggle,
                      add_string, add_pulse, log, clear_log, chan_names)
 
@@ -227,6 +227,9 @@ def build(verbose=True):
 
     channels = control.resolve_channels(proj)
     log('CTRL canales: {}'.format(channels))
+
+    # --- avance de imagen/GIF por beat (config.MEDIA_SCENES) ---
+    media.build(proj)
 
     # --- escenas + program + dashboard ---
     _, outs, thumbs = scenes.build_all(proj, channels)
