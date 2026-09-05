@@ -80,7 +80,18 @@ vec4 render(vec2 uv)
     // Highlight especular: un brillo angosto justo en el BORDE de la
     // silueta (donde 'shape' pasa de 0 a 1), que se enciende con el
     // kick -- simula luz reflejandose en la superficie de la tinta.
-    float rim = (1.0 - abs(shape * 2.0 - 1.0)) * uKick;
+    // OJO: el borde de la tinta es un contorno largo y sinuoso -- si el
+    // highlight se aplica IGUAL en todo ese borde, el kick blanquea toda
+    // la imagen de golpe. Una mascara espacial fija (simula una fuente
+    // de luz desde una direccion) limita el highlight a una zona, como
+    // un reflejo real en vez de un halo parejo alrededor de toda la forma.
+    // pow(...,3.0): el softness ancho de arriba hace que "shape" cruce
+    // 0.5 en una banda gruesa, no en una linea fina -- sin esto, el rim
+    // brillaba en TODO ese ancho de transicion (una franja gruesa), y
+    // con el kick se veia como un parche entero lavado a blanco/crema
+    // en vez de un reflejo angosto sobre el borde.
+    float lightMask = smoothstep(-0.4, 0.7, p.x * 0.6 + p.y * 0.4);
+    float rim = pow(1.0 - abs(shape * 2.0 - 1.0), 3.0) * uKick * lightMask;
 
     // Value bajado (era 1.0): a pedido del usuario quedaba "demasiado
     // claro" -- ahora el cuerpo de tinta es notablemente mas oscuro por
@@ -89,7 +100,7 @@ vec4 render(vec2 uv)
     vec3 inkCol = hsv2rgb(vec3(h, 0.80, 0.55));
 
     vec3 col = inkCol * shape;
-    col += vec3(1.0) * rim * 0.6;
+    col += vec3(1.0) * rim * 0.35;
 
     // Un nucleo mas saturado donde el campo esta mas "concentrado", para
     // dar sensacion de profundidad dentro de la propia tinta. D4: rango

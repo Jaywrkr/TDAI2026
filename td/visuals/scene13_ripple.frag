@@ -101,8 +101,13 @@ vec4 render(vec2 uv)
     // de brillo naturales de superponer fuentes), un extra que se
     // enciende con Agudos -- se lee como reflejos de agua real en los
     // nodos de interferencia.
+    // Umbral subido (0.55->1.1) y multiplicador bajado (1.4->0.5): con
+    // el umbral bajo, cualquier zona de superposicion normal (no solo
+    // los nodos de interferencia real) ya disparaba el destello a full,
+    // volviendose un blob blanco solido donde se cruzaban las ondas en
+    // vez de un brillo puntual y contenido.
     float interfLum = dot(col, vec3(0.299, 0.587, 0.114));
-    float sparkle = smoothstep(0.55, 1.5, interfLum) * uHigh * 1.4;
+    float sparkle = smoothstep(1.1, 2.2, interfLum) * uHigh * 0.5;
     col += vec3(1.0) * sparkle;
 
     // Kick: flash breve, ademas del empujon de radio de arriba.
@@ -110,6 +115,17 @@ vec4 render(vec2 uv)
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
+
+    // Freno LOCAL a la suma de multiples fuentes/ecos superpuestos: con
+    // Density alto (hasta 5 fuentes) y varios ecos cada una, donde 3+ se
+    // cruzan, mas kick y audioLift encima, el resultado ya pasa de 1.0
+    // en los TRES canales -- eso no se lee como "interferencia", se lee
+    // como un blob blanco solido. Se comprime ACA, despues de todo el
+    // brillo de audio (si se hace antes, kick/audioLift lo vuelven a
+    // pasar de 1.0), para que la zona de cruce brille mas fuerte pero
+    // sin lavarse a blanco parejo.
+    vec3 excessLocal = max(col - 0.65, 0.0);
+    col = col - excessLocal + excessLocal / (1.0 + excessLocal * 2.5);
 
     col *= vignette(uv, 0.4);
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.01;

@@ -69,22 +69,39 @@ vec4 render(vec2 uv)
         bend += uBass * 0.04 * sin(t * 1.6 + fi * 2.3);
 
         float sdf = p.y - (baseY + bend);
+        // sdf de arriba es solo la distancia VERTICAL a la curva, no la
+        // distancia perpendicular real -- en los tramos donde el fbm
+        // dobla fuerte (pendiente alta) esa distancia ingenua queda muy
+        // chica en un rango ancho de pantalla, y edgeLine (que usa
+        // fwidth) engorda la linea hasta volverse una barra blanca
+        // solida vertical ahi. Se corrige normalizando por la magnitud
+        // del gradiente en pantalla (tecnica estandar para "distancias"
+        // que salen de una funcion implicita), asi el ancho percibido
+        // se queda constante sin importar que tan empinada este la curva.
+        float sdfG = length(vec2(dFdx(sdf), dFdy(sdf)));
+        float sdfN = sdf / max(sdfG, 1e-4);
+
         // D3: variacion de color por linea -- en 0 todas comparten el
         // mismo tono, en 1 cada una se aleja bastante del hue base.
         vec3 lineCol = hsv2rgb(vec3(fract(h + fi * 0.09 * uD3), 0.70, 1.0));
-        float line = edgeLine(sdf, lineW);
+        float line = edgeLine(sdfN, lineW);
         // D4: resplandor ancho ademas del trazo nitido -- en 0 no hay
         // nada extra, en 1 cada linea tiene un halo notable.
-        float glow = exp(-abs(sdf) * abs(sdf) / (0.004 + uD4 * 0.05)) * uD4;
+        float glow = exp(-abs(sdfN) * abs(sdfN) / (0.004 + uD4 * 0.05)) * uD4;
 
         // Chispa viajando a lo largo de la corriente -- solo se ve sobre
         // la propia linea. Kick le da un salto de velocidad instantaneo,
         // ademas del brillo de mas abajo.
+        // Mascara angosta (antes lineW*3.0 -- con varias lineas juntas
+        // el spark se filtraba a las lineas vecinas y, cuando varias
+        // fases coincidian en la misma columna x, se veia como una
+        // barra blanca solida vertical). Intensidad tambien bajada
+        // (1.6 -> 0.9) por el mismo motivo.
         float sparkPhase = fract(p.x * 0.35 - t * (0.3 + uSpeed * 0.9 + uKick * 3.0) + fi * 1.3);
         float spark = smoothstep(0.05, 0.0, abs(sparkPhase - 0.5))
-                    * smoothstep(lineW * 3.0, 0.0, abs(sdf));
+                    * smoothstep(lineW * 1.3, 0.0, abs(sdfN));
 
-        col += lineCol * (line + glow * 0.6 + spark * 1.6);
+        col += lineCol * (line + glow * 0.6 + spark * 0.9);
     }
 
     // Kick: flash breve.

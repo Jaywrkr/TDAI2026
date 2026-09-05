@@ -215,6 +215,18 @@ void main() {
         c.rgb = mix(c.rgb, vec3(1.0) - c.rgb, uInvert * 0.8);
     }
 
+    // Freno de seguridad para blancos solidos: varias escenas suman
+    // brillo de mas de una fuente en el mismo pixel (lineas que se
+    // cruzan, ondas que se superponen, un flash de kick encima de algo
+    // ya brillante) -- sin esto, esa suma puede pasar largamente de 1.0
+    // y recortarse a blanco solido y plano, en vez de un brillo intenso
+    // pero con forma. Por debajo de 1.0 esto NO TOCA nada (col=excess=0);
+    // por encima, comprime lo que sobra en vez de recortarlo de golpe,
+    // asi un pico de brillo sigue leyendose como pico, no como una
+    // mancha blanca sin detalle.
+    vec3 excess = max(c.rgb - 1.0, 0.0);
+    c.rgb = c.rgb - excess + excess / (1.0 + excess);
+
     // Pulido final compartido por las 20 escenas -- ver grade() arriba.
     c.rgb = grade(c.rgb);
 

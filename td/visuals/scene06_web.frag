@@ -84,8 +84,11 @@ vec4 render(vec2 uv)
     int   n = 2 + int(floor(uDensity * 5.99));
     // El grosor del rayo respira con los bajos -- uBass ya suavizado
     // (Fase 2), mismo patron que el perimetro de las metaballs.
-    float lineW = (0.7 + uD1 * 2.5) * (1.0 + uBass * 0.3);
-    float glowAmt = 0.15 + uD2 * 1.3;
+    // Base bajada (0.7->0.5, tope 3.2->2.6): con tronco+rama cruzandose
+    // por el zigzag aleatorio, un trazo de base ya grueso hacia que esas
+    // zonas de cruce se leyeran como una maraña blanca solida.
+    float lineW = (0.5 + uD1 * 2.1) * (1.0 + uBass * 0.3);
+    float glowAmt = 0.12 + uD2 * 1.0;
     float zigzagAmt = 0.025 + uD3 * 0.24;
     int   nBranches = int(floor(uD4 * 2.99));   // 0 a 2 ramas
 
@@ -140,11 +143,15 @@ vec4 render(vec2 uv)
     // Kick: un rayo extra, central y brillante, se dispara SIEMPRE en el
     // golpe -- ya llega con envolvente de golpe-y-caida (audio.py).
     if (uKick > 0.015) {
+        // Zigzag mas moderado (1.5->1.0) y core mas fino (1.3->0.9): con
+        // el zigzag amplio, los segmentos se cruzaban entre si en el
+        // centro del rayo y esa maraña de lineas gruesas se leia como
+        // un blob blanco solido en vez de un solo rayo brillante.
         vec2 seedK = vec2(63.0, 29.0);
-        float dK = boltDist(p, seedK, 1.15, -1.15, 7, zigzagAmt * 1.5, 0.0, 0.0);
-        float coreK = edgeLine(dK, lineW * 1.3);
-        float glowK = exp(-dK * dK / 0.022);
-        col += vec3(1.0) * (coreK + glowK) * uKick * 1.6;
+        float dK = boltDist(p, seedK, 1.15, -1.15, 7, zigzagAmt * 1.0, 0.0, 0.0);
+        float coreK = edgeLine(dK, lineW * 0.9);
+        float glowK = exp(-dK * dK / 0.008);
+        col += vec3(1.0) * (coreK + glowK * 0.6) * uKick * 0.9;
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

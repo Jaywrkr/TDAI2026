@@ -76,21 +76,39 @@ vec4 render(vec2 uv)
                      + uHigh * 0.01 * sin(t * 12.0 + p.x * 8.0 + float(i));
 
         float sdf = p.y - (baseY + wobble);
+        // sdf es solo distancia VERTICAL a la curva -- en los tramos con
+        // pendiente alta (ondulacion fuerte) esa distancia ingenua se
+        // achica en un rango ancho de pantalla y edgeLine (via fwidth)
+        // engorda la linea hasta una barra blanca solida vertical ahi.
+        // Se normaliza por la magnitud del gradiente en pantalla para
+        // que el ancho percibido quede constante sin importar la
+        // pendiente de la curva en ese punto.
+        float sdfG = length(vec2(dFdx(sdf), dFdy(sdf)));
+        float sdfN = sdf / max(sdfG, 1e-4);
+
         // D3: variacion de color por linea.
         vec3 lineCol = hsv2rgb(vec3(fract(h + float(i) * 0.09 * uD3), 0.75, 1.0));
-        float line = edgeLine(sdf, lineW);
+        float line = edgeLine(sdfN, lineW);
         // D4: resplandor ademas del trazo nitido.
-        float glow = exp(-sdf * sdf / (0.004 + uD4 * 0.05)) * uD4;
+        float glow = exp(-sdfN * sdfN / (0.004 + uD4 * 0.05)) * uD4;
 
         // Punto de "peak" en la cresta de la onda -- refuerza el look de
         // ecualizador/VU meter. Su tamano pulsa con los bajos (perimetro
         // bailando otra vez).
+        // OJO: crestDist vive en el espacio de fase (wavePhase), que se
+        // recorre en x a razon de waveFreq -- con waveFreq bajo (piso
+        // 0.6) un peakSize de fase moderado ya cubre casi toda la mitad
+        // de la pantalla en x, y encima el ancho en sdf se dividia por
+        // waveFreq (mas chico el freq, mas ancho el punto): el "punto"
+        // dejaba de ser un punto y se volvia una franja blanca solida.
+        // Rango de peakSize bajado y ancho en sdf ahora fijo (sin dividir
+        // por waveFreq) para que siempre quede como un punto acotado.
         float wavePhase = p.x * waveFreq + t * (0.3 + uSpeed * 0.6) + float(i) * 1.7;
         float crestDist = abs(mod(wavePhase - PI * 0.5 + PI, TAU) - PI);
-        float peakSize = 0.25 + uBass * 0.35;
-        float peak = smoothstep(peakSize, 0.0, crestDist) * smoothstep(lineW * 2.5 * (1.0 / max(waveFreq, 0.5)), 0.0, abs(sdf));
+        float peakSize = 0.10 + uBass * 0.16;
+        float peak = smoothstep(peakSize, 0.0, crestDist) * smoothstep(lineW * 1.8, 0.0, abs(sdfN));
 
-        col += lineCol * (line + glow * 0.6) + vec3(1.0) * peak * 0.8;
+        col += lineCol * (line + glow * 0.6) + vec3(1.0) * peak * 0.5;
     }
 
     // Kick: flash breve.
