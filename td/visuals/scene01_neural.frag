@@ -40,28 +40,33 @@
 //      reacomodandose)
 // ===============================================================
 
-// Punto aleatorio pero animado dentro de cada celda -- se mueve poco a
-// poco, asi la red respira en vez de quedar congelada.
+// Punto aleatorio pero animado dentro de cada celda -- se mueve de verdad,
+// asi la red baila en vez de quedar congelada (referencia: red Voronoi
+// neon que se reacomoda notoriamente todo el tiempo, no un jitter sutil).
 //
 // OJO: el offset base (donde vive el sitio dentro de su celda) tiene que
 // escalar con Chaos, no solo el drift animado -- si el offset base fuera
 // fijo, Chaos casi no cambiaria nada (se probo con un render en CPU: a
 // Chaos=0.05 la red se veia casi identica a Chaos=0.5).
-// driftAmt (D4): escala tanto la VELOCIDAD del drift (t * driftRate) como
-// su alcance -- en 0 los sitios casi no se mueven (rejilla congelada), en 1
-// se reacomodan todo el tiempo, notablemente mas vivo que Chaos solo.
-// bassAmt: un poco de movimiento de los sitios con los graves, ademas del
-// brillo de mas abajo -- seguro porque uBass ya llega suavizado desde
-// audio.py (Fase 2), escala chica igual que la excepcion de uHigh.
+// driftAmt (D4): escala tanto la VELOCIDAD del drift como su alcance -- en
+// 0 los sitios se mueven poco (rejilla mas calma), en 1 se reacomodan
+// fuerte y rapido. Dos frecuencias superpuestas por eje (en vez de un solo
+// seno) para que el reacomodo no se vea como una oscilacion mecanica
+// repetitiva, sino como un baile organico que no se repite igual.
+// bassAmt: un poco mas de empuje con los graves, ademas del brillo de mas
+// abajo -- seguro porque uBass ya llega suavizado desde audio.py (Fase 2).
 vec2 sitePoint(vec2 cellId, float t, float chaosAmt, float highAmt, float driftAmt, float bassAmt)
 {
     vec2 base = hash22(cellId);
-    float driftRate = 0.05 + driftAmt * 0.35;
-    vec2 drift = vec2(sin(t * driftRate + base.x * 6.28), cos(t * driftRate * 0.8 + base.y * 6.28));
+    vec2 phase = base * TAU;
+    float rate1 = 0.18 + driftAmt * 0.60;
+    float rate2 = rate1 * 1.7 + 0.08;
+    vec2 drift = vec2(sin(t * rate1 + phase.x) + 0.5 * sin(t * rate2 * 1.3 + phase.y * 1.9),
+                      cos(t * rate1 * 0.85 + phase.y) + 0.5 * cos(t * rate2 * 1.1 + phase.x * 1.3));
+    float reach = 0.05 + driftAmt * 0.22 + bassAmt * 0.05;
     float spread = 0.08 + chaosAmt * 0.62;
-    return 0.5 + (base - 0.5) * spread + drift * (0.015 + driftAmt * 0.14)
-         + highAmt * 0.02 * sin(t * 9.0 + cellId.x * 3.1 + cellId.y * 2.3)
-         + bassAmt * 0.03 * sin(t * 2.0 + cellId.x * 1.3 + cellId.y * 1.7);
+    return 0.5 + (base - 0.5) * spread + drift * reach
+         + highAmt * 0.02 * sin(t * 9.0 + cellId.x * 3.1 + cellId.y * 2.3);
 }
 
 vec4 render(vec2 uv)
@@ -107,14 +112,15 @@ vec4 render(vec2 uv)
 
     // D2: resplandor (glow) ancho alrededor de cada segmento -- en 0 no
     // hay nada extra (solo la linea nitida de arriba), en 1 cada linea
-    // tiene un halo neon notable. Reusa 'gap', cero costo de muestreo
-    // adicional.
-    float glowWidth = 0.03 + uD2 * 0.55;
-    float glow = exp(-max(gap, 0.0) / glowWidth) * uD2;
+    // tiene un halo neon grueso, tipo tubo de luz. Reusa 'gap', cero costo
+    // de muestreo adicional. Base subida (antes 0.03-0.58) para que el
+    // halo por defecto ya se vea grueso, no apenas perceptible.
+    float glowWidth = 0.06 + uD2 * 0.80;
+    float glow = exp(-max(gap, 0.0) / glowWidth) * (0.25 + uD2 * 0.75);
 
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 edgeCol = hsv2rgb(vec3(h, 0.80, 0.85));
-    vec3 glowCol = hsv2rgb(vec3(fract(h + 0.04), 0.55, 1.0));
+    vec3 edgeCol = hsv2rgb(vec3(h, 0.75, 1.0));
+    vec3 glowCol = hsv2rgb(vec3(fract(h + 0.02), 0.85, 1.0));
 
     // Pulso que recorre la red: modula el brillo de los segmentos segun
     // su distancia al centro, viajando con el tiempo. D3 controla cuantos
@@ -124,7 +130,7 @@ vec4 render(vec2 uv)
     float pulse = 0.5 + 0.5 * sin(length(p) * pulseFreq - t * (0.6 + uSpeed * 1.5));
 
     vec3 col = edgeCol * edge * (0.5 + 0.5 * pulse) * (1.0 + uKick * 1.2);
-    col += glowCol * glow * 0.8 * (0.6 + 0.4 * pulse);
+    col += glowCol * glow * 1.3 * (0.6 + 0.4 * pulse);
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);
