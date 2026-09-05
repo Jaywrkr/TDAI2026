@@ -121,10 +121,17 @@ PAR_CHANNELS = [
 # notas 49-73 (25 teclas). Antes se asumia un rango generico 36-60 sin
 # canal fijo -- pero los PADS del banco B (ver DEFAULT_MIDI) mandan notas
 # 45-52 en canal 10, que se pisan numericamente con 49-52 del piano. Sin
-# distinguir por canal un pad quedaria mal detectado como tecla. El rango
-# real y el chequeo de canal viven en dats/midi_logic.py
-# (PIANO_CHANNEL/PIANO_LO/PIANO_HI); estas dos constantes son solo
-# documentacion para quien lea este archivo.
+# distinguir por canal un pad quedaria mal detectado como tecla.
+#
+# Estos 3 valores son solo el DEFAULT DE FABRICA -- en runtime el rango
+# real y el canal se leen de los parametros /project1.Pianochannel/
+# Pianolonote/Pianohinote (builder.py los crea con estos defaults), que
+# se pueden RECALIBRAR con Learn Piano (2 toques: tecla mas grave + mas
+# aguda, ver control_script.armLearnPiano/applyLearnPiano y
+# dats/midi_logic.py _piano_range) sin tocar codigo -- necesario si se
+# usa otro controlador, o si se corrio la octava con los botones
+# Octave -/+ del MiniLab (eso NO le avisa al software).
+PIANO_CHANNEL = 13
 PIANO_LO_NOTE = 49
 PIANO_HI_NOTE = 73
 

@@ -3,22 +3,30 @@
 El MIDI ESCRIBE en los parametros; no los secuestra con expresiones.
 Solo corre Python cuando algo se mueve de verdad.
 
-PIANO (Fase 3): a diferencia de los knobs/pads, las 25 teclas NO se mapean
-con Learn -- son un rango fijo de notas siempre activo. El nombre exacto
-que TD le da a un canal de nota puede variar entre builds (ya paso con los
-CC: 'ch1cc112' en un build, 'ch1ctrl76' en otro), asi que _piano_note()
-prueba varios patrones en vez de asumir uno solo. Si el patron real no es
-ninguno de estos, el sintoma es "el anillo de tecla no aparece nunca" --
-nunca rompe nada mas. Reportar el nombre real del canal (visor de midi1)
-si eso pasa.
+PIANO (Fase 3): a diferencia de los knobs/pads (un valor MIDI unico), las
+25 teclas son un RANGO continuo -- se calibran con Learn Piano (2 toques:
+tecla mas grave + mas aguda, ver control_script.armLearnPiano/
+applyLearnPiano), no asumiendo canal/notas fijos para siempre. El rango
+aprendido vive en /project1.Pianochannel/Pianolonote/Pianohinote
+(builder.py los crea con el default de fabrica del MiniLab: canal 13,
+notas 49-73); PIANO_CHANNEL/PIANO_LO/PIANO_HI de aca abajo son solo el
+fallback si esos parametros todavia no existen (build viejo) o el rig
+corre fuera de TouchDesigner.
+
+El nombre exacto que TD le da a un canal de nota puede variar entre
+builds (ya paso con los CC: 'ch1cc112' en un build, 'ch1ctrl76' en otro),
+asi que _parse_note() prueba varios patrones en vez de asumir uno solo.
+Si el patron real no es ninguno de estos, el sintoma es "el anillo de
+tecla no aparece nunca" -- nunca rompe nada mas. Reportar el nombre real
+del canal (visor de midi1) si eso pasa.
 """
 
 import re
 
-# Confirmado en la unidad de produccion: el teclado de 25 teclas manda en
-# CANAL 13, notas 49-73. Los pads del banco B (ver EFFECT_TRIGGERS mas
-# abajo) mandan canal 10, notas 45-52 -- esas notas 49-52 SE PISAN con el
-# piano si solo se mira el numero de nota, por eso el chequeo de canal es
+# Default de fabrica del MiniLab mkII -- fallback si /project1.Piano* no
+# existe todavia. Los pads del banco B (ver EFFECT_TRIGGERS mas abajo)
+# mandan canal 10, notas 45-52 -- esas notas 49-52 SE PISAN con el piano
+# si solo se mira el numero de nota, por eso el chequeo de canal es
 # obligatorio, no cosmetico.
 PIANO_CHANNEL = 13
 PIANO_LO = 49
@@ -31,14 +39,37 @@ _NOTE_PATTERNS = [
 ]
 
 
-def _piano_note(name):
+def _parse_note(name):
+    """(canal, nota) de un nombre de canal MIDI tipo 'ch13n49', o None si
+    el nombre no matchea ningun patron conocido (CC, no nota)."""
     for pat in _NOTE_PATTERNS:
         m = pat.match(name)
         if m:
-            chan = int(m.group(1))
-            note = int(m.group(2))
-            if chan == PIANO_CHANNEL and PIANO_LO <= note <= PIANO_HI:
-                return note
+            return int(m.group(1)), int(m.group(2))
+    return None
+
+
+def _piano_range():
+    """(canal, grave, aguda) aprendidos via Learn Piano -- con fallback a
+    los defaults de arriba si /project1.Piano* no existe todavia."""
+    p = op('/project1')
+    if p:
+        chan = getattr(p.par, 'Pianochannel', None)
+        lo = getattr(p.par, 'Pianolonote', None)
+        hi = getattr(p.par, 'Pianohinote', None)
+        if chan is not None and lo is not None and hi is not None:
+            return int(chan.eval()), int(lo.eval()), int(hi.eval())
+    return PIANO_CHANNEL, PIANO_LO, PIANO_HI
+
+
+def _piano_note(name):
+    parsed = _parse_note(name)
+    if not parsed:
+        return None
+    chan, note = parsed
+    pchan, plo, phi = _piano_range()
+    if chan == pchan and plo <= note <= phi:
+        return note
     return None
 
 
@@ -47,14 +78,15 @@ def _handlePianoKey(note, val):
     if not p:
         return
 
-    # Piano COMPLETO (canal 13, notas 49-73, las 25 teclas):
-    # Keypos/Keyvel/Keypulse para el movimiento de firma propio de cada
-    # escena. Los 8 efectos (Grain/Glitch/Pixelate/Strobe/Invert/Mirror/
-    # Zoom/Posterize) viven en los pads del banco B (canal 10, notas
-    # 45-52, ver EFFECT_TRIGGERS mas abajo), no en el teclado -- pedido
-    # explicito del usuario al descubrir que su controlador tiene 16 pads
-    # (2 bancos de 8) y no necesita sacrificar teclas para los efectos.
-    pos = max(0.0, min(1.0, (note - PIANO_LO) / float(PIANO_HI - PIANO_LO)))
+    # Piano COMPLETO (rango aprendido, 25 teclas): Keypos/Keyvel/Keypulse
+    # para el movimiento de firma propio de cada escena. Los 8 efectos
+    # (Grain/Glitch/Pixelate/Strobe/Invert/Mirror/Zoom/Posterize) viven en
+    # los pads del banco B (canal 10, notas 45-52, ver EFFECT_TRIGGERS mas
+    # abajo), no en el teclado -- pedido explicito del usuario al
+    # descubrir que su controlador tiene 16 pads (2 bancos de 8) y no
+    # necesita sacrificar teclas para los efectos.
+    _, plo, phi = _piano_range()
+    pos = max(0.0, min(1.0, (note - plo) / float(max(phi - plo, 1))))
     vel = max(0.0, min(1.0, float(val) / 127.0))
 
     for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
@@ -167,6 +199,19 @@ def onValueChange(channel, sampleIndex, val, prev):
 
 
 def onOffToOn(channel, sampleIndex, val, prev):
+    p, ctrl = _ctx()
+    if p and ctrl:
+        # LEARN PIANO tiene prioridad sobre todo lo demas, igual que el
+        # Learn de un slot normal (ver _handle) -- intercepta la nota
+        # ANTES del chequeo de rango, en CUALQUIER canal/numero, porque
+        # justamente eso es lo que se esta calibrando.
+        bound = str(p.fetch('learn_piano_bound', '') or '')
+        if bound:
+            parsed = _parse_note(channel.name)
+            if parsed:
+                ctrl.module.applyLearnPiano(bound, parsed[0], parsed[1])
+            return
+
     note = _piano_note(channel.name)
     if note is not None:
         _handlePianoKey(note, val)

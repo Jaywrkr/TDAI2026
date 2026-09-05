@@ -98,6 +98,20 @@ def _parameters(proj):
     add_pulse(m, 'Savemidi', 'Guardar Mapeo')
     add_pulse(m, 'Loadmidi', 'Cargar Mapeo')
 
+    # Learn de RANGO del piano (no es un slot mas: las 25 teclas son un
+    # rango continuo, no un valor unico como un knob o un pad). Se
+    # aprende con 2 toques -- la tecla mas grave y la mas aguda -- en vez
+    # de asumir canal 13 / notas 49-73 fijo, que se descalibra si el
+    # usuario usa otro controlador o corre la octava con los botones
+    # Octave -/+ del MiniLab (eso NO le avisa al software). Ver
+    # dats/midi_logic.py (_piano_range) y control_script.py
+    # (armLearnPiano/applyLearnPiano).
+    add_int(m, 'Pianochannel', 'Piano Canal (aprendido)', c.PIANO_CHANNEL, 1, 16)
+    add_int(m, 'Pianolonote', 'Piano Nota Grave (aprendida)', c.PIANO_LO_NOTE, 0, 127)
+    add_int(m, 'Pianohinote', 'Piano Nota Aguda (aprendida)', c.PIANO_HI_NOTE, 0, 127)
+    add_pulse(m, 'Learnpianolo', 'Learn Piano: tecla mas GRAVE')
+    add_pulse(m, 'Learnpianohi', 'Learn Piano: tecla mas AGUDA')
+
     pr = proj.appendCustomPage('Presets')
     add_toggle(pr, 'Usepresets', 'Recall al cambiar escena', True)
     add_pulse(pr, 'Snapshot', 'Snapshot escena activa')
@@ -175,6 +189,10 @@ def onPulse(par):
     elif n == 'Rebuild':
         import vjcore
         vjcore.build()
+    elif n == 'Learnpianolo':
+        m.armLearnPiano('lo')
+    elif n == 'Learnpianohi':
+        m.armLearnPiano('hi')
     elif n.startswith('Learn'):
         slot = n[5:]
         for s in m._midi_slots():

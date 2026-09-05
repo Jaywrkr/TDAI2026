@@ -400,6 +400,7 @@ def cancelLearn():
     p = _p()
     if p:
         p.store('learn_slot', '')
+        p.store('learn_piano_bound', '')
 
 
 def applyLearn(chan_name):
@@ -451,6 +452,103 @@ def loadMidiMap():
         print('MIDI map cargado desde', path)
     except Exception as e:
         print('loadMidiMap ERROR:', e)
+
+
+# ---------------------------------------------------------------
+# LEARN DE RANGO DEL PIANO (2 toques: tecla mas grave + mas aguda)
+# ---------------------------------------------------------------
+# A diferencia de un knob o un pad (un valor MIDI unico), las 25 teclas
+# son un RANGO continuo -- no hay "el" slot a aprender, hay que aprender
+# los DOS EXTREMOS. Con eso alcanza para calibrar canal + Pianolonote/
+# Pianohinote sin tocar codigo: necesario si se usa otro controlador, o
+# si se corrio la octava con los botones Octave -/+ del MiniLab (eso NO
+# le avisa al software, y sin recalibrar keypos queda con "grave/agudo"
+# desplazado aunque el resto siga funcionando).
+
+def armLearnPiano(bound):
+    """bound: 'lo' (tecla mas grave) o 'hi' (tecla mas aguda). La
+    proxima tecla que se toque en CUALQUIER nota/canal queda capturada
+    como ese extremo -- dats/midi_logic.py la intercepta ANTES del
+    chequeo normal de rango, igual que el Learn de un slot normal."""
+    p = _p()
+    if not p:
+        return
+    bound = str(bound).strip().lower()
+    if bound not in ('lo', 'hi'):
+        return
+    p.store('learn_piano_bound', bound)
+    print('LEARN PIANO armado ({}): toca la tecla mas {} del teclado.'.format(
+        bound, 'grave' if bound == 'lo' else 'aguda'))
+
+
+def applyLearnPiano(bound, chan, note):
+    """Llamada desde midi_logic cuando hay un extremo de piano armado."""
+    p = _p()
+    if not p:
+        return
+    p.store('learn_piano_bound', '')
+    try:
+        p.par.Pianochannel = int(chan)
+        if bound == 'lo':
+            p.par.Pianolonote = int(note)
+        else:
+            p.par.Pianohinote = int(note)
+        # Si el usuario aprende primero la aguda y despues una grave que
+        # queda MAYOR (o al reves), se intercambian solos -- no depende
+        # de aprender en un orden especifico.
+        lo = int(p.par.Pianolonote.eval())
+        hi = int(p.par.Pianohinote.eval())
+        if lo > hi:
+            p.par.Pianolonote = hi
+            p.par.Pianohinote = lo
+    except Exception as e:
+        print('applyLearnPiano ERROR:', e)
+        return
+    print('LEARN PIANO: canal {} nota {} -> {}'.format(chan, note, bound))
+    savePianoRange()
+
+
+def _piano_range_path():
+    d = _config_dir()
+    return os.path.join(d, 'piano_range.json') if d else ''
+
+
+def savePianoRange():
+    path = _piano_range_path()
+    if not path:
+        print('savePianoRange: falta /project1.Repopath')
+        return
+    p = _p()
+    try:
+        data = {
+            'channel': int(p.par.Pianochannel.eval()),
+            'lo': int(p.par.Pianolonote.eval()),
+            'hi': int(p.par.Pianohinote.eval()),
+        }
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+        print('Rango de piano guardado en', path)
+    except Exception as e:
+        print('savePianoRange ERROR:', e)
+
+
+def loadPianoRange():
+    path = _piano_range_path()
+    if not path or not os.path.isfile(path):
+        return
+    p = _p()
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if 'channel' in data:
+            p.par.Pianochannel = int(data['channel'])
+        if 'lo' in data:
+            p.par.Pianolonote = int(data['lo'])
+        if 'hi' in data:
+            p.par.Pianohinote = int(data['hi'])
+        print('Rango de piano cargado desde', path)
+    except Exception as e:
+        print('loadPianoRange ERROR:', e)
 
 
 # ---------------------------------------------------------------
@@ -662,6 +760,7 @@ def safeStartup():
         p.store('transition_token', 0)
         p.store('transitioning', False)
         p.store('learn_slot', '')
+        p.store('learn_piano_bound', '')
         p.store('active_side', 'A')
         p.store('incoming_side', 'B')
 
@@ -677,6 +776,7 @@ def safeStartup():
             p.par.Blackout = True
 
         loadMidiMap()
+        loadPianoRange()
         loadPresets()
 
         setSceneCooking({0})
