@@ -61,6 +61,16 @@ vec4 render(vec2 uv)
     // solo lineas sueltas). Respira un poco con los bajos.
     col += vec3(1.0, 0.82, 0.45) * exp(-r * r / (0.0035 + uBass * 0.002)) * 1.3;
 
+    // PIANO: el cometa (definido mas abajo) perturba de verdad las
+    // orbitas que cruza -- se calcula aca ARRIBA del loop para poder
+    // empujar 'radius' de cada orbita mientras dura el pulso, como una
+    // perturbacion gravitacional real, no solo un objeto extra encima.
+    float cometAng = uKeypos * TAU;
+    vec2  cometDir = vec2(cos(cometAng), sin(cometAng));
+    float cometT = (1.0 - uKeypulse) * 2.0 - 1.0;
+    float cometRadius = abs(cometT);
+    float cometPerturb = uKeypulse * (0.06 + uKeyvel * 0.12);
+
     for (int i = 0; i < 6; i++) {
         if (i >= n) break;
 
@@ -71,6 +81,9 @@ vec4 render(vec2 uv)
         float radius = (0.10 + fi * (0.05 + uD3 * 0.18)) * (1.0 + uBass * 0.14)
                      + uChaos * 0.02 * sin(t * 0.3 + fi * 1.3)
                      + uBass * 0.015 * sin(t * 1.2 + fi * 1.7);
+        // PIANO: la orbita se sacude si el cometa la esta cruzando ahora.
+        float toComet = radius - cometRadius;
+        radius += cometPerturb * exp(-toComet * toComet * 60.0);
 
         vec3 orbitCol = hsv2rgb(vec3(fract(h + fi * 0.09), 0.65, 1.0));
 
@@ -111,13 +124,10 @@ vec4 render(vec2 uv)
         }
     }
 
-    // PIANO: un cometa cruza todo el sistema en diagonal con cada
-    // tecla -- uKeypos elige el angulo de cruce, uKeypulse decae solo
-    // (avanza mientras dura el pulso), con una cola corta detras.
+    // PIANO: el cometa en si (angulo/posicion ya calculados arriba, antes
+    // del loop, para poder perturbar las orbitas) -- cruza todo el
+    // sistema en diagonal con cada tecla, con una cola corta detras.
     if (uKeypulse > 0.0015) {
-        float cometAng = uKeypos * TAU;
-        vec2 cometDir = vec2(cos(cometAng), sin(cometAng));
-        float cometT = (1.0 - uKeypulse) * 2.0 - 1.0;
         vec2 cometPos = cometDir * cometT;
         float dComet = length(p - cometPos);
         float comet = exp(-dComet * dComet / 0.0012) * uKeypulse * (0.6 + uKeyvel * 1.2);

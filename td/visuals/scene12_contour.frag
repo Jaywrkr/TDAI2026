@@ -67,11 +67,16 @@ vec4 render(vec2 uv)
     // PIANO: un pico nuevo se levanta al instante en el punto que elige
     // uKeypos -- se suma directo al campo de altura (antes de las
     // curvas de nivel), asi las curvas de verdad se deforman alrededor,
-    // como un terreno real empujado desde abajo. uKeypulse decae solo.
+    // como un terreno real empujado desde abajo. Mas alto y mas ancho
+    // que antes (0.06->0.16 de radio, 0.9->1.6 de altura maxima): a
+    // proposito, para que aparezcan/desaparezcan curvas de nivel NUEVAS
+    // alrededor del pico (cambio real de topologia), no solo una
+    // protuberancia que no llega a cruzar ningun umbral. uKeypulse decae
+    // solo.
     if (uKeypulse > 0.0015) {
         vec2 peakPos = vec2((uKeypos - 0.5) * 2.6, sin(uKeypos * 7.0) * 0.8);
         float dPeak = length(p - peakPos);
-        hBreath += exp(-dPeak * dPeak / 0.06) * uKeypulse * (0.5 + uKeyvel * 0.9);
+        hBreath += exp(-dPeak * dPeak / 0.16) * uKeypulse * (0.8 + uKeyvel * 1.6);
     }
 
     float hCol = audioHue(uHue, uMid * 0.16);

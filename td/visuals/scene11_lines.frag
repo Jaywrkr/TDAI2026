@@ -86,14 +86,15 @@ vec4 render(vec2 uv)
 
         // PIANO: "pulsada de guitarra" -- un bump viaja por TODAS las
         // lineas juntas con cada tecla, como si se pulsara una cuerda
-        // real. uKeypulse decae solo (el bump avanza mientras dura el
-        // pulso), uKeypos fija donde nace en X, uKeyvel escala cuanto
-        // se dobla la linea.
+        // real. Amplitud y ancho subidos (3-4x el original): que se note
+        // como un rasgueo real, no una vibracion sutil. uKeypulse decae
+        // solo (el bump avanza mientras dura el pulso), uKeypos fija
+        // donde nace en X, uKeyvel escala cuanto se dobla la linea.
         if (uKeypulse > 0.0015) {
             float pluckX = mix(-1.6, 1.6, uKeypos);
             float dPluck = p.x - pluckX;
-            float pluckWave = sin(dPluck * 6.0 - (1.0 - uKeypulse) * 10.0);
-            wobble += pluckWave * exp(-dPluck * dPluck * 0.8) * uKeypulse * (0.15 + uKeyvel * 0.35);
+            float pluckWave = sin(dPluck * 4.0 - (1.0 - uKeypulse) * 10.0);
+            wobble += pluckWave * exp(-dPluck * dPluck * 0.35) * uKeypulse * (0.55 + uKeyvel * 1.1);
         }
 
         float sdf = p.y - (baseY + wobble);

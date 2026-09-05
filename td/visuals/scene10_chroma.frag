@@ -79,6 +79,13 @@ vec4 render(vec2 uv)
     // Kick: una onda expansiva extra, mas rapida, que se superpone.
     float kickWave = uKick * 6.0;
 
+    // PIANO: mismo mecanismo que kickWave -- un empujon real en el
+    // "travel" de los anillos, asi el patron entero se deforma con una
+    // onda expansiva real (no un flare de mas encima). uKeypulse decae
+    // solo; uKeypos elige el angulo del origen (afecta el flare de abajo,
+    // que queda); uKeyvel escala la fuerza del empujon.
+    float keyWave = uKeypulse * (3.0 + uKeyvel * 7.0);
+
     float aberr = 0.0010 + uD1 * 0.012;
     float ringW = 2.2 + uD2 * 3.0;
 
@@ -87,9 +94,9 @@ vec4 render(vec2 uv)
     float rG = r;
     float rB = r - aberr;
 
-    float cR = edgeLine(fract(rR * freq - travel + kickWave) - 0.5, ringW);
-    float cG = edgeLine(fract(rG * freq - travel + kickWave) - 0.5, ringW);
-    float cB = edgeLine(fract(rB * freq - travel + kickWave) - 0.5, ringW);
+    float cR = edgeLine(fract(rR * freq - travel + kickWave + keyWave) - 0.5, ringW);
+    float cG = edgeLine(fract(rG * freq - travel + kickWave + keyWave) - 0.5, ringW);
+    float cB = edgeLine(fract(rB * freq - travel + kickWave + keyWave) - 0.5, ringW);
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 tint = hsv2rgb(vec3(h, 0.15, 1.0));
@@ -112,17 +119,6 @@ vec4 render(vec2 uv)
     float flare = (exp(-dFlare1 * dFlare1 / 0.004) + exp(-dFlare2 * dFlare2 / 0.008) * 0.6)
                 * uKick * 1.5;
     col += tint * flare;
-
-    // PIANO: un lens-flare EXTRA en el angulo que elige uKeypos, ademas
-    // del que ya dispara el kick -- uKeypulse decae solo, uKeyvel
-    // escala el brillo.
-    if (uKeypulse > 0.0015) {
-        float flareAngP = uKeypos * TAU;
-        vec2 flarePosP = vec2(cos(flareAngP), sin(flareAngP)) * 0.5;
-        float dFlareP = length(p - flarePosP);
-        float flareP = exp(-dFlareP * dFlareP / 0.005) * uKeypulse * (0.6 + uKeyvel * 1.4);
-        col += tint * flareP;
-    }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

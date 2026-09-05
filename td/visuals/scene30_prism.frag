@@ -54,7 +54,11 @@ vec4 render(vec2 uv)
     vec2 fp = p - fanOrigin;
     float fanR = length(fp);
     float fanAng = atan(fp.y, fp.x);
-    float spread = 0.12 + uD4 * 0.25 + uMid * 0.55;
+    // PIANO: el abanico se abre mucho mas de golpe con cada tecla --
+    // geometria real (spread es el angulo de apertura, no un tinte de
+    // color), como una explosion real de dispersion. uKeypulse decae
+    // solo; uKeyvel escala cuanto se abre.
+    float spread = 0.12 + uD4 * 0.25 + uMid * 0.55 + uKeypulse * (0.5 + uKeyvel * 0.9);
     float inFan = step(0.0, fp.x) * smoothstep(spread, spread - 0.03, abs(fanAng));
 
     float hueInFan = clamp(0.5 + (fanAng / max(spread, 0.001)) * 0.5, 0.0, 1.0) * 0.8;

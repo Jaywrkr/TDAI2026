@@ -63,12 +63,21 @@ vec4 render(vec2 uv)
     // se "peina" hacia un lado con el bajo, no como temblor.
     float bassShear = uBass * 0.45;
 
+    // PIANO: aparta las cortinas existentes de la X elegida por uKeypos
+    // (empuja baseX DENTRO del loop) -- el viento moviendo la aurora de
+    // verdad, no solo una franja de color encima. uKeyvel escala el
+    // empujon; uKeypulse decae solo.
+    float guestX = mix(-1.2, 1.2, uKeypos);
+    float guestPushX = uKeypulse * (0.25 + uKeyvel * 0.35);
+
     // Bucle de conteo fijo con corte temprano: nunca mas de 6 cortinas.
     for (int i = 0; i < 6; i++) {
         if (i >= int(count)) break;
 
         float fi = float(i);
         float baseX = -1.2 + spacing * (fi + 1.0);
+        float toGuestX = baseX - guestX;
+        baseX += guestPushX * exp(-toGuestX * toGuestX * 3.0) * sign(toGuestX + 1e-4);
 
         vec2 samp = vec2(baseX * 1.4 + fi * 3.7, p.y * 0.5)
                      + vec2(0.0, t * (0.03 + uSpeed * 0.10));
@@ -102,15 +111,15 @@ vec4 render(vec2 uv)
         col += curtainCol * curtain;
     }
 
-    // PIANO: una franja de color afilada cruza la cortina de lado a
-    // lado en cada tecla -- uKeypos elige la X donde nace, uKeypulse
-    // decae solo (empieza angosta y se ensancha mientras se apaga).
+    // PIANO: cortina nueva completa en guestX -- mismo tratamiento de
+    // bend/glow que las demas (no una franja lisa encima), asi se
+    // integra al campo real en vez de dibujarse por arriba.
     if (uKeypulse > 0.0015) {
-        float bandX = mix(-1.4, 1.4, uKeypos);
-        float dBand = abs(p.x - bandX);
-        float bandW = 0.02 + (1.0 - uKeypulse) * 0.08;
-        float band = exp(-dBand * dBand / (bandW * bandW)) * uKeypulse * (0.6 + uKeyvel * 1.3);
-        col += hsv2rgb(vec3(fract(uKeypos + 0.3), 0.7, 1.0)) * band;
+        vec2 guestSamp = vec2(guestX * 1.4 + 47.0, p.y * 0.5) + vec2(0.0, t * (0.03 + uSpeed * 0.10));
+        float guestBend = (fbm(guestSamp, 4) - 0.5) * (0.6 + uChaos * 1.6);
+        float guestDx = (p.x - p.y * bassShear) - (guestX + guestBend);
+        float guestCurtain = exp(-guestDx * guestDx / (glowW * glowW * 0.6));
+        col += vec3(1.0) * guestCurtain * uKeypulse * (0.7 + uKeyvel * 1.3);
     }
 
     // Kick: flash breve.

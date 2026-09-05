@@ -48,6 +48,15 @@ vec4 render(vec2 uv)
     int   n = 2 + int(floor(uD3 * 12.99));
     float field = 0.0;
 
+    // PIANO: bola invitada -- se define ANTES del loop porque ademas de
+    // fundirse ella misma con el campo (mas abajo), empuja (repele) a
+    // las bolas ya existentes mientras dura el golpe: un impacto fisico
+    // real, no solo una bola de mas encima. uKeypos elige el angulo,
+    // uKeyvel la fuerza del empujon, uKeypulse decae solo.
+    float guestAng = uKeypos * TAU;
+    vec2  guestPos = vec2(cos(guestAng), sin(guestAng)) * 0.35;
+    float guestPush = uKeypulse * (0.15 + uKeyvel * 0.35);
+
     for (int i = 0; i < 14; i++) {
         if (i >= n) break;
 
@@ -89,19 +98,25 @@ vec4 render(vec2 uv)
         // se alcanzaba salvo que las gotas quedaran practicamente
         // pegadas -- la fusion, que es la razon de ser de la escena, no
         // se llegaba a ver en reposo.
+        // PIANO: empujon real de posicion -- las bolas cercanas a la
+        // invitada se apartan mientras dura el golpe, como un choque
+        // fisico de verdad (no solo una bola de mas sumada al campo).
+        vec2 toGuest = pos - guestPos;
+        float dGuest2ball = dot(toGuest, toGuest);
+        pos += toGuest / sqrt(dGuest2ball + 0.01) * guestPush * exp(-dGuest2ball * 8.0);
+
         float ballSize = ((0.13 + uD4 * 0.24) + hash21(seed + 3.0) * 0.10) * bassPulse;
         float d2 = dot(p - pos, p - pos);
         field += ballSize * ballSize / (d2 + 0.0025);
     }
 
-    // PIANO: bola invitada extra que aparece con cada tecla y se FUNDE
-    // de verdad con las demas (se suma al mismo campo, antes del
-    // umbral) -- uKeypos elige el angulo donde aparece, uKeypulse decae
-    // solo (nace y se disuelve), uKeyvel escala su tamano.
+    // PIANO: la bola invitada misma -- temporalmente MAS GRANDE que
+    // cualquier bola normal (rango de ballSize arriba llega a ~0.37
+    // maximo; esta llega a 0.57), se funde de verdad con las demas
+    // (se suma al mismo campo, antes del umbral). uKeypos elige el
+    // angulo donde aparece, uKeypulse decae solo, uKeyvel escala tamano.
     if (uKeypulse > 0.0015) {
-        float guestAng = uKeypos * TAU;
-        vec2 guestPos = vec2(cos(guestAng), sin(guestAng)) * 0.35;
-        float guestSize = (0.10 + uKeyvel * 0.22) * uKeypulse;
+        float guestSize = (0.22 + uKeyvel * 0.35) * uKeypulse;
         float dGuest2 = dot(p - guestPos, p - guestPos);
         field += guestSize * guestSize / (dGuest2 + 0.0025);
     }

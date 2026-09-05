@@ -66,6 +66,17 @@ vec4 render(vec2 uv)
     // De que lado de la diagonal cae el pixel -- separa los 2 triangulos
     // de la celda. triId distingue cual es cual para el hash/color.
     float upper = step(cellF.x, cellF.y);
+
+    // PIANO: dentro del anillo de onda (ver mas abajo, calculado antes
+    // por orden de declaracion GLSL) los triangulos VOLTEAN de verdad
+    // (arriba<->abajo) -- cambia cual mitad de la celda esta encendida y
+    // de que color, geometria real ademas del color invertido de mas
+    // abajo, no solo un tinte.
+    vec2 waveCenterP = vec2((uKeypos - 0.5) * 2.6, sin(uKeypos * 6.0) * 0.9);
+    float waveRP = (1.0 - uKeypulse) * 2.0;
+    float dWaveTP = abs(length(p - waveCenterP) - waveRP);
+    float flipMask = smoothstep(0.12 + uKeyvel * 0.15, 0.0, dWaveTP) * step(0.0015, uKeypulse);
+    upper = mix(upper, 1.0 - upper, flipMask);
     float triId = upper;
 
     // Distancia al borde diagonal, en unidades de celda -- para el
@@ -101,16 +112,9 @@ vec4 render(vec2 uv)
 
     vec3 col = triCol * inTri * on * bevel;
 
-    // PIANO: una onda de color invierte los triangulos que toca a su
-    // paso, viajando desde el punto que elige uKeypos -- uKeypulse
-    // decae solo (el radio del frente avanza mientras dura el pulso).
-    if (uKeypulse > 0.0015) {
-        vec2 waveCenter = vec2((uKeypos - 0.5) * 2.6, sin(uKeypos * 6.0) * 0.9);
-        float waveR = (1.0 - uKeypulse) * 2.0;
-        float dWaveT = abs(length(p - waveCenter) - waveR);
-        float invertMask = smoothstep(0.12 + uKeyvel * 0.15, 0.0, dWaveT) * uKeypulse;
-        col = mix(col, vec3(1.0) - col, invertMask * inTri * on);
-    }
+    // PIANO: ademas del volteo de geometria de arriba, el color tambien
+    // se invierte dentro del mismo anillo -- refuerza el golpe visual.
+    col = mix(col, vec3(1.0) - col, flipMask * inTri * on * uKeypulse);
 
     // Bajos: brillo de lo ya claro. Nunca geometria.
     col = audioLift(col, uBass * 0.7);

@@ -62,6 +62,17 @@ vec4 render(vec2 uv)
     float speed = (0.10 + uSpeed * 0.5) * speedVar;
     float headY = fract(t * speed + colHash * 17.0);
 
+    // PIANO: UNA columna completa (la que elige uKeypos) resetea su
+    // cabeza a la CIMA con cada tecla y cae en cascada real hacia su
+    // valor normal a medida que uKeypulse decae -- geometria real
+    // (headY, de donde sale 'dist' y 'bright' mas abajo), no un tinte de
+    // color encima. uKeyvel no hace falta aca: la caida entera YA es
+    // dramatica de por si.
+    float pickedCol = floor(uKeypos * cols);
+    if (colId == pickedCol && uKeypulse > 0.0015) {
+        headY = mix(headY, 1.0, uKeypulse);
+    }
+
     // uHigh: vibracion micro del ancho de celda -- unica excepcion del
     // contrato, amplitud pequena, ya suavizado.
     float cellJitter = uHigh * 0.02 * sin(t * 10.0 + colId);
@@ -134,14 +145,6 @@ vec4 render(vec2 uv)
     float glitchPhase = fract(t * 2.0);
     float glitchEnv = smoothstep(0.0, 0.1, glitchPhase) * smoothstep(0.4, 0.1, glitchPhase);
     col = mix(col, vec3(0.8, 1.0, 0.9), glitchOn * glitchEnv * 0.85);
-
-    // PIANO: "data dump" -- todas las celdas encendidas destellan casi
-    // blancas juntas un instante con cada tecla, como una descarga
-    // sincronizada de datos. uKeypulse decae solo, uKeyvel escala la
-    // fuerza del destello.
-    if (uKeypulse > 0.0015) {
-        col = mix(col, vec3(0.85, 1.0, 0.9), glyphAlpha * uKeypulse * (0.5 + uKeyvel * 0.5));
-    }
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

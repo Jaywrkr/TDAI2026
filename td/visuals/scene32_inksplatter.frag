@@ -69,16 +69,22 @@ vec4 render(vec2 uv)
     float fogField = fbm(p * 0.2 + vec2(t * 0.01, -t * 0.008) + 13.0, 3);
     col += hsv2rgb(vec3(fract(h + 0.02), 0.2, 0.6)) * smoothstep(0.4, 0.9, fogField) * uD3 * 0.4;
 
-    // PIANO: un impacto directo grande cae en el punto que elige
-    // uKeypos, mas alla de lo que ya dispara el kick -- uKeypulse decae
-    // solo (se expande y se disuelve), uKeyvel escala el tamano.
+    // PIANO: una gota nueva REAL, lanzada desde el punto que elige
+    // uKeypos en vez del centro -- MISMO tratamiento matematico que las
+    // gotas normales del loop de arriba (misma forma smoothstep), asi se
+    // integra al mecanismo real en vez de ser un anillo aparte encima.
+    // uKeypulse decae solo (se expande y se disuelve); uKeyvel escala el
+    // tamano.
     if (uKeypulse > 0.0015) {
-        vec2 impactPosP = vec2((uKeypos - 0.5) * 2.2, cos(uKeypos * 8.0) * 0.7);
-        float impactR = (1.0 - uKeypulse) * (0.12 + uKeyvel * 0.25);
-        float dImpact = abs(length(p - impactPosP) - impactR);
-        float impactRing = exp(-dImpact * dImpact / 0.001) * uKeypulse;
-        float impactCore = exp(-length(p - impactPosP) * length(p - impactPosP) / 0.006) * uKeypulse * 0.6;
-        col += inkCol * (impactRing + impactCore);
+        vec2 guestOrigin = vec2((uKeypos - 0.5) * 2.2, cos(uKeypos * 8.0) * 0.7);
+        float guestAng = fract(uKeypos * 13.0) * TAU;
+        vec2 guestDir = vec2(cos(guestAng), sin(guestAng));
+        float guestCycle = 1.0 - uKeypulse;
+        vec2 guestPos = guestOrigin + guestDir * guestCycle * (0.3 + uKeyvel * 0.5);
+        float guestSize = mix(0.03, 0.09, uKeyvel) * (1.0 - guestCycle * 0.6);
+        float dGuestDrop = length(p - guestPos);
+        float guestDrop = smoothstep(guestSize, guestSize * 0.3, dGuestDrop) * smoothstep(1.0, 0.6, guestCycle);
+        col += inkCol * guestDrop;
     }
 
     col += col * uKick * 0.35;

@@ -155,15 +155,31 @@ vec4 render(vec2 uv)
     }
 
     // PIANO: un rayo extra, apuntando a la X que elige uKeypos, cae con
-    // cada tecla -- reusa boltDist como el rayo del kick. uKeypulse
-    // decae solo, uKeyvel escala el brillo.
+    // cada tecla -- reusa boltDist como el rayo del kick, pero con 4
+    // ramas (el doble del maximo normal de 2) para que se lea como un
+    // impacto mucho mas grande, mas un flash ambiental breve que ilumina
+    // TODA la escena un instante, como un relampago de verdad iluminando
+    // el cielo entero, no solo el trazo del rayo. uKeypulse decae solo,
+    // uKeyvel escala el brillo.
     if (uKeypulse > 0.0015) {
         vec2 seedP = vec2(11.0, 91.0);
         float baseXP = (uKeypos - 0.5) * 2.6;
-        float dP = boltDist(p, seedP, 1.15, -1.15, 6, zigzagAmt, baseXP, 0.0);
-        float coreP = edgeLine(dP, lineW * 0.85);
-        float glowP = exp(-dP * dP / 0.01);
-        col += vec3(1.0) * (coreP + glowP * 0.6) * uKeypulse * (0.6 + uKeyvel * 1.2);
+        float dP = boltDist(p, seedP, 1.15, -1.15, 7, zigzagAmt, baseXP, 0.0);
+        for (int brP = 0; brP < 4; brP++) {
+            float fbrP = float(brP);
+            vec2 bseedP = seedP + fbrP * 31.0 + 100.0;
+            float branchFracP = 0.25 + hash21(bseedP + 20.0) * 0.4;
+            float branchTopYP = mix(1.15, -1.15, branchFracP);
+            float branchBaseXP = baseXP + hash21(bseedP + 3.0) * 0.6 - 0.3;
+            float branchEndDxP = (hash21(bseedP + 17.0) - 0.5) * 1.1;
+            float dBranchP = boltDist(p, bseedP, branchTopYP, branchTopYP - 0.7,
+                                      3, zigzagAmt * 0.8, branchBaseXP, branchEndDxP);
+            dP = min(dP, dBranchP);
+        }
+        float coreP = edgeLine(dP, lineW * 0.95);
+        float glowP = exp(-dP * dP / 0.012);
+        col += vec3(1.0) * (coreP + glowP * 0.7) * uKeypulse * (0.6 + uKeyvel * 1.2);
+        col += vec3(1.0) * uKeypulse * (0.15 + uKeyvel * 0.20);
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

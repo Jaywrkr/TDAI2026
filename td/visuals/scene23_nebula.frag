@@ -42,6 +42,17 @@ vec4 render(vec2 uv)
     // uHigh: vibracion micro del warp -- excepcion del contrato.
     pw += uHigh * 0.02 * vec2(sin(t * 8.0), cos(t * 6.5));
 
+    // PIANO: la explosion empuja el warp real (pw) desde el punto que
+    // elige uKeypos -- dispersa la nube de verdad (silueta deformada),
+    // no un anillo dibujado encima. uKeypulse decae solo; uKeyvel
+    // escala la fuerza del empujon.
+    if (uKeypulse > 0.0015) {
+        vec2 novaPosW = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 7.0) * 0.8);
+        vec2 toNova = pw - novaPosW;
+        float dNova2 = dot(toNova, toNova);
+        pw += toNova / sqrt(dNova2 + 0.02) * uKeypulse * (0.4 + uKeyvel * 0.7) * exp(-dNova2 * 2.0);
+    }
+
     float cloud = fbm(pw * 1.1 + vec2(t * 0.01, -t * 0.008), 5, 0.55);
     float h = audioHue(uHue, uMid * 0.08);
     vec3 warmCol = hsv2rgb(vec3(fract(h + 0.02), 0.75, 1.0));
@@ -63,17 +74,14 @@ vec4 render(vec2 uv)
     float star = smoothstep(starSize, 0.0, starD) * isStar * twinkle;
     col += vec3(1.0) * star * (1.0 + uKick * 1.0);
 
-    // PIANO: un flash tipo supernova estalla en el punto que elige
-    // uKeypos con cada tecla -- uKeypulse decae solo (el anillo de la
-    // explosion se expande mientras dura el pulso), uKeyvel escala el
-    // brillo del nucleo.
+    // PIANO: nucleo brillante de la explosion en si -- la dispersion
+    // real de la nube ya paso arriba (empuja pw), esto solo marca el
+    // punto de origen.
     if (uKeypulse > 0.0015) {
         vec2 novaPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 7.0) * 0.8);
         float dNova = length(p - novaPos);
         float novaCore = exp(-dNova * dNova / 0.002) * uKeypulse * (0.8 + uKeyvel * 1.4);
-        float novaR = (1.0 - uKeypulse) * 0.5;
-        float novaRing = exp(-(dNova - novaR) * (dNova - novaR) / 0.0015) * uKeypulse * 0.7;
-        col += vec3(1.0, 0.85, 0.6) * (novaCore + novaRing);
+        col += vec3(1.0, 0.85, 0.6) * novaCore;
     }
 
     col += col * uKick * 0.3;

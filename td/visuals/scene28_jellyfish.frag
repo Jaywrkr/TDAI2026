@@ -78,8 +78,12 @@ vec4 render(vec2 uv)
             float fk = float(k);
             float tx0 = (fk / max(float(nTent - 1), 1.0) - 0.5) * pulse * 1.5;
             float below = max(0.0, -pl.y - pulse * 0.5);
+            // PIANO: los tentaculos TAMBIEN se sacuden en sincronia con
+            // la contraccion de la campana -- amplitud extra mientras
+            // dura el pulso, para que se note en toda la medusa, no solo
+            // en la campana.
             float tentWave = sin(t * (1.2 + uSpeed * 0.6) + fk * 1.9 - below * 5.0)
-                            * (0.06 + uChaos * 0.12) * (0.3 + uD3 * 1.0);
+                            * (0.06 + uChaos * 0.12 + uKeypulse * (0.10 + uKeyvel * 0.14)) * (0.3 + uD3 * 1.0);
             float tentX = tx0 + tentWave * below;
             float dTent = abs(pl.x - tentX);
             // Banda vertical acotada ARRIBA y ABAJO -- sin el limite de

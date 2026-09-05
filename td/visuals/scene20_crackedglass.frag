@@ -85,11 +85,14 @@ vec4 render(vec2 uv)
     // uKeypos, ademas de la revelacion central -- reusa la misma red de
     // grietas (crack/edge/glow), solo cambia donde se revela. uKeypulse
     // decae solo, uKeyvel escala que tan lejos llega el impacto.
+    // Radio excede el shatterR normal (0.35-0.75) a proposito -- rompe
+    // de golpe una zona entera que aun NO deberia verse rota, como un
+    // golpe real, no solo iluminar grietas que ya estaban ahi.
     if (uKeypulse > 0.0015) {
         vec2 impactPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 9.0) * 0.8);
         float rImpact = length(p - impactPos);
-        float impactR = (1.0 - uKeypulse) * (0.3 + uKeyvel * 0.5);
-        float revealP = smoothstep(impactR + 0.15, impactR - 0.15, rImpact) * uKeypulse;
+        float impactR = (1.0 - uKeypulse) * (0.9 + uKeyvel * 0.9);
+        float revealP = smoothstep(impactR + 0.20, impactR - 0.20, rImpact) * uKeypulse;
         col += hsv2rgb(vec3(fract(h + crack * 3.0), 0.55, 1.0)) * edge * revealP;
         col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * revealP;
     }

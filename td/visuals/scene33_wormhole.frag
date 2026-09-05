@@ -39,6 +39,12 @@ vec4 render(vec2 uv)
 
     float horizonR = 0.10 + uD4 * 0.10;
     float lensAmt = (0.3 + uD2 * 1.2) / max(r - horizonR * 0.5, 0.05);
+    // PIANO: la lente gravitacional se distorsiona mucho mas fuerte un
+    // instante con cada tecla -- geometria real (el angulo se curva
+    // mas), como si el horizonte de sucesos se hiciera mas fuerte de
+    // golpe, no un flash de brillo. uKeypulse decae solo; uKeyvel
+    // escala la fuerza extra.
+    lensAmt *= 1.0 + uKeypulse * (1.5 + uKeyvel * 2.5);
     float bentAng = ang + lensAmt * 0.15;
 
     float diskFreq = 3.0 + uD1 * 10.0;
@@ -64,7 +70,6 @@ vec4 render(vec2 uv)
     col += vec3(1.0, 0.85, 0.6) * horizonEdge * 1.4;
     col *= smoothstep(horizonR * 0.55, horizonR, r);
 
-    col += col * uKeypulse * 0.6;
     col += col * uKick * 0.4;
     col = audioLift(col, uBass * 0.4);
     col *= vignette(uv, 0.15);

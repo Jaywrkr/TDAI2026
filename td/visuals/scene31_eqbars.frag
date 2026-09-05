@@ -47,12 +47,16 @@ vec4 render(vec2 uv)
     level += 0.05 * sin(t * (0.5 + hash21(vec2(barIdU, 4.0)) * 2.0));
     level = clamp(level, 0.02, 1.0) * (0.35 + uD1 * 1.0);
 
-    // PIANO: UNA barra especifica (la que elige uKeypos) dispara a tope
-    // con cada tecla, geometria real -- uKeypulse decae solo (la barra
-    // baja sola despues), uKeyvel escala el remate brillante.
+    // PIANO: la barra elegida por uKeypos dispara a tope con cada tecla,
+    // geometria real -- Y se propaga a 2-3 barras vecinas (amplitud
+    // decreciente), como un golpe de bajo real recorriendo el
+    // ecualizador, no una sola barra aislada. uKeypulse decae solo (las
+    // barras bajan solas despues), uKeyvel escala el remate brillante.
     float pickedBar = floor(uKeypos * nBars);
-    if (barIdU == pickedBar) {
-        level = max(level, uKeypulse * 1.1);
+    float barOffset = abs(barIdU - pickedBar);
+    float neighborFall = clamp(1.0 - barOffset / 3.0, 0.0, 1.0);
+    if (neighborFall > 0.0) {
+        level = max(level, uKeypulse * (0.5 + uKeyvel * 0.6) * neighborFall);
     }
 
     float gap = 0.05 + uD2 * 0.14;

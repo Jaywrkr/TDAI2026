@@ -66,6 +66,11 @@ vec4 render(vec2 uv)
     // excepcion del contrato, amplitud pequena, ya suavizado.
     cellUv += uHigh * 0.02 * vec2(sin(t * 9.0 + cellId.x), cos(t * 7.0 + cellId.y));
 
+    // Centro real de esta celda en pantalla -- se necesita ARRIBA (antes
+    // de 'zone') para que la estrella fugaz de mas abajo pueda activar
+    // celdas reales por su posicion, no solo dibujar un streak encima.
+    vec2 curDotPos = p - cellUv / freq;
+
     // Campo de zonas: fbm de baja frecuencia sobre el INDICE de celda
     // (no sobre la posicion en pantalla), asi la escala del patron no se
     // mezcla con la frecuencia de la rejilla.
@@ -73,6 +78,19 @@ vec4 render(vec2 uv)
     float zone = fbm(cellId * zoneScale + t * (0.05 + uSpeed * 0.1), 3);
     zone += uChaos * 0.25 * sin(t * 0.2 + cellId.x * 0.4 + cellId.y * 0.4);
     zone = clamp(zone, 0.0, 1.0);
+
+    // PIANO: la estrella fugaz ACTIVA de verdad las celdas a su paso --
+    // sube 'zone' (tamano real del punto, no un streak aparte) para las
+    // celdas cuyo centro esta cerca de la posicion actual de la estrella.
+    // uKeypulse decae solo (la estrella avanza mientras dura el pulso);
+    // uKeyvel escala el radio de activacion.
+    float shootAng = uKeypos * TAU;
+    vec2  shootDir = vec2(cos(shootAng), sin(shootAng));
+    float shootT = (1.0 - uKeypulse) * 2.0 - 1.0;
+    vec2  shootPos = shootDir * shootT;
+    float dShootCell = length(curDotPos - shootPos);
+    float shootActivate = smoothstep(0.30 + uKeyvel * 0.25, 0.0, dShootCell) * uKeypulse;
+    zone = clamp(zone + shootActivate * 0.9, 0.0, 1.0);
 
     // D3: contraste de tamano entre zonas -- bajo = puntos casi
     // uniformes, alto = zonas que crecen y encogen mucho mas.
@@ -102,7 +120,6 @@ vec4 render(vec2 uv)
     // celda vecina se veia como una red densa, no una constelacion --
     // ahora solo las zonas realmente "encendidas juntas" se conectan.
     float connectThresh = 0.68 - uBass * 0.22;
-    vec2  curDotPos = p - cellUv / freq;
     for (int ny = -1; ny <= 1; ny++) {
         for (int nx = -1; nx <= 1; nx++) {
             if (nx == 0 && ny == 0) continue;
@@ -122,18 +139,12 @@ vec4 render(vec2 uv)
         }
     }
 
-    // PIANO: una estrella fugaz cruza la constelacion en diagonal con
-    // cada tecla -- uKeypos elige el angulo, uKeypulse decae solo
-    // (avanza mientras dura el pulso), con una cola corta detras.
+    // PIANO: el nucleo puntual de la estrella en si -- el efecto real
+    // (activar celdas de la constelacion) ya paso arriba, esto solo
+    // marca la posicion exacta para que se lea como un objeto viajando.
     if (uKeypulse > 0.0015) {
-        float shootAng = uKeypos * TAU;
-        vec2 shootDir = vec2(cos(shootAng), sin(shootAng));
-        float shootT = (1.0 - uKeypulse) * 2.0 - 1.0;
-        float dShoot = length(p - shootDir * shootT);
-        float shoot = exp(-dShoot * dShoot / 0.0008) * uKeypulse * (0.6 + uKeyvel * 1.2);
-        float dTailS = length(p - shootDir * (shootT - 0.12));
-        shoot += exp(-dTailS * dTailS / 0.003) * uKeypulse * 0.45;
-        col += vec3(1.0) * shoot;
+        float dShoot = length(p - shootPos);
+        col += vec3(1.0) * exp(-dShoot * dShoot / 0.0008) * uKeypulse * (0.6 + uKeyvel * 1.2);
     }
 
     // Kick: flash breve.

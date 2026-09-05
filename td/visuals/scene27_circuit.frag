@@ -70,13 +70,15 @@ vec4 render(vec2 uv)
     float chipShape = 1.0 - smoothstep(0.24, 0.31, max(abs(cellF.x - 0.5), abs(cellF.y - 0.5)));
     col += vec3(1.0, 0.82, 0.3) * isChip * chipShape * 0.75;
 
-    // PIANO: sobrecarga -- un camino entero de la red (una diagonal de
-    // celdas, elegida por uKeypos) se enciende de golpe en blanco, como
-    // un pico de tension viajando por esa traza. uKeypulse decae solo.
+    // PIANO: sobrecarga real -- aparecen chips NUEVOS y brillantes en
+    // celdas al azar (distintas de los chips normales de arriba, hash
+    // propio elegido con uKeypos), como si la placa se sobrecargara de
+    // golpe, no solo un pulso de luz viajando por una traza existente.
+    // uKeypulse decae solo; uKeyvel escala el brillo.
     if (uKeypulse > 0.0015) {
-        float surgeBand = fract((cellId.x + cellId.y) * 0.12 - uKeypos * 8.0);
-        float surge = smoothstep(0.1, 0.0, abs(surgeBand - 0.5)) * trace;
-        col += vec3(1.0) * surge * uKeypulse * (0.7 + uKeyvel * 1.0);
+        float surgeChipHash = hash21(cellId + 150.0 + floor(uKeypos * 37.0));
+        float isSurgeChip = step(0.72, surgeChipHash);
+        col += vec3(1.0, 0.35, 0.25) * isSurgeChip * chipShape * uKeypulse * (0.8 + uKeyvel * 0.9);
     }
 
     col += col * uKick * 0.3;

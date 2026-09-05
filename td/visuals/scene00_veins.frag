@@ -111,6 +111,21 @@ vec4 render(vec2 uv)
     // reintroduce el temblor que el contrato de audio evita. Escala chica
     // (0.06), igual de contenida que la excepcion de uHigh.
     vec2  wa = warp(p, t, 0.25 + uChaos * 0.80 + uHigh * 0.05 + uBass * 0.06);
+
+    // PIANO: empuja el campo de troncos para que una vena nueva y mas
+    // gruesa atraviese la pantalla de borde a borde -- se deforma el
+    // INPUT del fbm de troncos (wa), no se dibuja una chispa encima, asi
+    // que la vena nueva nace y se ramifica como cualquier otra. uKeypulse
+    // decae solo; uKeypos elige el angulo de la vena; uKeyvel el empuje.
+    if (uKeypulse > 0.0015) {
+        float veinAng = uKeypos * TAU;
+        vec2 veinDir = vec2(cos(veinAng), sin(veinAng));
+        float alongVein = dot(p, veinDir);
+        vec2 perpVein = p - alongVein * veinDir;
+        float pushAmt = uKeypulse * (0.6 + uKeyvel * 0.9);
+        wa -= perpVein * pushAmt * smoothstep(1.5, 0.0, abs(alongVein));
+    }
+
     // D4: separacion entre troncos -- frecuencia del campo base. D4 bajo =
     // pocos troncos, muy separados; D4 alto = red mucho mas tupida y junta.
     float trunkFreq = 0.50 + uD4 * 0.95;
@@ -198,19 +213,6 @@ vec4 render(vec2 uv)
     col *= 1.0 / (1.0 + lum);
 
     col *= vignette(uv, 0.55);
-
-    // PIANO: chispa que recorre la red desde una raiz al azar cada vez
-    // que se toca una tecla. uKeypulse decae solo (como uKick, ya
-    // suavizado) asi que la chispa viaja y se apaga sin temporizador
-    // propio; uKeypos elige la direccion, uKeyvel el brillo.
-    if (uKeypulse > 0.0015) {
-        float sparkAng = uKeypos * TAU;
-        float progress = 1.0 - uKeypulse;
-        vec2 sparkPos = vec2(cos(sparkAng), sin(sparkAng)) * progress * 1.3;
-        float dSpark = length(p - sparkPos);
-        float spark = exp(-dSpark * dSpark / 0.0025) * uKeypulse * (0.5 + uKeyvel * 1.2);
-        col += vec3(1.0, 0.55, 0.3) * spark;
-    }
 
     // Dither: mata el banding en los degradados oscuros. Casi gratis.
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.012;

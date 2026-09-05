@@ -72,6 +72,18 @@ vec4 render(vec2 uv)
     float y = uv.y * uResH * 0.06 + t * (0.5 + uSpeed * 3.0) + uBass * 8.0;
     // D3: frecuencia del bandeado -- pocas bandas anchas <-> muchas finas.
     float bandFreq = 3.0 + uD3 * 22.0;
+
+    // PIANO: TODAS las columnas saltan de fase/frecuencia JUNTAS un
+    // instante -- termino GLOBAL (igual en cualquier columna) sumado a
+    // 'y' y a bandFreq, asi el patron de interferencia entero se
+    // glitchea de golpe, un corte digital real, no una linea de mas
+    // encima. uKeypulse decae solo; uKeypos escala el salto de fase;
+    // uKeyvel la intensidad del glitch de frecuencia.
+    if (uKeypulse > 0.0015) {
+        y += uKeypos * 30.0 * uKeypulse;
+        bandFreq *= 1.0 + uKeypulse * (0.8 + uKeyvel * 1.4);
+    }
+
     float b1 = sin((y + phaseJit) * bandFreq * freqJit);
     float b2 = sin((y + phaseJit) * bandFreq * freqJit * 1.08 + 1.7);
     float band = abs(b1 * b2);
@@ -112,15 +124,6 @@ vec4 render(vec2 uv)
     float scanDist = abs(uv.y - scanY);
     float scanLine = exp(-scanDist * scanDist / 0.0004);
     col += vec3(1.0, 0.12, 0.10) * scanLine * (0.6 + colMask * 0.4);
-
-    // PIANO: un SEGUNDO laser salta a la altura que elige uKeypos y
-    // flashea con cada tecla -- uKeypulse decae solo, uKeyvel escala
-    // el brillo del flash.
-    if (uKeypulse > 0.0015) {
-        float scanDistP = abs(uv.y - uKeypos);
-        float scanLineP = exp(-scanDistP * scanDistP / 0.0006);
-        col += vec3(1.0, 1.0, 1.0) * scanLineP * uKeypulse * (0.6 + uKeyvel * 1.4);
-    }
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

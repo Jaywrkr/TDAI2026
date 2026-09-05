@@ -98,7 +98,15 @@ vec4 render(vec2 uv)
     float vhsAmt = (0.015 + uBass * 0.05) * (1.0 + uKick * 3.0);
     xShift += sin(uv.y * 35.0 + t * 9.0) * vhsAmt * vhsBand;
 
+    // PIANO: corte digital real -- desplaza TODO el frame (no solo las
+    // bandas ya rotas) con un offset grande en X e Y, como un cable
+    // suelto de verdad, no un tinte de color encima. uKeypulse decae
+    // solo; uKeypos elige direccion/magnitud del corte; uKeyvel la
+    // fuerza.
+    float keyTear = uKeypulse * (1.0 + uKeyvel * 1.8);
+    xShift += (uKeypos - 0.5) * 0.6 * keyTear;
     vec2 uvT = uv + vec2(xShift, 0.0);
+    uvT.y += (fract(uKeypos * 7.0) - 0.5) * 0.12 * keyTear;
 
     // D2: separacion cromatica -- cada canal muestrea el patron con su
     // propio offset horizontal.
@@ -122,13 +130,6 @@ vec4 render(vec2 uv)
     vec3 invCol = vec3(1.0) - col;
     float burstMix = step(0.5, hash21(vec2(burstStep, 5.0)));
     col = mix(col, mix(invCol, staticCol, burstMix), burstOn * burstEnv);
-
-    // PIANO: "frame freeze" -- la pantalla entera se corrompe a
-    // estatica/invertido con cada tecla, ademas del burst automatico de
-    // arriba. uKeypulse decae solo, uKeyvel escala cuanto se corrompe.
-    if (uKeypulse > 0.0015) {
-        col = mix(col, mix(invCol, staticCol, uKeypos), uKeypulse * (0.4 + uKeyvel * 0.5));
-    }
 
     // Kick: flash breve.
     col += col * uKick * 0.35;

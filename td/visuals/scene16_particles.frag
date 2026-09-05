@@ -107,19 +107,24 @@ vec4 render(vec2 uv)
         }
     }
 
-    // PIANO: una explosion dispersa streaks extra desde el punto que
-    // elige uKeypos -- uKeypulse decae solo (los fragmentos se alejan
-    // mientras dura el pulso), uKeyvel escala cuanto viajan.
+    // PIANO: una explosion dispersa MUCHOS fragmentos (24, el doble y
+    // medio del original) desde el punto que elige uKeypos, viajando con
+    // velocidad real (mas rapido que cualquier streak normal) -- se lee
+    // como una interrupcion real del flujo, no un puntito de mas.
+    // uKeypulse decae solo (los fragmentos se alejan mientras dura el
+    // pulso), uKeyvel escala cuanto viajan y su tamano.
     if (uKeypulse > 0.0015) {
         vec2 burstCenter = vec2((uKeypos - 0.5) * 2.2, cos(uKeypos * 8.0) * 0.6);
-        float burstDist = (1.0 - uKeypulse) * (0.4 + uKeyvel * 0.6);
-        for (int b = 0; b < 10; b++) {
+        float burstDist = (1.0 - uKeypulse) * (0.6 + uKeyvel * 1.1);
+        float burstSize = 0.0006 + uKeyvel * 0.0010;
+        for (int b = 0; b < 24; b++) {
             float fb = float(b);
-            float burstAng = fb * (TAU / 10.0) + uKeypos * 3.0;
-            vec2 fragPos = burstCenter + vec2(cos(burstAng), sin(burstAng)) * burstDist;
+            float burstAng = fb * (TAU / 24.0) + uKeypos * 3.0;
+            float burstR = burstDist * (0.6 + 0.4 * hash21(vec2(fb, 3.0)));
+            vec2 fragPos = burstCenter + vec2(cos(burstAng), sin(burstAng)) * burstR;
             float dFrag = length(p - fragPos);
-            float frag = exp(-dFrag * dFrag / 0.0006) * uKeypulse;
-            col += hsv2rgb(vec3(fract(h + fb * 0.05), 0.7, 1.0)) * frag;
+            float frag = exp(-dFrag * dFrag / burstSize) * uKeypulse;
+            col += hsv2rgb(vec3(fract(h + fb * 0.04), 0.7, 1.0)) * frag;
         }
     }
 

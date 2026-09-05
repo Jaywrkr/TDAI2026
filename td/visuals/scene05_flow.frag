@@ -51,12 +51,21 @@ vec4 render(vec2 uv)
     vec3 col = vec3(0.0);
     float h = audioHue(uHue, uMid * 0.16);
 
+    // PIANO: onda de choque real -- aparta las corrientes existentes
+    // cerca de la altura elegida por uKeypos (empuja baseY DENTRO del
+    // loop, no un overlay), como si algo real irrumpiera en el flujo.
+    // uKeypulse decae solo; uKeyvel escala la fuerza del empujon.
+    float guestY = mix(-0.95, 0.95, uKeypos);
+    float guestPush = uKeypulse * (0.20 + uKeyvel * 0.30);
+
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 lineas.
     for (int i = 0; i < 10; i++) {
         if (i >= int(count)) break;
 
         float fi = float(i);
         float baseY = -1.0 + spacing * (fi + 1.0);
+        float toGuestY = baseY - guestY;
+        baseY += guestPush * exp(-toGuestY * toGuestY * 12.0) * sign(toGuestY + 1e-4);
 
         vec2 samp = vec2(p.x * flowFreq, baseY * flowFreq + fi * 3.1)
                     + vec2(t * (0.04 + uSpeed * 0.12), 0.0);
@@ -105,13 +114,17 @@ vec4 render(vec2 uv)
         col += lineCol * (line + glow * 0.6 + spark * 0.9);
     }
 
-    // PIANO: una corriente extra, brillante, aparece un instante en la
-    // altura que elige uKeypos -- uKeypulse decae solo, uKeyvel escala
-    // que tan gruesa/brillante sale.
+    // PIANO: la corriente nueva en si -- MISMO tratamiento de bend (fbm
+    // real) que las demas lineas, no un blanco liso encima, asi que se
+    // integra al campo de flujo de verdad.
     if (uKeypulse > 0.0015) {
-        float guestY = mix(-0.95, 0.95, uKeypos);
-        float dGuest = abs(p.y - guestY);
-        float guestLine = exp(-dGuest * dGuest / 0.0012) * uKeypulse * (0.7 + uKeyvel * 1.3);
+        vec2 guestSamp = vec2(p.x * flowFreq, guestY * flowFreq + 9.7)
+                         + vec2(t * (0.04 + uSpeed * 0.12), 0.0);
+        float guestBend = (fbm(guestSamp, 4) - 0.5) * (0.5 + uChaos * 1.4);
+        float guestSdf = p.y - (guestY + guestBend);
+        float guestSdfG = length(vec2(dFdx(guestSdf), dFdy(guestSdf)));
+        float guestSdfN = guestSdf / max(guestSdfG, 1e-4);
+        float guestLine = edgeLine(guestSdfN, lineW * 1.6) * uKeypulse * (0.7 + uKeyvel * 1.3);
         col += vec3(1.0) * guestLine;
     }
 

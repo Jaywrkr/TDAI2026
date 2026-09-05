@@ -102,12 +102,17 @@ vec4 render(vec2 uv)
     float lum = dot(media, vec3(0.299, 0.587, 0.114));
     vec3 col = mix(media, tint * lum, uD4 * 0.85);
 
-    // PIANO: corrupcion extra sobre la imagen con cada tecla -- un
-    // pixelado grueso momentaneo (uKeypos elige el tamano de bloque) +
-    // tinte de color (uKeyvel escala la mezcla). uKeypulse decae solo.
+    // PIANO: corrupcion mucho mas fuerte con cada tecla -- pixelado AL
+    // MAXIMO (bloques enormes, la imagen se vuelve irreconocible un
+    // instante, no solo un poco mas gruesa) + tearing de bandas propio
+    // (desplazamiento X grande, sincronizado a la tecla) + tinte de
+    // color. uKeypos elige el tamano de bloque y la banda; uKeyvel
+    // escala la mezcla de tinte. uKeypulse decae solo.
     if (uKeypulse > 0.0015) {
-        float pixSizeP = mix(4.0, 40.0, uKeypos);
-        vec2 uvPixP = floor(uv * pixSizeP) / pixSizeP;
+        float pixSizeP = mix(3.0, 90.0, 1.0 - uKeypos);
+        float bandIdP = floor(uv.y * (6.0 + uKeypos * 40.0));
+        float tearShiftP = (fract(bandIdP * 12.9898) - 0.5) * 0.35;
+        vec2 uvPixP = floor((uv + vec2(tearShiftP, 0.0)) * pixSizeP) / pixSizeP;
         vec3 mediaP = mediaTex(uvPixP).rgb;
         vec3 tintP = hsv2rgb(vec3(fract(uKeypos + 0.5), 0.85, 1.0));
         vec3 corrupted = mix(mediaP, tintP * dot(mediaP, vec3(0.299, 0.587, 0.114)), 0.5 + uKeyvel * 0.4);

@@ -142,13 +142,19 @@ vec4 render(vec2 uv)
     col += glowCol * glow * 1.3 * (0.6 + 0.4 * pulse);
     col += vec3(1.0) * packet * 1.4;
 
-    // PIANO: flash de sincronia -- toda la red se enciende junta un
-    // instante en cada tecla, como si de golpe todas las neuronas
-    // dispararan a la vez. uKeypulse decae solo; uKeypos tiñe el flash.
+    // PIANO: UNA neurona (celda Voronoi completa, elegida por uKeypos)
+    // se enciende SOLIDA -- no un flash de borde/glow encima, sino el
+    // interior real de esa celda y sus 1-2 vecinas inmediatas (fire usa
+    // cellId, que cada fragmento ya trae de la grilla real), como si de
+    // verdad disparara señal a sus vecinas. uKeypulse decae solo.
     if (uKeypulse > 0.0015) {
-        vec3 flashCol = hsv2rgb(vec3(fract(uKeypos), 0.6, 1.0));
-        col += flashCol * edge * uKeypulse * (0.8 + uKeyvel * 1.5);
-        col += flashCol * glow * uKeypulse * (0.4 + uKeyvel * 0.8);
+        float fireAng = uKeypos * TAU;
+        vec2 pickedCell = floor(vec2(cos(fireAng), sin(fireAng)) * freq * 0.55);
+        float cellDist = length(cellId - pickedCell);
+        float fire = smoothstep(1.6, 0.0, cellDist) * uKeypulse * (0.6 + uKeyvel * 1.0);
+        vec3 fireCol = hsv2rgb(vec3(fract(uHue + 0.5), 0.55, 1.0));
+        col += fireCol * fire;
+        col += vec3(1.0) * fire * edge * 0.8;
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

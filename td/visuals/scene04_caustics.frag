@@ -41,6 +41,17 @@ vec4 render(vec2 uv)
     float amp = 0.4 + uChaos * 0.6;
     float speed = 0.4 + uSpeed * 0.7;
 
+    // PIANO: empuja el punto de marcha 'q' con una salpicadura real desde
+    // un punto elegido por uKeypos -- se propaga por las 4 iteraciones de
+    // seno cruzado y deforma el patron entero de caustics (no un anillo
+    // dibujado encima). uKeypulse decae solo; uKeyvel escala la fuerza.
+    if (uKeypulse > 0.0015) {
+        vec2 splashPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 7.0) * 1.6) * (1.0 + uDensity * 2.5);
+        vec2 toSplash = q - splashPos;
+        float dSplash2 = dot(toSplash, toSplash);
+        q += toSplash / sqrt(dSplash2 + 0.02) * uKeypulse * (0.5 + uKeyvel * 0.9) * exp(-dSplash2 * 1.5);
+    }
+
     // Bajado el default (era 2+floor(D2*2.99), minimo 2 capas siempre) --
     // a pedido del usuario, salia "mucha cosa" de entrada. Ahora arranca
     // en 1 capa (D2=0, minimalista) y llega a 4 en D2=1.
@@ -94,17 +105,6 @@ vec4 render(vec2 uv)
     // Tonemap: v puede crecer bastante en los picos, sin esto se clavan
     // en blanco plano.
     col = col / (1.0 + col);
-
-    // PIANO: onda de choque circular cruza toda la red desde el centro
-    // en cada tecla, iluminando lo que toca a su paso -- uKeypulse decae
-    // solo (el radio del frente avanza mientras dura el pulso), uKeypos
-    // tiñe la onda, uKeyvel escala su brillo.
-    if (uKeypulse > 0.0015) {
-        float waveR = (1.0 - uKeypulse) * 1.8;
-        float dWave = abs(length(p) - waveR);
-        float shock = exp(-dWave * dWave / 0.002) * uKeypulse * (0.6 + uKeyvel * 1.4);
-        col += hsv2rgb(vec3(fract(uKeypos), 0.4, 1.0)) * shock;
-    }
 
     // Kick: flash breve.
     col += col * uKick * 0.4;

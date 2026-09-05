@@ -66,6 +66,18 @@ vec4 render(vec2 uv)
     float freq = 0.7 + uDensity * 1.8;
     float ink = fbm(p3 * freq, 5, 0.55);
 
+    // PIANO: gota nueva se FUSIONA al campo de tinta real -- empuja 'ink'
+    // antes del threshold (mismo truco que la fusion de metaballs en
+    // scene03), asi que deforma la silueta de verdad en vez de dibujar
+    // un anillo encima. uKeypulse decae solo; uKeypos elige donde cae;
+    // uKeyvel el tamano de la gota.
+    if (uKeypulse > 0.0015) {
+        vec2 dropPos = vec2((uKeypos - 0.5) * 2.4, sin(uKeypos * 11.0) * 0.7);
+        float dDrop = length(p3 - dropPos);
+        float dropR = 0.05 + uKeyvel * 0.35;
+        ink += exp(-dDrop * dDrop / (dropR * dropR)) * uKeypulse * 0.9;
+    }
+
     // Borde ANCHO y difuso -- D1 controla que tan nitido o difuminado es.
     // Rango mas amplio que antes (hasta 0.30) para un maximo bien
     // "disuelto en agua", no solo levemente suave.
@@ -134,17 +146,6 @@ vec4 render(vec2 uv)
     fog *= 1.0 + uKick * 0.35;
     vec3 fogCol = hsv2rgb(vec3(fract(h + 0.02), 0.20, 0.65));  // casi gris, tenue
     col += fogCol * fog * uD3 * 0.55;
-
-    // PIANO: nueva gota de tinta cae en el punto elegido por uKeypos y
-    // se expande -- uKeypulse decae solo (crece y se desvanece), uKeyvel
-    // escala que tan grande llega a ser.
-    if (uKeypulse > 0.0015) {
-        vec2 dropPos = vec2((uKeypos - 0.5) * 2.4, sin(uKeypos * 11.0) * 0.7);
-        float dropR = (1.0 - uKeypulse) * (0.15 + uKeyvel * 0.5);
-        float dDrop = abs(length(p - dropPos) - dropR);
-        float dropRing = exp(-dDrop * dDrop / 0.0015) * uKeypulse;
-        col += inkCol * dropRing * 1.3;
-    }
 
     // Kick: flash breve.
     col += col * uKick * 0.4;

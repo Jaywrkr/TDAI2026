@@ -48,6 +48,11 @@ vec4 render(vec2 uv)
     float ringFreq = 2.0 + uD3 * 6.0;
     // Kick: la red vibra -- amplitud directamente del envolvente de golpe.
     float pluck = sin(r * 14.0 - t * 3.0) * uKick * 0.18;
+    // PIANO: el anillo concentrico mas cercano tambien vibra con cada
+    // tecla -- mismo mecanismo que el kick (desplaza el radio real de
+    // los anillos), asi la tecla se siente en toda la red, no solo en
+    // un radio. uKeypulse decae solo; uKeyvel escala la fuerza.
+    pluck += sin(r * 14.0 - t * 3.0) * uKeypulse * (0.10 + uKeyvel * 0.14);
     float ringSDF = fract(r * ringFreq + pluck) - 0.5;
     float ringLine = edgeLine(ringSDF, 1.2 + uD2 * 2.5);
 
@@ -60,20 +65,25 @@ vec4 render(vec2 uv)
     col += hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0)) * node * uD4 * 2.0;
 
     // PIANO: pulsada directa de UN radio especifico -- uKeypos elige
-    // cual (de los "spokes" que ya existen), uKeypulse decae solo (el
+    // cual (de los "spokes" que ya existen) -- Y se PROPAGA a los 2
+    // spokes vecinos (amplitud menor), como una telarana real vibrando
+    // en cadena, no un solo hilo aislado. uKeypulse decae solo (el
     // radio pulsado brilla y vibra mas fuerte que el resto mientras dura
     // el pulso), uKeyvel escala la vibracion.
     if (uKeypulse > 0.0015) {
         float pickedSpoke = floor(uKeypos * spokes);
-        float pickedAng = (pickedSpoke + 0.5) * spokeAng;
-        vec2 spokeDir = vec2(cos(pickedAng), sin(pickedAng));
-        vec2 spokeN = vec2(-spokeDir.y, spokeDir.x);
-        float alongSpoke = dot(p, spokeDir);
-        float perpSpoke = dot(p, spokeN);
-        float pluckWave = sin(alongSpoke * 10.0 - t * 6.0) * uKeypulse * (0.03 + uKeyvel * 0.05);
-        float dPluckSpoke = abs(perpSpoke - pluckWave);
-        float pluckLine = edgeLine(dPluckSpoke, 3.0) * step(0.0, alongSpoke) * step(alongSpoke, 1.2);
-        col += vec3(1.0) * pluckLine * uKeypulse;
+        for (int so = -1; so <= 1; so++) {
+            float neighborAmt = (so == 0) ? 1.0 : 0.45;
+            float pickedAng = (pickedSpoke + float(so) + 0.5) * spokeAng;
+            vec2 spokeDir = vec2(cos(pickedAng), sin(pickedAng));
+            vec2 spokeN = vec2(-spokeDir.y, spokeDir.x);
+            float alongSpoke = dot(p, spokeDir);
+            float perpSpoke = dot(p, spokeN);
+            float pluckWave = sin(alongSpoke * 10.0 - t * 6.0) * uKeypulse * (0.03 + uKeyvel * 0.05) * neighborAmt;
+            float dPluckSpoke = abs(perpSpoke - pluckWave);
+            float pluckLine = edgeLine(dPluckSpoke, 3.0) * step(0.0, alongSpoke) * step(alongSpoke, 1.2);
+            col += vec3(1.0) * pluckLine * uKeypulse * neighborAmt;
+        }
     }
 
     col += col * uKick * 0.4;

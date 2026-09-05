@@ -35,7 +35,13 @@ vec4 render(vec2 uv)
 {
     float t = uTime;
     vec2  p = centered(uv);
-    p = rot2(t * (0.015 + uSpeed * 0.05)) * p;
+    // PIANO: la reticula ENTERA rota un salto angular real con cada
+    // tecla -- se suma directo al angulo de rotacion (geometria real,
+    // no un anillo pintado encima) y vuelve sola a su giro normal a
+    // medida que uKeypulse decae. uKeypos elige la direccion/magnitud
+    // del salto; uKeyvel la fuerza extra.
+    float keyKick = uKeypulse * (uKeypos - 0.5) * 2.0 * (0.8 + uKeyvel * 1.2);
+    p = rot2(t * (0.015 + uSpeed * 0.05) + keyKick) * p;
 
     float R = 0.22 + uD4 * 0.16;
     float cellSpan = 4.0 + floor(uDensity * 3.0);

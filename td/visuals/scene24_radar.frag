@@ -40,6 +40,15 @@ vec4 render(vec2 uv)
     float ang = atan(p.y, p.x);
 
     float sweepAng = mod(t * (0.25 + uSpeed * 1.1), TAU);
+
+    // PIANO: el brazo SALTA de golpe hacia el angulo que elige uKeypos
+    // -- geometria real del barrido (no un blip nuevo aparte), como si
+    // el radar detectara algo y girara hacia alla de inmediato. Vuelve
+    // solo a su giro normal a medida que uKeypulse decae.
+    if (uKeypulse > 0.0015) {
+        sweepAng = mod(mix(sweepAng, uKeypos * TAU, uKeypulse), TAU);
+    }
+
     // Angulo hacia ATRAS del barrido (lo que ya paso) -- crece de 0 en el
     // brazo mismo hasta TAU justo antes de que vuelva a pasar.
     float behind = mod(sweepAng - ang, TAU);

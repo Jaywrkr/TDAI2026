@@ -39,6 +39,13 @@ vec4 render(vec2 uv)
     int n = 10 + int(floor(uDensity * 26.0));
     float h = audioHue(uHue, uMid * 0.1);
 
+    // PIANO: rafaga de viento real -- las luciernagas cercanas al punto
+    // elegido por uKeypos se EMPUJAN y AGRANDAN de verdad (cambio real
+    // de posicion/tamano, no solo un flare de mas encima). uKeypulse
+    // decae solo; uKeyvel escala la fuerza de la rafaga.
+    vec2 gustPos = (vec2(uKeypos, fract(uKeypos * 3.1)) - 0.5) * 1.6;
+    float gustAmt = uKeypulse * (0.35 + uKeyvel * 0.55);
+
     for (int i = 0; i < 36; i++) {
         if (i >= n) break;
         float fi = float(i);
@@ -51,7 +58,13 @@ vec4 render(vec2 uv)
         // uHigh: vibracion micro -- excepcion del contrato.
         pos += uHigh * 0.006 * vec2(sin(t * 10.0 + fi), cos(t * 9.0 + fi));
 
-        float size = mix(0.025, 0.09, hash21(seed + 2.0)) * (0.5 + uD1 * 1.4);
+        // PIANO: empujon real de posicion, alejandose de la rafaga.
+        vec2 toGust = pos - gustPos;
+        float dGust2 = dot(toGust, toGust);
+        pos += toGust / sqrt(dGust2 + 0.02) * gustAmt * exp(-dGust2 * 3.0);
+
+        float size = mix(0.025, 0.09, hash21(seed + 2.0)) * (0.5 + uD1 * 1.4)
+                   * (1.0 + gustAmt * exp(-dGust2 * 3.0) * 1.5);
         float pulse = 0.55 + 0.45 * sin(t * (0.3 + uD3 * 1.5) + hash21(seed + 3.0) * TAU);
 
         // D4: cuantas respiran mas calido con los graves.
@@ -68,12 +81,10 @@ vec4 render(vec2 uv)
         col += vec3(1.0, 0.55, 0.75) * ring * pulse * uD2 * 0.5;
     }
 
-    // PIANO: una luciernaga se enciende enorme en el punto que elige
-    // uKeypos con cada tecla -- uKeypulse decae solo, uKeyvel escala
-    // que tan grande llega a ser el bokeh.
+    // PIANO: ademas del empujon real de arriba, una luciernaga nueva y
+    // enorme se enciende justo en el origen de la rafaga.
     if (uKeypulse > 0.0015) {
-        vec2 flarePos = (vec2(uKeypos, fract(uKeypos * 3.1)) - 0.5) * 1.6;
-        float dFlareB = length(p - flarePos);
+        float dFlareB = length(p - gustPos);
         float sizeB = 0.15 + uKeyvel * 0.25;
         float flareB = exp(-dFlareB * dFlareB / (sizeB * sizeB)) * uKeypulse;
         col += hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0)) * flareB;
