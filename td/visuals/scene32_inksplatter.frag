@@ -38,9 +38,12 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.15);
     vec3 inkCol = hsv2rgb(vec3(h, 0.85, 0.9));
 
+    // Umbral bajado (0.45-0.65 -> 0.32-0.52): el charco base casi nunca
+    // llegaba a mostrarse -- ahora aparece de forma confiable en reposo,
+    // no solo en zonas de fbm con suerte.
     float poolField = fbm(p * 1.2 + t * 0.02, 4);
-    float pool = smoothstep(0.45, 0.65, poolField) * smoothstep(0.6, 0.0, length(p));
-    col += inkCol * pool * 0.55;
+    float pool = smoothstep(0.32, 0.52, poolField) * smoothstep(0.6, 0.0, length(p));
+    col += inkCol * pool * 0.7;
 
     int nDrops = 10 + int(floor(uDensity * 22.0));
     for (int i = 0; i < 32; i++) {
@@ -55,7 +58,9 @@ vec4 render(vec2 uv)
         float dist = cyclePos * (0.4 + speed * 0.6);
         vec2 dropPos = dir * dist;
 
-        float dropSize = mix(0.015, 0.05, hash21(seed + 3.0)) * (1.0 - cyclePos * 0.6) * (0.5 + uD1 * 1.2);
+        // Piso subido (0.5->0.9): en D1=0 las gotas quedaban casi
+        // invisibles, no se leia la salpicadura en reposo.
+        float dropSize = mix(0.015, 0.05, hash21(seed + 3.0)) * (1.0 - cyclePos * 0.6) * (0.9 + uD1 * 0.8);
         float d = length(p - dropPos);
         float drop = smoothstep(dropSize, dropSize * 0.3, d) * smoothstep(1.0, 0.6, cyclePos);
         col += inkCol * drop;

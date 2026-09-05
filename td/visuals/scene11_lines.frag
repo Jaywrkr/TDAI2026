@@ -46,7 +46,8 @@ vec4 render(vec2 uv)
     float count = 2.0 + floor(uDensity * 8.0);
     float spacing = 2.0 / (count + 1.0);
 
-    float lineW = 0.6 + uD1 * 2.5;
+    // Piso subido (0.6->0.9): trazo un poco mas presente en reposo.
+    float lineW = 0.9 + uD1 * 2.2;
     float waveFreq = 0.6 + uD2 * 2.5;
     float amp = 0.05 + uChaos * 0.35;
 

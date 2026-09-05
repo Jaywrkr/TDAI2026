@@ -66,8 +66,11 @@ vec4 render(vec2 uv)
     float glow = exp(-crack * crack / (0.002 + uD2 * 0.03)) * uD2;
 
     // Revelacion radial: crece con cada kick, D4 sube el piso en reposo.
+    // Piso subido (0.10->0.35): en D4=0 el vidrio quedaba practicamente
+    // sin grietas visibles hasta el primer golpe -- ahora ya hay una
+    // "telaraña" de grietas de entrada, y el kick sigue agrandandola.
     float r = length(p);
-    float shatterR = (0.10 + uD4 * 0.5) + uKick * 1.4 + uBass * 0.12;
+    float shatterR = (0.35 + uD4 * 0.4) + uKick * 1.4 + uBass * 0.12;
     float reveal = smoothstep(shatterR + 0.18, shatterR - 0.18, r);
 
     float h = audioHue(uHue, uMid * 0.15);

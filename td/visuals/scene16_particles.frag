@@ -53,8 +53,11 @@ vec4 render(vec2 uv)
     // fbm por pixel en el peor caso, similar orden de costo que el enjambre
     // anterior).
     int   n = 6 + int(floor(uDensity * 18.99));
-    float size = 0.006 + uD1 * 0.014;
-    int   steps = 3 + int(floor(uD2 * 8.99));
+    // Pisos subidos (size 0.006->0.012, steps base 3->5): en D1=D2=0 los
+    // streaks quedaban tan chicos y cortos que el campo de flujo casi no
+    // se veia, solo un puntito.
+    float size = 0.012 + uD1 * 0.014;
+    int   steps = 5 + int(floor(uD2 * 8.99));
     float turbAmt = 0.10 + uD3 * 0.9;
     // El "perimetro" del campo (cuanto se dispersa) respira con los
     // bajos -- uBass ya suavizado (Fase 2), mismo patron que las

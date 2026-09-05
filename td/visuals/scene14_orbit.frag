@@ -39,8 +39,11 @@ vec4 render(vec2 uv)
     float r = length(p);
 
     int   n = 2 + int(floor(uDensity * 4.99));
-    float trackAlpha = 0.06 + uD1 * 0.35;
-    float dotSize = 0.010 + uD2 * 0.030;
+    // Pisos subidos (trackAlpha 0.06->0.16, dotSize 0.010->0.016): en
+    // D1=D2=0 la orbita-guia y el nodo quedaban casi invisibles -- solo
+    // se veia el sol, no el "sistema solar" completo en reposo.
+    float trackAlpha = 0.16 + uD1 * 0.30;
+    float dotSize = 0.016 + uD2 * 0.026;
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);

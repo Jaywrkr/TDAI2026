@@ -104,9 +104,9 @@ vec4 render(vec2 uv)
 
     float gap = dist2 - dist1;
 
-    // D1: grosor del segmento nitido. Rango mucho mas amplio (0.005 a
-    // 0.20, era 0.008-0.10) para que el cambio sea imposible de no ver.
-    float edgeWidth = 0.005 + uD1 * 0.20;
+    // D1: grosor del segmento nitido. Piso subido (0.005->0.012): la red
+    // se leia demasiado fina/apagada en reposo.
+    float edgeWidth = 0.012 + uD1 * 0.19;
     float edge = 1.0 - smoothstep(0.0, edgeWidth, gap);
 
     // D2: resplandor (glow) ancho alrededor de cada segmento -- en 0 no

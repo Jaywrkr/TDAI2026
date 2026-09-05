@@ -84,7 +84,12 @@ vec4 render(vec2 uv)
         // tiembla. Fase distinta por bola (fi) para que no "respiren"
         // todas exactamente igual, se ve mas organico.
         float bassPulse = 1.0 + uBass * (0.35 + 0.25 * sin(fi * 2.3));
-        float ballSize = ((0.05 + uD4 * 0.28) + hash21(seed + 3.0) * 0.10) * bassPulse;
+        // Piso subido (0.05->0.13): a D4=0 las gotas quedaban tan chicas
+        // que el radio de fusion (ver 'threshold' mas abajo) casi nunca
+        // se alcanzaba salvo que las gotas quedaran practicamente
+        // pegadas -- la fusion, que es la razon de ser de la escena, no
+        // se llegaba a ver en reposo.
+        float ballSize = ((0.13 + uD4 * 0.24) + hash21(seed + 3.0) * 0.10) * bassPulse;
         float d2 = dot(p - pos, p - pos);
         field += ballSize * ballSize / (d2 + 0.0025);
     }

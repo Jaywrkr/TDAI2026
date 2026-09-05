@@ -44,7 +44,8 @@ vec4 render(vec2 uv)
     float spacing = 2.0 / (count + 1.0);
     // El grosor respira con los bajos -- mismo patron que el perimetro
     // de las metaballs, uBass ya suavizado (Fase 2).
-    float lineW = (0.6 + uD1 * 2.5) * (1.0 + uBass * 0.2);
+    // Piso subido (0.6->0.9): trazo un poco mas presente en reposo.
+    float lineW = (0.9 + uD1 * 2.2) * (1.0 + uBass * 0.2);
     float flowFreq = 0.4 + uD2 * 1.4;
 
     vec3 col = vec3(0.0);

@@ -51,7 +51,8 @@ vec4 render(vec2 uv)
         minD = min(minD, length(p - c));
     }
 
-    float lineW = 0.006 + uD1 * 0.02;
+    // Piso subido (0.006->0.010): traza un poco mas presente en reposo.
+    float lineW = 0.010 + uD1 * 0.018;
     float core = 1.0 - smoothstep(0.0, lineW, minD);
     float glowW = 0.001 + uD2 * 0.012;
     float glow = exp(-minD * minD / glowW);

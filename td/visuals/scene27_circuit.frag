@@ -59,7 +59,9 @@ vec4 render(vec2 uv)
 
     float h = audioHue(fract(uHue + 0.38), uMid * 0.1);
     vec3 traceCol = hsv2rgb(vec3(h, 0.6, 0.55));
-    vec3 col = traceCol * trace * (0.25 + uD2 * 0.7);
+    // Piso subido (0.25->0.45): las trazas quedaban casi invisibles al
+    // lado de los chips, que si se veian bien -- desbalanceado.
+    vec3 col = traceCol * trace * (0.45 + uD2 * 0.5);
     col += vec3(0.6, 1.0, 0.85) * pulse * (1.0 + uKick * 1.8);
 
     // Chips: cuadraditos brillantes ocasionales en celdas hasheadas.

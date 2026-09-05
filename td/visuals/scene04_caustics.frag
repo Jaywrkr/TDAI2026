@@ -79,7 +79,8 @@ vec4 render(vec2 uv)
     // Rango bajado (era 0.4-1.4): se veia demasiado claro/lavado con
     // valores por defecto -- D1 sigue teniendo el mismo rol, solo que
     // el techo y el piso son mas oscuros.
-    float contrast = 0.22 + uD1 * 0.70;
+    // Piso subido (0.22->0.34): se veia medio "barroso"/lavado en reposo.
+    float contrast = 0.34 + uD1 * 0.58;
     v *= contrast;
 
     // Dispersion tipo prisma: el hue se desvia un poco segun el brillo

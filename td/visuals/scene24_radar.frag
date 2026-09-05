@@ -52,7 +52,8 @@ vec4 render(vec2 uv)
 
     // Anillos de rango.
     float ringFreq = 2.0 + uD3 * 7.0;
-    float ring = edgeLine(fract(r * ringFreq) - 0.5, 1.0) * 0.12;
+    // Brillo subido (0.12->0.18): anillos de rango un poco mas visibles.
+    float ring = edgeLine(fract(r * ringFreq) - 0.5, 1.0) * 0.18;
     col += radarCol * ring;
 
     // Contactos: puntos fijos que se prenden cuando el barrido pasa cerca.
@@ -69,7 +70,8 @@ vec4 render(vec2 uv)
         float detectW = 0.03 + (1.0 - uD1) * 0.5;
         float lit = exp(-angDiff * angDiff / (detectW * detectW));
 
-        float dotSize = 0.012 + uD4 * 0.022;
+        // Piso subido (0.012->0.018): contactos un poco mas visibles.
+        float dotSize = 0.018 + uD4 * 0.018;
         float d = length(p - blipPos);
         float dot = smoothstep(dotSize, 0.0, d) * (lit * 0.9 + 0.1);
         col += vec3(1.0, 0.9, 0.55) * dot * (1.0 + uKick * 1.3);

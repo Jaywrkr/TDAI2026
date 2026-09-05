@@ -71,7 +71,10 @@ vec4 render(vec2 uv)
     float dist = fract((uv.y - headY) + 1.0);
 
     // D2: largo de la cola -- corta y discreta <-> larga y dramatica.
-    float trailLen = 0.08 + uD2 * 0.45;
+    // Piso subido (0.08->0.18): con la cola tan corta, casi toda la
+    // columna quedaba negra salvo un pedacito pegado a la cabeza -- la
+    // "lluvia" no se leia como tal en reposo.
+    float trailLen = 0.18 + uD2 * 0.45;
     float bright = exp(-dist / trailLen);
 
     // Cabeza: casi blanca, muy angosta.
@@ -84,14 +87,18 @@ vec4 render(vec2 uv)
     float glyphHash = hash21(vec2(colId, rowId) + glyphStep * 7.7);
 
     // D4: densidad -- umbral mas bajo deja pasar mas celdas encendidas.
-    float onThresh = 0.75 - uD4 * 0.65;
+    // Piso bajado (0.75->0.55): a D4=0 solo un 25% de celdas pasaban,
+    // ahora ~45% -- suficiente para leerse como lluvia continua en vez
+    // de puntitos sueltos.
+    float onThresh = 0.55 - uD4 * 0.45;
     float glyphOn = step(onThresh, glyphHash);
 
     // Mascara de celda: un bloque con margen (deja ver la rejilla como
     // caracteres separados, no una columna solida). D1 controla que tan
     // grande es el bloque dentro de su celda.
     // El bloque respira con los bajos -- uBass ya suavizado (Fase 2).
-    float fill = 0.30 + uD1 * 0.55 + cellJitter + uBass * 0.06;
+    // Piso subido (0.30->0.42): caracteres mas gruesos/legibles en reposo.
+    float fill = 0.42 + uD1 * 0.43 + cellJitter + uBass * 0.06;
     float cellMaskX = 1.0 - smoothstep(fill, fill + 0.08, abs(colX - 0.5) * 2.0);
     float cellMaskY = 1.0 - smoothstep(fill, fill + 0.08, abs(rowY - 0.5) * 2.0);
     float cellMask = cellMaskX * cellMaskY;
