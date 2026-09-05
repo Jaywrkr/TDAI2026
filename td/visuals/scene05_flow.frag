@@ -21,14 +21,18 @@
 //   Density  cuantas lineas de corriente hay
 //   Hue      color de las lineas
 //   Chaos    cuanto se dobla cada linea (turbulencia)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            doblez (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro del doblez (excepcion del contrato)
 //
 // @D1: grosor de las lineas
 // @D2: frecuencia espacial del campo de flujo (corrientes anchas <->
 //      finas y apretadas)
+// @D3: variacion de color entre lineas (todas iguales <-> cada una un
+//      tono bien distinto)
+// @D4: resplandor (glow) alrededor de las lineas, ademas del trazo nitido
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -43,7 +47,6 @@ vec4 render(vec2 uv)
 
     vec3 col = vec3(0.0);
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 lineCol = hsv2rgb(vec3(h, 0.70, 1.0));
 
     // Bucle de conteo fijo con corte temprano: nunca mas de 10 lineas.
     for (int i = 0; i < 10; i++) {
@@ -59,11 +62,20 @@ vec4 render(vec2 uv)
         // uHigh: vibracion micro del doblez -- unica excepcion del
         // contrato, amplitud pequena, ya suavizado.
         bend += uHigh * 0.01 * sin(t * 10.0 + p.x * 6.0 + fi);
+        // Bass: un poco de movimiento del doblez ademas del brillo de mas
+        // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
+        bend += uBass * 0.04 * sin(t * 1.6 + fi * 2.3);
 
         float sdf = p.y - (baseY + bend);
+        // D3: variacion de color por linea -- en 0 todas comparten el
+        // mismo tono, en 1 cada una se aleja bastante del hue base.
+        vec3 lineCol = hsv2rgb(vec3(fract(h + fi * 0.09 * uD3), 0.70, 1.0));
         float line = edgeLine(sdf, lineW);
+        // D4: resplandor ancho ademas del trazo nitido -- en 0 no hay
+        // nada extra, en 1 cada linea tiene un halo notable.
+        float glow = exp(-abs(sdf) * abs(sdf) / (0.004 + uD4 * 0.05)) * uD4;
 
-        col += lineCol * line;
+        col += lineCol * (line + glow * 0.6);
     }
 
     // Kick: flash breve.

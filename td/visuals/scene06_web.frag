@@ -24,14 +24,18 @@
 //   Hue      color del resplandor cerca de los nodos (el resto queda
 //            casi blanco/gris a proposito -- no es un visual arcoiris)
 //   Chaos    cuanto se doblan las lineas (dejan de ser rectas)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            hub (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de los nodos (excepcion del contrato)
 //
 // @D1: grosor de las lineas
 // @D2: dispersion del cluster -- poco D2 = converge casi a un punto, mas
 //      D2 = nodos e hilos mas repartidos por la pantalla
+// @D3: largo de los segmentos (hebras cortas <-> hebras que cruzan casi
+//      toda la pantalla)
+// @D4: cantidad/tamano de las particulas sueltas alrededor del enjambre
 // ===============================================================
 
 float segDist(vec2 p, vec2 a, vec2 b)
@@ -51,6 +55,9 @@ vec4 render(vec2 uv)
     // uHigh: vibracion micro de los nodos -- unica excepcion del
     // contrato, amplitud pequena, ya suavizado.
     hub += uHigh * 0.01 * vec2(sin(t * 9.0), cos(t * 8.0));
+    // Bass: un poco de movimiento del hub ademas del brillo de mas abajo
+    // -- seguro porque uBass ya llega suavizado (Fase 2).
+    hub += uBass * 0.03 * vec2(sin(t * 0.7), cos(t * 0.55));
 
     float spread = 0.06 + uD2 * 0.55;
     float lineW = 0.9 + uD1 * 3.0;
@@ -70,8 +77,10 @@ vec4 render(vec2 uv)
         vec2 subOff = (hash22(vec2(sub, 1.0)) - 0.5) * spread * 0.6;
         vec2 origin = hub + subOff;
 
+        // D3: largo de los segmentos -- hebras cortas y contenidas <->
+        // hebras largas que cruzan casi toda la pantalla.
         float ang = hash21(seed) * TAU;
-        float len = 0.35 + hash21(seed + 1.0) * 1.35;
+        float len = (0.12 + uD3 * 0.35) + hash21(seed + 1.0) * (0.4 + uD3 * 1.6);
         vec2 dir = vec2(cos(ang), sin(ang));
         vec2 end = origin + dir * len;
 
@@ -84,14 +93,17 @@ vec4 render(vec2 uv)
         field += edgeLine(d, lineW) + exp(-d * d / 0.006) * 0.25;
     }
 
-    // Particulas sueltas dispersas cerca del enjambre.
+    // Particulas sueltas dispersas cerca del enjambre. D4: cantidad y
+    // tamano -- en 0 casi no hay, en 1 un campo denso de puntos grandes.
     float dots = 0.0;
-    for (int i = 0; i < 20; i++) {
+    int   nDots = 4 + int(floor(uD4 * 26.99));
+    for (int i = 0; i < 30; i++) {
+        if (i >= nDots) break;
         float fi = float(i);
         vec2 seed = vec2(fi * 2.1, fi * 7.7);
         vec2 dpos = hub + (hash22(seed) - 0.5) * (spread * 2.5 + 0.05);
         float dd = length(p - dpos);
-        float size = 0.008 + hash21(seed + 3.0) * 0.012;
+        float size = (0.006 + uD4 * 0.014) + hash21(seed + 3.0) * 0.012;
         dots += exp(-dd * dd / (size * size));
     }
 

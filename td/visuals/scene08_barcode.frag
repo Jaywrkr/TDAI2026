@@ -27,13 +27,18 @@
 //   Chaos    irregularidad del glitch: cuanto varia la frecuencia entre
 //            columnas y cuanto "tearing" (columnas que se apagan a
 //            saltos) hay
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
+//            fase (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de fase (excepcion del contrato)
 //
 // @D1: contraste/brillo del patron de interferencia interno
 // @D2: ancho del espacio negro entre columnas
+// @D3: frecuencia del bandeado interno (pocas bandas anchas <-> muchas y
+//      finas)
+// @D4: cuantas columnas saltan a un acento de color (casi ninguna <->
+//      muchas)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -57,8 +62,11 @@ vec4 render(vec2 uv)
 
     // Interferencia: dos senos de frecuencia casi identica multiplicados
     // -- el batido entre ambos es el bandeado irregular de la referencia.
-    float y = uv.y * uResH * 0.06 + t * (0.5 + uSpeed * 3.0);
-    float bandFreq = 9.0;
+    // Bass: un poco de movimiento de fase ademas del brillo de mas abajo
+    // -- seguro porque uBass ya llega suavizado (Fase 2).
+    float y = uv.y * uResH * 0.06 + t * (0.5 + uSpeed * 3.0) + uBass * 8.0;
+    // D3: frecuencia del bandeado -- pocas bandas anchas <-> muchas finas.
+    float bandFreq = 3.0 + uD3 * 22.0;
     float b1 = sin((y + phaseJit) * bandFreq * freqJit);
     float b2 = sin((y + phaseJit) * bandFreq * freqJit * 1.08 + 1.7);
     float band = abs(b1 * b2);
@@ -80,10 +88,13 @@ vec4 render(vec2 uv)
     bright *= 1.0 + uHigh * 0.06 * sin(t * 20.0 + colId);
 
     // La mayoria de columnas usa Hue; unas pocas (por hash) saltan a un
-    // acento de color distinto.
+    // acento de color distinto. D4 baja los umbrales -- casi ninguna
+    // columna con acento (D4=0) hasta mas de la mitad con acento (D4=1).
     float accentPick = hash21(vec2(colId, 3.0));
-    float isAccent1 = step(0.85, accentPick);
-    float isAccent2 = step(0.78, accentPick) - isAccent1;
+    float accentThresh1 = 0.97 - uD4 * 0.62;
+    float accentThresh2 = 0.90 - uD4 * 0.55;
+    float isAccent1 = step(accentThresh1, accentPick);
+    float isAccent2 = step(accentThresh2, accentPick) - isAccent1;
     float h = audioHue(uHue, uMid * 0.16);
     h = fract(h + isAccent1 * 0.42 + isAccent2 * 0.55);
 

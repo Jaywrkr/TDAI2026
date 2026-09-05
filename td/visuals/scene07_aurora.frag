@@ -24,14 +24,18 @@
 //   Density  cuantas cortinas hay (2 a 5)
 //   Hue      hue base; las demas cortinas son offsets chicos sobre este
 //   Chaos    cuanto se dobla cada cortina (turbulencia horizontal)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento del
+//            doblez (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash breve
+//   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro del doblez (excepcion del contrato)
 //
 // @D1: ancho/intensidad del resplandor (ancho y tenue <-> angosto e
 //      intenso)
 // @D2: separacion entre cortinas
+// @D3: frecuencia de la respiracion de brillo a lo largo de cada cortina
+//      (ondas grandes y lentas <-> muchas y rapidas)
+// @D4: dispersion de color entre cortinas (casi monocromo <-> arcoiris)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -60,16 +64,23 @@ vec4 render(vec2 uv)
         // uHigh: vibracion micro del doblez -- unica excepcion del
         // contrato, amplitud pequena, ya suavizado.
         bend += uHigh * 0.01 * sin(t * 9.0 + fi);
+        // Bass: un poco de movimiento del doblez ademas del brillo de mas
+        // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
+        bend += uBass * 0.05 * sin(t * 1.3 + fi * 1.9);
 
         float dx = p.x - (baseX + bend);
         float curtain = exp(-dx * dx / (glowW * glowW));
 
         // Respiracion suave de brillo a lo largo de la cortina -- sin
         // esto se ve como un tubo de neon parejo, con esto se lee como
-        // luz viva.
-        curtain *= 0.7 + 0.3 * sin(p.y * 1.5 - t * (0.2 + uSpeed * 0.4) + fi * 2.1);
+        // luz viva. D3: frecuencia -- ondas grandes y lentas <-> muchas
+        // y rapidas.
+        float breatheFreq = 0.5 + uD3 * 4.0;
+        curtain *= 0.7 + 0.3 * sin(p.y * breatheFreq - t * (0.2 + uSpeed * 0.4) + fi * 2.1);
 
-        float hueI = audioHue(fract(h0 + fi * 0.10), uMid * 0.16);
+        // D4: dispersion de color -- en 0 todas las cortinas casi
+        // comparten hue, en 1 se reparten por toda la rueda de color.
+        float hueI = audioHue(fract(h0 + fi * (0.03 + uD4 * 0.20)), uMid * 0.16);
         vec3 curtainCol = hsv2rgb(vec3(hueI, 0.62, 1.0));
         col += curtainCol * curtain;
     }
