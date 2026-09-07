@@ -92,7 +92,14 @@ vec4 render(vec2 uv)
         if (i >= int(levels)) break;
 
         float threshold = (float(i) + 0.5) / levels;
-        float line = edgeLine(hBreath - threshold, lineW);
+        // JERARQUIA: en un mapa topografico real una de cada 5 curvas
+        // es la 'curva maestra' -- mas gruesa, la que te deja leer el
+        // relieve de un vistazo -- y el resto son finas. Con TODAS del
+        // mismo grosor el dibujo se lee plano y mecanico, que era
+        // exactamente el problema de esta escena.
+        bool master = (mod(float(i), 5.0) < 0.5);
+        float lw = lineW * (master ? 2.3 : 0.75);
+        float line = edgeLine(hBreath - threshold, lw);
 
         // Mas alto = un poco mas brillante, como en un mapa real. D3:
         // contraste -- en 0, TODAS las curvas quedan igual de medias; en

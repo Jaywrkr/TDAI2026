@@ -43,7 +43,14 @@ vec4 render(vec2 uv)
     float spokeAng = TAU / spokes;
     float aMod = mod(ang, spokeAng);
     float spokeDist = min(aMod, spokeAng - aMod) * max(r, 0.05);
-    float spokeLine = edgeLine(spokeDist, 1.2 + uD1 * 2.5);
+    // JERARQUIA: una telarana real tiene unos pocos hilos de ANCLAJE
+    // gruesos y el resto finos. Con todos iguales -- que era el caso --
+    // el dibujo se leia como una diana de dardos, perfecto y mecanico.
+    // El hash es por indice de radio, asi que cada radio mantiene su
+    // grosor mientras la red gira, en vez de titilar.
+    float spokeIdx = floor(ang / spokeAng);
+    float spokeW = (1.2 + uD1 * 2.5) * (0.6 + step(0.68, hash21(vec2(spokeIdx, 3.0))) * 1.5);
+    float spokeLine = edgeLine(spokeDist, spokeW);
 
     float ringFreq = 2.0 + uD3 * 6.0;
     // Kick: la red vibra -- amplitud directamente del envolvente de golpe.
@@ -54,7 +61,10 @@ vec4 render(vec2 uv)
     // un radio. uKeypulse decae solo; uKeyvel escala la fuerza.
     pluck += sin(r * 14.0 - t * 3.0) * uKeypulse * (0.10 + uKeyvel * 0.14);
     float ringSDF = fract(r * ringFreq + pluck) - 0.5;
-    float ringLine = edgeLine(ringSDF, 1.2 + uD2 * 2.5);
+    // Los anillos tambien: uno de cada tantos mas grueso.
+    float ringIdx = floor(r * ringFreq + pluck);
+    float ringW = (1.2 + uD2 * 2.5) * (0.65 + step(0.72, hash21(vec2(ringIdx, 11.0))) * 1.3);
+    float ringLine = edgeLine(ringSDF, ringW);
 
     float web = max(spokeLine, ringLine);
     float h = audioHue(uHue, uMid * 0.1);
