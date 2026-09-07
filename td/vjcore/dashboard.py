@@ -123,7 +123,23 @@ def build(proj, thumbs, program_clean):
                        fontsize=STATUS_FONTSIZE)
     build_detail_legend_panel(dash, px, c.DASH_MARGIN, c.PROGRAM_W, legend_h)
 
-    log('DASHBOARD: {} tiles + monitor + beat light + status + detail legend'.format(len(thumbs)))
+    # --- panel de MASTER FX, DEBAJO de la grilla ---
+    # Va en la columna izquierda a proposito: la grilla de 6x6 ocupa 544 px
+    # de alto y la columna derecha (monitor + status + leyenda) pasa los
+    # 1000, asi que debajo de la grilla ya habia varios cientos de pixeles
+    # vacios. Poner el panel ahi lo hace GRATIS en altura -- si fuera a la
+    # columna derecha, el dashboard entero creceria y en un portatil ya no
+    # entraria en pantalla.
+    # 280 px = 12 lineas a fontsize 13 (interlineado real ~1.7x) con aire
+    # de sobra: el caso mas largo del panel (dos capas ON) son 12 lineas.
+    FX_H = 280
+    FX_GAP = 12
+    grid_bottom = dash_h - c.DASH_MARGIN - grid_h
+    build_master_fx_panel(dash, c.DASH_MARGIN, grid_bottom - FX_GAP - FX_H,
+                          grid_w, FX_H)
+
+    log('DASHBOARD: {} tiles + monitor + beat light + status + detail legend '
+        '+ master fx'.format(len(thumbs)))
     return dash
 
 
@@ -236,6 +252,24 @@ def build_beat_light(dash, x, y, h):
     safe_set(label, 'topfill', 'fillaspect')
     safe_set(label, 'enable', False)
     return box
+
+
+def build_master_fx_panel(dash, x, y, w, h):
+    """Estado + explicacion de los Master FX (estela y dos capas).
+
+    No es solo un volcado de valores: el panel EXPLICA que hace cada
+    efecto y en que estado esta ahora. Los dos son efectos del program
+    bus (no de la escena), asi que no aparecen en la leyenda de Detail ni
+    se deducen mirando la grilla -- sin este panel, la unica forma de
+    saber por que la imagen tiene cola o esta mezclada seria acordarse.
+
+    diagnostics.py lo reescribe en cada tick (mismo ritmo que el panel de
+    status), no hay costo por frame.
+    """
+    return _build_text_panel(
+        dash, 'master_fx', x, y, w, h,
+        'MASTER FX  ...', fontsize=13,
+        fontcolor=(0.95, 0.88, 0.70), bgcolor=(0.07, 0.06, 0.05))
 
 
 def build_detail_legend_panel(dash, x, y, w, h):

@@ -319,6 +319,27 @@ vec4 mediaTex(vec2 uv) { return texture(sTD2DInputs[1], uv); }
 """
 
 
+def ctrl_header(channels, input_index):
+    """Header MINIMO para un shader de POST-PROCESO que quiere leer la
+    textura de control (Master FX del program bus, ver program.py).
+
+    Es la misma idea que el header de las escenas -- los controles llegan
+    por textura, no por uniforms, porque los nombres de uniform del GLSL
+    TOP cambian entre builds de TD y una textura de 1xN no -- pero sin
+    nada del resto (helpers, contrato de audio, render()): un shader de
+    post-proceso no es una escena, solo necesita los #define.
+
+    'input_index' es en que input del GLSL TOP esta enchufada ctrl_tex:
+    en una escena es el 0, en un post-proceso son los primeros los que
+    llevan imagen (ver program.py), asi que no se puede asumir.
+    """
+    return (
+        'float _ctrl(int i) {{ return texelFetch(sTD2DInputs[{}], '
+        'ivec2(0, i), 0).r; }}\n'.format(int(input_index))
+        + _defines(channels) + '\n'
+    )
+
+
 def make_header(scene_index, channels):
     header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
     if scene_index in config.MEDIA_SCENES:

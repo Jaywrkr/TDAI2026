@@ -90,6 +90,29 @@ def _parameters(proj):
     add_toggle(ap, 'Autopilot', 'Autopilot (hands-free)', False)
     add_float(ap, 'Autopilotseconds', 'Autopilot Seconds', 20.0, 3.0, 120.0)
 
+    # --- MASTER FX (Fase 4): estela + dos capas ---
+    # Los dos viven en el program bus, DESPUES de las escenas y ANTES del
+    # bloom (ver program.py). Los dos tienen bypass real por Switch TOP:
+    # en 0 / apagado no cocinan y no cuestan nada.
+    fx = proj.appendCustomPage('Master FX')
+    add_float(fx, 'Trails', 'Estela (0 = apagada)', 0.0, 0, 1)
+    # 0.5 = neutro en las dos: una sola perilla cubre los dos sentidos
+    # (hacia adentro/afuera, horario/antihorario) sin gastar dos.
+    add_float(fx, 'Trailszoom', 'Estela: Zoom (0.5 neutro)', 0.5, 0, 1)
+    add_float(fx, 'Trailsrotate', 'Estela: Giro (0.5 neutro)', 0.5, 0, 1)
+    add_toggle(fx, 'Duallayer', 'Dos Capas (A + B a la vez)', False)
+    add_float(fx, 'Layermix', 'Dos Capas: Mezcla A>B', 0.5, 0, 1)
+    # Int y no menu: el Parameter CHOP tiene que poder llevar esto a la
+    # textura de control como un numero, y el comportamiento de un menu
+    # ahi varia entre builds de TD. Los nombres viven en
+    # config.BLEND_MODES y se muestran en el panel del dashboard.
+    add_int(fx, 'Blendmode', 'Dos Capas: Modo de Mezcla', 0,
+            0, len(c.BLEND_MODES) - 1)
+    # Que capa recibe el proximo cambio de escena (click en el dashboard,
+    # Next/Prev, MIDI). Sin esto no habria forma de cargar la capa B.
+    add_int(fx, 'Activelayer', 'Dos Capas: Capa que se edita (0=A 1=B)',
+            0, 0, 1)
+
     m = proj.appendCustomPage('MIDI Mapping')
     for slot in c.MIDI_SLOTS:
         add_string(m, 'Midi' + slot.lower(), slot, c.DEFAULT_MIDI.get(slot, ''))
@@ -287,7 +310,9 @@ def build(verbose=True):
 
     # --- escenas + program + dashboard ---
     _, outs, thumbs = scenes.build_all(proj, channels)
-    ops = program.build(proj, outs)
+    # ctrl_tex/channels: los shaders de Master FX (dos capas + estela)
+    # leen la MISMA textura de control que las escenas -- ver program.py.
+    ops = program.build(proj, outs, ctrl_tex, channels)
     dashboard.build(proj, thumbs, ops['bloom'])
 
     # --- error log ---
@@ -371,6 +396,18 @@ def verify(proj, channels):
         check('{} con {} inputs'.format(name, config.N_SCENES),
               bool(sw) and len(sw.inputs) == config.N_SCENES,
               str(len(sw.inputs)) if sw else 'no existe')
+
+    # Master FX: el error caro aca no es que falte un nodo, es que los
+    # shaders no compilen -- eso solo se ve dentro de TD (glslangValidator
+    # no puede: usan sTD2DInputs/TDOutputSwizzle). Se chequea el conteo de
+    # inputs, que es lo que romperia el efecto en silencio (un input mal
+    # conectado da negro o el frame sin procesar, no un error rojo).
+    for name, n_inputs in (('program_blend', 3), ('program_trails', 3),
+                           ('program_pick', 2), ('trails_pick', 2)):
+        node = proj.op(name)
+        check('{} con {} inputs'.format(name, n_inputs),
+              bool(node) and len(node.inputs) == n_inputs,
+              str(len(node.inputs)) if node else 'no existe')
 
     bad = []
     for i in range(config.N_SCENES):

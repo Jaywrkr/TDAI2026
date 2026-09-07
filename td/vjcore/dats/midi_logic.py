@@ -139,6 +139,11 @@ CONTINUOUS = {
     'Detail4': ('Detail4', 0.0, 1.0),
     'Detail5': ('Detail5', 0.0, 1.0),
     'Detail6': ('Detail6', 0.0, 1.0),
+    # Master FX (Fase 4) -- ver program.py. Continuos como cualquier
+    # perilla; sin default de fabrica porque el controlador ya no tiene
+    # perillas libres, quedan listos para Learn.
+    'Trails': ('Trails', 0.0, 1.0),
+    'Layermix': ('Layermix', 0.0, 1.0),
 }
 
 TRIGGERS = {
@@ -147,6 +152,11 @@ TRIGGERS = {
     'Blackout': 'toggleBlackout',
     'Snapshot': 'snapshotPreset',
     'Reset': 'resetControls',
+    # Master FX: prender/apagar y ciclar desde un pad, sin mouse.
+    'Trailstoggle': 'toggleTrails',
+    'Duallayer': 'toggleDual',
+    'Blendnext': 'nextBlendMode',
+    'Layerswap': 'swapLayer',
 }
 
 # 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas
