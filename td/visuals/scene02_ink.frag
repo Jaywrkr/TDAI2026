@@ -66,6 +66,16 @@ vec4 render(vec2 uv)
     float freq = 0.7 + uDensity * 1.8;
     float ink = fbm(p3 * freq, 5, 0.55);
 
+    // COMPOSICION: la escena llenaba el cuadro de textura pareja de
+    // borde a borde, sin sujeto ni aire -- se leia como un fondo, no
+    // como una gota de tinta. Una mascara grande y suave (con su
+    // propio ruido para que el borde sea irregular, no un ovalo) le da
+    // silueta: hay tinta en el centro y agua limpia alrededor.
+    float shapeMask = 1.0 - smoothstep(0.35, 1.15,
+                      length(p * vec2(0.85, 1.0))
+                      + (fbm(p * 0.9 + 31.0, 3) - 0.5) * 0.55);
+    ink = mix(0.30, ink, shapeMask);
+
     // PIANO: gota nueva se FUSIONA al campo de tinta real -- empuja 'ink'
     // antes del threshold (mismo truco que la fusion de metaballs en
     // scene03), asi que deforma la silueta de verdad en vez de dibujar

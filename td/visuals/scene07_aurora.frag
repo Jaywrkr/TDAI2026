@@ -92,6 +92,15 @@ vec4 render(vec2 uv)
 
         float dx = (p.x - p.y * bassShear) - (baseX + bend);
         float curtain = exp(-dx * dx / (glowW * glowW));
+        // ESTRIADO: una aurora real no es un degradado suave, esta hecha
+        // de filamentos verticales finos (las lineas de campo
+        // magnetico). Sin esto la escena se lee como una mancha de
+        // color borrosa, que era su problema principal. Se modula la
+        // cortina por un ruido de alta frecuencia en X, asi los
+        // filamentos siguen la forma de la cortina en vez de ser un
+        // patron independiente encima.
+        float fil = fbm(vec2((p.x - bend) * 26.0, p.y * 1.2 + fi * 9.0), 2);
+        curtain *= 0.55 + 0.75 * fil;
 
         // Respiracion suave de brillo a lo largo de la cortina -- sin
         // esto se ve como un tubo de neon parejo, con esto se lee como

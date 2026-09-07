@@ -87,7 +87,12 @@ vec4 render(vec2 uv)
     float keyWave = uKeypulse * (3.0 + uKeyvel * 7.0);
 
     float aberr = 0.0010 + uD1 * 0.012;
-    float ringW = 2.2 + uD2 * 3.0;
+    // Piso 2.2 -> 3.2. Con el anillo tan fino, los tres canales RGB --
+    // que se muestrean a radios distintos para la aberracion -- no
+    // llegaban a superponerse, y en vez de un anillo blanco con fleco
+    // de color salian puntos de colores sueltos: se veia como aliasing,
+    // no como dispersion.
+    float ringW = 3.2 + uD2 * 3.0;
 
     // Cada canal evalua el patron de anillos con un radio propio.
     float rR = r + aberr;

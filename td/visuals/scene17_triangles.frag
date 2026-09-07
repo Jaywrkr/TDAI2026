@@ -102,7 +102,14 @@ vec4 render(vec2 uv)
     float visHash = hash21(cellId + triId * 3.7 + stepT * 7.3);
 
     // D2: proporcion de triangulos encendidos por paso.
-    float threshold = 0.90 - uD2 * 0.55;
+    // AGRUPACION: el umbral deja de ser el mismo para toda la
+    // pantalla y se modula con un ruido de baja frecuencia sobre la
+    // celda. Con un umbral global los triangulos se encendian de
+    // forma totalmente independiente y el resultado era confeti --
+    // ruido puro, sin estructura que mirar. Modulado, se prenden por
+    // ZONAS que nacen, crecen y se apagan juntas.
+    float clump = fbm(cellId * 0.16 + t * 0.06, 3);
+    float threshold = (0.90 - uD2 * 0.55) - (clump - 0.5) * 0.45;
     float on = step(threshold, visHash);
     on = max(on, uKick * step(0.5, hash21(cellId + triId * 3.7 + floor(t * 30.0))));
 

@@ -61,14 +61,22 @@ vec4 render(vec2 uv)
     vec3 traceCol = hsv2rgb(vec3(h, 0.6, 0.55));
     // Piso subido (0.25->0.45): las trazas quedaban casi invisibles al
     // lado de los chips, que si se veian bien -- desbalanceado.
-    vec3 col = traceCol * trace * (0.45 + uD2 * 0.5);
+    // Las TRAZAS son el sujeto de esta escena, pero se veian como un
+    // rayado tenue mientras los chips (abajo) dominaban con cuadrados
+    // amarillos planos: quedaba 'cuadrados al azar sobre ruido'. Se
+    // invierte el peso -- trazas mas presentes, chips mas discretos.
+    vec3 col = traceCol * trace * (0.85 + uD2 * 0.6);
     col += vec3(0.6, 1.0, 0.85) * pulse * (1.0 + uKick * 1.8);
 
     // Chips: cuadraditos brillantes ocasionales en celdas hasheadas.
     float chipHash = hash21(cellId + 50.0);
     float isChip = step(0.93 - uD3 * 0.35, chipHash);
     float chipShape = 1.0 - smoothstep(0.24, 0.31, max(abs(cellF.x - 0.5), abs(cellF.y - 0.5)));
-    col += vec3(1.0, 0.82, 0.3) * isChip * chipShape * 0.75;
+    // Chip con BORDE, no un cuadrado macizo: un chip real se lee por
+    // su contorno y sus patas, no por ser un bloque de color.
+    float chipEdge = chipShape - (1.0 - smoothstep(0.17, 0.22,
+                     max(abs(cellF.x - 0.5), abs(cellF.y - 0.5))));
+    col += vec3(1.0, 0.82, 0.3) * isChip * (chipShape * 0.22 + max(chipEdge, 0.0) * 0.85);
 
     // PIANO: sobrecarga real -- aparecen chips NUEVOS y brillantes en
     // celdas al azar (distintas de los chips normales de arriba, hash

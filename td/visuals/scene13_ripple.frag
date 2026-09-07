@@ -44,7 +44,10 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    int   nSources = 2 + int(floor(uDensity * 3.99));
+    // Piso 2 -> 3: con dos fuentes se veian dos circulos perfectos y
+    // la INTERFERENCIA -- que es el punto de la escena -- casi no
+    // aparecia.
+    int   nSources = 3 + int(floor(uDensity * 2.99));
     float width = 0.025 + uD1 * 0.11;
     float h = audioHue(uHue, uMid * 0.16);
     vec3  waveCol = hsv2rgb(vec3(h, 0.75, 1.0));

@@ -52,7 +52,11 @@ vec3 basePattern(vec2 uv, float t)
     float colId = floor(uv.x * cols);
     float rowId = floor(uv.y * 14.0);
     float cellHash = hash21(vec2(colId, rowId) + floor(t * (0.3 + uSpeed * 0.6)));
-    float hue = fract(uHue + cellHash * 0.6);
+    // Rango de hue MUY reducido (0.6 -> 0.14 de vuelta de rueda): con
+    // 0.6 cada celda caia en un primario distinto y la escena se leia
+    // como una carta de ajuste de TV o bloques de juguete. Una señal
+    // corrupta real mantiene la familia de color de lo que corrompe.
+    float hue = fract(uHue + cellHash * 0.14);
     // Mayoria de celdas casi negras -- pedido explicito de "que se vea
     // mas oscuro y solo detalles del glitch": antes CADA celda tenia
     // color, llenando toda la pantalla como un mosaico. Ahora solo una

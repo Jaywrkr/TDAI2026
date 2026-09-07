@@ -55,7 +55,10 @@ vec4 render(vec2 uv)
     // Bajado el default (era 2+floor(D2*2.99), minimo 2 capas siempre) --
     // a pedido del usuario, salia "mucha cosa" de entrada. Ahora arranca
     // en 1 capa (D2=0, minimalista) y llega a 4 en D2=1.
-    int layers = 1 + int(floor(uD2 * 3.99));
+    // Piso 1 -> 2 capas: con UNA sola iteracion de seno cruzado no hay
+    // interferencia entre capas y el resultado es un manchon suave, no
+    // la red de filamentos que define a las caustics.
+    int layers = 2 + int(floor(uD2 * 2.99));
 
     // D3: finura de la red -- escala la frecuencia de los senos que forman
     // la trama de luz. Rango amplio: celdas anchas <-> red muy apretada.
@@ -91,8 +94,12 @@ vec4 render(vec2 uv)
     // valores por defecto -- D1 sigue teniendo el mismo rol, solo que
     // el techo y el piso son mas oscuros.
     // Piso subido (0.22->0.34): se veia medio "barroso"/lavado en reposo.
-    float contrast = 0.34 + uD1 * 0.58;
-    v *= contrast;
+    // Piso de contraste subido y curva de gamma: las caustics son
+    // FILAMENTOS finos y brillantes sobre agua oscura. Con el rango
+    // viejo salia un humo gris parejo de medio tono -- la textura
+    // estaba, pero sin el contraste que la hace leer como luz.
+    float contrast = 0.52 + uD1 * 0.55;
+    v = pow(max(v, 0.0), 1.45) * contrast;   // gamma: hunde los medios
 
     // Dispersion tipo prisma: el hue se desvia un poco segun el brillo
     // local -- barato (sin recalcular la red 3 veces por canal), pero da
