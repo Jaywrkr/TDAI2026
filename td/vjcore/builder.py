@@ -235,6 +235,11 @@ def _parameters(proj):
     add_int(s, 'Diagnosticinterval', 'Diagnostic Interval Frames', 12, 5, 600)
     add_toggle(s, 'Systemready', 'System Ready', False)
     add_pulse(s, 'Reloadshaders', 'Recargar Shaders')
+    # Hornea las miniaturas de la grilla del dashboard (ver
+    # config.THUMBS_DIRNAME y control_script.bakeThumbs). Hay que
+    # correrlo una vez despues de instalar, y de nuevo cada vez que se
+    # edite un visual y se quiera actualizar su miniatura.
+    add_pulse(s, 'Bakethumbs', 'Hornear Miniaturas (grilla)')
     add_pulse(s, 'Rebuild', 'Reconstruir Todo')
     # Estado interno del piano (Fase 3) -- no se tocan a mano, los escribe
     # midi_logic.py en cada tecla. Viven aca porque necesitan ser
@@ -282,6 +287,8 @@ def onPulse(par):
         m.cancelLearn()
     elif n == 'Reloadshaders':
         m.reloadShaders()
+    elif n == 'Bakethumbs':
+        m.bakeThumbs()
     elif n == 'Rebuild':
         import vjcore
         vjcore.build()

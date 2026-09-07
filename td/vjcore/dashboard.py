@@ -21,10 +21,36 @@ except ImportError:
     pass
 
 
-from . import config
+import os
+
+from . import config, shader
 from .tdutil import safe_set, safe_set_first, safe_expr, log
 
 BORDER = 3
+
+
+def thumbs_dir():
+    """Carpeta donde viven los poster frames horneados."""
+    return os.path.join(shader.repo_root(), config.THUMBS_DIRNAME)
+
+
+def poster_path(index):
+    return os.path.join(thumbs_dir(), 'scene{:02d}.png'.format(int(index)))
+
+
+def scene_label(index):
+    """'04 CAUSTICS' a partir del nombre del .frag.
+
+    Sale del nombre de archivo y no de una lista escrita a mano: agregar
+    o renombrar un visual actualiza la etiqueta sola.
+    """
+    path = shader.find_visual(index)
+    if not path:
+        return '{:02d} --'.format(index)
+    stem = os.path.basename(path).split('.')[0]
+    parts = stem.split('_', 1)
+    name = (parts[1] if len(parts) > 1 else stem).upper().replace('_', ' ')
+    return '{:02d} {}'.format(index, name)
 
 
 def build(proj, thumbs, program_clean):
@@ -39,9 +65,16 @@ def build(proj, thumbs, program_clean):
     # fontsize. Calculado explicito por CANTIDAD DE LINEAS en vez de una
     # reserva de pixeles adivinada, con el peor caso (Learn armado +
     # Autopilot ON a la vez) contemplado.
+    # Bajado de 24 a 18 lineas. El dashboard media 1640x1091 y NO entraba
+    # en una pantalla de 1080p (se pasaba por 11 px, o sea que quedaba
+    # cortado abajo justo donde vive la leyenda de Detail). El panel de
+    # status era lo mas alto de todo (505 px) y la mayor parte era
+    # diagnostico que se mira una vez al arrancar, no en vivo -- asi que
+    # diagnostics.py ahora emite el mismo contenido en menos lineas
+    # (campos relacionados en una sola) en vez de perder informacion.
     STATUS_FONTSIZE = 12
     STATUS_LINE_H = STATUS_FONTSIZE * 1.7
-    STATUS_MAX_LINES = 24
+    STATUS_MAX_LINES = 18
     status_h = int(STATUS_MAX_LINES * STATUS_LINE_H) + 16
 
     BEAT_STRIP_H = 40
@@ -77,14 +110,58 @@ def build(proj, thumbs, program_clean):
         for p, v in (('bgcolorr', 0.16), ('bgcolorg', 0.16), ('bgcolorb', 0.18)):
             safe_set(frame, p, v)
 
+        # POSTER FRAME: la miniatura sale de un ARCHIVO, no del TOP vivo
+        # de la escena. Con Previewall=False solo cocinan 1-2 escenas, asi
+        # que 32 de 34 casilleros mostraban negro o un frame congelado.
+        # El TOP vivo sigue existiendo (es lo que se hornea, y lo que ve
+        # el monitor de program), pero la GRILLA muestra el poster: se ve
+        # completa siempre y no cuesta un solo ciclo de GPU.
+        poster = dash.create(moviefileinTOP, 'poster{}'.format(i))
+        poster.nodeX, poster.nodeY = -600, 400 - i * 30
+        pp = poster_path(i)
+        # Solo se apunta al archivo si EXISTE: un Movie File In apuntando a
+        # un archivo inexistente ensucia system_errors, que tiene tope de
+        # 60 lineas y podria tapar un error de verdad. Sin poster horneado
+        # el casillero sale negro, exactamente como antes.
+        if os.path.isfile(pp):
+            safe_set_first(poster, ['file', 'moviefile'], pp)
+
         inner = frame.create(containerCOMP, 'thumb')
         safe_set(inner, 'x', BORDER)
-        safe_set(inner, 'y', BORDER)
+        safe_set(inner, 'y', BORDER + c.THUMB_LABEL_H)
         safe_set(inner, 'w', c.THUMB_W - BORDER * 2)
-        safe_set(inner, 'h', c.THUMB_H - BORDER * 2)
-        safe_set(inner, 'top', thumb.path)
+        safe_set(inner, 'h', c.THUMB_H - BORDER * 2 - c.THUMB_LABEL_H)
+        safe_set(inner, 'top', poster.path)
         safe_set(inner, 'topfill', 'fillaspect')
         safe_set(inner, 'enable', False)
+
+        # ETIQUETA: numero + nombre de la escena, abajo de la miniatura.
+        lab = frame.create(textTOP, 'label_render')
+        lab.nodeX, lab.nodeY = -200, -100
+        safe_set(lab, 'text', scene_label(i))
+        safe_set_first(lab, ['wordwrap', 'wrapwords'], False)
+        safe_set_first(lab, ['alignx', 'justifyx', 'textalignx'], 'left')
+        safe_set_first(lab, ['aligny', 'justifyy', 'textaligny'], 'middle')
+        safe_set_first(lab, ['fontsizex', 'fontsize'], 11)
+        safe_set_first(lab, ['font', 'fontname'], 'Courier New')
+        for pn, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'),
+                         (0.82, 0.86, 0.92)):
+            safe_set(lab, pn, v)
+        for pn, v in zip(('bgcolorr', 'bgcolorg', 'bgcolorb'),
+                         (0.10, 0.10, 0.12)):
+            safe_set(lab, pn, v)
+        safe_set(lab, 'outputresolution', 'custom')
+        safe_set(lab, 'resolutionw', c.THUMB_W - BORDER * 2)
+        safe_set(lab, 'resolutionh', c.THUMB_LABEL_H)
+
+        labc = frame.create(containerCOMP, 'label')
+        safe_set(labc, 'x', BORDER)
+        safe_set(labc, 'y', BORDER)
+        safe_set(labc, 'w', c.THUMB_W - BORDER * 2)
+        safe_set(labc, 'h', c.THUMB_LABEL_H)
+        safe_set(labc, 'top', lab.path)
+        safe_set(labc, 'topfill', 'fillaspect')
+        safe_set(labc, 'enable', False)
 
         pe = frame.create(panelexecuteDAT, 'click_select')
         safe_set(pe, 'panels', '..')
@@ -130,18 +207,24 @@ def build(proj, thumbs, program_clean):
     # vacios. Poner el panel ahi lo hace GRATIS en altura -- si fuera a la
     # columna derecha, el dashboard entero creceria y en un portatil ya no
     # entraria en pantalla.
-    # 380 px = 17 lineas a fontsize 13 (interlineado real ~1.7x): el caso
-    # mas largo del panel (dos capas ON + look activo) son 17 lineas.
-    FX_H = 380
+    # El bloque de abajo tiene que caber en el hueco REAL que queda entre
+    # la grilla y el borde inferior. Ese hueco se achico dos veces: al
+    # subir el tile a 104 px (para la etiqueta) y al bajar el status a 18
+    # lineas (para entrar en 1080p). Los valores de antes -- FX de 380 y
+    # bloque de preview de 284 -- se salian del dashboard por abajo; lo
+    # detecto tools/test_dashboard_layout.py antes de llegar a TD.
+    # Ahora se calculan DESDE el hueco disponible en vez de ser fijos, asi
+    # que si manana cambia el tile o el status esto se reacomoda solo.
     FX_GAP = 12
-    PREV_W, PREV_H = 320, 180
-    BTN_H = 44
     grid_bottom = dash_h - c.DASH_MARGIN - grid_h
-
+    avail_h = grid_bottom - c.DASH_MARGIN - FX_GAP
+    FX_H = avail_h
+    PREV_W = 300
+    PREV_H = int(PREV_W * 9 / 16)          # 16:9, sin deformar
+    BTN_H = 36
     # El bloque de cue (monitor + TAKE + PANICO) va a la DERECHA del
-    # espacio muerto y el panel de Master FX a la izquierda: los dos
-    # entran en los ~512 px libres que quedan debajo de la grilla, sin
-    # hacer crecer el dashboard ni un pixel.
+    # hueco y el panel de Master FX a la izquierda: los dos entran debajo
+    # de la grilla sin hacer crecer el dashboard ni un pixel.
     prev_x = c.DASH_MARGIN + grid_w - PREV_W
     prev_y = grid_bottom - FX_GAP - PREV_H
     build_preview_monitor(dash, prev_x, prev_y, PREV_W, PREV_H)
@@ -370,7 +453,7 @@ def build_master_fx_panel(dash, x, y, w, h):
     """
     return _build_text_panel(
         dash, 'master_fx', x, y, w, h,
-        'MASTER FX  ...', fontsize=13,
+        'MASTER FX  ...', fontsize=12,
         fontcolor=(0.95, 0.88, 0.70), bgcolor=(0.07, 0.06, 0.05))
 
 

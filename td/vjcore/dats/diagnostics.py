@@ -156,42 +156,37 @@ def updateMasterFX():
     scene_a = _switch_index('program_a')
     scene_b = _switch_index('program_b')
 
-    # Ancho util del panel: ~70 caracteres (604 px a fontsize 13
-    # monoespaciada). Ninguna linea de aca abajo puede pasarse, o se
-    # corta sin aviso.
+    # COMPACTADO a 11 lineas como maximo. El panel se achico al
+    # reacomodar el bloque de abajo del dashboard (ver dashboard.py), y
+    # un texto que no entra se corta SIN AVISO -- peor que uno mas corto.
+    # Se fueron las lineas de explicacion larga; el estado, que es lo que
+    # de verdad se mira en vivo, quedo entero.
     on = trails > 0.005
     lines = [
-        'MASTER FX     efectos del PROGRAM, no de la escena',
-        '=' * 56,
-        '',
-        'ESTELA   {}  {} {:.2f}'.format(
-            'ON ' if on else 'OFF', _bar(trails, 10), trails),
-        '   zoom {} {:.2f}    giro {} {:.2f}'.format(
-            _arrow(tzoom), tzoom, _arrow(trot), trot),
-        '   Arrastra el frame anterior, encogido y girado.',
-        '   Apagada NO cuesta GPU: el shader ni cocina.',
+        'MASTER FX   (efectos del PROGRAM, no de la escena)',
+        'ESTELA {}  {} {:.2f}   zoom {} giro {}'.format(
+            'ON ' if on else 'OFF', _bar(trails, 8), trails,
+            _arrow(tzoom).strip(), _arrow(trot).strip()),
         '',
     ]
 
     if dual:
         lines += [
-            'DOS CAPAS ON  modo {:<10} mezcla {} {:.2f}'.format(
+            'DOS CAPAS ON   {}   mezcla {} {:.2f}'.format(
                 mode, _bar(mix, 8), mix),
-            '   A  {:02d} {:<12} {}'.format(
-                scene_a, _sceneName(scene_a)[:12],
+            '   A  {:02d} {:<13}{}'.format(
+                scene_a, _sceneName(scene_a)[:13],
                 '<< EDITANDO' if editing == 0 else ''),
-            '   B  {:02d} {:<12} {}'.format(
-                scene_b, _sceneName(scene_b)[:12],
+            '   B  {:02d} {:<13}{}'.format(
+                scene_b, _sceneName(scene_b)[:13],
                 '<< EDITANDO' if editing == 1 else ''),
             '   El click carga la capa marcada EDITANDO.',
-            '   Mezcla 0 = solo A  ·  1 = efecto completo.',
         ]
     else:
         lines += [
             'DOS CAPAS OFF  (bus A/B en transicion normal)',
-            '   Prendelo para 2 escenas vivas a la vez.',
+            '   Prendelo para 2 escenas vivas y mezclarlas.',
             '   Modos: {}'.format(' '.join(m[:4] for m in modes)),
-            '   Modo actual si lo prendes: {}'.format(mode),
         ]
 
     # --- LOOK DEL SHOW ---
@@ -208,11 +203,10 @@ def updateMasterFX():
     lines += ['']
     if look_amt > 0.005 or pal > 0.005:
         lines += [
-            'LOOK  {:<14} {} {:.2f}'.format(
+            'LOOK  {:<15}{} {:.2f}'.format(
                 look_name, _bar(look_amt, 8), look_amt),
-            '   paleta del show {} {:.2f}'.format(_bar(pal, 8), pal),
-            '   Se aplica a las 34 por igual: es el color del',
-            '   SHOW, no un ajuste de esta escena.',
+            'PALETA DEL SHOW      {} {:.2f}'.format(_bar(pal, 8), pal),
+            '   Se aplica a las 34 por igual: es el color del SHOW.',
         ]
     else:
         lines += [
@@ -286,23 +280,24 @@ def update():
     # FPS a intervalos regulares -- no hace falta otro bucle propio.
     _watchdog(fps, warn)
 
+    # COMPACTADO a la mitad de lineas (el panel bajo de 24 a 18 para que
+    # el dashboard entre en 1080p, ver dashboard.py). No se perdio ningun
+    # dato: los campos relacionados se juntaron de a dos por linea, que
+    # ademas se lee mas rapido de reojo que una columna larga.
     lines = [
-        'SISTEMA     {}'.format(overall),
-        'FPS         {:.1f}  ({})'.format(fps, fps_state),
-        'GPU show    {:.2f} ms'.format(gpu) if gpu >= 0 else 'GPU show    n/d',
-        'MIDI        {} ({} ch)'.format(
-            'CONECTADO' if midi_ch else 'SIN DATOS', midi_ch),
-        'AUDIO       {} ({} ch)'.format(
-            'CONECTADO' if audio_ch else 'SIN DATOS', audio_ch),
-        'CTRL        {} canales'.format(ctrl_ch),
-        'SALIDA      {} x {}'.format(
-            int(p.par.Outputwidth.eval()), int(p.par.Outputheight.eval())),
-        'ACTIVA      ESCENA {:02d}'.format(active),
-        'DESTINO     {}'.format(
-            'ESCENA {:02d}'.format(target) if moving else '-'),
-        'COOCINANDO  {} / {} escenas'.format(cooking, n_scenes),
-        'BLACKOUT    {}'.format('ON' if p.par.Blackout.eval() else 'OFF'),
-        'ERRORES     {}'.format(errors),
+        'SISTEMA {:<6}  FPS {:.1f} ({})  GPU {}'.format(
+            overall, fps, fps_state,
+            '{:.2f}ms'.format(gpu) if gpu >= 0 else 'n/d'),
+        'MIDI {:<10} AUDIO {:<10} CTRL {} ch'.format(
+            'OK({})'.format(midi_ch) if midi_ch else 'SIN DATOS',
+            'OK({})'.format(audio_ch) if audio_ch else 'SIN DATOS', ctrl_ch),
+        'SALIDA {}x{}   COOCINANDO {}/{}   BLACKOUT {}   ERR {}'.format(
+            int(p.par.Outputwidth.eval()), int(p.par.Outputheight.eval()),
+            cooking, n_scenes,
+            'ON' if p.par.Blackout.eval() else 'off', errors),
+        'ACTIVA {:02d} {:<14} DESTINO {}'.format(
+            active, _sceneName(active),
+            '{:02d}'.format(target) if moving else '-'),
     ]
     if learn:
         lines.append('')
@@ -355,8 +350,6 @@ def update():
     # adivinar mirando solo el visual. Mismo tick que el resto del panel
     # (Diagnosticinterval, ~5x por segundo por defecto) -- suficiente
     # para leer una perilla en movimiento sin gastar mas costo por frame.
-    lines.append('')
-    lines.append('ESCENA      {:02d} {}'.format(active, _sceneName(active)))
     lines.append('')
     lines.append('VALORES EN VIVO')
     lines.append('Speed {:.2f}  Density {:.2f}  Hue {:.2f}  Chaos {:.2f}  Bright {:.2f}'.format(
