@@ -45,7 +45,9 @@ vec4 render(vec2 uv)
     float wSum = max(wB + wM + wH, 0.001);
     float level = (uBass * wB + uMid * wM + uHigh * wH) / wSum;
     level += 0.05 * sin(t * (0.5 + hash21(vec2(barIdU, 4.0)) * 2.0));
-    level = clamp(level, 0.02, 1.0) * (0.35 + uD1 * 1.0);
+    // Piso 0.35 -> 0.62: con D1 en 0 las barras no pasaban del tercio
+    // inferior y la escena se leia como un grafico de relleno.
+    level = clamp(level, 0.02, 1.0) * (0.62 + uD1 * 0.75);
 
     // PIANO: la barra elegida por uKeypos dispara a tope con cada tecla,
     // geometria real -- Y se propaga a 2-3 barras vecinas (amplitud

@@ -61,9 +61,15 @@ vec4 render(vec2 uv)
     float crack = dist2 - dist1;
 
     // D1: grosor de la grieta nitida.
-    float edge = 1.0 - smoothstep(0.0, 0.006 + uD1 * 0.03, crack);
+    // Grieta 0.006 -> 0.020 de ancho: con D1 en 0 las grietas eran
+    // hilos de menos de un pixel y de la escena solo se veian los
+    // puntos donde se cruzaban. No se leia como vidrio roto.
+    float edge = 1.0 - smoothstep(0.0, 0.020 + uD1 * 0.028, crack);
     // D2: glow ancho.
-    float glow = exp(-crack * crack / (0.002 + uD2 * 0.03)) * uD2;
+    // Y el glow y el nucleo estaban multiplicados por uD2/uD3 CRUDOS,
+    // asi que en 0 valian exactamente cero: la escena arrancaba sin
+    // ningun brillo. Ahora tienen piso propio.
+    float glow = exp(-crack * crack / (0.004 + uD2 * 0.03)) * (0.25 + uD2 * 0.85);
 
     // Revelacion radial: crece con cada kick, D4 sube el piso en reposo.
     // Piso subido (0.10->0.35): en D4=0 el vidrio quedaba practicamente
@@ -71,15 +77,23 @@ vec4 render(vec2 uv)
     // "telaraña" de grietas de entrada, y el kick sigue agrandandola.
     float r = length(p);
     float shatterR = (0.35 + uD4 * 0.4) + uKick * 1.4 + uBass * 0.12;
-    float reveal = smoothstep(shatterR + 0.18, shatterR - 0.18, r);
+    // Borde de revelacion MUCHO mas suave (0.18 -> 0.45 de rampa): con
+    // el borde corto se veia un circulo recortado -- una pelota de
+    // malla -- en vez de grietas que se van perdiendo hacia afuera.
+    float reveal = smoothstep(shatterR + 0.45, shatterR - 0.30, r);
 
     float h = audioHue(uHue, uMid * 0.15);
     vec3 col = hsv2rgb(vec3(fract(h + crack * 3.0), 0.55, 1.0)) * edge * reveal;
     col += hsv2rgb(vec3(fract(h + 0.5), 0.35, 1.0)) * glow * reveal * 0.6;
 
     // Nucleo saturado justo en el borde -- D3.
-    float core = smoothstep(0.012, 0.0, crack);
-    col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * uD3 * reveal;
+    // Mismo problema que el glow: estaba multiplicado por uD3 CRUDO, o
+    // sea que con la perilla en 0 (el default) el nucleo brillante de la
+    // grieta valia exactamente cero. Ahora tiene piso propio y D3 lo
+    // sube desde ahi.
+    float core = smoothstep(0.018, 0.0, crack);
+    col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core
+         * (0.35 + uD3 * 0.9) * reveal;
 
     // PIANO: un impacto EXTRA agrieta el vidrio en el punto que elige
     // uKeypos, ademas de la revelacion central -- reusa la misma red de

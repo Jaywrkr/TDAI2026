@@ -42,7 +42,10 @@ vec4 render(vec2 uv)
     // llegaba a mostrarse -- ahora aparece de forma confiable en reposo,
     // no solo en zonas de fbm con suerte.
     float poolField = fbm(p * 1.2 + t * 0.02, 4);
-    float pool = smoothstep(0.32, 0.52, poolField) * smoothstep(0.6, 0.0, length(p));
+    // Umbral MAS angosto (0.32-0.52 -> 0.38-0.46): la tinta real tiene
+    // borde, aunque sea irregular. Con la rampa ancha el charco era una
+    // nube difusa sin silueta -- se leia como humo, no como tinta.
+    float pool = smoothstep(0.38, 0.46, poolField) * smoothstep(0.62, 0.05, length(p));
     col += inkCol * pool * 0.7;
 
     int nDrops = 10 + int(floor(uDensity * 22.0));
@@ -60,7 +63,9 @@ vec4 render(vec2 uv)
 
         // Piso subido (0.5->0.9): en D1=0 las gotas quedaban casi
         // invisibles, no se leia la salpicadura en reposo.
-        float dropSize = mix(0.015, 0.05, hash21(seed + 3.0)) * (1.0 - cyclePos * 0.6) * (0.9 + uD1 * 0.8);
+        // Gotas mas grandes: eran del tamano de un punto de ruido y no
+        // se leian como gotas despedidas de nada.
+        float dropSize = mix(0.028, 0.075, hash21(seed + 3.0)) * (1.0 - cyclePos * 0.6) * (0.9 + uD1 * 0.8);
         float d = length(p - dropPos);
         float drop = smoothstep(dropSize, dropSize * 0.3, d) * smoothstep(1.0, 0.6, cyclePos);
         col += inkCol * drop;
