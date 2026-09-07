@@ -114,6 +114,18 @@ def _resetEffect(effect_name):
         par = getattr(p.par, effect_name, None)
         if par is not None:
             par.val = 0.0
+    _refreshLeds()
+
+
+def _refreshLeds():
+    """Refleja el estado de los efectos en los LEDs de los pads. No hace
+    nada si Padleds esta en OFF (el default) -- ver control_script."""
+    ctrl = op('/project1/control_script')
+    if ctrl:
+        try:
+            ctrl.module.refreshPadLeds()
+        except Exception:
+            pass
 
 
 CONTINUOUS = {
@@ -144,6 +156,8 @@ CONTINUOUS = {
     # perillas libres, quedan listos para Learn.
     'Trails': ('Trails', 0.0, 1.0),
     'Layermix': ('Layermix', 0.0, 1.0),
+    'Lookamount': ('Lookamount', 0.0, 1.0),
+    'Palettelock': ('Palettelock', 0.0, 1.0),
 }
 
 TRIGGERS = {
@@ -157,6 +171,12 @@ TRIGGERS = {
     'Duallayer': 'toggleDual',
     'Blendnext': 'nextBlendMode',
     'Layerswap': 'swapLayer',
+    # Preview/cue y panico (Fase 5).
+    'Take': 'takePreview',
+    'Cuemode': 'toggleCue',
+    'Cuenext': 'cueNext',
+    'Cueprev': 'cuePrev',
+    'Panic': 'panic',
 }
 
 # 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas
@@ -200,6 +220,7 @@ def _handle(channel, val, is_trigger):
         par = getattr(p.par, slot, None)
         if par is not None:
             par.val = max(0.0, min(1.0, float(val) / 127.0))
+        _refreshLeds()
         run("op('/project1/midi_logic').module._resetEffect('{}')".format(slot), delayFrames=2)
 
 

@@ -296,6 +296,22 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
         # 'selective' evita coocinar las 20 entradas del Switch.
         safe_set(sw, 'cooktype', 'selective')
 
+    # --- BUS DE PREVIEW (cue) ---
+    # Tercer switch sobre las MISMAS fuentes: deja ver una escena en el
+    # dashboard ANTES de tirarla al programa. Es lo que Previewall
+    # intentaba resolver por fuerza bruta (cocinar las 34 miniaturas, que
+    # hundio el FPS a 9): aca cocina UNA sola, la que estas por usar.
+    # Sale crudo, sin Master FX ni master fade -- un cue tiene que mostrar
+    # la escena, no el programa.
+    sw_prev = proj.create(switchTOP, 'preview_sw')
+    sw_prev.nodeX, sw_prev.nodeY = 700, -80
+    try:
+        sw_prev.setInputs(srcs)
+    except Exception as e:
+        log('ERROR setInputs {}: {}'.format(sw_prev.path, e))
+    safe_set(sw_prev, 'cooktype', 'selective')
+    safe_expr(sw_prev, 'index', "op('/project1').par.Previewindex")
+
     for sw, n in ((sw_a, 'program_a'), (sw_b, 'program_b')):
         got = len(sw.inputs)
         if got != config.N_SCENES:
@@ -386,8 +402,72 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     safe_set(win, 'monitor', 1)
     safe_set(win, 'cursorvisible', False)
 
-    log('PROGRAM: bus A/B + crossfade nativo + master fade OK')
-    out = {'a': sw_a, 'b': sw_b, 'cross': cross, 'clean': clean,
-           'bloom': bloom, 'master': master, 'show': show, 'window': win}
+    _build_outputs(proj, show)
+
+    log('PROGRAM: bus A/B + preview + crossfade nativo + master fade OK')
+    out = {'a': sw_a, 'b': sw_b, 'preview': sw_prev, 'cross': cross,
+           'clean': clean, 'bloom': bloom, 'master': master, 'show': show,
+           'window': win}
     out.update(fx)
     return out
+
+
+# ---------------------------------------------------------------
+# SALIDAS EXTERNAS + GRABACION
+# ---------------------------------------------------------------
+
+def _build_outputs(proj, show):
+    """Salida a otro software (NDI / Syphon-Spout) y grabacion a disco.
+
+    Los tres nodos se crean con try/except por TIPO: que un operador
+    exista depende del build, del sistema operativo y de la LICENCIA
+    (NDI y Syphon/Spout no estan disponibles en todas). Si el tipo no
+    existe, `proj.create` levanta NameError sobre la constante de tipo y
+    aca se registra y se sigue -- un rig que no arranca porque no hay NDI
+    seria mucho peor que uno sin NDI.
+
+    Por eso tampoco se conecta ninguno "obligatorio": la cadena de show
+    (show_out -> ventana) funciona exactamente igual con o sin esto.
+    """
+    made = []
+
+    # NDI: lo lee Resolume, OBS, un media server, otra maquina en la red.
+    try:
+        ndi = proj.create(ndioutTOP, 'ndi_out')          # noqa: F821
+        ndi.nodeX, ndi.nodeY = 1560, 200
+        connect(ndi, show)
+        safe_set_first(ndi, ['name', 'ndiname', 'sourcename'],
+                       'TDAI2026')
+        safe_expr(ndi, 'active', "op('/project1').par.Externalout")
+        made.append('NDI')
+    except Exception as e:
+        log('SALIDA: NDI no disponible en este build/licencia ({})'.format(
+            type(e).__name__))
+
+    # Syphon (macOS) / Spout (Windows): misma idea pero local, sin red.
+    try:
+        syp = proj.create(syphonspoutoutTOP, 'syphon_out')   # noqa: F821
+        syp.nodeX, syp.nodeY = 1560, 320
+        connect(syp, show)
+        safe_set_first(syp, ['name', 'sendername', 'syphonname'],
+                       'TDAI2026')
+        safe_expr(syp, 'active', "op('/project1').par.Externalout")
+        made.append('Syphon/Spout')
+    except Exception as e:
+        log('SALIDA: Syphon/Spout no disponible en este build/licencia '
+            '({})'.format(type(e).__name__))
+
+    # Grabacion a disco. El nombre de archivo lo arma control_script en
+    # el momento de grabar (con fecha y hora), no una expresion: si fuera
+    # una expresion se reevaluaria sola y podria cambiar el archivo a
+    # mitad de grabacion.
+    try:
+        rec = proj.create(moviefileoutTOP, 'recorder')       # noqa: F821
+        rec.nodeX, rec.nodeY = 1560, 440
+        connect(rec, show)
+        safe_expr(rec, 'record', "op('/project1').par.Record")
+        made.append('grabacion')
+    except Exception as e:
+        log('SALIDA: grabacion no disponible ({})'.format(type(e).__name__))
+
+    log('SALIDAS: {}'.format(', '.join(made) if made else 'ninguna disponible'))
