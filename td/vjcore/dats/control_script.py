@@ -789,6 +789,13 @@ _FAILSAFE_STEPS = [
     ('dos capas apagadas', 'Duallayer', False),
 ]
 
+# Escalones de _FAILSAFE_STEPS + el de resolucion, que va ultimo porque
+# es el mas efectivo y el mas visible. Se DERIVA de la lista: antes el
+# tope era un 3 escrito a mano, y coincidia de casualidad. Agregar un
+# escalon a la lista habria hecho que el de resolucion nunca se alcance
+# -- sin error, sin aviso, y justo cuando el FPS ya esta en el piso.
+_FAILSAFE_MAX_LEVEL = len(_FAILSAFE_STEPS) + 1
+
 
 def failsafeStep():
     """Baja UN escalon de calidad. La llama diagnostics.py cuando el FPS
@@ -798,7 +805,7 @@ def failsafeStep():
         return
     try:
         level = int(p.par.Failsafelevel.eval())
-        if level >= 3:
+        if level >= _FAILSAFE_MAX_LEVEL:
             return                       # ya no queda nada que soltar
         if level < len(_FAILSAFE_STEPS):
             label, par_name, val = _FAILSAFE_STEPS[level]
@@ -856,10 +863,17 @@ def panic():
                 par.val = 0.0
         if _dual():
             toggleDual()
-        p.par.Autopilot = False
+        # Los tres modos que sobreviven invisibles a un panico si no se
+        # apagan aca. Cuemode es el peor de los tres: despues del panico
+        # tu proximo click en la grilla cargaria el PREVIEW en vez del
+        # aire, en silencio y en el peor momento posible.
+        for name in ('Autopilot', 'Cuemode', 'Medialock'):
+            par = getattr(p.par, name, None)
+            if par is not None:
+                par.val = False
         abortTransition()
         selectScene(0)
-        print('>> PANICO: blackout, escena 0, efectos a cero')
+        print('>> PANICO: blackout, escena 0, efectos y modos a cero')
     except Exception as e:
         print('panic ERROR:', e)
 
@@ -991,7 +1005,13 @@ def resetControls():
     # Modos apagados: un reset tiene que dejar un estado PREDECIBLE, y
     # un modo prendido que no se ve (porque todo esta en 0) es la peor
     # forma de descubrir que estaba prendido.
-    for name in ('Blackout', 'Autopilot', 'Energyactive'):
+    #
+    # Medialock entra en esa lista por exactamente ese motivo: con la
+    # imagen congelada, reseteas todo y la carpeta sigue clavada sin que
+    # nada en pantalla lo explique. Cuemode tambien, por la misma razon
+    # que en panic().
+    for name in ('Blackout', 'Autopilot', 'Energyactive',
+                 'Medialock', 'Cuemode'):
         par = getattr(p.par, name, None)
         if par is not None:
             try:
@@ -1407,6 +1427,26 @@ def _mediaFolder():
         return ''
 
 
+# El listado de la carpeta y el orden de recorrido viven en GLOBALES DE
+# MODULO, no en el storage de /project1, y esto no es un detalle de
+# estilo: currentMediaPath() corre como EXPRESION del parametro 'file' de
+# tres Movie File In TOPs, o sea en cada cook. En TouchDesigner el
+# storage participa del sistema de dependencias -- fetch() dentro de una
+# expresion crea la dependencia y store() la ensucia -- asi que cachear
+# con fetch+store ahi adentro es una expresion que se auto-invalida. Un
+# global de modulo no participa de nada de eso.
+#
+# El precio es que la expresion pierde el unico motivo que tenia para
+# reevaluarse cuando cambia la LISTA (y no el indice). Por eso existe el
+# parametro Mediagen: mediaRescan() y mediaReshuffle() lo incrementan, y
+# currentMediaPath() lo lee, asi la dependencia queda explicita y en el
+# lugar correcto -- un parametro, que es lo que el sistema de
+# dependencias de TD sabe seguir.
+_MEDIA_FILES = None
+_MEDIA_FILES_KEY = None
+_MEDIA_ORDER = []
+
+
 def _mediaExts():
     try:
         import vjcore.config as _vjconfig
@@ -1446,13 +1486,10 @@ def mediaFiles():
 
     Nunca tira excepcion: se llama desde una expresion de parametro, y ahi
     una excepcion rompe el TOP entero."""
-    p = _p()
-    if not p:
-        return []
+    global _MEDIA_FILES, _MEDIA_FILES_KEY
     folder = _mediaFolder()
-    cached = p.fetch('media_files', None)
-    if cached is not None and p.fetch('media_files_key', '') == folder:
-        return cached
+    if _MEDIA_FILES is not None and _MEDIA_FILES_KEY == folder:
+        return _MEDIA_FILES
 
     files = []
     if folder and os.path.isdir(folder):
@@ -1464,8 +1501,8 @@ def mediaFiles():
         except Exception as e:
             print('mediaFiles ERROR:', e)
             files = []
-    p.store('media_files', files)
-    p.store('media_files_key', folder)
+    _MEDIA_FILES = files
+    _MEDIA_FILES_KEY = folder
     _mediaBuildOrder(len(files))
     return files
 
@@ -1479,37 +1516,48 @@ def _mediaBuildOrder(n):
     dos veces seguidas y deja media carpeta sin salir nunca. Barajando el
     orden se ven todas, una vez cada una, y recien ahi se vuelve a
     empezar."""
+    global _MEDIA_ORDER
     p = _p()
-    if not p:
-        return
     order = list(range(n))
     shuffle = False
     try:
-        shuffle = bool(p.par.Mediashuffle.eval())
+        shuffle = bool(p.par.Mediashuffle.eval()) if p else False
     except Exception:
         pass
     if shuffle and n > 1:
         import random
         random.shuffle(order)
-    p.store('media_order', order)
+    _MEDIA_ORDER = order
+
+
+def _mediaBumpGen():
+    """Avisa a la expresion 'file' de los Movie File In que la LISTA
+    cambio (no el indice). Ver el comentario de _MEDIA_FILES."""
+    p = _p()
+    if not p:
+        return
+    try:
+        p.par.Mediagen.val = (int(p.par.Mediagen.eval()) + 1) % 100000
+    except Exception:
+        pass
 
 
 def mediaReshuffle():
     """Vuelve a barajar (o a ordenar) sin tocar el cache de archivos."""
     _mediaBuildOrder(len(mediaFiles()))
+    _mediaBumpGen()
 
 
 def mediaRescan():
     """Tira el cache de la carpeta y vuelve a la primera imagen. Hay que
     apretarlo despues de agregar o sacar archivos con TD abierto -- si no,
     sigue mostrando la lista vieja."""
-    p = _p()
-    if not p:
-        return
-    p.unstore('media_files')
-    p.unstore('media_files_key')
+    global _MEDIA_FILES, _MEDIA_FILES_KEY
+    _MEDIA_FILES = None
+    _MEDIA_FILES_KEY = None
     files = mediaFiles()
     _mediaSetIndex(0)
+    _mediaBumpGen()
     print('MEDIA: {} archivos en {}'.format(len(files), _mediaFolder() or '(sin carpeta)'))
 
 
@@ -1540,14 +1588,23 @@ def currentMediaPath():
 
     Vacio = TOP sin archivo = sale negro, no error. Los tres .frag estan
     escritos para verse bien igual sin imagen cargada."""
+    p = _p()
+    if p:
+        # Se LEE Mediagen sin usarlo: es lo que ata esta expresion a los
+        # cambios de lista (rescan / reshuffle). Sin esta linea, agregar
+        # archivos y apretar Releer la carpeta no refrescaria el TOP
+        # mientras el indice siguiera siendo el mismo.
+        try:
+            p.par.Mediagen.eval()
+        except Exception:
+            pass
     files = mediaFiles()
     if not files:
         return ''
-    p = _p()
-    order = (p.fetch('media_order', None) if p else None) or list(range(len(files)))
+    order = _MEDIA_ORDER
     if len(order) != len(files):
         _mediaBuildOrder(len(files))
-        order = (p.fetch('media_order', None) if p else None) or list(range(len(files)))
+        order = _MEDIA_ORDER
     return files[order[_mediaIndex() % len(order)]]
 
 
