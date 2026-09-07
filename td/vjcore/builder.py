@@ -21,6 +21,12 @@ from .tdutil import (safe_set, safe_expr, add_float, add_int, add_toggle,
 DAT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dats')
 
 
+def _menu_hint(names):
+    """Etiqueta legible para un int que en realidad es un menu: sin esto,
+    'Mediamode = 3' en el panel de parametros no dice nada."""
+    return '(' + '  '.join('{}={}'.format(i, n) for i, n in enumerate(names)) + ')'
+
+
 def _dat_text(name):
     with open(os.path.join(DAT_DIR, name + '.py'), 'r', encoding='utf-8') as f:
         return f.read()
@@ -89,6 +95,42 @@ def _parameters(proj):
     ap = proj.appendCustomPage('Autopilot')
     add_toggle(ap, 'Autopilot', 'Autopilot (hands-free)', False)
     add_float(ap, 'Autopilotseconds', 'Autopilot Seconds', 20.0, 3.0, 120.0)
+
+    # --- CARPETA COMUN DE MEDIA ---
+    # UNA carpeta para las tres escenas que usan imagen (config.MEDIA_SCENES:
+    # 19 glitch, 34 caleidoscopio, 35 trama). Las tres muestran la MISMA
+    # imagen al mismo tiempo, asi que pasar de una a otra en vivo se lee
+    # como el mismo material tratado de tres formas -- y la ruta se carga
+    # una sola vez, no una por escena.
+    #
+    # Mediaindex es interno: no se toca a mano, lo escriben el modo
+    # automatico y los botones de abajo.
+    md = proj.appendCustomPage('Media')
+    add_string(md, 'Mediafolder', 'Carpeta de imagenes / GIFs', '')
+    add_int(md, 'Mediaindex', 'Imagen actual (interno)', 0, 0, 9999)
+    add_int(md, 'Mediamode', 'Como cambia de imagen  ' + _menu_hint(c.MEDIA_MODES),
+            1, 0, len(c.MEDIA_MODES) - 1)
+    # 0 = el intervalo lo saca de la perilla Speed (comportamiento
+    # historico). Cualquier otro valor manda sobre Speed.
+    add_float(md, 'Mediaseconds', 'TIEMPO: segundos (0 = segun Speed)',
+              0.0, 0.0, 60.0)
+    add_int(md, 'Mediabeats', 'COMPAS: cada cuantos golpes', 4, 1, 32)
+    # Shuffle no es "random cada vez": genera un ORDEN barajado estable y
+    # lo recorre. Asi no repite la misma imagen dos veces seguidas ni deja
+    # media carpeta sin salir nunca, que es lo que pasa con random puro.
+    add_toggle(md, 'Mediashuffle', 'Orden barajado (no repite)', False)
+    # Lock congela la imagen actual pase lo que pase con el modo. Es el
+    # equivalente de media al blackout: un solo toggle para cuando algo
+    # esta quedando bien y no se quiere que se vaya.
+    add_toggle(md, 'Medialock', 'CONGELAR imagen actual', False)
+    add_pulse(md, 'Medianext', 'Imagen siguiente')
+    add_pulse(md, 'Mediaprev', 'Imagen anterior')
+    add_pulse(md, 'Mediarandom', 'Imagen al azar')
+    # La carpeta se escanea una vez y queda cacheada (se llama desde una
+    # expresion de parametro, o sea todos los frames: un os.listdir por
+    # frame es inaceptable). Este boton tira el cache -- hay que apretarlo
+    # despues de agregar o sacar archivos con TD abierto.
+    add_pulse(md, 'Mediarescan', 'Releer la carpeta')
 
     # --- MASTER FX (Fase 4): estela + dos capas ---
     # Los dos viven en el program bus, DESPUES de las escenas y ANTES del
@@ -308,6 +350,14 @@ def onPulse(par):
         m.nextBank()
     elif n == 'Bankprev':
         m.prevBank()
+    elif n == 'Medianext':
+        m.mediaNext()
+    elif n == 'Mediaprev':
+        m.mediaPrev()
+    elif n == 'Mediarandom':
+        m.mediaRandom()
+    elif n == 'Mediarescan':
+        m.mediaRescan()
     elif n.startswith('Learn'):
         slot = n[5:]
         for s in m._midi_slots():
@@ -327,6 +377,17 @@ def onValueChange(par, prev):
         # El macro escribe las perillas al MOVERSE, no por frame: esto
         # es un evento de valor, no un bucle.
         ctrl.module.applyEnergy()
+    elif par.name == 'Mediafolder':
+        # Carpeta nueva: se tira el cache y se vuelve a la primera imagen.
+        # Sin esto quedaria mostrando el indice de la carpeta anterior,
+        # que casi seguro apunta a otra cosa (o a nada).
+        ctrl.module.mediaRescan()
+    elif par.name in ('Mediamode', 'Mediaseconds'):
+        # Cambiar a TIEMPO tiene que re-arrancar el ciclo aunque estuviera
+        # en MANUAL hace media hora.
+        ctrl.module.startMediaCycles()
+    elif par.name == 'Mediashuffle':
+        ctrl.module.mediaReshuffle()
     return
 
 

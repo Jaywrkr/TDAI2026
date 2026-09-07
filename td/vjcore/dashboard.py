@@ -74,7 +74,12 @@ def build(proj, thumbs, program_clean):
     # (campos relacionados en una sola) en vez de perder informacion.
     STATUS_FONTSIZE = 12
     STATUS_LINE_H = STATUS_FONTSIZE * 1.7
-    STATUS_MAX_LINES = 18
+    # Subido de 18 a 22 al aparecer la carpeta comun de media: el panel
+    # gana hasta 3 lineas cuando la escena activa es una de las tres que
+    # usan imagen (19/34/35), y un texto que no entra se corta SIN AVISO.
+    # Los 4 renglones extra caben: el dashboard pasa de 969 a 1051 px de
+    # alto y el limite sigue siendo 1080.
+    STATUS_MAX_LINES = 22
     status_h = int(STATUS_MAX_LINES * STATUS_LINE_H) + 16
 
     BEAT_STRIP_H = 40
@@ -112,7 +117,7 @@ def build(proj, thumbs, program_clean):
 
         # POSTER FRAME: la miniatura sale de un ARCHIVO, no del TOP vivo
         # de la escena. Con Previewall=False solo cocinan 1-2 escenas, asi
-        # que 32 de 34 casilleros mostraban negro o un frame congelado.
+        # que 34 de 36 casilleros mostraban negro o un frame congelado.
         # El TOP vivo sigue existiendo (es lo que se hornea, y lo que ve
         # el monitor de program), pero la GRILLA muestra el poster: se ve
         # completa siempre y no cuesta un solo ciclo de GPU.
@@ -365,7 +370,7 @@ def build_preview_monitor(dash, x, y, w, h):
     fade -- a proposito: un cue tiene que decir como es LA ESCENA, no
     como se ve el programa con todo lo que tenga puesto encima ahora.
 
-    Cuesta una escena cocinando (ver setSceneCooking), no las 34 que
+    Cuesta una escena cocinando (ver setSceneCooking), no las 36 que
     cocinaba Previewall y que hundieron el FPS a 9.
     """
     frame = dash.create(containerCOMP, 'preview_frame')

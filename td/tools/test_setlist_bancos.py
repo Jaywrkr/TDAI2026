@@ -6,8 +6,12 @@ Es lo unico de la Fase 5 que se puede verificar de verdad fuera de TD:
 todo lo demas depende de nodos reales. Y es justo donde viven los
 off-by-one (wraparound, escena fuera del setlist, tokens mal tipeados).
 """
+import os
 import sys
 import types
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from vjcore.config import N_SCENES  # noqa: E402
 
 
 class FakePar:
@@ -36,7 +40,7 @@ class FakeProject:
         self._store[k] = v
 
 
-def load_control_script(proj, scenes_valid):
+def load_control_script(proj, scenes_valid, N=None):
     """Carga control_script.py con los globales de TD stubbeados."""
     path = '/home/user/TDAI2026/td/vjcore/dats/control_script.py'
     with open(path) as f:
@@ -55,7 +59,8 @@ def load_control_script(proj, scenes_valid):
     exec(compile(src, path, 'exec'), mod.__dict__)
     # _valid depende de nodos reales; para el test, todas validas
     mod.__dict__['_valid'] = lambda i: i in scenes_valid
-    mod.__dict__['_n_scenes'] = lambda: 34
+    n = N if N is not None else N_SCENES
+    mod.__dict__['_n_scenes'] = lambda: n
     return mod
 
 
@@ -70,7 +75,7 @@ def main():
         if not ok:
             fails.append(label)
 
-    valid = set(range(34))
+    valid = set(range(N_SCENES))
 
     print('--- parser del setlist ---')
     for raw, want in [
@@ -108,12 +113,18 @@ def main():
           m._step(-1), 25)
 
     print('\n--- navegacion SIN setlist (comportamiento de siempre) ---')
+    # El wraparound se prueba contra la ULTIMA escena que exista, no
+    # contra un numero escrito a mano: si no, agregar escenas convierte
+    # este caso en "de la 33 a la 0", que ya no es el borde.
+    last = N_SCENES - 1
     proj = FakeProject(Setlist='3, 10, 25', Usesetlist=False,
-                       Activeindex=33, Targetindex=33, Duallayer=False)
+                       Activeindex=last, Targetindex=last, Duallayer=False)
     m = load_control_script(proj, valid)
-    check('next desde 33 da la vuelta a 0', m._step(1), 0)
+    check('next desde {} (ultima) da la vuelta a 0'.format(last),
+          m._step(1), 0)
     proj.par.Activeindex.val = 0
-    check('prev desde 0 da la vuelta a 33', m._step(-1), 33)
+    check('prev desde 0 da la vuelta a {}'.format(last),
+          m._step(-1), last)
 
     print('\n--- setlist activo pero VACIO: no debe romper nada ---')
     proj = FakeProject(Setlist='', Usesetlist=True,
@@ -122,10 +133,16 @@ def main():
     check('cae al recorrido normal', m._step(1), 6)
 
     print('\n--- cantidad de bancos ---')
-    for size, want in [(8, 5), (16, 3), (34, 1), (1, 34), (5, 7)]:
+    # Los esperados se derivan de N_SCENES, no escritos a mano: al sumar
+    # escenas (34 -> 36) este test tiene que seguir siendo valido sin
+    # tocarlo, si no deja de proteger nada.
+    import math as _math
+    for size in (8, 16, N_SCENES, 1, 5):
         proj = FakeProject(Banksize=size, Bank=0)
         m = load_control_script(proj, valid)
-        check('34 escenas en bancos de {}'.format(size), m._bankCount(), want)
+        want = int(_math.ceil(N_SCENES / float(size)))
+        check('{} escenas en bancos de {}'.format(N_SCENES, size),
+              m._bankCount(), want)
 
     print('')
     if fails:

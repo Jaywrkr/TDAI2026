@@ -255,8 +255,8 @@ void main() {
 
     // ---- LOOK MAESTRO (Fase 5) ----
     // El "color del show". Va DESPUES de grade() y de todo lo demas, y
-    // se aplica igual a las 34 escenas: es lo que hace que un set se lea
-    // como UN show y no como 34 demos seguidos, sin tener que editar 34
+    // se aplica igual a las 36 escenas: es lo que hace que un set se lea
+    // como UN show y no como 36 demos seguidos, sin tener que editar 36
     // archivos para cambiar la identidad de color de una noche.
     //
     // Los dos empiezan en 0 y en 0 son un no-op EXACTO (mix(x, y, 0.0)
@@ -266,7 +266,7 @@ void main() {
     // 1. PALETA DEL SHOW: mapea la LUMINANCIA a una rampa de dos tonos
     // (duotono). No es un tinte encima -- reemplaza el color por uno de
     // la familia elegida conservando el brillo, que es lo que hace que
-    // 34 escenas de colores distintos pasen a verse como una sola
+    // 36 escenas de colores distintos pasen a verse como una sola
     // paleta. uPalettespread abre cuanto se separan los dos tonos: en 0
     // es practicamente monocromo, en 1 son dos colores bien distintos.
     if (uPalette > 0.0015) {

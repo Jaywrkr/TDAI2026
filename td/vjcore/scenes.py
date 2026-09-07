@@ -63,16 +63,13 @@ def build_scene(scenes, i, channels):
     # la escena y la muestra en el dashboard.
     add_string(page, 'Detaillegend', 'Detail Legend', '')
 
+    # La carpeta de imagenes/GIFs ya NO vive aca. Es UNA sola, global, en
+    # la pagina "Media" de /project1 (Mediafolder/Mediaindex/Mediamode),
+    # compartida por las tres escenas de config.MEDIA_SCENES. Antes cada
+    # escena tenia su propio par de parametros: habia que cargar la misma
+    # ruta tres veces y los indices se desincronizaban solos, asi que
+    # pasar de la 19 a la 34 en vivo cambiaba de imagen sin querer.
     has_media = i in config.MEDIA_SCENES
-    if has_media:
-        # Carpeta con las imagenes/GIFs/videos que esta escena va rotando
-        # sola -- no un archivo unico. control_script.py escanea la
-        # carpeta (_scanMediaFolder), y el indice actual (Mediaindex,
-        # interno) avanza automaticamente: por tiempo (ritmo segun Speed,
-        # ver _scheduleMediaAdvance) y ademas en cada golpe de bombo
-        # (dats/media_logic.py) -- sin gastar ninguna perilla nueva.
-        add_string(page, 'Mediafolder', 'Media Folder Path', '')
-        add_int(page, 'Mediaindex', 'Media Index (interno)', 0, 0, 9999)
 
     content = sc.create(baseCOMP, 'content')
     content.nodeX, content.nodeY = 0, 0
@@ -97,8 +94,12 @@ def build_scene(scenes, i, channels):
         # tiene que verse bien igual (ver contrato en scene19).
         media_in = content.create(moviefileinTOP, 'media_in')
         media_in.nodeX, media_in.nodeY = -200, 150
+        # Sin argumento: las tres escenas leen el MISMO indice global, o
+        # sea muestran la misma imagen al mismo tiempo. Eso es lo que hace
+        # que cambiar de escena se lea como el mismo material tratado de
+        # tres maneras y no como tres cosas sueltas.
         safe_expr(media_in, 'file',
-                  "op('/project1/control_script').module.currentMediaPath({})".format(i))
+                  "op('/project1/control_script').module.currentMediaPath()")
         safe_set(media_in, 'play', True)
         safe_set_first(media_in, ['cueloop', 'loop'], True)
         connect(glsl, media_in, 1)

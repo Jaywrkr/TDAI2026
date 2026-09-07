@@ -33,7 +33,7 @@ def layout():
     grid_h = c.GRID_ROWS * c.THUMB_H + (c.GRID_ROWS - 1) * c.GAP
     dash_w = c.DASH_MARGIN * 2 + grid_w + 24 + c.PROGRAM_W
 
-    STATUS_FONTSIZE, STATUS_MAX_LINES = 12, 18
+    STATUS_FONTSIZE, STATUS_MAX_LINES = 12, 22
     status_h = int(STATUS_MAX_LINES * STATUS_FONTSIZE * 1.7) + 16
     BEAT_STRIP_H, BEAT_GAP = 40, 8
     legend_h, legend_gap = 110, 10
@@ -110,7 +110,7 @@ def main():
             check('{} vs {}'.format(a[0], b[0]), not overlaps(a, b))
 
     print('\n--- el texto entra en su panel ---')
-    # status: 18 lineas a fontsize 12
+    # status: 22 lineas a fontsize 12
     check('status: {} lineas caben en {} px'.format(status_lines, status_h),
           status_lines * 12 * 1.7 <= status_h)
     # master fx: el caso mas largo son 11 lineas a fontsize 12
@@ -128,7 +128,7 @@ def main():
 
     print('\n--- constantes en sync con dashboard.py ---')
     src = open(os.path.join(TD, 'vjcore', 'dashboard.py')).read()
-    for needle in ('STATUS_MAX_LINES = 18', 'FX_H = avail_h',
+    for needle in ('STATUS_MAX_LINES = 22', 'FX_H = avail_h',
                    'PREV_W = 300', 'BTN_H = 36'):
         check('dashboard.py contiene "{}"'.format(needle), needle in src)
 
