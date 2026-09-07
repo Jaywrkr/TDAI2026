@@ -27,7 +27,29 @@ MAX_OUTPUT = 1280
 # 20 a 34 escenas -- si se mantenia el tamano viejo con 36 casilleros el
 # dashboard entero quedaba enorme.
 THUMB_W = 150
-THUMB_H = 84
+# Subido de 84 a 104 para hacerle lugar a la ETIQUETA (numero + nombre)
+# abajo de cada miniatura. Sin nombre, una grilla de 34 casilleros obliga
+# a acordarse de memoria que la 17 es "triangles" -- y con las miniaturas
+# congeladas (ver POSTER FRAMES abajo) no habia forma de saberlo.
+# El alto del dashboard NO lo manda la grilla sino la columna derecha,
+# asi que agrandar el tile no agranda el dashboard.
+THUMB_H = 104
+THUMB_LABEL_H = 18
+
+# ---------------------------------------------------------------
+# POSTER FRAMES (miniaturas pre-renderizadas)
+# ---------------------------------------------------------------
+# Con Previewall=False -- que es lo que salvo el FPS (ver builder.py) --
+# solo cocinan la escena activa y la del preview. Las otras 32 miniaturas
+# muestran el ultimo frame que alcanzaron a cocinar, o NEGRO si esa
+# escena no se visito nunca en la sesion. O sea: la grilla ocupaba el
+# 55% del dashboard y no comunicaba nada.
+#
+# La salida es guardar en disco un "poster" de cada escena (se hornean
+# con el boton Hornear Miniaturas -- control_script.bakeThumbs) y que la
+# grilla muestre ESOS archivos en vez del TOP vivo. Grilla completa y
+# legible a costo cero de GPU, sin volver a tocar Previewall.
+THUMBS_DIRNAME = 'thumbs'
 GAP = 8
 DASH_MARGIN = 18
 PROGRAM_W = 640

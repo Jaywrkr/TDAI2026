@@ -1013,6 +1013,85 @@ def resetControls():
 
 
 # ---------------------------------------------------------------
+# POSTER FRAMES (hornear miniaturas)
+# ---------------------------------------------------------------
+# Guarda en disco una imagen de cada escena para que la grilla del
+# dashboard se vea COMPLETA sin tener que cocinar las 34 (que es lo que
+# hundio el FPS a 9 cuando se intento con Previewall).
+#
+# Va de a UNA escena por tanda, encadenada con run(delayFrames=...), y no
+# en un for: hay que prender el cooking de la escena, DEJARLA COCINAR
+# unos frames y recien ahi guardar. En un for todo eso pasaria dentro del
+# mismo frame y se guardarian 34 imagenes negras.
+
+def bakeThumbs(index=0):
+    """Arranca (o continua) el horneado. El boton llama a bakeThumbs()."""
+    p = _p()
+    if not p:
+        return
+    index = int(index)
+    if index == 0:
+        print('HORNEANDO MINIATURAS: esto tarda unos segundos, no toques nada')
+    if index >= _n_scenes():
+        # Se restaura el cooking normal y se recarga lo horneado.
+        setSceneCooking()
+        print('MINIATURAS LISTAS ({} escenas)'.format(_n_scenes()))
+        return
+
+    sc = _scene(index)
+    if not sc or not _valid(index):
+        run("op('/project1/control_script').module.bakeThumbs({})".format(index + 1),
+            delayFrames=1)
+        return
+    try:
+        sc.allowCooking = True
+    except Exception:
+        pass
+    # 4 frames: uno no alcanza -- la escena tiene que cocinar y ademas
+    # propagarse por el bridge hasta el Resolution TOP 'thumb'.
+    run("op('/project1/control_script').module._bakeThumbSave({})".format(index),
+        delayFrames=4)
+
+
+def _bakeThumbSave(index):
+    p = _p()
+    if not p:
+        return
+    try:
+        import vjcore.config as _vjconfig
+        import vjcore.shader as _vjshader
+        folder = os.path.join(_vjshader.repo_root(), _vjconfig.THUMBS_DIRNAME)
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+        path = os.path.join(folder, 'scene{:02d}.png'.format(int(index)))
+
+        thumb = op('/project1/scenes/scene{}/thumb'.format(int(index)))
+        if thumb:
+            thumb.save(path)
+            # Se apunta el Movie File In del casillero al archivo recien
+            # guardado: asi la grilla se actualiza SOLA al terminar, sin
+            # tener que reconstruir todo el proyecto.
+            poster = op('/project1/dashboard_ui/poster{}'.format(int(index)))
+            if poster:
+                par = getattr(poster.par, 'file', None)
+                if par is not None:
+                    par.val = path
+                for reload_name in ('reloadpulse', 'reload'):
+                    rp = getattr(poster.par, reload_name, None)
+                    if rp is not None:
+                        try:
+                            rp.pulse()
+                        except Exception:
+                            pass
+                        break
+    except Exception as e:
+        print('_bakeThumbSave ERROR (escena {}): {}'.format(index, e))
+
+    run("op('/project1/control_script').module.bakeThumbs({})".format(int(index) + 1),
+        delayFrames=1)
+
+
+# ---------------------------------------------------------------
 # SHADERS
 # ---------------------------------------------------------------
 
