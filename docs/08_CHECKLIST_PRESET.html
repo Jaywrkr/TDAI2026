@@ -1,0 +1,281 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>TDAI2026 — Checklist antes de un set</title>
+<style>
+  @page { size: A4; margin: 14mm 13mm 12mm 13mm; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 10.5pt/1.42 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #15181d;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  code, .mono { font-family: "SFMono-Regular", Menlo, Consolas, monospace; }
+
+  /* Cada seccion ocupa una hoja entera y el pie se ancla abajo, para que
+     una pagina corta no parezca cortada a la mitad. 271mm = A4 menos los
+     margenes de @page. */
+  .page {
+    page-break-after: always;
+    min-height: 269mm;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-child { page-break-after: auto; }
+  footer.doc { margin-top: auto; }
+
+  header.doc {
+    border-bottom: 3px solid #15181d;
+    padding-bottom: 7px;
+    margin-bottom: 14px;
+  }
+  header.doc h1 { font-size: 19pt; margin: 0 0 2px; letter-spacing: -0.3px; }
+  header.doc .sub { font-size: 9pt; color: #667; }
+
+  h2.step {
+    font-size: 12.5pt;
+    margin: 0 0 3px;
+    padding: 6px 10px;
+    background: #15181d;
+    color: #fff;
+    border-radius: 3px;
+  }
+  h2.step .when {
+    float: right;
+    font-weight: 400;
+    font-size: 9pt;
+    opacity: .75;
+    padding-top: 2px;
+  }
+  .why {
+    font-size: 9pt;
+    color: #556;
+    margin: 6px 2px 9px;
+    border-left: 2px solid #c8ccd4;
+    padding-left: 8px;
+  }
+
+  ul.check { list-style: none; margin: 0 0 15px; padding: 0; }
+  ul.check li {
+    position: relative;
+    padding: 3.5px 0 3.5px 22px;
+    border-bottom: 1px solid #eceef2;
+  }
+  ul.check li:before {
+    content: "";
+    position: absolute;
+    left: 1px; top: 5.5px;
+    width: 11px; height: 11px;
+    border: 1.4px solid #8a919c;
+    border-radius: 2px;
+  }
+  ul.check li b { font-weight: 600; }
+  .path {
+    font-family: "SFMono-Regular", Menlo, Consolas, monospace;
+    font-size: 8.6pt;
+    background: #eef0f4;
+    padding: 0.5px 4px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .note { display: block; font-size: 8.6pt; color: #667; margin-top: 1px; }
+
+  .trap {
+    background: #fff6e5;
+    border: 1px solid #e8c98a;
+    border-left: 4px solid #d8971a;
+    border-radius: 3px;
+    padding: 7px 10px;
+    margin: 0 0 14px;
+    font-size: 9pt;
+  }
+  .trap b { color: #8a5c00; }
+
+  /* --- tarjeta de emergencia --- */
+  .emerg { background: #15181d; color: #f2f4f7; border-radius: 5px; padding: 14px 16px; }
+  .emerg h2 { color: #fff; font-size: 15pt; margin: 0 0 3px; }
+  .emerg .sub { color: #98a1ae; font-size: 9pt; margin-bottom: 12px; }
+  .emerg table { width: 100%; border-collapse: collapse; font-size: 9.4pt; }
+  .emerg td { padding: 6px 4px; border-bottom: 1px solid #2b3038; vertical-align: top; }
+  .emerg td.k { width: 30%; font-weight: 600; color: #7fd3ff; }
+  .emerg td.k .mono { color: #7fd3ff; }
+  .emerg tr:last-child td { border-bottom: none; }
+  .emerg .warn { color: #ffcf6b; }
+
+  table.ref { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 14px; }
+  table.ref th {
+    text-align: left; background: #eef0f4; padding: 5px 7px;
+    border-bottom: 1.5px solid #c8ccd4; font-size: 8.6pt;
+    text-transform: uppercase; letter-spacing: .4px; color: #445;
+  }
+  table.ref td { padding: 4.5px 7px; border-bottom: 1px solid #eceef2; vertical-align: top; }
+  table.ref td:first-child { white-space: nowrap; font-weight: 600; }
+
+  footer.doc {
+    padding-top: 6px;
+    border-top: 1px solid #d8dbe1;
+    font-size: 8pt; color: #889;
+    display: flex; justify-content: space-between;
+  }
+</style>
+
+<!-- ================= PAGINA 1 ================= -->
+<section class="page">
+  <header class="doc">
+    <h1>TDAI2026 — Checklist antes de un set</h1>
+    <div class="sub">36 escenas · Arturia MiniLab mkII · TouchDesigner &nbsp;|&nbsp; 4 bloques: casa · montaje · prueba de sonido · últimos 5 minutos</div>
+  </header>
+
+  <h2 class="step">1 · En casa<span class="when">con tiempo — no en el lugar</span></h2>
+  <div class="why">Todo lo de este bloque tarda minutos y necesita que puedas mirar la pantalla con calma. Nada de esto se hace bien a 20 minutos de tocar.</div>
+
+  <ul class="check">
+    <li><b>Repo actualizado y ramas mergeadas.</b>
+      <span class="note">Si mergeaste algo nuevo: <span class="path">/project1 &gt; System &gt; Reconstruir Todo</span>.</span></li>
+    <li><b>El reporte del build dice <span class="mono">RESULTADO: TODO OK</span>.</b>
+      <span class="note">Se imprime en la Textport al reconstruir. Si dice <span class="mono">HAY FALLOS ARRIBA</span>, leelo antes de seguir.</span></li>
+    <li><b>Carpeta de media cargada.</b> <span class="path">/project1 &gt; Media &gt; Carpeta de imagenes / GIFs</span>
+      <span class="note">Después apretá <b>Releer la carpeta</b>. Sin esto, las escenas 19, 34 y 35 salen negras.</span></li>
+    <li><b>Miniaturas horneadas.</b> <span class="path">System &gt; Hornear Miniaturas</span>
+      <span class="note">Tarda unos segundos y no hay que tocar nada mientras corre. Sin esto la grilla del dashboard está en negro y navegás de memoria.</span></li>
+    <li><b>Mapeo MIDI guardado.</b> <span class="path">MIDI Mapping &gt; Guardar Mapeo</span></li>
+    <li><b>Snapshots de las escenas que vas a usar.</b> <span class="path">Presets &gt; Snapshot</span>
+      <span class="note">Dejá <b>Recall al cambiar escena</b> prendido para que vuelvan solos.</span></li>
+    <li><b>Setlist escrito</b> si vas a usarlo. <span class="path">Bancos &gt; Setlist</span>
+      <span class="note">Índices separados por coma o espacio: <span class="mono">0, 4, 17, 23</span>. Prendé <b>Next/Prev siguen el setlist</b>.</span></li>
+    <li><b>Carpeta de grabación creada en el disco</b> si vas a grabar. <span class="path">Salidas &gt; Carpeta de grabacion</span></li>
+    <li><b>Probá el set entero una vez.</b>
+      <span class="note">Es el único momento en que vas a descubrir que una escena que te gustaba no funciona con tu música.</span></li>
+  </ul>
+
+  <div class="trap">
+    <b>Trampa:</b> las 6 perillas <b>Detail</b> arrancan en <b>0</b>, o sea que toda escena se abre en su versión más apagada. Si una escena te parece "vacía" al probarla, subí D1–D4 antes de descartarla.
+  </div>
+
+  <footer class="doc"><span>TDAI2026 · Checklist antes de un set</span><span>1 / 4</span></footer>
+</section>
+
+<!-- ================= PAGINA 2 ================= -->
+<section class="page">
+  <h2 class="step">2 · Montaje en el lugar<span class="when">~30 min antes</span></h2>
+  <div class="why">El orden importa: el MiniLab tiene que estar enchufado <b>antes</b> de abrir TouchDesigner, si no el Device no aparece en la lista.</div>
+
+  <ul class="check">
+    <li><b>MiniLab conectado por USB</b> — y recién después abrir TouchDesigner.</li>
+    <li><b>Device de audio elegido.</b> <span class="path">/project1/audio1 &gt; Device</span></li>
+    <li><b>Device MIDI elegido:</b> <span class="mono">Arturia MiniLab mkII</span>. <span class="path">/project1/midi1 &gt; Device</span></li>
+    <li><b>Mapeo cargado.</b> <span class="path">MIDI Mapping &gt; Cargar Mapeo</span>
+      <span class="note">Movés un knob y mirás que el valor se mueva en el panel del dashboard. Si no se mueve, el mapeo no entró.</span></li>
+    <li><b>Rango del piano re-aprendido.</b> <span class="path">MIDI Mapping &gt; Learn Piano: tecla mas GRAVE</span> → tocás la más grave → <span class="path">Learn Piano: tecla mas AGUDA</span> → tocás la más aguda.
+      <span class="note">Dos toques, diez segundos.</span></li>
+    <li><b>Ventana de proyección abierta.</b> <span class="path">/project1/show_window &gt; Monitor</span> → elegís el proyector → pulso <b>Open</b>.</li>
+    <li><b>Resolución de salida acorde al proyector.</b> <span class="path">Output &gt; Output Width / Height</span></li>
+    <li><b>Dashboard abierto</b> en modo Perform. <span class="path">/project1/dashboard_ui</span></li>
+    <li><b>Device de salida MIDI</b> si querés LEDs en los pads. <span class="path">/project1/midi_out &gt; Device</span> + <span class="path">Bancos &gt; LEDs de pads</span></li>
+  </ul>
+
+  <div class="trap">
+    <b>La trampa que más caro sale:</b> los botones <b>Octave −/+</b> del MiniLab corren el teclado <b>sin avisarle al software</b>. Si alguien los tocó (o quedaron corridos de la última vez), las 25 teclas dejan de caer donde el rig las espera y el efecto del piano se vuelve errático o directamente mudo. Por eso el <b>Learn del rango del piano va en cada montaje</b>, no solo la primera vez.
+  </div>
+
+  <div class="trap">
+    <b>TouchDesigner NON-COMMERCIAL</b> limita la salida a <b>1280×1280</b>. Si el proyector es 1920×1080, la salida es 1280×720 y la escala la hace la ventana. No es un error del rig.
+  </div>
+
+  <div class="trap">
+    <b>Los LEDs de pads y NDI / Syphon nunca se probaron contra hardware real.</b> Si los vas a usar, probalos en el montaje — no en el primer tema. Si no arrancan, dejá <b>LEDs de pads</b> y <b>Salida externa</b> apagados: el rig funciona igual.
+  </div>
+
+  <footer class="doc"><span>TDAI2026 · Checklist antes de un set</span><span>2 / 4</span></footer>
+</section>
+
+<!-- ================= PAGINA 3 ================= -->
+<section class="page">
+  <h2 class="step">3 · Prueba de sonido<span class="when">con la música real, no con Spotify</span></h2>
+  <div class="why">Las ganancias de audio son lo único que <b>no</b> se puede dejar calibrado de casa: dependen de la mesa, del cable y del volumen de la sala. Es el bloque que más se saltea y el que más arruina un set.</div>
+
+  <ul class="check">
+    <li><b>Los medidores VU se mueven.</b> Panel de estado del dashboard: <span class="mono">Bass / Mid / High / Kick</span>.
+      <span class="note">Si están planos, el problema es el Device de audio, no las ganancias.</span></li>
+    <li><b>Ajustá las ganancias con un tema del set sonando fuerte.</b> <span class="path">Audio &gt; Master / Bass / Mid / High Gain</span>
+      <span class="note">Buscá que las barras lleguen arriba en los picos y no vivan clavadas al tope.</span></li>
+    <li><b>Calibrá el bombo.</b> <span class="path">Audio &gt; Beat Threshold</span>
+      <span class="note">Subí hasta que <span class="mono">Kick</span> pulse en el bombo y <b>no</b> en cada golpe. Es lo que dispara el cambio de imagen en modo BEAT / COMPÁS.</span></li>
+    <li><b>Probá 3 o 4 escenas del setlist</b> con la música puesta, no en silencio.</li>
+    <li><b>Probá el piano:</b> tocás una escala y ves que cada escena se mueve de verdad.</li>
+    <li><b>Probá los 8 pads del banco B</b> (Grain, Glitch, Pixelate, Strobe, Invert, Mirror, Zoom, Posterize).</li>
+    <li><b>Probá la carpeta de media</b> en la escena 19, 34 o 35.
+      <span class="note">El panel de estado te dice el modo, la posición (<span class="mono">07/24</span>) y el nombre del archivo. Si dice <span class="mono">sin carpeta o 0 archivos</span>, volvé al bloque 1.</span></li>
+    <li><b>Elegí el modo de media del set.</b> <span class="path">Media &gt; Como cambia de imagen</span></li>
+  </ul>
+
+  <table class="ref">
+    <tr><th>Modo de media</th><th>Cuándo cambia</th><th>Para qué</th></tr>
+    <tr><td>MANUAL</td><td>Nunca sola</td><td>Set ensayado, vos elegís el momento</td></tr>
+    <tr><td>TIEMPO</td><td>Cada N segundos</td><td>Fondo que respira mientras hacés otra cosa</td></tr>
+    <tr><td>BEAT</td><td>Un cambio por bombo</td><td>Casi estrobo, para un pico</td></tr>
+    <tr><td>COMPÁS</td><td>Cada N golpes (4)</td><td>El más usable: el cambio cae en el 1</td></tr>
+    <tr><td>PIANO</td><td>La tecla elige la imagen</td><td>Volver a una tecla vuelve a esa imagen exacta</td></tr>
+  </table>
+
+  <footer class="doc"><span>TDAI2026 · Checklist antes de un set</span><span>3 / 4</span></footer>
+</section>
+
+<!-- ================= PAGINA 4 ================= -->
+<section class="page">
+  <h2 class="step">4 · Últimos 5 minutos<span class="when">justo antes de arrancar</span></h2>
+  <div class="why">Todo esto es dejar el rig en un estado conocido. Son estados que sobreviven a la sesión anterior sin que nada te avise.</div>
+
+  <ul class="check">
+    <li><b>Failsafe en nivel 0.</b> <span class="path">Failsafe &gt; Reset del failsafe</span>
+      <span class="note">Si en la prueba el FPS bajó, el rig puede haber apagado la estela o bajado la resolución al 70% <b>y haber quedado así</b>.</span></li>
+    <li><b>Preview All apagado</b> y <b>Freeze Inactive Scenes</b> prendido. <span class="path">Performance</span>
+      <span class="note">Preview All prendido hunde el FPS: cocina las 36 escenas a la vez.</span></li>
+    <li><b>Autopilot apagado</b> salvo que lo quieras. <span class="path">Autopilot</span></li>
+    <li><b>Energía apagada</b> salvo que la vayas a usar. <span class="path">Bancos &gt; Energia escribe las perillas</span></li>
+    <li><b>Modo Cue como lo quieras</b> — sabiendo cuál elegiste. <span class="path">Preview &gt; Cue: click carga preview</span></li>
+    <li><b>Banco / setlist en el punto de arranque.</b></li>
+    <li><b>Escena 0 cargada, Blackout prendido.</b> Lo bajás cuando arranca el primer tema.</li>
+    <li><b>Safe Start Blackout desmarcado</b> si no querés que el próximo arranque abra en negro. <span class="path">System</span></li>
+    <li><b>Brillo arriba y audio arriba.</b> <span class="mono">Master Fade</span> y <span class="mono">Audio Amount</span> en 1.
+      <span class="note">Leé la advertencia de abajo.</span></li>
+  </ul>
+
+  <div class="emerg">
+    <h2>Tarjeta de emergencia</h2>
+    <div class="sub">Lo que apretás cuando algo se fue de las manos y no hay tiempo de pensar.</div>
+    <table>
+      <tr>
+        <td class="k">PÁNICO<span class="note" style="color:#98a1ae">botón del dashboard</span></td>
+        <td>Blackout + escena 0 + los 11 efectos a cero + apaga Autopilot, Cue y Congelar imagen. Es el botón que querés tener en un pad.</td>
+      </tr>
+      <tr>
+        <td class="k">RESET</td>
+        <td><span class="warn">Baja TODO a cero — incluido el Master Fade y el Audio Amount.</span> Mantiene la escena en la que estás, pero <b>después de un Reset la salida está en negro y sin audio hasta que subas esas dos.</b> Es a propósito, pero enterarse en vivo es feo.</td>
+      </tr>
+      <tr>
+        <td class="k">Blackout</td>
+        <td>Corta la salida sin tocar nada más. Es lo que querés si solo necesitás desaparecer un momento.</td>
+      </tr>
+      <tr>
+        <td class="k">Se ve todo negro</td>
+        <td>En orden: ¿Blackout? → ¿Master Fade en 0? → ¿Cue prendido y estás cargando al preview? → ¿escena de media sin carpeta? El panel de estado responde las cuatro.</td>
+      </tr>
+      <tr>
+        <td class="k">El FPS se cae</td>
+        <td>El failsafe ya está bajando calidad solo. A mano: apagá la estela, apagá dos capas, bajá la resolución de salida.</td>
+      </tr>
+      <tr>
+        <td class="k">El MIDI dejó de responder</td>
+        <td><span class="path" style="background:#2b3038;color:#cfd6e0">/project1/midi1</span> → volvé a elegir el Device. Si el piano quedó raro, re-aprendé el rango (2 toques).</td>
+      </tr>
+      <tr>
+        <td class="k">La imagen no cambia</td>
+        <td>¿<b>Congelar imagen</b> prendido? Le gana a todos los modos automáticos, a propósito.</td>
+      </tr>
+    </table>
+  </div>
+
+  <footer class="doc"><span>TDAI2026 · Checklist antes de un set</span><span>4 / 4</span></footer>
+</section>

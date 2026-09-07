@@ -41,6 +41,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [04 — Prompt para IA](docs/04_PROMPT_PARA_IA.md) | **Copia y pega esto** en ChatGPT/Claude para generar escenas |
 | [05 — Performance](docs/05_PERFORMANCE.md) | Dónde se van los fps y cómo recuperarlos |
 | [07 — Carpeta común de media](docs/07_CARPETA_MEDIA.md) | Las 3 escenas que usan imágenes tuyas y cómo pasarlas |
+| [08 — **Checklist antes de un set**](docs/08_CHECKLIST_PRESET.pdf) | 4 páginas para imprimir o leer en la cabina, con tarjeta de emergencia |
 
 ## Crear una escena nueva
 
