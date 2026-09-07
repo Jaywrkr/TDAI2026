@@ -77,11 +77,106 @@ def _gpu_ms():
         return -1.0
 
 
+def _blend_modes():
+    try:
+        import vjcore.config as _vjconfig
+        return _vjconfig.BLEND_MODES
+    except Exception:
+        return ['MIX', 'ADD', 'SCREEN', 'MULTIPLY', 'DIFFERENCE', 'LIGHTEN']
+
+
+def _arrow(v):
+    """Para las perillas de 0.5-neutro de la estela: dice hacia DONDE va,
+    no solo el numero. '0.71' no le dice nada a nadie en vivo; 'ADENTRO'
+    si."""
+    if v > 0.53:
+        return 'ADENTRO'
+    if v < 0.47:
+        return 'AFUERA '
+    return 'NEUTRO '
+
+
+def updateMasterFX():
+    """Panel de Master FX del dashboard: estado + que hace cada efecto.
+
+    Se llama desde update(), al mismo ritmo que el panel de status.
+    """
+    p = _p()
+    fx = op('/project1/dashboard_ui/master_fx_src')
+    if not p or not fx:
+        return
+
+    trails = _par_val('Trails')
+    tzoom = _par_val('Trailszoom', 0.5)
+    trot = _par_val('Trailsrotate', 0.5)
+    dual = bool(_par_val('Duallayer'))
+    mix = _par_val('Layermix', 0.5)
+    mode_i = int(_par_val('Blendmode'))
+    editing = int(_par_val('Activelayer'))
+    modes = _blend_modes()
+    mode = modes[mode_i] if 0 <= mode_i < len(modes) else '?'
+
+    scene_a = _switch_index('program_a')
+    scene_b = _switch_index('program_b')
+
+    on = trails > 0.005
+    lines = [
+        'MASTER FX          efectos del PROGRAM, no de la escena',
+        '=' * 64,
+        '',
+        'ESTELA   {}  {} {:.2f}      zoom {} {:.2f}   giro {} {:.2f}'.format(
+            'ON ' if on else 'OFF', _bar(trails, 10), trails,
+            _arrow(tzoom), tzoom, _arrow(trot), trot),
+        '   Cada frame arrastra el anterior, encogido y girado un poco.',
+        '   Apagada NO cuesta GPU: el shader ni siquiera cocina.',
+        '',
+    ]
+
+    if dual:
+        lines += [
+            'DOS CAPAS  ON    modo {:<10}  mezcla {} {:.2f}'.format(
+                mode, _bar(mix, 10), mix),
+            '   A  ESCENA {:02d} {:<14} {}'.format(
+                scene_a, _sceneName(scene_a),
+                '<< EDITANDO' if editing == 0 else ''),
+            '   B  ESCENA {:02d} {:<14} {}'.format(
+                scene_b, _sceneName(scene_b),
+                '<< EDITANDO' if editing == 1 else ''),
+            '   El click en la grilla carga la capa marcada EDITANDO.',
+            '   Mezcla 0 = solo A   ·   1 = efecto completo del modo.',
+        ]
+    else:
+        lines += [
+            'DOS CAPAS  OFF   (bus A/B en modo transicion normal)',
+            '   Prendelo para tener dos escenas vivas a la vez y',
+            '   mezclarlas: {}.'.format('  '.join(modes)),
+            '   Modo actual si lo prendes: {}'.format(mode),
+        ]
+
+    fx.text = '\n'.join(lines)
+
+
+def _switch_index(name):
+    sw = op('/project1/' + name)
+    try:
+        return int(sw.par.index.eval()) if sw else 0
+    except Exception:
+        return 0
+
+
 def update():
     p = _p()
     status = op('/project1/dashboard_ui/system_status_src')
     if not p or not status:
         return
+    # Aislado: si el panel de Master FX fallara (por ejemplo en un build
+    # viejo, sin los parametros nuevos), el panel de status -- que es el
+    # que dice si el SISTEMA esta bien -- tiene que seguir actualizandose
+    # igual. Nunca al reves.
+    try:
+        updateMasterFX()
+    except Exception as e:
+        print('updateMasterFX ERROR:', e)
 
     try:
         fps = float(project.cookRate)

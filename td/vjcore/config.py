@@ -76,13 +76,23 @@ CTRL_CHANNELS = [
     'mirror',    # 19 espejo horizontal (geometrico, antes de render())
     'zoom',      # 20 acercamiento al centro (geometrico, antes de render())
     'posterize', # 21 cuantizacion de color
+    # Fase 4 - MASTER FX. NO los lee ninguna escena: los leen los shaders
+    # de post-proceso del program bus (ver program.py), que reciben esta
+    # misma textura de control como un input mas. Viven aca y no como
+    # uniforms del GLSL TOP por el mismo motivo que todo lo demas: los
+    # nombres de uniform cambian entre builds de TD, una textura no.
+    'trails',      # 22 cantidad de estela (0 = bypass real, ver program.py)
+    'trailszoom',  # 23 zoom del feedback   (0.5 = neutro)
+    'trailsrot',   # 24 giro del feedback   (0.5 = neutro)
+    'layermix',    # 25 mezcla A/B en modo dos capas
+    'blendmode',   # 26 indice de modo de mezcla (0..5, ver program.py)
     # Fase 3 - perillas de detalle, significan algo distinto por escena.
     # Ver @D1.._at6 en el .frag y docs/03_VISUAL_SPEC.md.
-    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 22-27
-    'time',     # 28 tiempo YA escalado por Speed (usar este para animar)
-    'rtime',    # 29 tiempo real en segundos (independiente de Speed)
-    'resw',     # 30 ancho de salida
-    'resh',     # 31 alto de salida
+    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 27-32
+    'time',     # 33 tiempo YA escalado por Speed (usar este para animar)
+    'rtime',    # 34 tiempo real en segundos (independiente de Speed)
+    'resw',     # 35 ancho de salida
+    'resh',     # 36 alto de salida
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -106,6 +116,11 @@ PAR_CHANNELS = [
     ('Mirror', 'mirror'),
     ('Zoom', 'zoom'),
     ('Posterize', 'posterize'),
+    ('Trails', 'trails'),
+    ('Trailszoom', 'trailszoom'),
+    ('Trailsrotate', 'trailsrot'),
+    ('Layermix', 'layermix'),
+    ('Blendmode', 'blendmode'),
     ('Detail1', 'd1'),
     ('Detail2', 'd2'),
     ('Detail3', 'd3'),
@@ -113,6 +128,16 @@ PAR_CHANNELS = [
     ('Detail5', 'd5'),
     ('Detail6', 'd6'),
 ]
+
+# ---------------------------------------------------------------
+# MASTER FX - modos de mezcla del modo DOS CAPAS
+# ---------------------------------------------------------------
+# El indice (0..5) viaja por el canal 'blendmode' de la textura de
+# control hasta el shader de mezcla (program.py). Esta lista es la unica
+# fuente de verdad del NOMBRE de cada modo: la usan el panel del
+# dashboard y control_script.nextBlendMode() para no repetirlos a mano.
+# Si se agrega uno, hay que agregarlo TAMBIEN al if/else del shader.
+BLEND_MODES = ['MIX', 'ADD', 'SCREEN', 'MULTIPLY', 'DIFFERENCE', 'LIGHTEN']
 
 # ---------------------------------------------------------------
 # PIANO - teclado de 25 teclas del MiniLab MkII
@@ -200,7 +225,15 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
               'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset',
               'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
-              'Mirror', 'Zoom', 'Posterize']
+              'Mirror', 'Zoom', 'Posterize',
+              # Master FX (Fase 4). Sin default en DEFAULT_MIDI a
+              # proposito: el controlador ya no tiene perillas ni pads
+              # libres ("ya no tengo perillas libres", dicho explicito),
+              # asi que estos quedan listos para Learn el dia que se
+              # libere alguno -- mientras tanto se manejan desde el
+              # dashboard y los parametros.
+              'Trails', 'Layermix',
+              'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

@@ -78,6 +78,39 @@ def visibleScenes():
     return out or {0}
 
 
+def _dual():
+    """True si el modo DOS CAPAS esta activo."""
+    p = _p()
+    try:
+        return bool(p.par.Duallayer.eval()) if p else False
+    except Exception:
+        return False
+
+
+def _layerSwitch(layer=None):
+    """El Switch TOP de la capa indicada (None = la que se esta editando).
+
+    En modo dos capas program_a/program_b dejan de ser "el lado que se ve"
+    y "el lado que entra" (mecanismo de transicion) para pasar a ser dos
+    CAPAS vivas al mismo tiempo -- ver program.py.
+    """
+    p = _p()
+    if layer is None:
+        try:
+            layer = int(p.par.Activelayer.eval()) if p else 0
+        except Exception:
+            layer = 0
+    return op('/project1/program_' + ('b' if int(layer) else 'a'))
+
+
+def _layerScene(layer):
+    sw = _layerSwitch(layer)
+    try:
+        return int(sw.par.index.eval()) if sw else 0
+    except Exception:
+        return 0
+
+
 def setSceneCooking(indices=None):
     p = _p()
     scenes = op('/project1/scenes')
@@ -118,15 +151,34 @@ def updateHighlight():
     except Exception:
         return
 
+    # En modo dos capas las DOS escenas estan vivas a la vez, asi que las
+    # dos se marcan -- verde la capa A, cian la B. Sin esto no habria
+    # forma de saber de un vistazo que se esta mezclando con que.
+    dual = _dual()
+    scene_a = _layerScene(0)
+    scene_b = _layerScene(1)
+    try:
+        editing = int(p.par.Activelayer.eval())
+    except Exception:
+        editing = 0
+
     for i in range(_n_scenes()):
         tile = dash.op('scene_btn{}'.format(i))
         if not tile:
             continue
         col = (0.16, 0.16, 0.18)
-        if i == active:
-            col = (0.15, 0.95, 0.40)
-        if moving and i == target and target != active:
-            col = (1.0, 0.72, 0.05)
+        if dual:
+            # La capa que se esta editando va mas brillante que la otra:
+            # el proximo click cae ahi, tiene que verse cual es.
+            if i == scene_a:
+                col = (0.15, 0.95, 0.40) if editing == 0 else (0.08, 0.45, 0.22)
+            if i == scene_b:
+                col = (0.20, 0.85, 1.00) if editing == 1 else (0.10, 0.38, 0.50)
+        else:
+            if i == active:
+                col = (0.15, 0.95, 0.40)
+            if moving and i == target and target != active:
+                col = (1.0, 0.72, 0.05)
         for name, v in zip(('bgcolorr', 'bgcolorg', 'bgcolorb'), col):
             par = getattr(tile.par, name, None)
             if par is not None:
@@ -141,6 +193,25 @@ def selectScene(index):
         index = max(0, min(_n_scenes() - 1, int(index)))
         if not _valid(index):
             print('SCENE {} INVALIDA - ignorada'.format(index))
+            return
+
+        # MODO DOS CAPAS: no hay transicion que hacer -- la escena entra
+        # DIRECTO en la capa que se esta editando (Activelayer) y la otra
+        # capa se queda donde estaba. El fundido cruzado no aplica aca:
+        # lo que decide como se ven las dos juntas es Layermix/Blendmode
+        # (shader de mezcla, ver program.py), no una rampa temporal.
+        if _dual():
+            sw = _layerSwitch()
+            if not sw:
+                return
+            sw.par.index = index
+            p.par.Activeindex = index
+            p.par.Targetindex = index
+            setSceneCooking()
+            updateHighlight()
+            updateDetailLegend(index)
+            if bool(p.par.Usepresets.eval()):
+                recallPreset(index)
             return
 
         active = int(p.par.Activeindex.eval())
@@ -294,6 +365,12 @@ def _navBase(p):
     toque. Contando desde Targetindex mientras se esta moviendo, cada
     pulsada avanza una escena mas alla de la ultima que se pidio.
     """
+    # En modo dos capas no hay transicion en curso ni "lado que entra":
+    # Next/Prev tienen que contar desde la escena que tiene AHORA la capa
+    # que se esta editando, no desde Activeindex (que refleja la ultima
+    # cargada en cualquiera de las dos).
+    if _dual():
+        return _layerScene(None)
     moving = bool(p.fetch('transitioning', False))
     return int(p.par.Targetindex.eval()) if moving else int(p.par.Activeindex.eval())
 
@@ -316,6 +393,109 @@ def toggleBlackout():
         p.par.Blackout = not bool(p.par.Blackout.eval())
 
 
+# ---------------------------------------------------------------
+# MASTER FX (estela + dos capas)
+# ---------------------------------------------------------------
+# Estas 4 funciones existen para poder manejar Master FX EN VIVO desde un
+# pad (van en midi_logic.TRIGGERS, aprendibles con Learn) y desde los
+# botones del dashboard -- un efecto al que solo se llega con el mouse en
+# la ventana de parametros no sirve arriba del escenario.
+
+def toggleTrails():
+    """Prende/apaga la estela SIN perder la cantidad que tenias puesta.
+
+    Guarda el valor antes de apagar y lo devuelve al prender: en vivo no
+    sirve un toggle que te deje la perilla en 0 y te obligue a buscar de
+    nuevo el punto que te gustaba.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        cur = float(p.par.Trails.eval())
+        if cur > 0.005:
+            p.store('trails_last', cur)
+            p.par.Trails = 0.0
+        else:
+            p.par.Trails = float(p.fetch('trails_last', 0.6) or 0.6)
+    except Exception as e:
+        print('toggleTrails ERROR:', e)
+
+
+def toggleDual():
+    """Entra/sale del modo dos capas dejando un estado usable.
+
+    Al ENTRAR: si las dos capas tienen la misma escena (el caso normal,
+    porque _finishFade las deja iguales) no se veria ninguna mezcla y
+    parecerian rotas -- se siembra la capa B con la escena siguiente y se
+    pasa a editar B, asi el primer click ya cambia lo que se ve mezclado.
+    Al SALIR: las dos capas vuelven a la escena activa, que es el estado
+    que el bus de transiciones espera encontrar.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        going_dual = not bool(p.par.Duallayer.eval())
+        # Una transicion a medio camino dejaria los dos switches en
+        # escenas distintas con una rampa corriendo por encima: se corta
+        # antes de cambiar de modo, en los dos sentidos.
+        abortTransition()
+
+        if going_dual:
+            a = _layerScene(0)
+            b = _layerScene(1)
+            if a == b:
+                nxt = (a + 1) % _n_scenes()
+                sw_b = _layerSwitch(1)
+                if sw_b:
+                    sw_b.par.index = nxt
+            p.par.Duallayer = True
+            p.par.Activelayer = 1
+        else:
+            p.par.Duallayer = False
+            p.par.Activelayer = 0
+            active = int(p.par.Activeindex.eval())
+            for name in ('program_a', 'program_b'):
+                sw = op('/project1/' + name)
+                if sw:
+                    sw.par.index = active
+        setSceneCooking()
+        updateHighlight()
+    except Exception as e:
+        print('toggleDual ERROR:', e)
+
+
+def swapLayer():
+    """Cambia que capa recibe el proximo cambio de escena (A <-> B)."""
+    p = _p()
+    if not p:
+        return
+    try:
+        p.par.Activelayer = 0 if int(p.par.Activelayer.eval()) else 1
+        p.par.Activeindex = _layerScene(None)
+        updateHighlight()
+        updateDetailLegend(int(p.par.Activeindex.eval()))
+    except Exception as e:
+        print('swapLayer ERROR:', e)
+
+
+def nextBlendMode():
+    """Cicla el modo de mezcla. Los nombres viven en config.BLEND_MODES."""
+    p = _p()
+    if not p:
+        return
+    try:
+        import vjcore.config as _vjconfig
+        n = len(_vjconfig.BLEND_MODES)
+    except Exception:
+        n = 6
+    try:
+        p.par.Blendmode = (int(p.par.Blendmode.eval()) + 1) % n
+    except Exception as e:
+        print('nextBlendMode ERROR:', e)
+
+
 def resetControls():
     p = _p()
     if not p:
@@ -323,10 +503,21 @@ def resetControls():
     p.par.Blackout = False
     p.par.Transitionseconds = 0.45
     for name, v in (('Speed', 0.5), ('Density', 0.5),
-                    ('Hue', 0.0), ('Chaos', 0.3), ('Brightness', 1.0)):
+                    ('Hue', 0.0), ('Chaos', 0.3), ('Brightness', 1.0),
+                    # Master FX tambien: si Reset dejara una estela puesta
+                    # o dos capas mezclando, dejaria de ser el boton de
+                    # "volver a un estado conocido" que uno aprieta cuando
+                    # algo se fue de las manos en vivo.
+                    ('Trails', 0.0), ('Trailszoom', 0.5),
+                    ('Trailsrotate', 0.5), ('Layermix', 0.5)):
         par = getattr(p.par, name, None)
         if par is not None:
             par.val = v
+    # Salir de dos capas por el mismo camino que el toggle (colapsa las
+    # dos ramas a la escena activa), no bajando el flag a mano: si no,
+    # el bus quedaria en modo transicion con A y B en escenas distintas.
+    if _dual():
+        toggleDual()
     abortTransition()
 
 
