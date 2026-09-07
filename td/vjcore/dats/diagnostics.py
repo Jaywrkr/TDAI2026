@@ -206,7 +206,7 @@ def updateMasterFX():
             'LOOK  {:<15}{} {:.2f}'.format(
                 look_name, _bar(look_amt, 8), look_amt),
             'PALETA DEL SHOW      {} {:.2f}'.format(_bar(pal, 8), pal),
-            '   Se aplica a las 34 por igual: es el color del SHOW.',
+            '   Se aplica a las 36 por igual: es el color del SHOW.',
         ]
     else:
         lines += [
@@ -263,7 +263,7 @@ def update():
         import vjcore.config as _vjconfig
         n_scenes = _vjconfig.N_SCENES
     except Exception:
-        n_scenes = 34
+        n_scenes = 36
 
     cooking = 0
     scenes = op('/project1/scenes')
@@ -344,6 +344,34 @@ def update():
         lines.append('')
         lines.append('>> ENERGIA {} {:.2f}  (escribe Speed/Density/Chaos/Trails)'
                      .format(_bar(e, 10), e))
+
+    # Estado de la carpeta comun de media. Solo aparece cuando la escena
+    # activa la usa (19 glitch / 34 caleidoscopio / 35 trama): en las
+    # otras 33 seria una linea que no dice nada. Es el unico lugar donde
+    # se ve si la carpeta esta bien cargada -- si dice "sin carpeta" o
+    # "0 archivos", el visual sale negro y esta linea explica por que.
+    try:
+        import vjcore.config as _vjconfig
+        media_scenes = _vjconfig.MEDIA_SCENES
+    except Exception:
+        media_scenes = ()
+    if ctrl and int(_par_val('Activeindex')) in media_scenes:
+        try:
+            files = ctrl.module.mediaFiles()
+            mode = ctrl.module.mediaMode()
+        except Exception:
+            files, mode = [], '?'
+        lines.append('')
+        if not files:
+            lines.append('>> MEDIA: sin carpeta o 0 archivos -> el visual sale NEGRO')
+            lines.append('   (pagina Media > Carpeta de imagenes / GIFs)')
+        else:
+            idx = int(_par_val('Mediaindex')) % len(files)
+            name = os.path.basename(ctrl.module.currentMediaPath())
+            lock = '  [CONGELADA]' if bool(_par_val('Medialock')) else ''
+            lines.append('>> MEDIA  modo {}  {:02d}/{:02d}{}'.format(
+                mode, idx + 1, len(files), lock))
+            lines.append('   ' + name[:52])
 
     # Valores en vivo: contexto pedido explicitamente -- saber en que
     # posicion esta cada perilla (y cada banda de audio) sin tener que

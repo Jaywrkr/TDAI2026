@@ -94,6 +94,18 @@ def _handlePianoKey(note, val):
         if par is not None:
             par.val = v
 
+    # Modo PIANO de la carpeta de media: la tecla ELIGE la imagen (no
+    # avanza a la siguiente). Se le pasa el mismo 'pos' 0..1 que acaba de
+    # calcularse con el rango aprendido, asi la carpeta entera queda
+    # repartida sobre las 25 teclas. control_script decide si corresponde
+    # hacer algo -- en cualquier otro modo esto es un no-op.
+    ctrl = op('/project1/control_script')
+    if ctrl:
+        try:
+            ctrl.module.mediaPianoSelect(pos)
+        except Exception as e:
+            print('mediaPianoSelect:', e)
+
     # Se resetea un par de frames despues para que la SIGUIENTE tecla
     # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
     # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
@@ -177,6 +189,13 @@ TRIGGERS = {
     'Cuenext': 'cueNext',
     'Cueprev': 'cuePrev',
     'Panic': 'panic',
+    # Carpeta comun de media (scene19/34/35). Sirven en cualquier modo:
+    # en MANUAL son LA forma de pasar imagenes, y en los automaticos son
+    # el override de mano cuando algo tiene que cambiar ahora.
+    'Medianext': 'mediaNext',
+    'Mediaprev': 'mediaPrev',
+    'Mediarandom': 'mediaRandom',
+    'Medialock': 'toggleMediaLock',
 }
 
 # 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas

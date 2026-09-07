@@ -5,26 +5,21 @@ media_beat_chan es un Select CHOP que aisla el canal 'beat' de /project1/ctrl
 knobs/perillas de ctrl (que tambien cruzan 0.5 al moverse y dispararian
 onOffToOn sin sentido si estuvieramos escuchando todo el CHOP).
 
-Cada vez que 'beat' cruza de apagado a encendido (un golpe de bombo), las
-escenas de MEDIA_SCENES (hoy solo scene19) avanzan una imagen mas, ADEMAS
-del ciclo automatico por tiempo que ya corre solo (control_script.py,
-_scheduleMediaAdvance) -- asi el avance se siente reactivo a la musica sin
-depender solo de ella: sin audio, el ciclo por tiempo lo sigue moviendo
-igual.
+Cada golpe de bombo se lo pasa a control_script.mediaBeat(), que decide si
+mueve algo o no segun Mediamode: en BEAT avanza una imagen por golpe, en
+COMPAS avanza cada N golpes (que es lo que de verdad se usa en un set: el
+cambio cae "en el 1"), y en MANUAL / TIEMPO / PIANO el bombo no toca nada.
+
+Esa decision vive alla y no aca a proposito: aca no hay forma de testear
+nada, y en control_script.py el modo se lee una sola vez para todos los
+caminos (tiempo, beat, piano, botones).
 """
 
 
 def onOffToOn(channel, sampleIndex, val, prev):
     ctrl = op('/project1/control_script')
-    if not ctrl:
-        return
-    try:
-        import vjcore.config as _vjconfig
-    except Exception as e:
-        print('media_logic: no se pudo leer MEDIA_SCENES:', e)
-        return
-    for idx in _vjconfig.MEDIA_SCENES:
-        ctrl.module.advanceMediaIndex(idx)
+    if ctrl:
+        ctrl.module.mediaBeat()
     return
 
 

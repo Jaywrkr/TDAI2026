@@ -2,18 +2,44 @@
 
 # Subido de 20 a 34: 4 escenas promovidas desde los prototipos de "ideas
 # nuevas" (cracked glass, bokeh, osciloscopio, nebulosa) + 10 escenas
-# totalmente nuevas.
-N_SCENES = 34
+# totalmente nuevas. Y de 34 a 36: los dos casilleros que sobraban en la
+# grilla 6x6 los ocupan scene34 (caleidoscopio) y scene35 (trama /
+# halftone), las dos sobre la CARPETA COMUN de media (ver MEDIA_SCENES).
+N_SCENES = 36
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
-# textura de control) -- hoy solo scene19 (efecto sobre imagen/GIF). Se
-# les agrega un Movie File In TOP como input 1 del GLSL TOP y un
-# parametro Mediafile en su pagina de escena. El resto de las escenas
-# jamas referencia sTD2DInputs[1] en su .frag, asi que no les afecta.
-MEDIA_SCENES = {19}
-# 6x6 = 36 casilleros para 34 escenas (2 casilleros de sobra en la
-# ultima fila, sin usar -- el loop del dashboard solo crea tiles para
-# escenas que existen de verdad).
+# textura de control): se les agrega un Movie File In TOP como input 1
+# del GLSL TOP. El resto de las escenas jamas referencia sTD2DInputs[1]
+# en su .frag, asi que no les afecta.
+#
+# Las tres comparten UNA SOLA CARPETA -- la de la pagina "Media" de
+# /project1 -- y muestran siempre la MISMA imagen al mismo tiempo. Eso es
+# a proposito: al cambiar de escena 19 -> 34 -> 35 se ve el mismo
+# material tratado de tres maneras distintas (glitch / mandala / trama
+# impresa), que en vivo se lee como una progresion y no como tres cosas
+# sueltas. Antes la carpeta era un parametro POR ESCENA, lo que obligaba
+# a cargar la ruta tres veces y a que se desincronizaran solas.
+MEDIA_SCENES = {19, 34, 35}
+
+# Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
+MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
+              '.mov', '.mp4', '.webp')
+
+# COMO CAMBIA DE IMAGEN. Un solo parametro (Mediamode) decide quien
+# manda; el resto de los controles (Next/Prev/Random/Lock) funcionan
+# siempre, en cualquier modo.
+#   MANUAL  no cambia sola. Solo Next/Prev/Random (pad o dashboard).
+#   TIEMPO  cada N segundos (Mediaseconds; en 0 el intervalo lo saca de
+#           la perilla Speed, que es como venia funcionando).
+#   BEAT    una imagen por golpe de bombo. Muy rapido, casi estrobo.
+#   COMPAS  una imagen cada N golpes (Mediabeats) -- esto es lo que de
+#           verdad se usa en un set: cambia "en el 1" del compas.
+#   PIANO   la tecla ELIGE la imagen. Las 25 teclas se reparten sobre la
+#           carpeta entera, asi que tocar una escala pasa las imagenes en
+#           orden y volver a una tecla vuelve exactamente a esa imagen.
+MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
+
+# 6x6 = 36 casilleros para las 36 escenas -- la grilla queda exacta.
 GRID_COLS = 6
 GRID_ROWS = 6
 
@@ -283,7 +309,11 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # conviene tener en un pad fisico si se libera alguno: son
               # los unicos que se aprietan con urgencia.
               'Lookamount', 'Palettelock',
-              'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic']
+              'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic',
+              # Carpeta comun de media (scene19/34/35). 'Medianext' es
+              # el unico que de verdad pide un pad fisico: en modo
+              # MANUAL es como se pasan las imagenes a mano.
+              'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

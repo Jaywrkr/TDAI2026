@@ -17,7 +17,7 @@ def _n_scenes():
         import vjcore.config as _vjconfig
         return _vjconfig.N_SCENES
     except Exception:
-        return 34
+        return 36
 
 
 # ---------------------------------------------------------------
@@ -123,7 +123,7 @@ def setSceneCooking(indices=None):
     # La escena en PREVIEW tambien tiene que cocinar: si no, el monitor
     # de cue mostraria el ultimo frame congelado (o negro si nunca se
     # visito) y no serviria para lo unico que existe -- ver como se ve
-    # ANTES de tirarla. Es UNA escena de mas, no las 34 de Previewall.
+    # ANTES de tirarla. Es UNA escena de mas, no las 36 de Previewall.
     try:
         indices.add(int(p.par.Previewindex.eval()))
     except Exception:
@@ -153,7 +153,7 @@ def setSceneCooking(indices=None):
 # ---------------------------------------------------------------
 # Flujo de mesa real: cargas la escena en el preview, la MIRAS, y recien
 # entonces la tiras al aire. Cuesta UNA escena cocinando de mas (la del
-# preview), no las 34 que cocinaba Previewall.
+# preview), no las 36 que cocinaba Previewall.
 
 def previewScene(index):
     """Carga una escena en el bus de preview (no toca el programa)."""
@@ -504,7 +504,7 @@ def prevScene():
 # ---------------------------------------------------------------
 # BANCOS + SETLIST
 # ---------------------------------------------------------------
-# Con 34 escenas, ir de la 3 a la 28 con Next son 25 pulsaciones. Los
+# Con 36 escenas, ir de la 3 a la 28 con Next son 25 pulsaciones. Los
 # bancos parten la grilla en bloques del tamano que elijas; el setlist
 # define un ORDEN propio para una noche concreta, sin renumerar nada.
 
@@ -1016,13 +1016,13 @@ def resetControls():
 # POSTER FRAMES (hornear miniaturas)
 # ---------------------------------------------------------------
 # Guarda en disco una imagen de cada escena para que la grilla del
-# dashboard se vea COMPLETA sin tener que cocinar las 34 (que es lo que
+# dashboard se vea COMPLETA sin tener que cocinar las 36 (que es lo que
 # hundio el FPS a 9 cuando se intento con Previewall).
 #
 # Va de a UNA escena por tanda, encadenada con run(delayFrames=...), y no
 # en un for: hay que prender el cooking de la escena, DEJARLA COCINAR
 # unos frames y recien ahi guardar. En un for todo eso pasaria dentro del
-# mismo frame y se guardarian 34 imagenes negras.
+# mismo frame y se guardarian 36 imagenes negras.
 
 def bakeThumbs(index=0):
     """Arranca (o continua) el horneado. El boton llama a bakeThumbs()."""
@@ -1382,100 +1382,325 @@ def loadPresets():
 
 
 # ---------------------------------------------------------------
-# ARRANQUE SEGURO
+# CARPETA COMUN DE MEDIA (scene19 / scene34 / scene35)
 # ---------------------------------------------------------------
-
-def _mediaScenePath(scene_index):
-    return '/project1/scenes/scene{}'.format(scene_index)
-
-
-_MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
-              '.mov', '.mp4', '.webp')
-
-
-def _scanMediaFolder(scene_index):
-    """Lista ordenada de archivos de imagen/video en Mediafolder. Vacia si
-    la carpeta no esta seteada, no existe, o no tiene archivos validos --
-    nunca tira excepcion (esto se llama desde una expresion de parametro,
-    que no puede fallar sin romper el TOP)."""
-    sc = op(_mediaScenePath(scene_index))
-    if not sc:
-        return []
-    folder = str(sc.par.Mediafolder.eval() or '').strip()
-    if not folder or not os.path.isdir(folder):
-        return []
-    try:
-        names = sorted(f for f in os.listdir(folder)
-                       if f.lower().endswith(_MEDIA_EXTS))
-    except Exception as e:
-        print('scanMediaFolder ERROR:', e)
-        return []
-    return [os.path.join(folder, n) for n in names]
+# UNA carpeta, UN indice, para las tres escenas de config.MEDIA_SCENES.
+# Antes cada escena tenia su propio Mediafolder/Mediaindex: habia que
+# cargar la misma ruta tres veces y los indices se iban desincronizando,
+# asi que pasar de la 19 a la 34 en vivo cambiaba de imagen sin querer.
+# Ahora las tres muestran siempre lo mismo y el cambio de escena se lee
+# como el mismo material tratado de tres formas distintas.
+#
+# Quien manda el avance lo decide UN parametro, Mediamode
+# (config.MEDIA_MODES): MANUAL / TIEMPO / BEAT / COMPAS / PIANO. Los
+# botones Next/Prev/Random y el toggle Medialock funcionan siempre, en
+# cualquier modo.
 
 
-def currentMediaPath(scene_index):
-    """Llamada por la expresion 'file' del Movie File In TOP de esta
-    escena (ver scenes.py). Vacio = TOP sin archivo = sale negro, no
-    error -- el .frag esta pensado para eso."""
-    files = _scanMediaFolder(scene_index)
-    if not files:
+def _mediaFolder():
+    p = _p()
+    if not p:
         return ''
-    sc = op(_mediaScenePath(scene_index))
-    idx = int(sc.par.Mediaindex.eval()) % len(files) if sc else 0
-    return files[idx]
+    try:
+        return str(p.par.Mediafolder.eval() or '').strip()
+    except Exception:
+        return ''
 
 
-def advanceMediaIndex(scene_index):
-    """Avanza a la siguiente imagen/video de la carpeta (con loop). La
-    llaman dos cosas de forma independiente: el ciclo automatico por
-    tiempo (_mediaTick) y cada golpe de bombo (dats/media_logic.py) --
-    asi el avance se siente reactivo a la musica sin depender solo de
-    ella (sin audio, el ciclo por tiempo lo sigue moviendo igual)."""
-    sc = op(_mediaScenePath(scene_index))
-    if not sc:
+def _mediaExts():
+    try:
+        import vjcore.config as _vjconfig
+        return _vjconfig.MEDIA_EXTS
+    except Exception:
+        return ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
+                '.mov', '.mp4', '.webp')
+
+
+def _mediaModes():
+    try:
+        import vjcore.config as _vjconfig
+        return list(_vjconfig.MEDIA_MODES)
+    except Exception:
+        return ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
+
+
+def mediaMode():
+    """Nombre del modo actual, no el numero -- para el dashboard y para
+    los ifs de mas abajo, que se leen mucho mejor asi."""
+    p = _p()
+    modes = _mediaModes()
+    if not p:
+        return modes[0]
+    try:
+        return modes[max(0, min(len(modes) - 1, int(p.par.Mediamode.eval())))]
+    except Exception:
+        return modes[0]
+
+
+def mediaFiles():
+    """Lista ordenada de archivos de la carpeta comun. CACHEADA: esto lo
+    llama la expresion 'file' de tres Movie File In TOPs, o sea corre
+    todos los frames -- un os.listdir por frame es inaceptable. El cache
+    se tira con el boton Releer la carpeta (mediaRescan) o al cambiar
+    Mediafolder.
+
+    Nunca tira excepcion: se llama desde una expresion de parametro, y ahi
+    una excepcion rompe el TOP entero."""
+    p = _p()
+    if not p:
+        return []
+    folder = _mediaFolder()
+    cached = p.fetch('media_files', None)
+    if cached is not None and p.fetch('media_files_key', '') == folder:
+        return cached
+
+    files = []
+    if folder and os.path.isdir(folder):
+        try:
+            exts = _mediaExts()
+            files = [os.path.join(folder, n)
+                     for n in sorted(os.listdir(folder))
+                     if n.lower().endswith(exts)]
+        except Exception as e:
+            print('mediaFiles ERROR:', e)
+            files = []
+    p.store('media_files', files)
+    p.store('media_files_key', folder)
+    _mediaBuildOrder(len(files))
+    return files
+
+
+def _mediaBuildOrder(n):
+    """Orden de recorrido de la carpeta.
+
+    Con Mediashuffle apagado es 0,1,2...  Prendido, es una PERMUTACION
+    barajada una sola vez y recorrida entera. Esto no es lo mismo que
+    tirar un random en cada avance: un random puro repite la misma imagen
+    dos veces seguidas y deja media carpeta sin salir nunca. Barajando el
+    orden se ven todas, una vez cada una, y recien ahi se vuelve a
+    empezar."""
+    p = _p()
+    if not p:
         return
-    files = _scanMediaFolder(scene_index)
-    if not files:
+    order = list(range(n))
+    shuffle = False
+    try:
+        shuffle = bool(p.par.Mediashuffle.eval())
+    except Exception:
+        pass
+    if shuffle and n > 1:
+        import random
+        random.shuffle(order)
+    p.store('media_order', order)
+
+
+def mediaReshuffle():
+    """Vuelve a barajar (o a ordenar) sin tocar el cache de archivos."""
+    _mediaBuildOrder(len(mediaFiles()))
+
+
+def mediaRescan():
+    """Tira el cache de la carpeta y vuelve a la primera imagen. Hay que
+    apretarlo despues de agregar o sacar archivos con TD abierto -- si no,
+    sigue mostrando la lista vieja."""
+    p = _p()
+    if not p:
         return
-    cur = int(sc.par.Mediaindex.eval())
-    sc.par.Mediaindex.val = (cur + 1) % len(files)
+    p.unstore('media_files')
+    p.unstore('media_files_key')
+    files = mediaFiles()
+    _mediaSetIndex(0)
+    print('MEDIA: {} archivos en {}'.format(len(files), _mediaFolder() or '(sin carpeta)'))
 
 
-def _mediaTick(scene_index):
-    advanceMediaIndex(scene_index)
-    _scheduleMediaAdvance(scene_index)
+def _mediaIndex():
+    p = _p()
+    if not p:
+        return 0
+    try:
+        return int(p.par.Mediaindex.eval())
+    except Exception:
+        return 0
 
 
-def _scheduleMediaAdvance(scene_index):
-    """Se reagenda solo, como tickDiag() en runtime_manager.py. El
-    intervalo lo controla Speed -- perilla alta = ciclo mas rapido, sin
-    necesitar ninguna perilla nueva (pedido explicito del usuario: 'ya no
-    tengo perillas libres')."""
+def _mediaSetIndex(i):
     p = _p()
     if not p:
         return
     try:
-        speed = max(0.0, min(1.0, float(p.par.Speed.eval())))
+        p.par.Mediaindex.val = int(i)
     except Exception:
-        speed = 0.5
-    seconds = 8.0 - speed * 6.5   # Speed=0 -> 8s, Speed=1 -> 1.5s
-    run("op('/project1/control_script').module._mediaTick({})".format(scene_index),
-        delayMilliSeconds=int(seconds * 1000))
+        pass
+
+
+def currentMediaPath():
+    """La llama la expresion 'file' de los Movie File In TOPs de las tres
+    escenas de media (ver scenes.py). Sin argumento a proposito: el
+    indice es global, no por escena.
+
+    Vacio = TOP sin archivo = sale negro, no error. Los tres .frag estan
+    escritos para verse bien igual sin imagen cargada."""
+    files = mediaFiles()
+    if not files:
+        return ''
+    p = _p()
+    order = (p.fetch('media_order', None) if p else None) or list(range(len(files)))
+    if len(order) != len(files):
+        _mediaBuildOrder(len(files))
+        order = (p.fetch('media_order', None) if p else None) or list(range(len(files)))
+    return files[order[_mediaIndex() % len(order)]]
+
+
+def _mediaLocked():
+    p = _p()
+    if not p:
+        return False
+    try:
+        return bool(p.par.Medialock.eval())
+    except Exception:
+        return False
+
+
+def advanceMediaIndex(step=1):
+    """Avanza (o retrocede) una posicion en el orden de recorrido, con
+    loop. Medialock la deja sin efecto: congelar la imagen actual tiene
+    que ganarle a cualquier modo automatico, igual que el blackout le
+    gana a todo lo demas."""
+    if _mediaLocked():
+        return
+    files = mediaFiles()
+    if not files:
+        return
+    _mediaSetIndex((_mediaIndex() + int(step)) % len(files))
+
+
+def mediaNext():
+    advanceMediaIndex(1)
+
+
+def mediaPrev():
+    advanceMediaIndex(-1)
+
+
+def mediaRandom():
+    """Salto a cualquier imagen. A diferencia del avance normal, esto SI
+    es un random puro -- es un gesto puntual del VJ, no el motor que
+    recorre la carpeta."""
+    if _mediaLocked():
+        return
+    files = mediaFiles()
+    if len(files) < 2:
+        return
+    import random
+    cur = _mediaIndex() % len(files)
+    nxt = cur
+    while nxt == cur:
+        nxt = random.randrange(len(files))
+    _mediaSetIndex(nxt)
+
+
+def toggleMediaLock():
+    """Congela / descongela la imagen actual. Mapeable a un pad: cuando
+    una imagen esta funcionando, se la clava con un toque y ningun modo
+    automatico se la lleva."""
+    p = _p()
+    if not p:
+        return
+    try:
+        p.par.Medialock.val = not bool(p.par.Medialock.eval())
+    except Exception:
+        pass
+
+
+def mediaBeat():
+    """La llama dats/media_logic.py en cada golpe de bombo. Solo hace algo
+    en los modos que dependen del audio -- en TIEMPO o MANUAL el bombo no
+    tiene por que mover nada."""
+    mode = mediaMode()
+    if mode == 'BEAT':
+        advanceMediaIndex(1)
+    elif mode == 'COMPAS':
+        p = _p()
+        if not p:
+            return
+        try:
+            every = max(1, int(p.par.Mediabeats.eval()))
+        except Exception:
+            every = 4
+        n = int(p.fetch('media_beat_count', 0) or 0) + 1
+        if n >= every:
+            n = 0
+            advanceMediaIndex(1)
+        p.store('media_beat_count', n)
+
+
+def mediaPianoSelect(pos):
+    """Modo PIANO: la tecla ELIGE la imagen (no avanza a la siguiente).
+    'pos' es 0..1, el mismo Keypos que ya calcula midi_logic.py con el
+    rango aprendido de 25 teclas.
+
+    Es el control de media mas directo que hay: la carpeta entera queda
+    repartida sobre el teclado, tocar una escala pasa las imagenes en
+    orden, y volver a una tecla vuelve exactamente a ESA imagen -- cosa
+    que ningun modo automatico permite."""
+    if mediaMode() != 'PIANO' or _mediaLocked():
+        return
+    files = mediaFiles()
+    if not files:
+        return
+    i = int(max(0.0, min(1.0, float(pos))) * (len(files) - 1) + 0.5)
+    _mediaSetIndex(i)
+
+
+def _mediaTick(token):
+    """Ciclo por tiempo. El token evita que dos cadenas de run() queden
+    corriendo en paralelo (pasa si se cambia de modo o de segundos
+    mientras una espera): al re-agendar se emite un token nuevo y la
+    cadena vieja se muere sola en este chequeo."""
+    p = _p()
+    if not p or int(p.fetch('media_token', 0) or 0) != int(token):
+        return
+    if mediaMode() == 'TIEMPO':
+        advanceMediaIndex(1)
+    _scheduleMediaAdvance()
+
+
+def _scheduleMediaAdvance():
+    """Se reagenda solo, como tickDiag() en runtime_manager.py.
+
+    El intervalo sale de Mediaseconds; en 0 lo saca de la perilla Speed,
+    que es como venia funcionando cuando no habia pagina Media (pedido
+    original: 'ya no tengo perillas libres')."""
+    p = _p()
+    if not p:
+        return
+    try:
+        seconds = float(p.par.Mediaseconds.eval())
+    except Exception:
+        seconds = 0.0
+    if seconds <= 0.0:
+        try:
+            speed = max(0.0, min(1.0, float(p.par.Speed.eval())))
+        except Exception:
+            speed = 0.5
+        seconds = 8.0 - speed * 6.5   # Speed=0 -> 8s, Speed=1 -> 1.5s
+    token = int(p.fetch('media_token', 0) or 0)
+    run("op('/project1/control_script').module._mediaTick({})".format(token),
+        delayMilliSeconds=int(max(0.25, seconds) * 1000))
 
 
 def startMediaCycles():
-    """Arranca el auto-avance para cada escena de config.MEDIA_SCENES.
-    Se llama una vez desde safeStartup(). Import absoluto (no relativo):
-    este script corre como Text DAT independiente, no como parte del
-    paquete vjcore -- mismo patron que 'import vjcore' en builder.py."""
-    try:
-        import vjcore.config as _vjconfig
-        media_scenes = _vjconfig.MEDIA_SCENES
-    except Exception as e:
-        print('startMediaCycles: no se pudo leer MEDIA_SCENES:', e)
+    """Arranca (o re-arranca) el ciclo por tiempo. Se llama desde
+    safeStartup() y cada vez que cambia Mediamode o Mediaseconds.
+
+    Emite un token nuevo, lo que mata cualquier cadena de _mediaTick que
+    hubiera quedado dando vueltas de la configuracion anterior."""
+    p = _p()
+    if not p:
         return
-    for idx in media_scenes:
-        _scheduleMediaAdvance(idx)
+    p.store('media_token', int(p.fetch('media_token', 0) or 0) + 1)
+    p.store('media_beat_count', 0)
+    _scheduleMediaAdvance()
 
 
 # ---------------------------------------------------------------
@@ -1543,6 +1768,7 @@ def safeStartup():
         setSceneCooking({0})
         updateHighlight()
         updateDetailLegend(0)
+        mediaRescan()
         startMediaCycles()
         startAutopilot()
 

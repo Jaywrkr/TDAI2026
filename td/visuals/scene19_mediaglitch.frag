@@ -1,29 +1,31 @@
 // ===============================================================
 // SCENE 19 - MEDIA GLITCH
-// Apunta a una CARPETA propia de imagenes/GIFs/videos (parametro
-// "Mediafolder" de esta escena, en /project1/scenes/scene19) y va
-// rotando solo entre todos los archivos que encuentre ahi, aplicandoles
-// un efecto de glitch: pixelado + separacion cromatica + tearing de
-// bloques, todo reactivo al audio. Reemplaza al viejo "void" (orbe
+// Toma la imagen actual de la CARPETA COMUN de media (pagina "Media" de
+// /project1, compartida con scene34 caleidoscopio y scene35 trama) y le
+// aplica un efecto de glitch: pixelado + separacion cromatica + tearing
+// de bloques, todo reactivo al audio. Reemplaza al viejo "void" (orbe
 // minimalista).
 // ===============================================================
 //
 // COMO FUNCIONA
 //
-// mediaTex(uv) (definida en el header automatico, solo para esta escena
-// -- ver config.MEDIA_SCENES) lee el input 1 del GLSL TOP, que es un
-// Movie File In TOP. Su parametro 'file' NO apunta a un archivo fijo:
-// llama a control_script.currentMediaPath(19), que escanea Mediafolder
-// y devuelve el archivo en la posicion Mediaindex (interno). Ese indice
-// avanza SOLO, sin gastar ninguna perilla:
-//   - por tiempo, cada tantos segundos (ritmo segun Speed -- perilla
-//     alta = ciclo mas rapido), ver control_script._scheduleMediaAdvance
-//   - por golpe de bombo, un avance extra en cada beat (ver
-//     dats/media_logic.py) -- asi se siente reactivo a la musica sin
-//     depender solo de ella
+// mediaTex(uv) (definida en el header automatico, solo para las escenas
+// de config.MEDIA_SCENES) lee el input 1 del GLSL TOP, que es un Movie
+// File In TOP. Su parametro 'file' NO apunta a un archivo fijo: llama a
+// control_script.currentMediaPath(), que devuelve el archivo que la
+// carpeta comun tenga seleccionado en ese momento. Como el indice es
+// GLOBAL, esta escena, la 34 y la 35 muestran siempre la misma imagen:
+// pasar de una a otra en vivo se lee como el mismo material tratado de
+// tres maneras, no como tres cosas sueltas.
+//
+// Quien cambia de imagen lo decide Mediamode (MANUAL / TIEMPO / BEAT /
+// COMPAS / PIANO) -- ver control_script.py, seccion CARPETA COMUN DE
+// MEDIA.
+//
 // Carpeta vacia/sin setear, o Movie File In TOP sin archivo cargado
 // todavia -> sale negro. La escena sigue compilando y corriendo bien
-// igual, simplemente no hay nada que mostrar hasta que se configure.
+// igual, simplemente no hay nada que mostrar hasta que se configure (el
+// panel de estado del dashboard avisa cuando ese es el caso).
 //
 // El efecto en si:
 // 1. PIXELADO: se cuantiza el uv antes de muestrear (D1 = tamano de
