@@ -44,6 +44,27 @@ def build(proj, dat_text):
     safe_set(logic, 'valuechange', True)
     safe_set(logic, 'offtoon', True)
     logic.text = dat_text
+
+    # --- MIDI OUT: LEDs de los pads (Fase 5) ---
+    # Se crea siempre pero no manda nada hasta que /project1.Padleds este
+    # en ON (default OFF). Hace falta elegirle el mismo Device que a
+    # midi1, igual que con la entrada.
+    #
+    # SIN VERIFICAR: el color de los pads del MiniLab mkII se setea por
+    # SysEx propietario de Arturia, que no se pudo confirmar contra la
+    # unidad real. Lo implementado (note-on al pad, ver
+    # control_script.sendPadLed) es el metodo que funciona en varios
+    # controladores y esta listo para probar; si esta unidad no responde
+    # asi, hay que cambiar esa funcion y nada mas -- el resto del rig no
+    # depende de esto.
+    try:
+        midi_out = proj.create(midioutCHOP, 'midi_out')     # noqa: F821
+        midi_out.nodeX, midi_out.nodeY = -1240, 500
+        log('MIDI: midi_out creado (LEDs de pads, falta elegir el Device)')
+    except Exception as e:
+        midi_out = None
+        log('MIDI: midi_out no disponible ({})'.format(type(e).__name__))
+
     log('MIDI: midi1 + midi_logic creados (falta elegir el Device en midi1)')
     return midi_in, logic
 

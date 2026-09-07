@@ -472,16 +472,210 @@ def _navBase(p):
     return int(p.par.Targetindex.eval()) if moving else int(p.par.Activeindex.eval())
 
 
+def _step(delta):
+    """Un paso de navegacion, respetando el setlist si esta activo.
+
+    Con setlist, Next/Prev recorren el ORDEN del setlist, no el orden
+    numerico de las escenas. Si la escena actual no esta en el setlist
+    (por ejemplo porque se la eligio a mano desde la grilla), el paso
+    entra por el principio en vez de quedarse trabado.
+    """
+    base = _navBase(_p())
+    if not _usingSetlist():
+        return (base + delta) % _n_scenes()
+    sl = _setlist()
+    try:
+        pos = sl.index(base)
+    except ValueError:
+        return sl[0] if delta > 0 else sl[-1]
+    return sl[(pos + delta) % len(sl)]
+
+
 def nextScene():
-    p = _p()
-    if p:
-        selectScene((_navBase(p) + 1) % _n_scenes())
+    if _p():
+        selectScene(_step(1))
 
 
 def prevScene():
+    if _p():
+        selectScene(_step(-1))
+
+
+# ---------------------------------------------------------------
+# BANCOS + SETLIST
+# ---------------------------------------------------------------
+# Con 34 escenas, ir de la 3 a la 28 con Next son 25 pulsaciones. Los
+# bancos parten la grilla en bloques del tamano que elijas; el setlist
+# define un ORDEN propio para una noche concreta, sin renumerar nada.
+
+def _setlist():
+    """Indices del setlist, validados. Vacio = no hay setlist.
+
+    Acepta comas, espacios o las dos cosas ("0, 4 17,23") porque es un
+    campo que se tipea a mano y a las apuradas. Descarta lo que no sea
+    una escena valida en vez de fallar: un setlist con un numero mal
+    tipeado tiene que seguir sirviendo para el resto de la noche.
+    """
+    p = _p()
+    if not p:
+        return []
+    try:
+        raw = str(p.par.Setlist.eval() or '')
+    except Exception:
+        return []
+    out = []
+    for tok in raw.replace(',', ' ').split():
+        try:
+            i = int(tok)
+        except ValueError:
+            continue
+        if 0 <= i < _n_scenes() and _valid(i):
+            out.append(i)
+    return out
+
+
+def _usingSetlist():
+    p = _p()
+    try:
+        return bool(p.par.Usesetlist.eval()) and bool(_setlist()) if p else False
+    except Exception:
+        return False
+
+
+def selectInBank(slot):
+    """Escena numero 'slot' DENTRO del banco actual (slot empieza en 0).
+
+    Pensado para mapear a pads: el mismo pad siempre cae en la misma
+    posicion del banco, y cambiar de banco cambia las 8 escenas que
+    tenes bajo los dedos.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        size = max(1, int(p.par.Banksize.eval()))
+        bank = int(p.par.Bank.eval())
+        selectScene(bank * size + int(slot))
+    except Exception as e:
+        print('selectInBank ERROR:', e)
+
+
+def _bankCount():
+    p = _p()
+    try:
+        size = max(1, int(p.par.Banksize.eval()))
+    except Exception:
+        size = 8
+    return max(1, (_n_scenes() + size - 1) // size)
+
+
+def nextBank():
     p = _p()
     if p:
-        selectScene((_navBase(p) - 1) % _n_scenes())
+        try:
+            p.par.Bank = (int(p.par.Bank.eval()) + 1) % _bankCount()
+            updateHighlight()
+        except Exception as e:
+            print('nextBank ERROR:', e)
+
+
+def prevBank():
+    p = _p()
+    if p:
+        try:
+            p.par.Bank = (int(p.par.Bank.eval()) - 1) % _bankCount()
+            updateHighlight()
+        except Exception as e:
+            print('prevBank ERROR:', e)
+
+
+# ---------------------------------------------------------------
+# LEDs DE LOS PADS  (SIN VERIFICAR CONTRA LA UNIDAD REAL)
+# ---------------------------------------------------------------
+# Encender el pad del efecto que esta activo hace que el controlador se
+# sienta un instrumento y no un teclado generico enchufado.
+#
+# LO QUE FALTA CONFIRMAR: el MiniLab mkII setea el color de sus pads por
+# SysEx propietario de Arturia (algo de la forma
+# F0 00 20 6B 7F 42 02 00 10 <pad> <color> F7), y esos bytes NO se
+# pudieron verificar contra la unidad. Lo de aca abajo manda un note-on
+# al pad, que es el metodo que funciona en varios controladores y es
+# inofensivo si este no lo entiende (simplemente no pasa nada).
+#
+# Por eso Padleds arranca en OFF: mientras nadie lo prenda, este codigo
+# no manda un solo byte. Si al probarlo los pads no responden, hay que
+# cambiar SOLO sendPadLed() por la version SysEx -- ninguna otra parte
+# del rig depende de esto.
+
+def sendPadLed(slot_index, on):
+    """Prende/apaga el LED del pad numero 'slot_index' (0-based)."""
+    p = _p()
+    mo = op('/project1/midi_out')
+    if not p or not mo:
+        return
+    try:
+        if not bool(p.par.Padleds.eval()):
+            return
+        chan = int(p.par.Padledchannel.eval())
+        note = int(p.par.Padlednote.eval()) + int(slot_index)
+        # sendNote(canal, nota, velocidad). Velocidad 0 = apagado en la
+        # mayoria de los controladores con pads iluminados.
+        mo.sendNote(chan, note, 127 if on else 0)
+    except Exception as e:
+        print('sendPadLed ERROR:', e)
+
+
+def refreshPadLeds():
+    """Refleja en los pads que efectos estan activos ahora mismo.
+
+    El orden es el de los 8 efectos en config.DEFAULT_MIDI (pads 9-16 del
+    banco B), que es el orden en que estan fisicamente en el controlador.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        if not bool(p.par.Padleds.eval()):
+            return
+        for i, name in enumerate(('Grain', 'Glitch', 'Pixelate', 'Strobe',
+                                  'Invert', 'Mirror', 'Zoom', 'Posterize')):
+            par = getattr(p.par, name, None)
+            sendPadLed(i, par is not None and float(par.eval()) > 0.005)
+    except Exception as e:
+        print('refreshPadLeds ERROR:', e)
+
+
+# ---------------------------------------------------------------
+# MACRO ENERGIA
+# ---------------------------------------------------------------
+
+def applyEnergy():
+    """Una perilla que arma el build-up entero.
+
+    Escribe las perillas de una sola vez en vez de multiplicarlas por
+    detras: asi mover una perilla despues del macro simplemente la pisa
+    (gana lo ultimo que tocaste), sin estados ocultos ni valores "base"
+    invisibles que despues no coinciden con lo que muestra el panel.
+
+    NO toca Brightness: el master fade es la seguridad de la salida, no
+    un parametro artistico -- un macro no deberia poder apagar el show.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        if not bool(p.par.Energyactive.eval()):
+            return
+        e = max(0.0, min(1.0, float(p.par.Energy.eval())))
+        for name, lo, hi in (('Speed', 0.25, 0.90),
+                             ('Density', 0.35, 0.80),
+                             ('Chaos', 0.08, 0.92),
+                             ('Trails', 0.00, 0.55)):
+            par = getattr(p.par, name, None)
+            if par is not None:
+                par.val = lo + (hi - lo) * e
+    except Exception as e:
+        print('applyEnergy ERROR:', e)
 
 
 def toggleBlackout():

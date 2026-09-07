@@ -324,6 +324,32 @@ def update():
         lines.append('')
         lines.append('>> GRABANDO')
 
+    # Navegacion: solo se muestra cuando NO esta en el modo por defecto,
+    # para no gastar lineas del panel diciendo "todo normal".
+    ctrl = op('/project1/control_script')
+    setlist = []
+    if ctrl:
+        try:
+            setlist = ctrl.module._setlist()
+        except Exception:
+            setlist = []
+    if bool(_par_val('Usesetlist')) and setlist:
+        lines.append('')
+        lines.append('>> SETLIST ON  ({} escenas)  Next/Prev siguen ese orden'
+                     .format(len(setlist)))
+        lines.append('   ' + ' '.join('{:02d}'.format(i) for i in setlist[:16]))
+    size = int(_par_val('Banksize', 8))
+    bank = int(_par_val('Bank'))
+    if bank:
+        lines.append('')
+        lines.append('>> BANCO {}  (escenas {:02d}-{:02d})'.format(
+            bank, bank * size, min(bank * size + size - 1, n_scenes - 1)))
+    if bool(_par_val('Energyactive')):
+        e = _par_val('Energy', 0.5)
+        lines.append('')
+        lines.append('>> ENERGIA {} {:.2f}  (escribe Speed/Density/Chaos/Trails)'
+                     .format(_bar(e, 10), e))
+
     # Valores en vivo: contexto pedido explicitamente -- saber en que
     # posicion esta cada perilla (y cada banda de audio) sin tener que
     # adivinar mirando solo el visual. Mismo tick que el resto del panel

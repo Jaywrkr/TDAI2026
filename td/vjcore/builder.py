@@ -153,6 +153,39 @@ def _parameters(proj):
     add_pulse(fs, 'Failsafereset', 'Reset del failsafe')
     add_pulse(fs, 'Panic', 'PANICO (blackout + escena 0 + FX a cero)')
 
+    # --- BANCOS + SETLIST (Fase 5) ---
+    # Con 34 escenas, Next/Prev lineal ya queda corto: llegar de la 3 a
+    # la 28 son 25 pulsaciones. Los bancos parten la grilla en bloques y
+    # el setlist define un ORDEN propio para una noche concreta.
+    bk = proj.appendCustomPage('Bancos')
+    add_int(bk, 'Banksize', 'Escenas por banco', 8, 2, 16)
+    add_int(bk, 'Bank', 'Banco actual', 0, 0, 16)
+    add_pulse(bk, 'Banknext', 'Banco siguiente')
+    add_pulse(bk, 'Bankprev', 'Banco anterior')
+    # Setlist: indices separados por coma o espacio, ej "0, 4, 17, 23".
+    # Vacio = sin setlist, Next/Prev recorren las 34 en orden numerico.
+    add_string(bk, 'Setlist', 'Setlist (ej: 0, 4, 17, 23)', '')
+    add_toggle(bk, 'Usesetlist', 'Next/Prev siguen el setlist', False)
+
+    # --- MACRO ENERGIA ---
+    # Una perilla que arma el build-up entero. Escribe Speed/Density/
+    # Chaos/Trails de una sola vez: mover una perilla despues la pisa sin
+    # drama (gana lo ultimo que tocaste), que es como se espera que se
+    # comporte un macro en vivo.
+    add_float(bk, 'Energy', 'MACRO ENERGIA (calma <-> pico)', 0.5, 0, 1)
+    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', False)
+
+    # --- LEDs DE LOS PADS (sin verificar) ---
+    # Default APAGADO a proposito: el protocolo de color del MiniLab mkII
+    # es SysEx propietario de Arturia y no se pudo verificar contra la
+    # unidad real. Lo que hay implementado es el envio de note-on al pad
+    # (el metodo que funciona en varios controladores), listo para
+    # probar; si tu unidad no responde asi, hay que cambiar sendPadLed()
+    # en control_script.py por el SysEx correcto. Ver docs/02.
+    add_toggle(bk, 'Padleds', 'LEDs de pads (SIN VERIFICAR)', False)
+    add_int(bk, 'Padledchannel', 'LEDs: canal MIDI de los pads', 10, 1, 16)
+    add_int(bk, 'Padlednote', 'LEDs: nota del primer pad', 45, 0, 127)
+
     m = proj.appendCustomPage('MIDI Mapping')
     for slot in c.MIDI_SLOTS:
         add_string(m, 'Midi' + slot.lower(), slot, c.DEFAULT_MIDI.get(slot, ''))
@@ -264,6 +297,10 @@ def onPulse(par):
         m.failsafeReset()
     elif n == 'Panic':
         m.panic()
+    elif n == 'Banknext':
+        m.nextBank()
+    elif n == 'Bankprev':
+        m.prevBank()
     elif n.startswith('Learn'):
         slot = n[5:]
         for s in m._midi_slots():
@@ -274,10 +311,15 @@ def onPulse(par):
 
 
 def onValueChange(par, prev):
+    ctrl = op('/project1/control_script')
+    if not ctrl:
+        return
     if par.name in ('Performancemode', 'Previewall'):
-        ctrl = op('/project1/control_script')
-        if ctrl:
-            ctrl.module.setSceneCooking()
+        ctrl.module.setSceneCooking()
+    elif par.name == 'Energy':
+        # El macro escribe las perillas al MOVERSE, no por frame: esto
+        # es un evento de valor, no un bucle.
+        ctrl.module.applyEnergy()
     return
 
 
