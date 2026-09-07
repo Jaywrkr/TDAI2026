@@ -32,6 +32,17 @@
 //      mucho mas intrincada)
 // ===============================================================
 
+// Distancia de un punto al SEGMENTO a-b (formula estandar). Sin esto la
+// traza se dibujaba como un collar de cuentas: ver el comentario en el
+// bucle de abajo.
+float segDist22(vec2 pp, vec2 a, vec2 b)
+{
+    vec2 ab = b - a;
+    vec2 ap = pp - a;
+    float h = clamp(dot(ap, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+    return length(ap - ab * h);
+}
+
 vec4 render(vec2 uv)
 {
     float t = uTime;
@@ -49,12 +60,22 @@ vec4 render(vec2 uv)
     float phase = t * (0.15 + uSpeed * 0.4) + uHigh * 1.5;
     float amp = 0.45 + uChaos * 0.4;
 
+    // TRAZA CONTINUA. Antes esto medía la distancia a cada PUNTO
+    // muestreado (length(p - c)) y la figura salia como un collar de
+    // cuentas separadas, no como la traza de un osciloscopio: con
+    // fa/fb altos (que es justo lo que hace uBass/uMid) la curva avanza
+    // mucho entre muestra y muestra, y entre dos puntos no habia nada.
+    // Midiendo contra el SEGMENTO que une cada muestra con la anterior,
+    // la traza es continua a cualquier cantidad de lobulos, con el mismo
+    // costo de bucle.
     float minD = 1e5;
     const int N = 96;
-    for (int i = 0; i < N; i++) {
+    vec2 prev = amp * vec2(sin(phase), 0.0);   // u = 0
+    for (int i = 1; i <= N; i++) {
         float u = float(i) / float(N) * TAU;
         vec2 c = amp * vec2(sin(fa * u + phase), sin(fb * u));
-        minD = min(minD, length(p - c));
+        minD = min(minD, segDist22(p, prev, c));
+        prev = c;
     }
 
     // Piso subido (0.006->0.010): traza un poco mas presente en reposo.
