@@ -108,6 +108,12 @@ def _parameters(proj):
     md = proj.appendCustomPage('Media')
     add_string(md, 'Mediafolder', 'Carpeta de imagenes / GIFs', '')
     add_int(md, 'Mediaindex', 'Imagen actual (interno)', 0, 0, 9999)
+    # Contador interno que solo existe para el sistema de dependencias de
+    # TD: la expresion 'file' de los Movie File In depende de Mediaindex,
+    # asi que cuando cambia la LISTA (rescan / reordenado) y NO el
+    # indice, no tendria motivo para reevaluarse. control_script lo
+    # incrementa en esos dos casos. No se toca a mano.
+    add_int(md, 'Mediagen', 'Generacion de la lista (interno)', 0, 0, 99999)
     add_int(md, 'Mediamode', 'Como cambia de imagen  ' + _menu_hint(c.MEDIA_MODES),
             1, 0, len(c.MEDIA_MODES) - 1)
     # 0 = el intervalo lo saca de la perilla Speed (comportamiento
@@ -191,7 +197,12 @@ def _parameters(proj):
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
     add_float(fs, 'Failsafeseconds', 'Segundos en rojo antes de actuar',
               4.0, 1.0, 30.0)
-    add_int(fs, 'Failsafelevel', 'Nivel actual (0 = todo OK)', 0, 0, 3)
+    # Tope holgado a proposito: el techo REAL de la escalera lo pone
+    # control_script (_FAILSAFE_MAX_LEVEL, derivado de _FAILSAFE_STEPS).
+    # Si aca quedara clampeado justo en el largo de la escalera, agregar
+    # un escalon dejaria el nivel trabado repitiendo el ultimo para
+    # siempre.
+    add_int(fs, 'Failsafelevel', 'Nivel actual (0 = todo OK)', 0, 0, 8)
     add_pulse(fs, 'Failsafereset', 'Reset del failsafe')
     add_pulse(fs, 'Panic', 'PANICO (blackout + escena 0 + FX a cero)')
 

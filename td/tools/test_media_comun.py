@@ -88,6 +88,7 @@ def make_folder(names):
 def new_proj(folder, mode='MANUAL', **extra):
     pars = dict(Mediafolder=folder,
                 Mediaindex=0,
+                Mediagen=0,
                 Mediamode=c.MEDIA_MODES.index(mode),
                 Mediaseconds=0.0,
                 Mediabeats=4,
@@ -135,9 +136,22 @@ def main():
         open(os.path.join(folder, 'e.png'), 'w').close()
         check('cache: un archivo nuevo no aparece solo',
               len(m.mediaFiles()), 4)
+        # El cache NO puede vivir en el storage de /project1: esta funcion
+        # corre como expresion del parametro 'file' de tres Movie File In,
+        # y fetch+store dentro de una expresion se auto-invalida en TD.
+        check('el cache no toca el storage de /project1',
+              [k for k in p._store if k.startswith('media_files')], [])
+        gen0 = p.par.Mediagen.val
         m.mediaRescan()
         check('rescan: ahi si aparece', len(m.mediaFiles()), 5)
         check('rescan vuelve a la primera imagen', p.par.Mediaindex.val, 0)
+        # Mediagen es la UNICA razon que le queda a la expresion para
+        # reevaluarse cuando cambia la lista y no el indice.
+        check('rescan incrementa Mediagen', p.par.Mediagen.val > gen0, True)
+        gen1 = p.par.Mediagen.val
+        m.mediaReshuffle()
+        check('reshuffle tambien incrementa Mediagen',
+              p.par.Mediagen.val > gen1, True)
         os.remove(os.path.join(folder, 'e.png'))
         m.mediaRescan()
 
@@ -264,7 +278,7 @@ def main():
             m = load_control_script(p)
             n = len(m.mediaFiles())
             check('12 archivos', n, 12)
-            order = p.fetch('media_order')
+            order = m._MEDIA_ORDER
             check('el orden es una permutacion completa',
                   sorted(order), list(range(12)))
             vistos = []
@@ -280,7 +294,7 @@ def main():
             m = load_control_script(p)
             m.mediaFiles()
             check('sin shuffle el orden es secuencial',
-                  p.fetch('media_order'), list(range(12)))
+                  m._MEDIA_ORDER, list(range(12)))
         finally:
             shutil.rmtree(big, ignore_errors=True)
     finally:
