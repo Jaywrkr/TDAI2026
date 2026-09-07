@@ -87,8 +87,12 @@ vec4 render(vec2 uv)
     // Base bajada (0.7->0.5, tope 3.2->2.6): con tronco+rama cruzandose
     // por el zigzag aleatorio, un trazo de base ya grueso hacia que esas
     // zonas de cruce se leyeran como una maraña blanca solida.
-    float lineW = (0.5 + uD1 * 2.1) * (1.0 + uBass * 0.3);
-    float glowAmt = 0.12 + uD2 * 1.0;
+    // Piso 0.5 -> 0.95: un rayo es un nucleo GRUESO y brillante con
+    // halo, no un hilo de un pixel -- con 0.5 se veia como un arañazo.
+    float lineW = (0.62 + uD1 * 2.0) * (1.0 + uBass * 0.3);
+    // Y sin halo (0.12) no habia nada de la luz que hace que un rayo
+    // parezca energia y no una linea dibujada.
+    float glowAmt = 0.30 + uD2 * 0.9;
     float zigzagAmt = 0.025 + uD3 * 0.24;
     int   nBranches = int(floor(uD4 * 2.99));   // 0 a 2 ramas
 

@@ -94,7 +94,14 @@ vec4 render(vec2 uv)
         // D3: variacion de color por linea -- en 0 todas comparten el
         // mismo tono, en 1 cada una se aleja bastante del hue base.
         vec3 lineCol = hsv2rgb(vec3(fract(h + fi * 0.09 * uD3), 0.70, 1.0));
-        float line = edgeLine(sdfN, lineW);
+        // JERARQUIA + PROFUNDIDAD por linea: un hash le da a cada una
+        // su propio grosor y las de mas atras van mas finas y tenues.
+        // Con todas identicas la escena se leia como un diagrama, no
+        // como un dibujo -- era el problema principal de esta escena.
+        float wJit = 0.6 + hash21(vec2(fi, 7.3)) * 0.9;
+        float back = fi / max(count - 1.0, 1.0);
+        float depth = 1.0 - back * 0.42;
+        float line = edgeLine(sdfN, lineW * wJit * depth) * depth;
         // D4: resplandor ancho ademas del trazo nitido -- en 0 no hay
         // nada extra, en 1 cada linea tiene un halo notable.
         float glow = exp(-abs(sdfN) * abs(sdfN) / (0.004 + uD4 * 0.05)) * uD4;

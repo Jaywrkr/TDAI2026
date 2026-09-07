@@ -46,6 +46,10 @@ vec4 render(vec2 uv)
     float R = 0.22 + uD4 * 0.16;
     float cellSpan = 4.0 + floor(uDensity * 3.0);
     float minRing = 1e5;
+    // Se guarda TAMBIEN de que circulo vino el minimo: sin eso todos
+    // los circulos son indistinguibles y no hay forma de darles
+    // grosores distintos, que es lo que separa un dibujo de un plano.
+    vec2 minCenter = vec2(0.0);
 
     for (int j = -4; j <= 4; j++) {
         if (abs(float(j)) > cellSpan) continue;
@@ -55,12 +59,21 @@ vec4 render(vec2 uv)
             float fj = float(j);
             vec2 center = R * vec2(fi + fj * 0.5, fj * 0.8660254);
             float d = abs(length(p - center) - R);
-            minRing = min(minRing, d);
+            if (d < minRing) { minRing = d; minCenter = center; }
         }
     }
 
     float lineW = 0.004 + uD1 * 0.02;
-    float line = 1.0 - smoothstep(0.0, lineW, minRing);
+    // JERARQUIA + PROFUNDIDAD. Dos cosas sobre el mismo grosor:
+    //   1. un hash por circulo lo engorda o adelgaza -- la reticula
+    //      deja de ser un plano de CAD y se lee dibujada;
+    //   2. los circulos lejos del centro van mas finos y tenues
+    //      (perspectiva atmosferica), que es lo que le da la
+    //      profundidad que la escena no tenia.
+    float wJit = 0.55 + hash21(minCenter * 7.3) * 1.15;
+    float far = smoothstep(0.15, 1.25, length(minCenter));
+    float depth = 1.0 - far * 0.55;
+    float line = (1.0 - smoothstep(0.0, lineW * wJit * depth, minRing)) * depth;
     float glow = exp(-minRing * minRing / (0.001 + uD2 * 0.02)) * uD2;
 
     float h = audioHue(uHue, uMid * 0.1);

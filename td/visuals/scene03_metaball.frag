@@ -45,7 +45,12 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    int   n = 2 + int(floor(uD3 * 12.99));
+    // Piso subido de 2 a 6: con 2 gotas la escena se leia como un
+    // puntito perdido en un cuadro vacio, y la FUSION -- que es la
+    // razon de ser de esta escena -- casi nunca llegaba a pasar. La
+    // solucion es CANTIDAD (mas gotas repartidas que se encuentran),
+    // no tamano: agrandarlas las convierte en siluetas rellenas.
+    int   n = 6 + int(floor(uD3 * 8.99));
     float field = 0.0;
 
     // PIANO: bola invitada -- se define ANTES del loop porque ademas de
@@ -93,11 +98,7 @@ vec4 render(vec2 uv)
         // tiembla. Fase distinta por bola (fi) para que no "respiren"
         // todas exactamente igual, se ve mas organico.
         float bassPulse = 1.0 + uBass * (0.35 + 0.25 * sin(fi * 2.3));
-        // Piso subido (0.05->0.13): a D4=0 las gotas quedaban tan chicas
-        // que el radio de fusion (ver 'threshold' mas abajo) casi nunca
-        // se alcanzaba salvo que las gotas quedaran practicamente
-        // pegadas -- la fusion, que es la razon de ser de la escena, no
-        // se llegaba a ver en reposo.
+
         // PIANO: empujon real de posicion -- las bolas cercanas a la
         // invitada se apartan mientras dura el golpe, como un choque
         // fisico de verdad (no solo una bola de mas sumada al campo).
@@ -105,7 +106,9 @@ vec4 render(vec2 uv)
         float dGuest2ball = dot(toGuest, toGuest);
         pos += toGuest / sqrt(dGuest2ball + 0.01) * guestPush * exp(-dGuest2ball * 8.0);
 
-        float ballSize = ((0.13 + uD4 * 0.24) + hash21(seed + 3.0) * 0.10) * bassPulse;
+        // Piso apenas por encima del original (0.13 -> 0.135): el peso
+        // de la escena lo lleva la cantidad de gotas, no su tamano.
+        float ballSize = ((0.135 + uD4 * 0.22) + hash21(seed + 3.0) * 0.10) * bassPulse;
         float d2 = dot(p - pos, p - pos);
         field += ballSize * ballSize / (d2 + 0.0025);
     }
@@ -131,7 +134,13 @@ vec4 render(vec2 uv)
     // Un halo tenue justo por dentro del contorno, para que la forma se
     // lea con un poco de volumen sin llegar a ser un relleno solido.
     float inside = smoothstep(threshold - 0.5, threshold + 1.5, field);
-    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * 0.06;
+    // Apenas subido (0.06 -> 0.09). Se probo con 0.16 y gotas mas
+    // grandes y quedaba MAL: la escena pasaba a leerse como siluetas
+    // rellenas, que es justo lo contrario de lo que declara arriba
+    // ('contorno fino sobre negro absoluto -- nada de relleno'). El
+    // problema de 'gota chiquita en un cuadro vacio' se arregla con la
+    // CANTIDAD de gotas (n), no agrandandolas.
+    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * 0.09;
 
     // Rim light: una banda angosta justo por dentro del contorno, tipo
     // gota de mercurio -- se enciende fuerte en el kick, como si la luz

@@ -55,6 +55,13 @@ vec4 render(vec2 uv)
     float gapW = (0.04 + uD2 * 0.28) * (1.0 + uBass * 0.3);
     float colMask = smoothstep(0.0, gapW, colX) * smoothstep(1.0, 1.0 - gapW, colX);
 
+    // ZONAS Y SILENCIOS: bloques enteros de columnas se apagan segun
+    // un ruido lento. Sin esto la pantalla tiene la MISMA densidad de
+    // borde a borde y se lee como una textura de relleno; con esto hay
+    // grupos densos y huecos, que es lo que le da composicion y ritmo.
+    float zone = fbm(vec2(colId * 0.09, t * 0.05), 3);
+    colMask *= smoothstep(0.34, 0.52, zone);
+
     // Parpadeo de entrelazado tipo CRT: filas alternas levemente mas
     // oscuras, con ritmo de Agudos -- da autenticidad de video viejo.
     float interlace = 0.85 + 0.15 * sin(uv.y * uResH * PI * 0.5 + t * (4.0 + uHigh * 30.0));

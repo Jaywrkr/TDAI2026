@@ -120,23 +120,35 @@ vec4 render(vec2 uv)
     // celda vecina se veia como una red densa, no una constelacion --
     // ahora solo las zonas realmente "encendidas juntas" se conectan.
     float connectThresh = 0.68 - uBass * 0.22;
-    for (int ny = -1; ny <= 1; ny++) {
-        for (int nx = -1; nx <= 1; nx++) {
-            if (nx == 0 && ny == 0) continue;
-            vec2 neighbor = vec2(float(nx), float(ny));
-            vec2 nCellId = cellId + neighbor;
-            float nZone = fbm(nCellId * zoneScale + t * (0.05 + uSpeed * 0.1), 3);
-            nZone += uChaos * 0.25 * sin(t * 0.2 + nCellId.x * 0.4 + nCellId.y * 0.4);
-            nZone = clamp(nZone, 0.0, 1.0);
-            float avgZone = (zone + nZone) * 0.5;
-            if (avgZone < connectThresh) continue;
+    // Solo los 4 vecinos "hacia adelante", no los 8. Con los 8 pasaban
+    // dos cosas malas: cada union se dibujaba DOS veces (una desde cada
+    // punta, o sea el doble de trabajo para el mismo pixel), y sobre
+    // todo, en cualquier zona encendida se dibujaban las DOS diagonales
+    // de cada celda -- eso llenaba la pantalla de X y se veia como un
+    // artefacto, no como una constelacion. Con 4 direcciones cada union
+    // existe una sola vez y la red queda limpia.
+    const vec2 NB[4] = vec2[4](vec2(1.0, 0.0), vec2(0.0, 1.0),
+                               vec2(1.0, 1.0), vec2(1.0, -1.0));
+    for (int k = 0; k < 4; k++) {
+        vec2 neighbor = NB[k];
+        // Las diagonales (las dos ultimas) piden un umbral MAS alto: en
+        // una constelacion real los vecinos en cruz se unen mucho mas
+        // seguido que los diagonales, y esa diferencia es justo lo que
+        // evita que la red se vuelva una malla pareja.
+        float thresh = connectThresh + (k >= 2 ? 0.07 : 0.0);
 
-            vec2 nDotPos = curDotPos + neighbor / freq;
-            float dLine = segDist15(p, curDotPos, nDotPos);
-            float lineBright = smoothstep(0.008, 0.0, dLine)
-                             * (avgZone - connectThresh) / max(1.0 - connectThresh, 1e-3);
-            col += vec3(0.8, 0.9, 1.0) * lineBright * 0.4;
-        }
+        vec2 nCellId = cellId + neighbor;
+        float nZone = fbm(nCellId * zoneScale + t * (0.05 + uSpeed * 0.1), 3);
+        nZone += uChaos * 0.25 * sin(t * 0.2 + nCellId.x * 0.4 + nCellId.y * 0.4);
+        nZone = clamp(nZone, 0.0, 1.0);
+        float avgZone = (zone + nZone) * 0.5;
+        if (avgZone < thresh) continue;
+
+        vec2 nDotPos = curDotPos + neighbor / freq;
+        float dLine = segDist15(p, curDotPos, nDotPos);
+        float lineBright = smoothstep(0.008, 0.0, dLine)
+                         * (avgZone - thresh) / max(1.0 - thresh, 1e-3);
+        col += vec3(0.8, 0.9, 1.0) * lineBright * 0.4;
     }
 
     // PIANO: el nucleo puntual de la estrella en si -- el efecto real

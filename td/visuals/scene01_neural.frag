@@ -64,7 +64,10 @@ vec2 sitePoint(vec2 cellId, float t, float chaosAmt, float highAmt, float driftA
     vec2 drift = vec2(sin(t * rate1 + phase.x) + 0.5 * sin(t * rate2 * 1.3 + phase.y * 1.9),
                       cos(t * rate1 * 0.85 + phase.y) + 0.5 * cos(t * rate2 * 1.1 + phase.x * 1.3));
     float reach = 0.05 + driftAmt * 0.22 + bassAmt * 0.05;
-    float spread = 0.08 + chaosAmt * 0.62;
+    // Piso 0.08 -> 0.38: con los sitios casi en el centro de su celda
+    // el Voronoi degenera en una REJILLA rectangular -- la escena se
+    // veia como papel cuadriculado, no como una red neuronal.
+    float spread = 0.38 + chaosAmt * 0.42;
     return 0.5 + (base - 0.5) * spread + drift * reach
          + highAmt * 0.02 * sin(t * 9.0 + cellId.x * 3.1 + cellId.y * 2.3);
 }

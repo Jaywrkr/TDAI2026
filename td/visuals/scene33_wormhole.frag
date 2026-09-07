@@ -55,6 +55,15 @@ vec4 render(vec2 uv)
     // cuenta; uKeyvel escala que tan fuerte se invierte.
     rotSpeed = mix(rotSpeed, -rotSpeed * (0.6 + uKeyvel * 0.8), uKeypulse);
     float disk = fbm(vec2(bentAng * 2.0 - t * rotSpeed, r * diskFreq), 3);
+    // BANDAS: un disco de acrecion real no es una pelusa pareja, tiene
+    // anillos de material a distintos radios. Barato: modular el campo
+    // con un seno en r.
+    disk *= 0.72 + 0.28 * sin(r * diskFreq * 2.6 - t * rotSpeed * 0.4);
+    // DOPPLER: el lado del disco que viene hacia la camara se ve mucho
+    // mas brillante que el que se aleja. Es el detalle que hace que la
+    // imagen se lea como un agujero negro y no como un anillo con
+    // textura.
+    disk *= 0.55 + 0.75 * (0.5 + 0.5 * cos(bentAng - PI * 0.5));
 
     float diskMask = smoothstep(horizonR, horizonR + 0.06, r) * smoothstep(0.9, 0.4, r);
     float h = audioHue(uHue + 0.05, uMid * 0.15);

@@ -71,7 +71,12 @@ vec4 render(vec2 uv)
     float starSize = 0.10 + uD4 * 0.18;
     float starD = length(sf);
     float twinkle = 0.5 + 0.5 * sin(t * (0.4 + hash21(sid + 6.0) * 1.6) + hash21(sid + 11.0) * TAU);
-    float star = smoothstep(starSize, 0.0, starD) * isStar * twinkle;
+    // Tamano variable por estrella: un campo estelar real tiene unas
+    // pocas brillantes y muchas apenas visibles. Todas iguales se leen
+    // como ruido de sal y pimienta, que es como se veia.
+    float starMag = 0.35 + hash21(sid + 21.0) * 1.5;
+    float star = smoothstep(starSize * starMag, 0.0, starD) * isStar * twinkle;
+    star *= 0.5 + starMag * 0.7;
     col += vec3(1.0) * star * (1.0 + uKick * 1.0);
 
     // PIANO: nucleo brillante de la explosion en si -- la dispersion

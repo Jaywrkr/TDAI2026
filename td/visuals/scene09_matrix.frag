@@ -85,7 +85,9 @@ vec4 render(vec2 uv)
     // Piso subido (0.08->0.18): con la cola tan corta, casi toda la
     // columna quedaba negra salvo un pedacito pegado a la cabeza -- la
     // "lluvia" no se leia como tal en reposo.
-    float trailLen = 0.18 + uD2 * 0.45;
+    // Estela 0.18 -> 0.30: con la cola tan corta la lluvia se leia
+    // como puntos sueltos al azar, no como columnas cayendo.
+    float trailLen = 0.30 + uD2 * 0.40;
     float bright = exp(-dist / trailLen);
 
     // Cabeza: casi blanca, muy angosta.
@@ -109,7 +111,7 @@ vec4 render(vec2 uv)
     // grande es el bloque dentro de su celda.
     // El bloque respira con los bajos -- uBass ya suavizado (Fase 2).
     // Piso subido (0.30->0.42): caracteres mas gruesos/legibles en reposo.
-    float fill = 0.42 + uD1 * 0.43 + cellJitter + uBass * 0.06;
+    float fill = 0.56 + uD1 * 0.32 + cellJitter + uBass * 0.06;
     float cellMaskX = 1.0 - smoothstep(fill, fill + 0.08, abs(colX - 0.5) * 2.0);
     float cellMaskY = 1.0 - smoothstep(fill, fill + 0.08, abs(rowY - 0.5) * 2.0);
     float cellMask = cellMaskX * cellMaskY;

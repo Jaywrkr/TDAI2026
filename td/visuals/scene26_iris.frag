@@ -63,7 +63,27 @@ vec4 render(vec2 uv)
     float edgeGlow = exp(-bladeSDF * bladeSDF / (0.0004 + uD1 * 0.004));
 
     float h = audioHue(uHue, uMid * 0.15);
-    vec3 metalCol = hsv2rgb(vec3(h, 0.15, 0.32));
+
+    // METAL, no cartulina. El color plano de antes (un unico gris para
+    // TODA la hoja) es lo que hacia que el diafragma se leyera como
+    // papel recortado. Tres cosas lo convierten en metal, todas gratis
+    // porque salen de valores que ya estaban calculados:
+    //   1. gradiente A LO ANCHO de cada hoja (la luz pega distinto en
+    //      cada punto de una chapa inclinada),
+    //   2. variacion por hoja, para que dos hojas vecinas se separen en
+    //      vez de fundirse en una mancha,
+    //   3. un especular de una luz FIJA arriba-izquierda: como el
+    //      diafragma gira y la luz no, el brillo barre las hojas y es
+    //      justo eso lo que se lee como "esto es metal".
+    float bladeIdx = floor((ang - rot) / sector);
+    float across = la / (sector * 0.5);                    // -1..1
+    float shade = 0.45 + 0.55 * smoothstep(-1.0, 1.0, across);
+    shade *= 0.82 + hash21(vec2(bladeIdx, 3.0)) * 0.36;
+    float spec = pow(max(0.0, dot(normalize(p + 1e-5),
+                                  normalize(vec2(-0.6, 0.8)))), 7.0);
+
+    vec3 metalCol = hsv2rgb(vec3(h, 0.10, 0.34)) * shade
+                  + vec3(0.85, 0.90, 1.0) * spec * 0.22;
     vec3 col = metalCol * isBlade;
     col += hsv2rgb(vec3(fract(h + 0.5), 0.6, 1.0)) * edgeGlow * (0.5 + uD3 * 1.1);
 

@@ -30,12 +30,23 @@
 // @D4: largo de los tentaculos
 // ===============================================================
 
+// Densidad de la campana. NO es una silueta rellena: una medusa es
+// TRANSLUCIDA, y lo que se ve de ella es el espesor de gelatina que la
+// luz atraviesa -- mucho cerca del borde (donde se mira "de canto") y
+// casi nada en el centro (donde se mira de frente y se ve el fondo).
+// Esa es toda la diferencia entre un ser vivo y el ovalo blanco plano
+// que dibujaba antes, que se leia como un ojo de dibujo animado.
 float bellShape(vec2 p, float pulse)
 {
     vec2 pp = p;
     pp.y *= 1.5;
     float r = length(pp);
-    return smoothstep(pulse, pulse - 0.12, r) * smoothstep(-pulse * 1.3, -pulse * 0.2, p.y);
+    float inside = smoothstep(pulse, pulse - 0.10, r);
+    float dome = smoothstep(-pulse * 1.3, -pulse * 0.2, p.y);
+    // Espesor optico: al cuadrado para que la caida hacia el centro sea
+    // marcada y el borde quede claramente mas denso.
+    float thickness = clamp(r / max(pulse, 1e-4), 0.0, 1.0);
+    return inside * dome * (0.14 + 0.86 * thickness * thickness);
 }
 
 vec4 render(vec2 uv)
@@ -83,7 +94,8 @@ vec4 render(vec2 uv)
             // dura el pulso, para que se note en toda la medusa, no solo
             // en la campana.
             float tentWave = sin(t * (1.2 + uSpeed * 0.6) + fk * 1.9 - below * 5.0)
-                            * (0.06 + uChaos * 0.12 + uKeypulse * (0.10 + uKeyvel * 0.14)) * (0.3 + uD3 * 1.0);
+                            * (0.06 + uChaos * 0.12 + uKeypulse * (0.10 + uKeyvel * 0.14)) * (0.75 + uD3 * 0.9);   // piso subido: con 0.3 los tentaculos
+                            // colgaban rectos como varillas
             float tentX = tx0 + tentWave * below;
             float dTent = abs(pl.x - tentX);
             // Banda vertical acotada ARRIBA y ABAJO -- sin el limite de
@@ -93,7 +105,11 @@ vec4 render(vec2 uv)
             float tentStart = smoothstep(-tentLen - 0.05, -tentLen + 0.05, pl.y);
             float tentEnd = smoothstep(-pulse * 0.35, -pulse * 0.55, pl.y);
             float tentMaskY = tentStart * tentEnd;
-            float tent = smoothstep(0.012, 0.0, dTent) * tentMaskY;
+            // Tentaculo que ADELGAZA hacia la punta: con grosor
+            // constante se leian como varillas rectas clavadas a la
+            // campana, no como algo que cuelga y flota.
+            float tentW = 0.016 * (1.0 - 0.65 * clamp(below / max(tentLen, 1e-4), 0.0, 1.0));
+            float tent = smoothstep(tentW, 0.0, dTent) * tentMaskY;
             col += jellyCol * tent * 0.65;
         }
     }

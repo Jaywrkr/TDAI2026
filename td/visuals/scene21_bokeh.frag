@@ -63,7 +63,10 @@ vec4 render(vec2 uv)
         float dGust2 = dot(toGust, toGust);
         pos += toGust / sqrt(dGust2 + 0.02) * gustAmt * exp(-dGust2 * 3.0);
 
-        float size = mix(0.025, 0.09, hash21(seed + 2.0)) * (0.5 + uD1 * 1.4)
+        // El bokeh ES el circulo grande de desenfoque: con size de 0.012
+        // a 0.045 eran puntitos nitidos, o sea exactamente lo contrario
+        // de lo que la escena quiere mostrar.
+        float size = mix(0.065, 0.16, hash21(seed + 2.0)) * (0.7 + uD1 * 1.1)
                    * (1.0 + gustAmt * exp(-dGust2 * 3.0) * 1.5);
         float pulse = 0.55 + 0.45 * sin(t * (0.3 + uD3 * 1.5) + hash21(seed + 3.0) * TAU);
 

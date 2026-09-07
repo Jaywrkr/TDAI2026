@@ -56,13 +56,16 @@ vec4 render(vec2 uv)
     // Pisos subidos (size 0.006->0.012, steps base 3->5): en D1=D2=0 los
     // streaks quedaban tan chicos y cortos que el campo de flujo casi no
     // se veia, solo un puntito.
-    float size = 0.012 + uD1 * 0.014;
-    int   steps = 5 + int(floor(uD2 * 8.99));
+    float size = 0.016 + uD1 * 0.016;
+    // Mas pasos y paso mas largo (ver stepLen): los streaks median
+    // 5*0.028 = 0.14 de largo, apenas una pelusa. Un campo de flujo se
+    // lee por las LINEAS, y para eso tienen que ser lineas.
+    int   steps = 7 + int(floor(uD2 * 6.99));
     float turbAmt = 0.10 + uD3 * 0.9;
     // El "perimetro" del campo (cuanto se dispersa) respira con los
     // bajos -- uBass ya suavizado (Fase 2), mismo patron que las
     // metaballs.
-    float spread = (0.25 + uD4 * 0.65) * (1.0 + uBass * 0.25);
+    float spread = (0.55 + uD4 * 0.55) * (1.0 + uBass * 0.25);
 
     float h = audioHue(uHue, uMid * 0.16);
     vec3 col = vec3(0.0);
@@ -70,7 +73,7 @@ vec4 render(vec2 uv)
     // Bass: tamano respira con los graves, ademas del brillo de mas
     // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
     float sizeNow = size * (1.0 + uBass * 0.4);
-    float stepLen = 0.028;
+    float stepLen = 0.045;
 
     for (int i = 0; i < 24; i++) {
         if (i >= n) break;

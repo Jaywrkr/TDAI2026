@@ -53,7 +53,13 @@ vec4 render(vec2 uv)
     // brazo mismo hasta TAU justo antes de que vuelva a pasar.
     float behind = mod(sweepAng - ang, TAU);
     float trailLen = 0.25 + uD2 * 2.2;
+    // El barrido tenia el borde de ataque DURO (un corte recto), que es
+    // lo unico que delataba que era una cuna dibujada y no fosforo
+    // encendiendose. El brazo real tiene un frente brillante y angosto
+    // que se desvanece hacia atras.
     float trail = exp(-behind / trailLen);
+    trail *= smoothstep(0.0, 0.05, behind) * 0.85 + 0.15;
+    trail += exp(-behind * behind / 0.0006) * 0.9;   // frente del brazo
 
     float h = audioHue(fract(uHue + 0.33), uMid * 0.1);
     vec3 radarCol = hsv2rgb(vec3(h, 0.75, 1.0));

@@ -78,7 +78,10 @@ vec4 render(vec2 uv)
         // bajos (perimetro bailando, igual que las metaballs) ademas del
         // pequeno temblor de fase que ya tenia.
         float fi = float(i);
-        float radius = (0.10 + fi * (0.05 + uD3 * 0.18)) * (1.0 + uBass * 0.14)
+        // Radio base 0.10 -> 0.24 y separacion 0.05 -> 0.13: el sistema
+        // entero ocupaba como el 15% del cuadro y se veia como una
+        // maqueta lejana. Ahora llena la pantalla como corresponde.
+        float radius = (0.24 + fi * (0.13 + uD3 * 0.16)) * (1.0 + uBass * 0.14)
                      + uChaos * 0.02 * sin(t * 0.3 + fi * 1.3)
                      + uBass * 0.015 * sin(t * 1.2 + fi * 1.7);
         // PIANO: la orbita se sacude si el cometa la esta cruzando ahora.

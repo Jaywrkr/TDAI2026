@@ -112,7 +112,14 @@ vec4 render(vec2 uv)
         // para que por defecto ya haya mas de un color en pantalla, no
         // todas las lineas identicas hasta que se suba la perilla.
         vec3 lineCol = hsv2rgb(vec3(fract(h + float(i) * (0.05 + uD3 * 0.09)), 0.75, 1.0));
-        float line = edgeLine(sdfN, lineW);
+        // JERARQUIA + PROFUNDIDAD por linea: un hash le da a cada una
+        // su propio grosor y las de mas atras van mas finas y tenues.
+        // Con todas identicas la escena se leia como un diagrama, no
+        // como un dibujo -- era el problema principal de esta escena.
+        float wJit = 0.6 + hash21(vec2(float(i), 7.3)) * 0.9;
+        float back = float(i) / max(count - 1.0, 1.0);
+        float depth = 1.0 - back * 0.42;
+        float line = edgeLine(sdfN, lineW * wJit * depth) * depth;
         // D4: resplandor ademas del trazo nitido.
         float glow = exp(-sdfN * sdfN / (0.004 + uD4 * 0.05)) * uD4;
 

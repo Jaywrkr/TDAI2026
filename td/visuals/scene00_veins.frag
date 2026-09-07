@@ -95,8 +95,14 @@ vec4 render(vec2 uv)
     // Antes tambien tenia "+ uLevel * 0.10": regiones enteras aparecian y
     // desaparecian con el nivel de audio. Misma causa que 'breathe'.
     float cv = fbm(p * 0.42 + vec2(3.1, t * 0.03), 3);
-    float cover = smoothstep(0.52 - uDensity * 0.30,
-                             0.80 - uDensity * 0.22,
+    // Rango MUCHO mas angosto (0.52-0.80 -> 0.40-0.60). El rango ancho
+    // hacia que 'cover' pasara casi toda la pantalla por una rampa larga
+    // en vez de decidir "aca hay red / aca no": el resultado era una red
+    // apagada al 30% en todos lados, que en pantalla se leia como un
+    // solo hilo perdido. Angosto = regiones definidas con vacios reales
+    // entre ellas, que es la composicion que la escena queria.
+    float cover = smoothstep(0.40 - uDensity * 0.16,
+                             0.60 - uDensity * 0.16,
                              cv);
 
     // ---------------- TRONCOS ----------------
@@ -128,7 +134,9 @@ vec4 render(vec2 uv)
 
     // D4: separacion entre troncos -- frecuencia del campo base. D4 bajo =
     // pocos troncos, muy separados; D4 alto = red mucho mas tupida y junta.
-    float trunkFreq = 0.50 + uD4 * 0.95;
+    // Piso 0.50 -> 0.72: con la frecuencia tan baja entraba UN tronco
+    // en pantalla y no habia jerarquia que mostrar.
+    float trunkFreq = 0.72 + uD4 * 0.85;
     float na = fbm(wa * trunkFreq, OCT_TRUNK, 0.50);
     // El ancho de linea es geometria: ya NO depende de uBass (era la otra
     // causa grande del temblor -- las venas engordaban y adelgazaban con

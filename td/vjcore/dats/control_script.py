@@ -927,29 +927,89 @@ def nextBlendMode():
         print('nextBlendMode ERROR:', e)
 
 
+# Todo a CERO. No es "volver a los valores de fabrica": es dejar el rig
+# en silencio total para CONSTRUIR desde abajo -- subis brillo, despues
+# audio, despues las perillas, y armas el tema desde la nada. Pedido
+# explicito del usuario ("todos los valores a minimo, incluido el master
+# de escuchar, los bajos, los medios, los altos, brillo, todo").
+#
+# OJO: Brightness tambien va a 0, o sea que despues de un Reset LA
+# SALIDA QUEDA EN NEGRO hasta que subas el master. Es a proposito y es
+# lo que se pidio -- pero es la razon por la que este boton NO sirve como
+# "sacame del apuro" a mitad de un tema. Para eso esta PANICO, que deja
+# la imagen viva.
+_RESET_TO_ZERO = [
+    # Perillas de look
+    'Speed', 'Density', 'Hue', 'Chaos',
+    # Master de salida
+    'Brightness',
+    # Audio: master + las tres bandas
+    'Audioamount', 'Bassamount', 'Midamount', 'Highamount',
+    # Detail 1-6
+    'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
+    # Efectos de pad
+    'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
+    'Mirror', 'Zoom', 'Posterize',
+    # Master FX + look del show
+    'Trails', 'Layermix', 'Lookamount', 'Palettelock',
+    'Energy',
+]
+
+# Estas no van a 0 sino a su punto NEUTRO: son perillas centradas, donde
+# 0 no es "apagado" sino "al maximo hacia un lado" (zoom de estela hacia
+# afuera, giro antihorario). Con Trails ya en 0 el efecto esta apagado
+# igual, asi que dejarlas en el centro es lo unico que tiene sentido.
+_RESET_TO_NEUTRAL = [
+    ('Trailszoom', 0.5),
+    ('Trailsrotate', 0.5),
+]
+
+
 def resetControls():
+    """Todo a cero, SIN cambiar de escena.
+
+    El visual activo se mantiene: esto apaga los controles, no el show.
+    """
     p = _p()
     if not p:
         return
-    p.par.Blackout = False
-    p.par.Transitionseconds = 0.45
-    for name, v in (('Speed', 0.5), ('Density', 0.5),
-                    ('Hue', 0.0), ('Chaos', 0.3), ('Brightness', 1.0),
-                    # Master FX tambien: si Reset dejara una estela puesta
-                    # o dos capas mezclando, dejaria de ser el boton de
-                    # "volver a un estado conocido" que uno aprieta cuando
-                    # algo se fue de las manos en vivo.
-                    ('Trails', 0.0), ('Trailszoom', 0.5),
-                    ('Trailsrotate', 0.5), ('Layermix', 0.5)):
+    for name in _RESET_TO_ZERO:
         par = getattr(p.par, name, None)
         if par is not None:
-            par.val = v
+            try:
+                par.val = 0.0
+            except Exception:
+                pass
+    for name, v in _RESET_TO_NEUTRAL:
+        par = getattr(p.par, name, None)
+        if par is not None:
+            try:
+                par.val = v
+            except Exception:
+                pass
+
+    # Modos apagados: un reset tiene que dejar un estado PREDECIBLE, y
+    # un modo prendido que no se ve (porque todo esta en 0) es la peor
+    # forma de descubrir que estaba prendido.
+    for name in ('Blackout', 'Autopilot', 'Energyactive'):
+        par = getattr(p.par, name, None)
+        if par is not None:
+            try:
+                par.val = False
+            except Exception:
+                pass
+
     # Salir de dos capas por el mismo camino que el toggle (colapsa las
     # dos ramas a la escena activa), no bajando el flag a mano: si no,
     # el bus quedaria en modo transicion con A y B en escenas distintas.
     if _dual():
         toggleDual()
+
+    # abortTransition corta un fundido a medio camino pero deja la escena
+    # ACTIVA donde esta -- que es justo lo pedido: "manteniendo el visual
+    # en el que esta".
     abortTransition()
+    print('RESET: todo a cero (incluido Brightness -- subilo para ver imagen)')
 
 
 # ---------------------------------------------------------------
