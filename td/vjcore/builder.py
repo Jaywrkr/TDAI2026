@@ -113,6 +113,46 @@ def _parameters(proj):
     add_int(fx, 'Activelayer', 'Dos Capas: Capa que se edita (0=A 1=B)',
             0, 0, 1)
 
+    # --- LOOK MAESTRO (Fase 5): el color del show ---
+    # Se aplica en el FOOTER, o sea despues de CUALQUIER escena. Todo
+    # arranca en 0 = no-op exacto: mientras no se toque, el set se ve
+    # igual que antes de que esto existiera.
+    lk = proj.appendCustomPage('Look')
+    add_int(lk, 'Look', 'Look del show', 0, 0, len(c.LOOKS) - 1)
+    add_float(lk, 'Lookamount', 'Look: cuanto se aplica', 0.0, 0, 1)
+    add_float(lk, 'Palettelock', 'Paleta del show (0 = libre)', 0.0, 0, 1)
+    add_float(lk, 'Palettehue', 'Paleta: color base', 0.55, 0, 1)
+    add_float(lk, 'Palettespread', 'Paleta: apertura (mono <-> 2 tonos)',
+              0.5, 0, 1)
+
+    # --- PREVIEW (cue) ---
+    pv = proj.appendCustomPage('Preview')
+    add_int(pv, 'Previewindex', 'Escena en preview', 0, 0, c.N_SCENES - 1)
+    # Con Cue ON, un click en la grilla NO tira la escena al aire: la
+    # carga en el preview y espera el TAKE. Es el flujo de una mesa real,
+    # y es lo que evita el "la puse y no era esa" en vivo.
+    add_toggle(pv, 'Cuemode', 'Cue: click carga preview, no programa', False)
+    add_pulse(pv, 'Take', 'TAKE (preview -> programa)')
+
+    # --- SALIDAS + GRABACION ---
+    ou = proj.appendCustomPage('Salidas')
+    add_toggle(ou, 'Externalout', 'Salida externa (NDI / Syphon-Spout)', False)
+    add_toggle(ou, 'Record', 'GRABAR (usa el boton, no este toggle)', False)
+    add_string(ou, 'Recordfolder', 'Carpeta de grabacion', '')
+    add_pulse(ou, 'Togglerecord', 'Empezar / parar grabacion')
+
+    # --- FAILSAFE DE VIVO ---
+    # No es un lujo: un rig que se cae a mitad del set es peor que uno
+    # sin efectos. Degrada SOLO cuando el FPS lleva rato abajo, y en
+    # pasos, empezando por lo mas caro y menos esencial.
+    fs = proj.appendCustomPage('Failsafe')
+    add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
+    add_float(fs, 'Failsafeseconds', 'Segundos en rojo antes de actuar',
+              4.0, 1.0, 30.0)
+    add_int(fs, 'Failsafelevel', 'Nivel actual (0 = todo OK)', 0, 0, 3)
+    add_pulse(fs, 'Failsafereset', 'Reset del failsafe')
+    add_pulse(fs, 'Panic', 'PANICO (blackout + escena 0 + FX a cero)')
+
     m = proj.appendCustomPage('MIDI Mapping')
     for slot in c.MIDI_SLOTS:
         add_string(m, 'Midi' + slot.lower(), slot, c.DEFAULT_MIDI.get(slot, ''))
@@ -216,6 +256,14 @@ def onPulse(par):
         m.armLearnPiano('lo')
     elif n == 'Learnpianohi':
         m.armLearnPiano('hi')
+    elif n == 'Take':
+        m.takePreview()
+    elif n == 'Togglerecord':
+        m.toggleRecord()
+    elif n == 'Failsafereset':
+        m.failsafeReset()
+    elif n == 'Panic':
+        m.panic()
     elif n.startswith('Learn'):
         slot = n[5:]
         for s in m._midi_slots():

@@ -77,6 +77,43 @@ def _gpu_ms():
         return -1.0
 
 
+def _watchdog(fps, warn):
+    """Failsafe: si el FPS lleva Failsafeseconds SEGUIDOS por debajo del
+    umbral, baja un escalon de calidad (ver control_script.failsafeStep).
+
+    Se mide por TIEMPO acumulado y no por cantidad de ticks porque el
+    intervalo del diagnostico es configurable (Diagnosticinterval): con
+    ticks, cambiar esa perilla cambiaria sin querer cuanto tarda el
+    failsafe en actuar. Y se exige que sea CONTINUO -- un bajon aislado
+    de un frame (abrir un menu, cambiar de escena) no puede disparar una
+    degradacion de show.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        if not bool(p.par.Failsafe.eval()):
+            p.store('failsafe_low_since', 0.0)
+            return
+        now = float(absTime.seconds)
+        if fps >= warn:
+            p.store('failsafe_low_since', 0.0)
+            return
+        since = float(p.fetch('failsafe_low_since', 0.0) or 0.0)
+        if since <= 0.0:
+            p.store('failsafe_low_since', now)
+            return
+        if now - since >= float(p.par.Failsafeseconds.eval()):
+            ctrl = op('/project1/control_script')
+            if ctrl:
+                ctrl.module.failsafeStep()
+            # Se reinicia el reloj: el proximo escalon exige otra ventana
+            # completa en rojo, no se encadenan todos de golpe.
+            p.store('failsafe_low_since', now)
+    except Exception as e:
+        print('_watchdog ERROR:', e)
+
+
 def _blend_modes():
     try:
         import vjcore.config as _vjconfig
@@ -119,38 +156,68 @@ def updateMasterFX():
     scene_a = _switch_index('program_a')
     scene_b = _switch_index('program_b')
 
+    # Ancho util del panel: ~70 caracteres (604 px a fontsize 13
+    # monoespaciada). Ninguna linea de aca abajo puede pasarse, o se
+    # corta sin aviso.
     on = trails > 0.005
     lines = [
-        'MASTER FX          efectos del PROGRAM, no de la escena',
-        '=' * 64,
+        'MASTER FX     efectos del PROGRAM, no de la escena',
+        '=' * 56,
         '',
-        'ESTELA   {}  {} {:.2f}      zoom {} {:.2f}   giro {} {:.2f}'.format(
-            'ON ' if on else 'OFF', _bar(trails, 10), trails,
+        'ESTELA   {}  {} {:.2f}'.format(
+            'ON ' if on else 'OFF', _bar(trails, 10), trails),
+        '   zoom {} {:.2f}    giro {} {:.2f}'.format(
             _arrow(tzoom), tzoom, _arrow(trot), trot),
-        '   Cada frame arrastra el anterior, encogido y girado un poco.',
-        '   Apagada NO cuesta GPU: el shader ni siquiera cocina.',
+        '   Arrastra el frame anterior, encogido y girado.',
+        '   Apagada NO cuesta GPU: el shader ni cocina.',
         '',
     ]
 
     if dual:
         lines += [
-            'DOS CAPAS  ON    modo {:<10}  mezcla {} {:.2f}'.format(
-                mode, _bar(mix, 10), mix),
-            '   A  ESCENA {:02d} {:<14} {}'.format(
-                scene_a, _sceneName(scene_a),
+            'DOS CAPAS ON  modo {:<10} mezcla {} {:.2f}'.format(
+                mode, _bar(mix, 8), mix),
+            '   A  {:02d} {:<12} {}'.format(
+                scene_a, _sceneName(scene_a)[:12],
                 '<< EDITANDO' if editing == 0 else ''),
-            '   B  ESCENA {:02d} {:<14} {}'.format(
-                scene_b, _sceneName(scene_b),
+            '   B  {:02d} {:<12} {}'.format(
+                scene_b, _sceneName(scene_b)[:12],
                 '<< EDITANDO' if editing == 1 else ''),
-            '   El click en la grilla carga la capa marcada EDITANDO.',
-            '   Mezcla 0 = solo A   ·   1 = efecto completo del modo.',
+            '   El click carga la capa marcada EDITANDO.',
+            '   Mezcla 0 = solo A  ·  1 = efecto completo.',
         ]
     else:
         lines += [
-            'DOS CAPAS  OFF   (bus A/B en modo transicion normal)',
-            '   Prendelo para tener dos escenas vivas a la vez y',
-            '   mezclarlas: {}.'.format('  '.join(modes)),
+            'DOS CAPAS OFF  (bus A/B en transicion normal)',
+            '   Prendelo para 2 escenas vivas a la vez.',
+            '   Modos: {}'.format(' '.join(m[:4] for m in modes)),
             '   Modo actual si lo prendes: {}'.format(mode),
+        ]
+
+    # --- LOOK DEL SHOW ---
+    try:
+        import vjcore.config as _vjc
+        looks = _vjc.LOOKS
+    except Exception:
+        looks = ['NEUTRO', 'NEON FRIO', 'AMBAR FILMICO', 'MONO CONTRASTE']
+    look_i = int(_par_val('Look'))
+    look_amt = _par_val('Lookamount')
+    pal = _par_val('Palettelock')
+    look_name = looks[look_i] if 0 <= look_i < len(looks) else '?'
+
+    lines += ['']
+    if look_amt > 0.005 or pal > 0.005:
+        lines += [
+            'LOOK  {:<14} {} {:.2f}'.format(
+                look_name, _bar(look_amt, 8), look_amt),
+            '   paleta del show {} {:.2f}'.format(_bar(pal, 8), pal),
+            '   Se aplica a las 34 por igual: es el color del',
+            '   SHOW, no un ajuste de esta escena.',
+        ]
+    else:
+        lines += [
+            'LOOK  NEUTRO  (cada escena con su color propio)',
+            '   Looks: {}'.format(' / '.join(looks)),
         ]
 
     fx.text = '\n'.join(lines)
@@ -215,6 +282,10 @@ def update():
     fps_state = 'OK' if fps >= warn else 'BAJO'
     overall = 'CHECK' if (errors > 0 or fps < warn or ctrl_ch == 0) else 'OK'
 
+    # El watchdog vive aca porque este es el unico lugar que ya mide el
+    # FPS a intervalos regulares -- no hace falta otro bucle propio.
+    _watchdog(fps, warn)
+
     lines = [
         'SISTEMA     {}'.format(overall),
         'FPS         {:.1f}  ({})'.format(fps, fps_state),
@@ -236,6 +307,22 @@ def update():
     if learn:
         lines.append('')
         lines.append('>> MIDI LEARN ARMADO: {}'.format(learn))
+
+    # Avisos de show: van ARRIBA de los valores en vivo porque son lo
+    # que hay que ver primero si algo va mal.
+    if bool(_par_val('Cuemode')):
+        lines.append('')
+        lines.append('>> CUE ON  el click carga PREVIEW (escena {:02d}), '
+                     'TAKE lo tira al aire'.format(int(_par_val('Previewindex'))))
+    fs_level = int(_par_val('Failsafelevel'))
+    if fs_level:
+        lines.append('')
+        lines.append('>> FAILSAFE NIVEL {} -- se bajo calidad sola por FPS '
+                     'bajo'.format(fs_level))
+        lines.append('   (Failsafe > Reset del failsafe para volver)')
+    if bool(_par_val('Record')):
+        lines.append('')
+        lines.append('>> GRABANDO')
 
     # Valores en vivo: contexto pedido explicitamente -- saber en que
     # posicion esta cada perilla (y cada banda de audio) sin tener que

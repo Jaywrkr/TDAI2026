@@ -253,6 +253,63 @@ void main() {
     // Pulido final compartido por las 20 escenas -- ver grade() arriba.
     c.rgb = grade(c.rgb);
 
+    // ---- LOOK MAESTRO (Fase 5) ----
+    // El "color del show". Va DESPUES de grade() y de todo lo demas, y
+    // se aplica igual a las 34 escenas: es lo que hace que un set se lea
+    // como UN show y no como 34 demos seguidos, sin tener que editar 34
+    // archivos para cambiar la identidad de color de una noche.
+    //
+    // Los dos empiezan en 0 y en 0 son un no-op EXACTO (mix(x, y, 0.0)
+    // devuelve x bit a bit): mientras no se toquen, el set se ve igual
+    // que antes de que esto existiera.
+
+    // 1. PALETA DEL SHOW: mapea la LUMINANCIA a una rampa de dos tonos
+    // (duotono). No es un tinte encima -- reemplaza el color por uno de
+    // la familia elegida conservando el brillo, que es lo que hace que
+    // 34 escenas de colores distintos pasen a verse como una sola
+    // paleta. uPalettespread abre cuanto se separan los dos tonos: en 0
+    // es practicamente monocromo, en 1 son dos colores bien distintos.
+    if (uPalette > 0.0015) {
+        float plum = clamp(dot(c.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+        vec3 shadowCol = hsv2rgb(vec3(fract(uPalettehue), 0.85, 0.45));
+        vec3 lightCol = hsv2rgb(vec3(fract(uPalettehue + 0.08 + uPalettespread * 0.42),
+                                     0.55, 1.0));
+        // smoothstep y no plum directo: la transicion entre los dos tonos
+        // se concentra en los medios, asi los negros se quedan en el tono
+        // oscuro y los brillos en el claro, en vez de un degradado plano.
+        vec3 duo = mix(shadowCol, lightCol, smoothstep(0.05, 0.85, plum)) * plum;
+        c.rgb = mix(c.rgb, duo, uPalette);
+    }
+
+    // 2. LOOK: curvas de color con nombre (ver config.LOOKS). Cada uno es
+    // un tratamiento distinto de la MISMA imagen, no un filtro de color
+    // plano -- por eso cada rama toca contraste/saturacion/balance por
+    // separado y no simplemente multiplica por un color.
+    if (uLookamt > 0.0015) {
+        int look = int(uLook + 0.5);
+        vec3 lookCol = c.rgb;
+        float llum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+
+        if (look == 1) {
+            // NEON FRIO: sombras al azul, brillos al cyan, mas contraste.
+            lookCol = mix(vec3(llum), c.rgb, 1.25);
+            lookCol *= vec3(0.82, 1.02, 1.20);
+            lookCol += vec3(0.0, 0.02, 0.06) * (1.0 - llum);
+        } else if (look == 2) {
+            // AMBAR FILMICO: brillos calidos, negros levantados apenas,
+            // saturacion contenida -- el look "pelicula" clasico.
+            lookCol = mix(vec3(llum), c.rgb, 0.88);
+            lookCol *= vec3(1.16, 1.00, 0.80);
+            lookCol += vec3(0.030, 0.020, 0.012);
+        } else if (look == 3) {
+            // MONO CONTRASTE: blanco y negro duro. El unico que descarta
+            // el color por completo, a proposito.
+            float mono = smoothstep(0.12, 0.78, llum);
+            lookCol = vec3(mono);
+        }
+        c.rgb = mix(c.rgb, lookCol, uLookamt);
+    }
+
     c.a = 1.0;
     fragColor = TDOutputSwizzle(c);
 }

@@ -144,6 +144,8 @@ CONTINUOUS = {
     # perillas libres, quedan listos para Learn.
     'Trails': ('Trails', 0.0, 1.0),
     'Layermix': ('Layermix', 0.0, 1.0),
+    'Lookamount': ('Lookamount', 0.0, 1.0),
+    'Palettelock': ('Palettelock', 0.0, 1.0),
 }
 
 TRIGGERS = {
@@ -157,6 +159,12 @@ TRIGGERS = {
     'Duallayer': 'toggleDual',
     'Blendnext': 'nextBlendMode',
     'Layerswap': 'swapLayer',
+    # Preview/cue y panico (Fase 5).
+    'Take': 'takePreview',
+    'Cuemode': 'toggleCue',
+    'Cuenext': 'cueNext',
+    'Cueprev': 'cuePrev',
+    'Panic': 'panic',
 }
 
 # 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas

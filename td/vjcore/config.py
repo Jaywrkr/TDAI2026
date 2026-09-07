@@ -86,13 +86,22 @@ CTRL_CHANNELS = [
     'trailsrot',   # 24 giro del feedback   (0.5 = neutro)
     'layermix',    # 25 mezcla A/B en modo dos capas
     'blendmode',   # 26 indice de modo de mezcla (0..5, ver program.py)
+    # Fase 5 - LOOK MAESTRO. Se aplican en el FOOTER (shader.py), o sea
+    # despues del render de CUALQUIER escena: es el "color del show"
+    # completo, no un ajuste por escena. En 0 no tocan absolutamente
+    # nada (el set se ve exactamente igual que antes de existir esto).
+    'look',        # 27 indice de look (0 = NEUTRO, ver config.LOOKS)
+    'lookamt',     # 28 cuanto se aplica el look (0 = nada)
+    'palette',     # 29 cuanto se fuerza la paleta del show (0 = nada)
+    'palettehue',  # 30 hue base de esa paleta
+    'palettespread',  # 31 que tan abierta es (mono <-> dos tonos lejanos)
     # Fase 3 - perillas de detalle, significan algo distinto por escena.
     # Ver @D1.._at6 en el .frag y docs/03_VISUAL_SPEC.md.
-    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 27-32
-    'time',     # 33 tiempo YA escalado por Speed (usar este para animar)
-    'rtime',    # 34 tiempo real en segundos (independiente de Speed)
-    'resw',     # 35 ancho de salida
-    'resh',     # 36 alto de salida
+    'd1', 'd2', 'd3', 'd4', 'd5', 'd6',         # 32-37
+    'time',     # 38 tiempo YA escalado por Speed (usar este para animar)
+    'rtime',    # 39 tiempo real en segundos (independiente de Speed)
+    'resw',     # 40 ancho de salida
+    'resh',     # 41 alto de salida
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -121,6 +130,11 @@ PAR_CHANNELS = [
     ('Trailsrotate', 'trailsrot'),
     ('Layermix', 'layermix'),
     ('Blendmode', 'blendmode'),
+    ('Look', 'look'),
+    ('Lookamount', 'lookamt'),
+    ('Palettelock', 'palette'),
+    ('Palettehue', 'palettehue'),
+    ('Palettespread', 'palettespread'),
     ('Detail1', 'd1'),
     ('Detail2', 'd2'),
     ('Detail3', 'd3'),
@@ -138,6 +152,15 @@ PAR_CHANNELS = [
 # dashboard y control_script.nextBlendMode() para no repetirlos a mano.
 # Si se agrega uno, hay que agregarlo TAMBIEN al if/else del shader.
 BLEND_MODES = ['MIX', 'ADD', 'SCREEN', 'MULTIPLY', 'DIFFERENCE', 'LIGHTEN']
+
+# ---------------------------------------------------------------
+# LOOK MAESTRO - el "color del show"
+# ---------------------------------------------------------------
+# Mismo trato que BLEND_MODES: el indice viaja por el canal 'look' hasta
+# el FOOTER (shader.py) y esta lista es la unica fuente del nombre. El
+# indice 0 tiene que ser SIEMPRE el neutro -- es el default, y garantiza
+# que este sistema entero no cambie nada hasta que se toque a proposito.
+LOOKS = ['NEUTRO', 'NEON FRIO', 'AMBAR FILMICO', 'MONO CONTRASTE']
 
 # ---------------------------------------------------------------
 # PIANO - teclado de 25 teclas del MiniLab MkII
@@ -233,7 +256,12 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # libere alguno -- mientras tanto se manejan desde el
               # dashboard y los parametros.
               'Trails', 'Layermix',
-              'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap']
+              'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap',
+              # Fase 5. 'Panic' y 'Take' son los dos que de verdad
+              # conviene tener en un pad fisico si se libera alguno: son
+              # los unicos que se aprietan con urgencia.
+              'Lookamount', 'Palettelock',
+              'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

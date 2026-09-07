@@ -130,13 +130,34 @@ def build(proj, thumbs, program_clean):
     # vacios. Poner el panel ahi lo hace GRATIS en altura -- si fuera a la
     # columna derecha, el dashboard entero creceria y en un portatil ya no
     # entraria en pantalla.
-    # 280 px = 12 lineas a fontsize 13 (interlineado real ~1.7x) con aire
-    # de sobra: el caso mas largo del panel (dos capas ON) son 12 lineas.
-    FX_H = 280
+    # 380 px = 17 lineas a fontsize 13 (interlineado real ~1.7x): el caso
+    # mas largo del panel (dos capas ON + look activo) son 17 lineas.
+    FX_H = 380
     FX_GAP = 12
+    PREV_W, PREV_H = 320, 180
+    BTN_H = 44
     grid_bottom = dash_h - c.DASH_MARGIN - grid_h
+
+    # El bloque de cue (monitor + TAKE + PANICO) va a la DERECHA del
+    # espacio muerto y el panel de Master FX a la izquierda: los dos
+    # entran en los ~512 px libres que quedan debajo de la grilla, sin
+    # hacer crecer el dashboard ni un pixel.
+    prev_x = c.DASH_MARGIN + grid_w - PREV_W
+    prev_y = grid_bottom - FX_GAP - PREV_H
+    build_preview_monitor(dash, prev_x, prev_y, PREV_W, PREV_H)
+
+    take_y = prev_y - 8 - BTN_H
+    build_action_button(
+        dash, 'btn_take', prev_x, take_y, PREV_W, BTN_H,
+        'TAKE  (preview -> aire)', 'takePreview()',
+        bg=(0.10, 0.42, 0.18), fg=(0.85, 1.0, 0.88))
+    build_action_button(
+        dash, 'btn_panic', prev_x, take_y - 8 - BTN_H, PREV_W, BTN_H,
+        'PANICO', 'panic()',
+        bg=(0.45, 0.08, 0.08), fg=(1.0, 0.88, 0.88))
+
     build_master_fx_panel(dash, c.DASH_MARGIN, grid_bottom - FX_GAP - FX_H,
-                          grid_w, FX_H)
+                          grid_w - PREV_W - 16, FX_H)
 
     log('DASHBOARD: {} tiles + monitor + beat light + status + detail legend '
         '+ master fx'.format(len(thumbs)))
@@ -252,6 +273,87 @@ def build_beat_light(dash, x, y, h):
     safe_set(label, 'topfill', 'fillaspect')
     safe_set(label, 'enable', False)
     return box
+
+
+def build_preview_monitor(dash, x, y, w, h):
+    """Monitor de CUE: la escena que esta en preview, en grande.
+
+    Muestra 'preview_sw' CRUDO -- sin Master FX, sin bloom y sin master
+    fade -- a proposito: un cue tiene que decir como es LA ESCENA, no
+    como se ve el programa con todo lo que tenga puesto encima ahora.
+
+    Cuesta una escena cocinando (ver setSceneCooking), no las 34 que
+    cocinaba Previewall y que hundieron el FPS a 9.
+    """
+    frame = dash.create(containerCOMP, 'preview_frame')
+    safe_set(frame, 'x', x)
+    safe_set(frame, 'y', y)
+    safe_set(frame, 'w', w)
+    safe_set(frame, 'h', h)
+    for p, v in (('bgcolorr', 0.55), ('bgcolorg', 0.45), ('bgcolorb', 0.05)):
+        safe_set(frame, p, v)
+
+    inner = frame.create(containerCOMP, 'preview_mon')
+    safe_set(inner, 'x', BORDER)
+    safe_set(inner, 'y', BORDER)
+    safe_set(inner, 'w', w - BORDER * 2)
+    safe_set(inner, 'h', h - BORDER * 2)
+    safe_set(inner, 'top', '/project1/preview_sw')
+    safe_set(inner, 'topfill', 'fillaspect')
+    safe_set(inner, 'enable', False)
+    return frame
+
+
+def build_action_button(dash, name, x, y, w, h, label, call,
+                        bg=(0.16, 0.16, 0.18), fg=(0.95, 0.95, 0.95)):
+    """Boton clickable que llama a control_script.<call>.
+
+    Mismo mecanismo que los tiles de escena (containerCOMP + Panel
+    Execute DAT), que es el unico patron de click ya probado en este
+    dashboard -- nada de widgetCOMP, cuyos parametros custom cambian
+    entre builds (ver la nota al principio de este archivo).
+    """
+    btn = dash.create(containerCOMP, name)
+    safe_set(btn, 'x', x)
+    safe_set(btn, 'y', y)
+    safe_set(btn, 'w', w)
+    safe_set(btn, 'h', h)
+    safe_set(btn, 'cursor', 'pointer')
+    for p, v in zip(('bgcolorr', 'bgcolorg', 'bgcolorb'), bg):
+        safe_set(btn, p, v)
+
+    txt = btn.create(textTOP, name + '_label')
+    safe_set(txt, 'text', label)
+    safe_set_first(txt, ['wordwrap', 'wrapwords'], False)
+    safe_set_first(txt, ['alignx', 'justifyx', 'textalignx'], 'center')
+    safe_set_first(txt, ['aligny', 'justifyy', 'textaligny'], 'middle')
+    safe_set_first(txt, ['fontsizex', 'fontsize'], 16)
+    safe_set_first(txt, ['font', 'fontname'], 'Courier New')
+    for p, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'), fg):
+        safe_set(txt, p, v)
+    for p, v in zip(('bgcolorr', 'bgcolorg', 'bgcolorb'), bg):
+        safe_set(txt, p, v)
+    safe_set(txt, 'outputresolution', 'custom')
+    safe_set(txt, 'resolutionw', int(w))
+    safe_set(txt, 'resolutionh', int(h))
+    safe_set(btn, 'top', txt.path)
+    safe_set(btn, 'topfill', 'fillaspect')
+
+    pe = btn.create(panelexecuteDAT, 'click')
+    safe_set(pe, 'panels', '..')
+    safe_set(pe, 'panelvalue', 'lselect')
+    safe_set(pe, 'offtoon', True)
+    pe.text = (
+        "def onOffToOn(panelValue):\n"
+        "    ctrl = op('/project1/control_script')\n"
+        "    if ctrl:\n"
+        "        ctrl.module.{}\n"
+        "    return\n\n"
+        "def whileOn(panelValue):\n    return\n\n"
+        "def onOnToOff(panelValue):\n    return\n\n"
+        "def whileOff(panelValue):\n    return\n\n"
+        "def onValueChange(panelValue):\n    return\n".format(call))
+    return btn
 
 
 def build_master_fx_panel(dash, x, y, w, h):

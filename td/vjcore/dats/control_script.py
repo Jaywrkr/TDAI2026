@@ -120,6 +120,15 @@ def setSceneCooking(indices=None):
         indices = visibleScenes()
     indices = set(int(x) for x in indices)
 
+    # La escena en PREVIEW tambien tiene que cocinar: si no, el monitor
+    # de cue mostraria el ultimo frame congelado (o negro si nunca se
+    # visito) y no serviria para lo unico que existe -- ver como se ve
+    # ANTES de tirarla. Es UNA escena de mas, no las 34 de Previewall.
+    try:
+        indices.add(int(p.par.Previewindex.eval()))
+    except Exception:
+        pass
+
     try:
         perf = bool(p.par.Performancemode.eval())
     except Exception:
@@ -137,6 +146,84 @@ def setSceneCooking(indices=None):
             sc.allowCooking = (not perf) or preview or (i in indices)
         except Exception:
             pass
+
+
+# ---------------------------------------------------------------
+# PREVIEW (cue) + TAKE
+# ---------------------------------------------------------------
+# Flujo de mesa real: cargas la escena en el preview, la MIRAS, y recien
+# entonces la tiras al aire. Cuesta UNA escena cocinando de mas (la del
+# preview), no las 34 que cocinaba Previewall.
+
+def previewScene(index):
+    """Carga una escena en el bus de preview (no toca el programa)."""
+    p = _p()
+    if not p:
+        return
+    try:
+        index = max(0, min(_n_scenes() - 1, int(index)))
+        if not _valid(index):
+            print('SCENE {} INVALIDA - ignorada'.format(index))
+            return
+        p.par.Previewindex = index
+        setSceneCooking()
+        updateHighlight()
+    except Exception as e:
+        print('previewScene ERROR:', e)
+
+
+def takePreview():
+    """TAKE: manda al programa lo que esta en preview.
+
+    Usa selectScene(), o sea que respeta TODO lo de siempre: el fundido
+    nativo, el modo dos capas (entra en la capa que se este editando) y
+    el recall de preset de esa escena.
+    """
+    p = _p()
+    if not p:
+        return
+    try:
+        # La bandera evita el bucle obvio: selectScene, con Cue ON,
+        # reenvia todo al preview -- incluido este TAKE, que quedaria sin
+        # hacer nada. Se limpia en finally para que un fallo a mitad no
+        # deje el modo cue mudo para siempre.
+        p.store('taking', True)
+        try:
+            selectScene(int(p.par.Previewindex.eval()))
+        finally:
+            p.store('taking', False)
+    except Exception as e:
+        print('takePreview ERROR:', e)
+
+
+def cueNext():
+    p = _p()
+    if p:
+        previewScene((int(p.par.Previewindex.eval()) + 1) % _n_scenes())
+
+
+def cuePrev():
+    p = _p()
+    if p:
+        previewScene((int(p.par.Previewindex.eval()) - 1) % _n_scenes())
+
+
+def toggleCue():
+    p = _p()
+    if not p:
+        return
+    try:
+        on = not bool(p.par.Cuemode.eval())
+        p.par.Cuemode = on
+        # Al ENTRAR en modo cue el preview arranca donde esta el programa:
+        # si arrancara en la escena 0 sin avisar, el primer TAKE tiraria
+        # una escena que el VJ no eligio.
+        if on:
+            p.par.Previewindex = int(p.par.Activeindex.eval())
+        setSceneCooking()
+        updateHighlight()
+    except Exception as e:
+        print('toggleCue ERROR:', e)
 
 
 def updateHighlight():
@@ -193,6 +280,16 @@ def selectScene(index):
         index = max(0, min(_n_scenes() - 1, int(index)))
         if not _valid(index):
             print('SCENE {} INVALIDA - ignorada'.format(index))
+            return
+
+        # MODO CUE: el click en la grilla carga el PREVIEW, no el aire.
+        # Se chequea aca (y no en el handler del click) para que valga
+        # tambien para el MIDI y para cualquier otra ruta que termine
+        # llamando a selectScene -- una sola puerta, no varias.
+        # takePreview() no pasa por aca dos veces: llama al camino normal
+        # porque para entonces Cuemode ya cumplio su funcion.
+        if bool(p.par.Cuemode.eval()) and not bool(p.fetch('taking', False)):
+            previewScene(index)
             return
 
         # MODO DOS CAPAS: no hay transicion que hacer -- la escena entra
@@ -478,6 +575,146 @@ def swapLayer():
         updateDetailLegend(int(p.par.Activeindex.eval()))
     except Exception as e:
         print('swapLayer ERROR:', e)
+
+
+# ---------------------------------------------------------------
+# FAILSAFE DE VIVO + PANICO
+# ---------------------------------------------------------------
+# Un rig que se cae a mitad del set es peor que uno sin efectos. Esto
+# degrada SOLO, en pasos, empezando por lo mas caro y menos esencial --
+# y nunca toca la salida de show (Brightness/Blackout): apagar la imagen
+# para "salvar" el FPS seria exactamente el fracaso que se quiere evitar.
+#
+# NO se deshace solo. Volver a subir la calidad apenas el FPS se
+# recupera es como se entra en un ciclo de subir/bajar cada pocos
+# segundos, que en pantalla se ve peor que quedarse degradado. Se
+# recupera a mano con Failsafereset, cuando el VJ decide.
+
+_FAILSAFE_STEPS = [
+    ('estela apagada', 'Trails', 0.0),
+    ('dos capas apagadas', 'Duallayer', False),
+]
+
+
+def failsafeStep():
+    """Baja UN escalon de calidad. La llama diagnostics.py cuando el FPS
+    lleva Failsafeseconds seguidos por debajo de Fpswarning."""
+    p = _p()
+    if not p:
+        return
+    try:
+        level = int(p.par.Failsafelevel.eval())
+        if level >= 3:
+            return                       # ya no queda nada que soltar
+        if level < len(_FAILSAFE_STEPS):
+            label, par_name, val = _FAILSAFE_STEPS[level]
+            par = getattr(p.par, par_name, None)
+            if par is not None:
+                par.val = val
+        else:
+            # Ultimo escalon: bajar la resolucion de salida a 70%. Es lo
+            # mas efectivo y lo mas visible, por eso va ultimo.
+            label = 'resolucion al 70%'
+            w = int(p.par.Outputwidth.eval())
+            h = int(p.par.Outputheight.eval())
+            p.store('failsafe_res', (w, h))
+            p.par.Outputwidth = max(320, int(w * 0.7))
+            p.par.Outputheight = max(240, int(h * 0.7))
+        p.par.Failsafelevel = level + 1
+        print('FAILSAFE nivel {}: {}'.format(level + 1, label))
+    except Exception as e:
+        print('failsafeStep ERROR:', e)
+
+
+def failsafeReset():
+    """Vuelve la resolucion y el contador a como estaban. No vuelve a
+    prender estela ni dos capas a proposito: eso es una decision
+    artistica, no algo que un boton de recuperacion deba adivinar."""
+    p = _p()
+    if not p:
+        return
+    try:
+        res = p.fetch('failsafe_res', None)
+        if res:
+            p.par.Outputwidth = int(res[0])
+            p.par.Outputheight = int(res[1])
+            p.store('failsafe_res', None)
+        p.par.Failsafelevel = 0
+        p.store('failsafe_low_since', 0.0)
+        print('FAILSAFE reseteado')
+    except Exception as e:
+        print('failsafeReset ERROR:', e)
+
+
+def panic():
+    """Todo a un estado seguro y conocido, de una. Para cuando algo se
+    fue de las manos y no hay tiempo de pensar que fue."""
+    p = _p()
+    if not p:
+        return
+    try:
+        p.par.Blackout = True
+        for name in ('Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
+                     'Mirror', 'Zoom', 'Posterize', 'Trails',
+                     'Lookamount', 'Palettelock'):
+            par = getattr(p.par, name, None)
+            if par is not None:
+                par.val = 0.0
+        if _dual():
+            toggleDual()
+        p.par.Autopilot = False
+        abortTransition()
+        selectScene(0)
+        print('>> PANICO: blackout, escena 0, efectos a cero')
+    except Exception as e:
+        print('panic ERROR:', e)
+
+
+# ---------------------------------------------------------------
+# GRABACION
+# ---------------------------------------------------------------
+
+def toggleRecord():
+    """Empieza/para la grabacion, poniendo un nombre de archivo con fecha
+    y hora ANTES de arrancar.
+
+    El nombre se calcula aca y no con una expresion en el parametro a
+    proposito: una expresion se reevalua sola y podria cambiar el archivo
+    de destino a mitad de grabacion.
+    """
+    p = _p()
+    rec = op('/project1/recorder')
+    if not p:
+        return
+    if not rec:
+        print('toggleRecord: no hay grabador (ver log del build: el '
+              'Movie File Out TOP no estaba disponible)')
+        return
+    try:
+        if bool(p.par.Record.eval()):
+            p.par.Record = False
+            print('GRABACION detenida')
+            return
+
+        import datetime
+        folder = str(p.par.Recordfolder.eval() or '').strip()
+        if not folder:
+            folder = _config_dir() or ''
+        if folder and not os.path.isdir(folder):
+            try:
+                os.makedirs(folder)
+            except Exception:
+                folder = ''
+        name = 'tdai2026_{}.mov'.format(
+            datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+        path = os.path.join(folder, name) if folder else name
+        par = getattr(rec.par, 'file', None)
+        if par is not None:
+            par.val = path
+        p.par.Record = True
+        print('GRABANDO en', path)
+    except Exception as e:
+        print('toggleRecord ERROR:', e)
 
 
 def nextBlendMode():
