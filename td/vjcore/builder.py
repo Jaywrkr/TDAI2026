@@ -107,7 +107,8 @@ def _parameters(proj):
     # Mediaindex es interno: no se toca a mano, lo escriben el modo
     # automatico y los botones de abajo.
     md = proj.appendCustomPage('Media')
-    add_string(md, 'Mediafolder', 'Carpeta de imagenes / GIFs', '')
+    add_string(md, 'Mediafolder', 'Carpeta de imagenes / GIFs',
+               c.DEFAULT_MEDIA_FOLDER)
     add_int(md, 'Mediaindex', 'Imagen actual (interno)', 0, 0, 9999)
     # Contador interno que solo existe para el sistema de dependencias de
     # TD: la expresion 'file' de los Movie File In depende de Mediaindex,
