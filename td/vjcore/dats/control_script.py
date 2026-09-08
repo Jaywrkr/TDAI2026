@@ -1117,7 +1117,6 @@ def _bakeThumbSave(index):
 
 def reloadShaders():
     """Recompone los .frag desde disco sin reconstruir la red."""
-    p = _p()
     try:
         import vjcore
         vjcore.reload_shaders()

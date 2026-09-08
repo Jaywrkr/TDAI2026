@@ -83,14 +83,14 @@ def build_keypulse(proj):
     "el anillo de tecla no aparece nunca" -- nunca un build roto.
     """
     par = proj.create(parameterCHOP, 'key_par')
-    par.nodeX, par.nodeY = -1240, 200
+    par.nodeX, par.nodeY = -1240, 1000
     safe_set_first(par, ['op', 'ops'], config.PROJECT_PATH)
     safe_set(par, 'custom', True)
     safe_set(par, 'builtin', False)
     safe_set_first(par, ['parameters', 'pars', 'parameter'], 'Keypulseraw')
 
     trig = proj.create(triggerCHOP, 'key_trigger')
-    trig.nodeX, trig.nodeY = -1080, 200
+    trig.nodeX, trig.nodeY = -1080, 1000
     safe_set(trig, 'threshold', 0.5)
     safe_set_first(trig, ['attack', 'attacklength'], 0.005)
     safe_set_first(trig, ['decay', 'decaylength'], 0.0)
@@ -100,7 +100,7 @@ def build_keypulse(proj):
     connect(trig, par)
 
     ren = proj.create(renameCHOP, 'key_named')
-    ren.nodeX, ren.nodeY = -920, 200
+    ren.nodeX, ren.nodeY = -920, 1000
     safe_set(ren, 'renamefrom', '*')
     safe_set(ren, 'renameto', 'keypulse')
     connect(ren, trig)
@@ -135,21 +135,21 @@ def build_effects_envelope(proj):
     chans = [c for _, c in config.FX_TRIGGER_PARS]
 
     par = proj.create(parameterCHOP, 'fx_par')
-    par.nodeX, par.nodeY = -1240, 320
+    par.nodeX, par.nodeY = -1240, 1120
     safe_set_first(par, ['op', 'ops'], config.PROJECT_PATH)
     safe_set(par, 'custom', True)
     safe_set(par, 'builtin', False)
     safe_set_first(par, ['parameters', 'pars', 'parameter'], ' '.join(pars))
 
     lag = proj.create(lagCHOP, 'fx_lag')          # noqa: F821
-    lag.nodeX, lag.nodeY = -1080, 320
+    lag.nodeX, lag.nodeY = -1080, 1120
     safe_set(lag, 'lag1', 0.008)                  # subida: casi instantanea
     safe_set(lag, 'lag2', config.FX_DECAY_SECONDS)  # bajada: la que se ve
     safe_set_first(lag, ['lagmethod', 'method'], 'slew')
     connect(lag, par)
 
     ren = proj.create(renameCHOP, 'fx_named')
-    ren.nodeX, ren.nodeY = -920, 320
+    ren.nodeX, ren.nodeY = -920, 1120
     safe_set(ren, 'renamefrom', ' '.join(pars))
     safe_set(ren, 'renameto', ' '.join(chans))
     connect(ren, lag)

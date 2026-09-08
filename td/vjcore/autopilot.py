@@ -26,7 +26,7 @@ from .tdutil import safe_set, log
 
 def build(proj, beat_chan):
     logic = proj.create(chopexecuteDAT, 'autopilot_logic')
-    logic.nodeX, logic.nodeY = -240, 980
+    logic.nodeX, logic.nodeY = -240, 1230
     safe_set(logic, 'chop', beat_chan.path)
     safe_set(logic, 'offtoon', True)
     logic.text = _dat_text()
