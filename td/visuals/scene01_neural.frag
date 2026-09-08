@@ -43,7 +43,8 @@
 // @D4: velocidad de deriva de los sitios (rejilla casi fija <-> siempre
 //      reacomodandose)
 // @D5: velocidad base del "paquete de datos" que recorre la red
-// @D6: separacion de tono entre el borde nitido y su resplandor
+// @D6: ancho del "paquete de datos" (punto angosto <-> banda ancha que
+//      cubre casi todo el segmento)
 // ===============================================================
 
 // Punto aleatorio pero animado dentro de cada celda -- se mueve de verdad,
@@ -131,11 +132,8 @@ vec4 render(vec2 uv)
     float glow = exp(-max(gap, 0.0) / glowWidth) * (0.20 + uD2 * 1.0);
 
     float h = audioHue(uHue, uMid * 0.16);
-    // D6: separacion de tono entre el borde nitido y su resplandor -- en
-    // 0 casi comparten color, en 1 el glow se aleja bastante (borde cian
-    // con halo violeta, por ejemplo).
     vec3 edgeCol = hsv2rgb(vec3(h, 0.75, 1.0));
-    vec3 glowCol = hsv2rgb(vec3(fract(h + uD6 * 0.5), 0.85, 1.0));
+    vec3 glowCol = hsv2rgb(vec3(fract(h + 0.5), 0.85, 1.0));
 
     // Pulso que recorre la red: modula el brillo de los segmentos segun
     // su distancia al centro, viajando con el tiempo. D3 controla cuantos
@@ -153,7 +151,10 @@ vec4 render(vec2 uv)
     float packetSpeed = 0.3 + uD5 * 2.2;
     float packetFreq = pulseFreq * 2.3;
     float packetPhase = fract(length(p) * packetFreq * 0.15 - t * (packetSpeed + uMid * 2.0 + uHigh * 1.5));
-    float packet = smoothstep(0.08, 0.0, abs(packetPhase - 0.5)) * edge;
+    // D6: ancho del paquete -- en 0 es un punto angosto viajando por la
+    // red, en 1 una banda ancha que casi cubre el segmento entero.
+    float packetWidth = 0.03 + uD6 * 0.22;
+    float packet = smoothstep(packetWidth, 0.0, abs(packetPhase - 0.5)) * edge;
 
     vec3 col = edgeCol * edge * (0.5 + 0.5 * pulse) * (1.0 + uKick * 1.2);
     col += glowCol * glow * 1.3 * (0.6 + 0.4 * pulse);

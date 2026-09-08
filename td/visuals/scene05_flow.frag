@@ -30,8 +30,9 @@
 // @D1: grosor de las lineas
 // @D2: frecuencia espacial del campo de flujo (corrientes anchas <->
 //      finas y apretadas)
-// @D3: variacion de color entre lineas (todas iguales <-> cada una un
-//      tono bien distinto)
+// @D3: separacion entre los 2 colores que alternan linea por medio (en
+//      0 todas comparten un color <-> en 1 alternan dos tonos bien
+//      distintos, nunca mas de 2 colores en pantalla)
 // @D4: resplandor (glow) alrededor de las lineas, ademas del trazo nitido
 // @D5: velocidad base de la chispa que viaja por cada corriente
 // @D6: fuerza de la perspectiva de profundidad (todas iguales <-> las de
@@ -94,9 +95,12 @@ vec4 render(vec2 uv)
         float sdfG = length(vec2(dFdx(sdf), dFdy(sdf)));
         float sdfN = sdf / max(sdfG, 1e-4);
 
-        // D3: variacion de color por linea -- en 0 todas comparten el
-        // mismo tono, en 1 cada una se aleja bastante del hue base.
-        vec3 lineCol = hsv2rgb(vec3(fract(h + fi * 0.09 * uD3), 0.70, 1.0));
+        // D3: SOLO 2 colores, nunca un arcoiris de una linea a otra --
+        // lineas pares se quedan en 'h', las impares se alejan hacia
+        // 'h + separacion'. En 0 las dos coinciden (un solo color); en 1
+        // quedan bien separadas (dos colores alternando linea por linea).
+        float lineParity = mod(fi, 2.0);
+        vec3 lineCol = hsv2rgb(vec3(fract(h + lineParity * 0.5 * uD3), 0.70, 1.0));
         // JERARQUIA + PROFUNDIDAD por linea: un hash le da a cada una
         // su propio grosor y las de mas atras van mas finas y tenues.
         // Con todas identicas la escena se leia como un diagrama, no

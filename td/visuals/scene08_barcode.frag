@@ -20,6 +20,12 @@
 // Eso es lo que da "mayoria ambar, alguna columna verde/azul" sin volverse
 // un visual arcoiris.
 //
+// SATURACION MEZCLADA CON NOISE: sin esto, con Hue en cualquier posicion
+// TODA columna visible sale igual de saturada -- la pantalla se lee como
+// "todo de un color", no como un codigo de barras real (mayormente
+// blanco/ambar apagado). Un fbm lento por columna decide en BLOQUES que
+// tramos leen casi sin saturar y cuales muestran el tinte completo.
+//
 // CONTROLES
 //   Speed    velocidad de scroll vertical del patron interno
 //   Density  cuantas columnas hay
@@ -125,7 +131,22 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.16);
     h = fract(h + isAccent1 * 0.42 + isAccent2 * 0.55);
 
-    vec3 col = hsv2rgb(vec3(h, 0.85, 1.0)) * bright * colMask * interlace;
+    // Saturacion mezclada con noise -- sin esto TODA columna visible sale
+    // igual de saturada, y con Hue en cualquier posicion viva la pantalla
+    // se lee como "todo de un color" en vez de un codigo de barras real
+    // (que es mayormente blanco/ambar apagado, con acento). Un fbm lento
+    // por columna decide, en bloques (no pixel a pixel), que tramos leen
+    // casi sin saturar (blanco/ambar neutro) y cuales sí muestran el tinte
+    // completo -- mismo campo de "zonas" que ya arma composicion en
+    // colMask, reusado para que la desaturacion tambien venga en bloques,
+    // no en ruido de sal y pimienta.
+    float satNoise = fbm(vec2(colId * 0.12, t * 0.03) + 50.0, 2);
+    float sat = mix(0.12, 0.85, smoothstep(0.30, 0.65, satNoise));
+    // Los acentos SI quedan bien saturados siempre -- son el "esto se
+    // salió de la norma" que Density/D4 ya controlan a proposito.
+    sat = mix(sat, 0.85, max(isAccent1, isAccent2));
+
+    vec3 col = hsv2rgb(vec3(h, sat, 1.0)) * bright * colMask * interlace;
 
     // Linea de scanner: un lector de codigo de barras real barre con un
     // laser rojo -- pedido de "dale mas profesionalidad", un detalle de

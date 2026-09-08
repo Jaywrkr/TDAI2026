@@ -84,12 +84,11 @@ vec4 render(vec2 uv)
     float dist = fract((uv.y - headY) + 1.0);
 
     // D2: largo de la cola -- corta y discreta <-> larga y dramatica.
-    // Piso subido (0.08->0.18): con la cola tan corta, casi toda la
-    // columna quedaba negra salvo un pedacito pegado a la cabeza -- la
-    // "lluvia" no se leia como tal en reposo.
-    // Estela 0.18 -> 0.30: con la cola tan corta la lluvia se leia
-    // como puntos sueltos al azar, no como columnas cayendo.
-    float trailLen = 0.30 + uD2 * 0.40;
+    // Piso subido otra vez (0.30 -> 0.55): seguia leyendose como "casi
+    // no se ve nada, solo la cabeza blanca de vez en cuando" -- la cola
+    // verde tiene que ocupar la MAYOR PARTE de la columna en reposo, no
+    // ser un agregado sutil.
+    float trailLen = 0.55 + uD2 * 0.35;
     float bright = exp(-dist / trailLen);
 
     // Cabeza: casi blanca, muy angosta.
@@ -103,10 +102,10 @@ vec4 render(vec2 uv)
     float glyphHash = hash21(vec2(colId, rowId) + glyphStep * 7.7);
 
     // D4: densidad -- umbral mas bajo deja pasar mas celdas encendidas.
-    // Piso bajado (0.75->0.55): a D4=0 solo un 25% de celdas pasaban,
-    // ahora ~45% -- suficiente para leerse como lluvia continua en vez
-    // de puntitos sueltos.
-    float onThresh = 0.55 - uD4 * 0.45;
+    // Piso bajado otra vez (0.55 -> 0.35): a ~45% de celdas encendidas
+    // combinado con la cola larga de arriba SEGUIA leyendose escaso --
+    // ahora ~65% de celdas pasan en reposo, lluvia continua de verdad.
+    float onThresh = 0.35 - uD4 * 0.30;
     float glyphOn = step(onThresh, glyphHash);
 
     // Mascara de celda: un bloque con margen (deja ver la rejilla como
