@@ -146,6 +146,25 @@ def _parameters(proj):
     # despues de agregar o sacar archivos con TD abierto.
     add_pulse(md, 'Mediarescan', 'Releer la carpeta')
 
+    # --- OVERLAY DE TEXTO: nombres de artista, tipeados en vivo ---
+    # Textcontent se escribe a mano en el momento (no hay banco/lista --
+    # eso fue lo pedido explicito: "quiero yo setear los textos con la
+    # compu en vivo"). Textvisible es aparte a proposito: separa "ya lo
+    # tipee" de "que aparezca ahora", asi se puede escribir el nombre
+    # siguiente con tiempo, mientras el anterior sigue en pantalla, y
+    # mostrarlo justo cuando entra el artista con un solo toque (pad
+    # aprendible). El fundido al prender/apagar lo arma program.py con
+    # una cadena de CHOP nativa (mismo patron que la transicion de
+    # escenas), no hay perilla de "duracion del fundido" aca -- es
+    # config.TEXT_FADE_SECONDS.
+    tx = proj.appendCustomPage('Texto')
+    add_string(tx, 'Textcontent', 'Texto (se tipea en vivo)', '')
+    add_toggle(tx, 'Textvisible', 'MOSTRAR texto', False)
+    add_int(tx, 'Font', 'Fuente  ' + _menu_hint(c.FONTS), 0, 0, len(c.FONTS) - 1)
+    add_pulse(tx, 'Fontnext', 'Fuente siguiente')
+    add_float(tx, 'Textsize', 'Tamano', 0.5, 0, 1)
+    add_float(tx, 'Texty', 'Posicion vertical (0 abajo, 1 arriba)', 0.18, 0, 1)
+
     # --- MASTER FX (Fase 4): estela + dos capas ---
     # Los dos viven en el program bus, DESPUES de las escenas y ANTES del
     # bloom (ver program.py). Los dos tienen bypass real por Switch TOP:
@@ -377,6 +396,8 @@ def onPulse(par):
         m.mediaRandom()
     elif n == 'Mediarescan':
         m.mediaRescan()
+    elif n == 'Fontnext':
+        m.nextFont()
     elif n.startswith('Learn'):
         slot = n[5:]
         for s in m._midi_slots():

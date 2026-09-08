@@ -24,7 +24,8 @@ except ImportError:
 
 
 from . import config, shader
-from .tdutil import safe_set, safe_set_first, safe_expr, connect, log
+from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
+                     connect, log)
 
 
 # ---------------------------------------------------------------
@@ -194,6 +195,142 @@ void main() {
 """
 
 
+# ---------------------------------------------------------------
+# OVERLAY DE TEXTO - nombres de artista, tipeados en vivo (ver
+# builder.py pagina "Texto" y control_script.py toggleTextVisible/
+# nextFont/currentFontName)
+# ---------------------------------------------------------------
+# Input 0: imagen (bloom). Input 1: Text TOP (texto BLANCO sobre fondo
+# transparente -- el color de verdad, relleno + contorno, se decide ACA,
+# no en el Text TOP, para no depender de que parametro de color tenga
+# esa version de TD). Input 2: textura de 1x1 con el fundido 0..1.
+#
+# CONTORNO hecho a mano (anillo de muestras sobre la cobertura del Text
+# TOP) en vez de confiar en un borde nativo del Text TOP: el nombre de
+# ese parametro es justo el tipo de cosa que varia entre builds de TD
+# (ver el header de shader.py), y asi ademas se puede validar con
+# glslangValidator como cualquier otro shader del rig -- sin esto, un
+# typo en el nombre del borde recien se notaria con TD abierto y el
+# texto se veria plano sobre cualquier escena clara.
+_TEXT_FRAG = """
+out vec4 fragColor;
+
+void main() {
+    vec2 uv = vUV.st;
+    vec3 base = texture(sTD2DInputs[0], uv).rgb;
+
+    // Fundido: 0 = apagado. Corte temprano -- se salta el anillo de
+    // muestras enterito, que es lo unico caro de este shader.
+    float fade = texelFetch(sTD2DInputs[2], ivec2(0, 0), 0).r;
+    if (fade < 0.001) {
+        fragColor = TDOutputSwizzle(vec4(base, 1.0));
+        return;
+    }
+
+    float textCov = texture(sTD2DInputs[1], uv).a;
+
+    vec2 texel = uTD2DInfos[1].res.zw;
+    const float TAU = 6.2831853072;
+    const int N = 8;
+    const float THICK = 2.5;
+    float ring = 0.0;
+    for (int i = 0; i < N; i++) {
+        float ang = (float(i) / float(N)) * TAU;
+        vec2 off = vec2(cos(ang), sin(ang)) * texel * THICK;
+        ring = max(ring, texture(sTD2DInputs[1], uv + off).a);
+    }
+    // Anillo MENOS el relleno: el area de solo-contorno, para pintarla
+    // de un color y el relleno de otro sin que se pisen.
+    float outlineCov = clamp(ring - textCov, 0.0, 1.0);
+
+    vec3 col = mix(base, vec3(0.0), outlineCov * fade);
+    col = mix(col, vec3(1.0), textCov * fade);
+
+    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+}
+"""
+
+
+def _build_text_overlay(proj, base_top):
+    """Nombre de artista tipeado en vivo, compositado sobre el programa.
+
+    Fundido: Parametro (Textvisible, 0/1) -> Lag CHOP -> CHOP to TOP de
+    1x1 -> input 2 del shader de arriba. Es la MISMA idea que la
+    transicion de escenas (xfade_lag mas abajo en este archivo): TD hace
+    la rampa nativa, nada de Python por frame.
+
+    Posicion vertical con un Transform TOP (parametro 'ty', de los mas
+    estables que tiene TD) en vez de los parametros de posicion propios
+    del Text TOP -- por la misma razon que el contorno se hace a mano:
+    menos superficie que pueda variar de nombre entre builds.
+    """
+    text_top = proj.create(textTOP, 'text_overlay_src')  # noqa: F821
+    text_top.nodeX, text_top.nodeY = 960, 780
+    safe_expr(text_top, 'text', "op('/project1').par.Textcontent")
+    safe_expr_first(text_top, ['font', 'fontfile'],
+                     "op('/project1/control_script').module.currentFontName()")
+    # Rango de tamano en pixeles: 24 (perilla en 0) a 220 (perilla en 1,
+    # un titular de pantalla completa) sobre una salida tipica de 720p.
+    safe_expr_first(text_top, ['fontsizex', 'fontsize'],
+                     "24 + op('/project1').par.Textsize.eval() * 196")
+    safe_set_first(text_top, ['alignx', 'justifyx', 'textalignx'], 'center')
+    safe_set_first(text_top, ['aligny', 'justifyy', 'textaligny'], 'middle')
+    safe_set_first(text_top, ['wordwrap', 'wrapwords'], False)
+    for pn, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb', 'fontcolora'),
+                     (1, 1, 1, 1)):
+        safe_set(text_top, pn, v)
+    safe_set(text_top, 'outputresolution', 'custom')
+    safe_expr(text_top, 'resolutionw', "op('/project1').par.Outputwidth")
+    safe_expr(text_top, 'resolutionh', "op('/project1').par.Outputheight")
+
+    text_y = proj.create(transformTOP, 'text_overlay_y')  # noqa: F821
+    text_y.nodeX, text_y.nodeY = 1120, 780
+    connect(text_y, text_top)
+    # Texty 0..1 (0 abajo, 1 arriba) -> desplazamiento en pixeles desde el
+    # centro. 0.5 (parametro por defecto de la pagina) cae cerca del
+    # tercio inferior, que es donde va un nombre sin tapar el visual.
+    safe_expr(text_y, 'ty',
+              "(0.5 - op('/project1').par.Texty.eval()) "
+              "* op('/project1').par.Outputheight.eval() * 0.7")
+
+    # --- fundido: Parametro -> Lag -> CHOP to TOP de 1x1 ---
+    fp = proj.create(parameterCHOP, 'text_fade_par')
+    fp.nodeX, fp.nodeY = 960, 900
+    safe_set_first(fp, ['op', 'ops'], config.PROJECT_PATH)
+    safe_set(fp, 'custom', True)
+    safe_set(fp, 'builtin', False)
+    safe_set_first(fp, ['parameters', 'pars', 'parameter'], 'Textvisible')
+
+    flag = proj.create(lagCHOP, 'text_fade_lag')
+    flag.nodeX, flag.nodeY = 1120, 900
+    safe_set(flag, 'lag1', config.TEXT_FADE_SECONDS)
+    safe_set(flag, 'lag2', config.TEXT_FADE_SECONDS)
+    safe_set_first(flag, ['lagmethod', 'method'], 'slew')
+    connect(flag, fp)
+
+    fade_tex = proj.create(choptoTOP, 'text_fade_tex')  # noqa: F821
+    fade_tex.nodeX, fade_tex.nodeY = 1280, 900
+    safe_set_first(fade_tex, ['chop', 'top'], flag.path)
+    safe_set_first(fade_tex, ['dataformat', 'format', 'pixelformat'], '32bitfloat')
+
+    # --- composite ---
+    src = proj.create(textDAT, 'program_text_src')
+    src.nodeX, src.nodeY = 1280, 780
+    src.text = _TEXT_FRAG
+
+    glsl = proj.create(glslTOP, 'program_text')
+    glsl.nodeX, glsl.nodeY = 1440, 780
+    safe_set_first(glsl, ['pixeldat', 'pixelshader'], src.path)
+    connect(glsl, base_top, 0)
+    connect(glsl, text_y, 1)
+    connect(glsl, fade_tex, 2)
+    safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
+
+    log('OVERLAY DE TEXTO: Text TOP + fundido nativo + composite OK')
+    return {'text_top': text_top, 'text_y': text_y, 'fade_tex': fade_tex,
+            'text_composite': glsl}
+
+
 def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     """Dos capas + estela, entre el crossfade y el bloom.
 
@@ -361,6 +498,13 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
 
     bloom = _build_bloom(proj, post)
 
+    # --- overlay de texto (nombre de artista) -- DESPUES del bloom (que
+    # el texto quede nitido, sin el glow difuminandolo) y ANTES del
+    # master fade (que el blackout y el master brightness lo tapen a el
+    # tambien: si el show se va a negro, el texto se va con el show).
+    text_fx = _build_text_overlay(proj, bloom)
+    post_text = text_fx['text_composite']
+
     # --- master fade / blackout (solo en SHOW OUT) ---
     black = proj.create(constantTOP, 'black')
     black.nodeX, black.nodeY = 960, 60
@@ -370,7 +514,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     master = proj.create(crossTOP, 'master_fade')
     master.nodeX, master.nodeY = 1160, 60
     connect(master, black, 0)
-    connect(master, bloom, 1)
+    connect(master, post_text, 1)
     safe_expr(master, 'cross',
               "0 if op('/project1').par.Blackout.eval() "
               "else op('/project1').par.Brightness.eval()")
@@ -384,7 +528,8 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # declarada hereda la del input, y el Feedback TOP de la estela tiene
     # que coincidir SI O SI con el shader que lo alimenta (si no, cada
     # frame se reescala contra el anterior y la estela "respira" sola).
-    res_nodes = [black, cross, clean, bloom, master, show]
+    res_nodes = [black, cross, clean, bloom, master, show,
+                 text_fx['text_y'], text_fx['text_composite']]
     res_nodes += [fx[k] for k in ('blend', 'pick', 'trails', 'trails_fb',
                                   'trails_pick') if k in fx]
     for t in res_nodes:
@@ -409,6 +554,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
            'clean': clean, 'bloom': bloom, 'master': master, 'show': show,
            'window': win}
     out.update(fx)
+    out.update(text_fx)
     return out
 
 

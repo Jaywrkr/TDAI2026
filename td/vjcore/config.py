@@ -236,6 +236,23 @@ BLEND_MODES = ['MIX', 'ADD', 'SCREEN', 'MULTIPLY', 'DIFFERENCE', 'LIGHTEN']
 LOOKS = ['NEUTRO', 'NEON FRIO', 'AMBAR FILMICO', 'MONO CONTRASTE']
 
 # ---------------------------------------------------------------
+# OVERLAY DE TEXTO - nombres de artista, tipeados en vivo
+# ---------------------------------------------------------------
+# El texto en si (Textcontent) se tipea a mano en el dashboard, no sale
+# de aca -- lo unico que vive en config.py es el BANCO DE FUENTES
+# (mismo trato que BLEND_MODES/LOOKS: el indice viaja en el parametro
+# Font, esta lista es la unica fuente del nombre) y cuanto tarda el
+# fundido al mostrar/ocultar. Nombres de fuente que TD reconoce por
+# nombre de sistema -- si una no esta instalada, Text TOP cae a una
+# generica sola, no rompe nada.
+FONTS = ['Arial', 'Impact', 'Courier New', 'Georgia', 'Verdana']
+
+# Cuanto tarda el fundido al prender/apagar Textvisible. Mismo patron
+# que la transicion de escenas (Transitionseconds): Parametro (0/1) ->
+# Lag CHOP con este tiempo -> rampa nativa, sin ningun run() por frame.
+TEXT_FADE_SECONDS = 0.5
+
+# ---------------------------------------------------------------
 # PIANO - teclado de 25 teclas del MiniLab MkII
 # ---------------------------------------------------------------
 # Confirmado en la unidad de produccion: el teclado manda en CANAL 13,
@@ -346,7 +363,11 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # de a pasos. Sin default: el controlador no tiene
               # perillas libres, queda lista para Learn el dia que se
               # libere una (pedido explicito del usuario).
-              'Mediascrub']
+              'Mediascrub',
+              # Overlay de texto. 'Textvisible' es el que de verdad pide
+              # un pad: separa "ya lo tipee" de "que aparezca ahora",
+              # justo cuando entra el artista.
+              'Textvisible', 'Fontnext']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

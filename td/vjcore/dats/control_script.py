@@ -1790,6 +1790,67 @@ def startMediaCycles():
 
 
 # ---------------------------------------------------------------
+# OVERLAY DE TEXTO (nombres de artista, tipeados en vivo)
+# ---------------------------------------------------------------
+# El texto en si (Textcontent) se tipea a mano y se lee directo por
+# expresion (program.py), no pasa por aca. Lo unico que vive en Python
+# es: prender/apagar (separado de tipear, a proposito -- se escribe el
+# nombre con tiempo y se muestra justo cuando entra el artista) y ciclar
+# la fuente. El fundido al prender/apagar lo hace una cadena de CHOP
+# nativa (Parameter -> Lag, mismo patron que la transicion de escenas),
+# no Python -- ver program.py._build_text_overlay.
+
+
+def toggleTextVisible():
+    """Prende/apaga el overlay de texto. Es EL control que de verdad
+    conviene tener en un pad: separa el momento de escribir del momento
+    de mostrar."""
+    p = _p()
+    if not p:
+        return
+    try:
+        p.par.Textvisible.val = not bool(p.par.Textvisible.eval())
+    except Exception:
+        pass
+
+
+def nextFont():
+    """Cicla el banco de fuentes. Los nombres viven en config.FONTS."""
+    p = _p()
+    if not p:
+        return
+    try:
+        import vjcore.config as _vjconfig
+        n = len(_vjconfig.FONTS)
+    except Exception:
+        n = 1
+    try:
+        p.par.Font = (int(p.par.Font.eval()) + 1) % max(1, n)
+    except Exception as e:
+        print('nextFont ERROR:', e)
+
+
+def currentFontName():
+    """Llamada por la expresion 'font' del Text TOP del overlay (ver
+    program.py). Nunca tira excepcion: se llama desde una expresion de
+    parametro, y ahi una excepcion rompe el TOP entero -- cae a la
+    primera fuente del banco, o a 'Arial' si ni siquiera hay banco."""
+    p = _p()
+    try:
+        import vjcore.config as _vjconfig
+        fonts = list(_vjconfig.FONTS) or ['Arial']
+    except Exception:
+        fonts = ['Arial']
+    if not p:
+        return fonts[0]
+    try:
+        i = int(p.par.Font.eval())
+    except Exception:
+        i = 0
+    return fonts[max(0, min(len(fonts) - 1, i))]
+
+
+# ---------------------------------------------------------------
 # AUTOPILOT (avance de escena hands-free)
 # ---------------------------------------------------------------
 

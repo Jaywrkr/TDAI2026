@@ -99,6 +99,10 @@ def postfx_sources(channels=None):
         ('bloom', _td_prologue_post(1) + program._BLOOM_FRAG),
         ('program_blend', _td_prologue_post(3) + head + program._BLEND_FRAG),
         ('program_trails', _td_prologue_post(3) + head + program._TRAILS_FRAG),
+        # Overlay de texto: 3 inputs (base, Text TOP, fundido 1x1), sin
+        # canales de control -- el color/contorno se decide adentro del
+        # shader, no via _ctrl(), asi que no necesita 'head'.
+        ('program_text', _td_prologue_post(3) + program._TEXT_FRAG),
     ]
 
 

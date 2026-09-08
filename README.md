@@ -42,6 +42,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [05 — Performance](docs/05_PERFORMANCE.md) | Dónde se van los fps y cómo recuperarlos |
 | [07 — Carpeta común de media](docs/07_CARPETA_MEDIA.md) | Las 3 escenas que usan imágenes tuyas y cómo pasarlas |
 | [08 — **Checklist antes de un set**](docs/08_CHECKLIST_PRESET.pdf) | 4 páginas para imprimir o leer en la cabina, con tarjeta de emergencia |
+| [09 — Overlay de texto](docs/09_OVERLAY_TEXTO.md) | Nombre de artista en vivo: cómo escribirlo, mostrarlo y elegir la fuente |
 
 ## Crear una escena nueva
 
