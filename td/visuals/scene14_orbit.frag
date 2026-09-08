@@ -30,6 +30,9 @@
 // @D3: separacion entre orbitas (juntas y anidadas <-> muy separadas,
 //      llenan toda la pantalla)
 // @D4: longitud/prominencia de la estela detras del nodo
+// @D5: tamano/brillo del sol central
+// @D6: fuerza de la inclinacion de perspectiva (casi de frente <-> muy
+//      inclinado, tipo anillo de Saturno)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -54,12 +57,13 @@ vec4 render(vec2 uv)
     // perfectos de frente. Base FIJA (0.62, no 1.0) para que el tilt se
     // note SIEMPRE por defecto -- pedido explicito ("que se note que hay
     // un tilt") -- Mid todavia lo acentua un poco mas encima.
-    float squish = 0.62 - uMid * 0.22;
+    float squish = (0.92 - uD6 * 0.55) - uMid * 0.22;
 
     // "Sol" en el centro: nucleo calido y brillante, para reforzar el
     // look de sistema solar (las orbitas alrededor de una estrella, no
     // solo lineas sueltas). Respira un poco con los bajos.
-    col += vec3(1.0, 0.82, 0.45) * exp(-r * r / (0.0035 + uBass * 0.002)) * 1.3;
+    float sunSize = 0.0015 + uD5 * 0.012;
+    col += vec3(1.0, 0.82, 0.45) * exp(-r * r / (sunSize + uBass * 0.002)) * (0.7 + uD5 * 1.3);
 
     // PIANO: el cometa (definido mas abajo) perturba de verdad las
     // orbitas que cruza -- se calcula aca ARRIBA del loop para poder

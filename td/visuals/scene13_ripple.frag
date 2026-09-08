@@ -37,6 +37,8 @@
 // @D3: cuantos ecos concentricos detras del frente de cada fuente
 // @D4: dispersion de las fuentes (juntas al centro <-> repartidas por
 //      toda la pantalla)
+// @D5: velocidad del vortice que retuerce el espacio
+// @D6: brillo base del destello de interferencia, incluso sin agudos
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -73,7 +75,8 @@ vec4 render(vec2 uv)
     float swirlAmt = (0.5 + uChaos * 1.6) * 0.3;
     float ang0 = atan(p.y, p.x);
     float rad0 = length(p);
-    float swirl = sin(rad0 * 3.0 - t * 0.4) * swirlAmt;
+    float swirlSpeed = 0.1 + uD5 * 0.8;
+    float swirl = sin(rad0 * 3.0 - t * swirlSpeed) * swirlAmt;
     vec2 pw = rad0 * vec2(cos(ang0 + swirl), sin(ang0 + swirl));
 
     vec3 col = vec3(0.0);
@@ -139,7 +142,7 @@ vec4 render(vec2 uv)
     // volviendose un blob blanco solido donde se cruzaban las ondas en
     // vez de un brillo puntual y contenido.
     float interfLum = dot(col, vec3(0.299, 0.587, 0.114));
-    float sparkle = smoothstep(1.1, 2.2, interfLum) * uHigh * 0.5;
+    float sparkle = smoothstep(1.1, 2.2, interfLum) * (uD6 * 0.6 + uHigh * 0.5);
     col += vec3(1.0) * sparkle;
 
     // Kick: flash breve, ademas del empujon de radio de arriba.

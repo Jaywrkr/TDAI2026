@@ -30,6 +30,8 @@
 //      mas "torcido")
 // @D3: intensidad del filo de las hojas
 // @D4: brillo de la luz que se escapa por el centro
+// @D5: nitidez del especular de metal (mancha ancha <-> punto afilado)
+// @D6: contraste del sombreado a lo ancho de cada hoja
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -77,10 +79,12 @@ vec4 render(vec2 uv)
     //      justo eso lo que se lee como "esto es metal".
     float bladeIdx = floor((ang - rot) / sector);
     float across = la / (sector * 0.5);                    // -1..1
-    float shade = 0.45 + 0.55 * smoothstep(-1.0, 1.0, across);
+    float shadeContrast = 0.30 + uD6 * 0.65;
+    float shade = (1.0 - shadeContrast) + shadeContrast * smoothstep(-1.0, 1.0, across);
     shade *= 0.82 + hash21(vec2(bladeIdx, 3.0)) * 0.36;
+    float specPow = 2.0 + uD5 * 18.0;
     float spec = pow(max(0.0, dot(normalize(p + 1e-5),
-                                  normalize(vec2(-0.6, 0.8)))), 7.0);
+                                  normalize(vec2(-0.6, 0.8)))), specPow);
 
     vec3 metalCol = hsv2rgb(vec3(h, 0.10, 0.34)) * shade
                   + vec3(0.85, 0.90, 1.0) * spec * 0.22;

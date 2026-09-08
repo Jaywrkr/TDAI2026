@@ -44,6 +44,9 @@
 // @D3: cuantas bandas horizontales hay (pocas y anchas <-> muchas y
 //      finas)
 // @D4: frecuencia de los bursts de estatica/inversion total
+// @D5: velocidad del barrido VHS tracking
+// @D6: dispersion de hue entre celdas del patron base (casi monocromo
+//      <-> muy variado)
 // ===============================================================
 
 vec3 basePattern(vec2 uv, float t)
@@ -56,7 +59,7 @@ vec3 basePattern(vec2 uv, float t)
     // 0.6 cada celda caia en un primario distinto y la escena se leia
     // como una carta de ajuste de TV o bloques de juguete. Una señal
     // corrupta real mantiene la familia de color de lo que corrompe.
-    float hue = fract(uHue + cellHash * 0.14);
+    float hue = fract(uHue + cellHash * (0.05 + uD6 * 0.5));
     // Mayoria de celdas casi negras -- pedido explicito de "que se vea
     // mas oscuro y solo detalles del glitch": antes CADA celda tenia
     // color, llenando toda la pantalla como un mosaico. Ahora solo una
@@ -97,7 +100,8 @@ vec4 render(vec2 uv)
     // arriba a abajo con una ondulacion grande -- variedad extra sobre
     // el tearing por bloques. Su amplitud respira con los bajos y se
     // dispara mas fuerte en el kick.
-    float vhsSweepY = fract(t * 0.12);
+    float vhsSpeed = 0.02 + uD5 * 0.4;
+    float vhsSweepY = fract(t * vhsSpeed);
     float vhsBand = smoothstep(0.10, 0.0, abs(uv.y - vhsSweepY));
     float vhsAmt = (0.015 + uBass * 0.05) * (1.0 + uKick * 3.0);
     xShift += sin(uv.y * 35.0 + t * 9.0) * vhsAmt * vhsBand;

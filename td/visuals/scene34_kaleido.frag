@@ -40,6 +40,9 @@
 //      cae en el eje del mandala)
 // @D3: brillo del nucleo central
 // @D4: mezcla del tinte de Hue sobre la imagen original
+// @D5: velocidad de la ondulacion de radio (respiracion mas lenta <->
+//      mas rapida)
+// @D6: ganancia de brillo de la imagen muestreada antes del tinte
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -79,7 +82,8 @@ vec4 render(vec2 uv)
 
     // Chaos: el radio ondula, asi los espejos dejan de ser rectos y el
     // mandala "respira" en vez de ser un patron rigido.
-    float rr = r * (1.0 + sin(a * segs * 2.0 + t * 0.6) * uChaos * 0.18);
+    float wobbleSpeed = 0.1 + uD5 * 1.4;
+    float rr = r * (1.0 + sin(a * segs * 2.0 + t * wobbleSpeed) * uChaos * 0.18);
 
     // --- ZOOM ---
     // Density va de ver la imagen entera a clavarse en un detalle. El
@@ -109,7 +113,7 @@ vec4 render(vec2 uv)
         muv = mix(muv, kuv, uKeypulse * (0.5 + uKeyvel * 0.5));
     }
 
-    vec3 src = mediaTex(muv).rgb;
+    vec3 src = mediaTex(muv).rgb * (0.6 + uD6 * 1.2);
 
     // --- COLOR ---
     // D4: cuanto se tine. En 0 salen los colores originales de la

@@ -27,6 +27,8 @@
 // @D2: no usado directo (reservado)
 // @D3: visibilidad de la niebla de fondo
 // @D4: no usado directo (reservado)
+// @D5: suavidad del borde del charco base
+// @D6: velocidad base de las gotas, incluso sin kick
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -45,7 +47,8 @@ vec4 render(vec2 uv)
     // Umbral MAS angosto (0.32-0.52 -> 0.38-0.46): la tinta real tiene
     // borde, aunque sea irregular. Con la rampa ancha el charco era una
     // nube difusa sin silueta -- se leia como humo, no como tinta.
-    float pool = smoothstep(0.38, 0.46, poolField) * smoothstep(0.62, 0.05, length(p));
+    float poolSoft = 0.02 + uD5 * 0.12;
+    float pool = smoothstep(0.42 - poolSoft, 0.42 + poolSoft, poolField) * smoothstep(0.62, 0.05, length(p));
     col += inkCol * pool * 0.7;
 
     int nDrops = 10 + int(floor(uDensity * 22.0));
@@ -56,7 +59,8 @@ vec4 render(vec2 uv)
         float dropAng = hash21(seed) * TAU;
         vec2 dir = vec2(cos(dropAng), sin(dropAng));
 
-        float speed = 0.15 + hash21(seed + 1.0) * 0.4 + uKick * 1.8;
+        float dropSpeedBase = 0.05 + uD6 * 0.5;
+        float speed = dropSpeedBase + hash21(seed + 1.0) * 0.4 + uKick * 1.8;
         float cyclePos = fract(t * (0.15 + uSpeed * 0.3) + hash21(seed + 2.0));
         float dist = cyclePos * (0.4 + speed * 0.6);
         vec2 dropPos = dir * dist;

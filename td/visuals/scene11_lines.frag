@@ -35,6 +35,8 @@
 // @D3: variacion de color entre lineas (todas iguales <-> cada una un
 //      tono bien distinto)
 // @D4: resplandor (glow) alrededor de las lineas, ademas del trazo nitido
+// @D5: tamano base del punto de cresta (peak)
+// @D6: brillo del punto de cresta
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -136,10 +138,10 @@ vec4 render(vec2 uv)
         // por waveFreq) para que siempre quede como un punto acotado.
         float wavePhase = p.x * waveFreq + t * (0.3 + uSpeed * 0.6) + float(i) * 1.7;
         float crestDist = abs(mod(wavePhase - PI * 0.5 + PI, TAU) - PI);
-        float peakSize = 0.10 + uBass * 0.16;
+        float peakSize = (0.04 + uD5 * 0.20) + uBass * 0.16;
         float peak = smoothstep(peakSize, 0.0, crestDist) * smoothstep(lineW * 1.8, 0.0, abs(sdfN));
 
-        col += lineCol * (line + glow * 0.6) + vec3(1.0) * peak * 0.5;
+        col += lineCol * (line + glow * 0.6) + vec3(1.0) * peak * (0.15 + uD6 * 0.9);
     }
 
     // Kick: flash breve.

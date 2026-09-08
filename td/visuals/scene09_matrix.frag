@@ -38,6 +38,8 @@
 //      muy rapido, ilegible)
 // @D4: densidad de caracteres visibles (rejilla dispersa <-> casi todas
 //      las celdas ocupadas)
+// @D5: tamano de la cabeza brillante
+// @D6: intensidad de las scanlines CRT
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -91,7 +93,8 @@ vec4 render(vec2 uv)
     float bright = exp(-dist / trailLen);
 
     // Cabeza: casi blanca, muy angosta.
-    float isHead = smoothstep(0.025, 0.0, dist);
+    float headSize = 0.014 + uD5 * 0.05;
+    float isHead = smoothstep(headSize, 0.0, dist);
 
     // Parpadeo de caracter: cambia a saltos segun un hash contra el
     // tiempo cuantizado. D3 controla que tan rapido "cambian".
@@ -133,7 +136,8 @@ vec4 render(vec2 uv)
 
     // CRT scanlines: filas finas y oscuras, look de monitor viejo de
     // verdad -- pedido de "mucho mas profesional, con detalles".
-    float scanline = 0.82 + 0.18 * sin(uv.y * uResH * PI);
+    float scanAmt = 0.06 + uD6 * 0.30;
+    float scanline = (1.0 - scanAmt) + scanAmt * sin(uv.y * uResH * PI);
     col *= scanline;
 
     // Glitch de columna: cada tanto UNA columna entera "falla" un

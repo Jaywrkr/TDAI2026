@@ -29,6 +29,9 @@
 // @D2: cuantas iteraciones se acumulan (mas D2 = red mas compleja)
 // @D3: finura de la red (pocas celdas anchas <-> red muy fina y apretada)
 // @D4: nitidez de los filamentos (glow difuso <-> lineas de luz muy finas)
+// @D5: profundidad de la modulacion por capa (bandas parejas <-> con
+//      mucho vaiven de brillo propio)
+// @D6: dispersion de color tipo prisma (casi monocromo <-> fringing fuerte)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -83,7 +86,7 @@ vec4 render(vec2 uv)
         // en cada linea, no un solo brillo subiendo/bajando parejo en
         // toda la pantalla junto.
         float layerWave = sin(q.x * 1.8 + q.y * 1.3 - t * (1.0 + uSpeed * 2.0) + fi * 2.6);
-        v += layerV * (1.0 + layerWave * 0.45);
+        v += layerV * (1.0 + layerWave * (0.15 + uD5 * 0.55));
     }
 
     // uHigh: vibracion micro de fase -- unica excepcion del contrato,
@@ -106,7 +109,7 @@ vec4 render(vec2 uv)
     // el mismo fringing de arcoiris que un prisma real separando colores
     // por intensidad.
     float h = audioHue(uHue, uMid * 0.16);
-    float hueDisp = fract(h + v * 0.12);
+    float hueDisp = fract(h + v * (0.03 + uD6 * 0.28));
     vec3 col = hsv2rgb(vec3(hueDisp, 0.55, 1.0)) * v;
 
     // Tonemap: v puede crecer bastante en los picos, sin esto se clavan

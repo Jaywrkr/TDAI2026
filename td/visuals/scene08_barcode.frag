@@ -39,6 +39,8 @@
 //      finas)
 // @D4: cuantas columnas saltan a un acento de color (casi ninguna <->
 //      muchas)
+// @D5: intensidad del parpadeo de entrelazado tipo CRT
+// @D6: brillo de la linea de scanner laser
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -64,7 +66,8 @@ vec4 render(vec2 uv)
 
     // Parpadeo de entrelazado tipo CRT: filas alternas levemente mas
     // oscuras, con ritmo de Agudos -- da autenticidad de video viejo.
-    float interlace = 0.85 + 0.15 * sin(uv.y * uResH * PI * 0.5 + t * (4.0 + uHigh * 30.0));
+    float interlaceAmt = 0.06 + uD5 * 0.30;
+    float interlace = (1.0 - interlaceAmt) + interlaceAmt * sin(uv.y * uResH * PI * 0.5 + t * (4.0 + uHigh * 30.0));
 
     // Jitter por columna: frecuencia y fase distinta -- Chaos aumenta la
     // irregularidad entre columnas vecinas.
@@ -130,7 +133,7 @@ vec4 render(vec2 uv)
     float scanY = fract(t * (0.15 + uSpeed * 0.4));
     float scanDist = abs(uv.y - scanY);
     float scanLine = exp(-scanDist * scanDist / 0.0004);
-    col += vec3(1.0, 0.12, 0.10) * scanLine * (0.6 + colMask * 0.4);
+    col += vec3(1.0, 0.12, 0.10) * scanLine * (0.6 + colMask * 0.4) * (0.3 + uD6 * 1.4);
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

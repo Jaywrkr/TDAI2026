@@ -32,6 +32,8 @@
 //      que crecen y encogen mucho mas)
 // @D4: variacion de color entre zonas (paleta casi plana <-> arcoiris
 //      por zona)
+// @D5: velocidad de titileo de las estrellas
+// @D6: brillo de las lineas de conexion de la constelacion
 // ===============================================================
 
 float segDist15(vec2 pp, vec2 a, vec2 b)
@@ -103,7 +105,8 @@ vec4 render(vec2 uv)
 
     // Titileo tipo estrella: brillo (nunca tamano) de cada punto varia
     // solo, a su propio ritmo -- refuerza el look de constelacion real.
-    float twinkle = 0.65 + 0.35 * sin(t * (0.4 + hash21(cellId + 40.0) * 1.6)
+    float twinkleRate = 0.15 + uD5 * 1.2;
+    float twinkle = 0.65 + 0.35 * sin(t * (twinkleRate + hash21(cellId + 40.0) * 1.6)
                                      + hash21(cellId + 9.0) * TAU);
     dotShape *= twinkle;
 
@@ -148,7 +151,7 @@ vec4 render(vec2 uv)
         float dLine = segDist15(p, curDotPos, nDotPos);
         float lineBright = smoothstep(0.008, 0.0, dLine)
                          * (avgZone - thresh) / max(1.0 - thresh, 1e-3);
-        col += vec3(0.8, 0.9, 1.0) * lineBright * 0.4;
+        col += vec3(0.8, 0.9, 1.0) * lineBright * (0.15 + uD6 * 0.7);
     }
 
     // PIANO: el nucleo puntual de la estrella en si -- el efecto real

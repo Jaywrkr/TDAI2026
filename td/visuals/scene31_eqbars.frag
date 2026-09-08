@@ -28,6 +28,8 @@
 // @D2: ancho del espacio entre barras
 // @D3: variacion de color entre barras segun su altura
 // @D4: brillo del punto "peak" en la cima de cada barra
+// @D5: amplitud del wobble idle de cada barra en reposo
+// @D6: contraste del bisel falso-3D
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -44,7 +46,8 @@ vec4 render(vec2 uv)
     float wH = hash21(vec2(barIdU, 3.0));
     float wSum = max(wB + wM + wH, 0.001);
     float level = (uBass * wB + uMid * wM + uHigh * wH) / wSum;
-    level += 0.05 * sin(t * (0.5 + hash21(vec2(barIdU, 4.0)) * 2.0));
+    float idleWobble = 0.01 + uD5 * 0.10;
+    level += idleWobble * sin(t * (0.5 + hash21(vec2(barIdU, 4.0)) * 2.0));
     // Piso 0.35 -> 0.62: con D1 en 0 las barras no pasaban del tercio
     // inferior y la escena se leia como un grafico de relleno.
     level = clamp(level, 0.02, 1.0) * (0.62 + uD1 * 0.75);
@@ -67,7 +70,8 @@ vec4 render(vec2 uv)
     float barTop = -1.0 + level * 2.0;
     float inBar = step(p.y, barTop) * barMaskX;
 
-    float bevel = 0.5 + 0.5 * smoothstep(0.0, 1.0, barX);
+    float bevelC = 0.25 + uD6 * 0.65;
+    float bevel = (1.0 - bevelC) + bevelC * smoothstep(0.0, 1.0, barX);
 
     float h = audioHue(fract(uHue + level * uD3 * 0.6), uMid * 0.1);
     vec3 barCol = hsv2rgb(vec3(h, 0.8, 1.0));

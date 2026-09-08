@@ -29,6 +29,8 @@
 // @D3: no usado directo (reservado)
 // @D4: radio de cada circulo (reticula mas apretada <-> circulos grandes
 //      y muy superpuestos)
+// @D5: velocidad base de rotacion de la reticula
+// @D6: fuerza de la perspectiva/profundidad atmosferica
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -41,7 +43,8 @@ vec4 render(vec2 uv)
     // medida que uKeypulse decae. uKeypos elige la direccion/magnitud
     // del salto; uKeyvel la fuerza extra.
     float keyKick = uKeypulse * (uKeypos - 0.5) * 2.0 * (0.8 + uKeyvel * 1.2);
-    p = rot2(t * (0.015 + uSpeed * 0.05) + keyKick) * p;
+    float spinBase = 0.003 + uD5 * 0.05;
+    p = rot2(t * (spinBase + uSpeed * 0.05) + keyKick) * p;
 
     float R = 0.22 + uD4 * 0.16;
     float cellSpan = 4.0 + floor(uDensity * 3.0);
@@ -72,7 +75,7 @@ vec4 render(vec2 uv)
     //      profundidad que la escena no tenia.
     float wJit = 0.55 + hash21(minCenter * 7.3) * 1.15;
     float far = smoothstep(0.15, 1.25, length(minCenter));
-    float depth = 1.0 - far * 0.55;
+    float depth = 1.0 - far * (0.20 + uD6 * 0.60);
     float line = (1.0 - smoothstep(0.0, lineW * wJit * depth, minRing)) * depth;
     float glow = exp(-minRing * minRing / (0.001 + uD2 * 0.02)) * uD2;
 

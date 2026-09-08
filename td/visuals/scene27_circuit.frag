@@ -29,6 +29,8 @@
 // @D2: brillo general de las trazas (apenas visibles <-> placa iluminada)
 // @D3: cuantos "chips" (cuadraditos brillantes) hay
 // @D4: no usado directo (reservado para variantes futuras)
+// @D5: ancho del pulso de datos que viaja por las trazas
+// @D6: brillo general de los chips
 // ===============================================================
 
 float truchetSDF(vec2 cellF, float variant)
@@ -55,7 +57,8 @@ vec4 render(vec2 uv)
     // Pulso viajero: fase basada en la suma de indices de celda, que
     // aproxima "distancia a lo largo de la red" sin pathfinding real.
     float travelPhase = fract((cellId.x + cellId.y) * 0.12 - t * (0.4 + uSpeed * 1.8 + uMid * 1.5));
-    float pulse = smoothstep(0.12, 0.0, abs(travelPhase - 0.5)) * trace;
+    float pulseW = 0.05 + uD5 * 0.22;
+    float pulse = smoothstep(pulseW, 0.0, abs(travelPhase - 0.5)) * trace;
 
     float h = audioHue(fract(uHue + 0.38), uMid * 0.1);
     vec3 traceCol = hsv2rgb(vec3(h, 0.6, 0.55));
@@ -76,7 +79,7 @@ vec4 render(vec2 uv)
     // su contorno y sus patas, no por ser un bloque de color.
     float chipEdge = chipShape - (1.0 - smoothstep(0.17, 0.22,
                      max(abs(cellF.x - 0.5), abs(cellF.y - 0.5))));
-    col += vec3(1.0, 0.82, 0.3) * isChip * (chipShape * 0.22 + max(chipEdge, 0.0) * 0.85);
+    col += vec3(1.0, 0.82, 0.3) * isChip * (chipShape * 0.22 + max(chipEdge, 0.0) * 0.85) * (0.4 + uD6 * 1.3);
 
     // PIANO: sobrecarga real -- aparecen chips NUEVOS y brillantes en
     // celdas al azar (distintas de los chips normales de arriba, hash
