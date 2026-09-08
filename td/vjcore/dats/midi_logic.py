@@ -202,6 +202,10 @@ TRIGGERS = {
     'Mediaprev': 'mediaPrev',
     'Mediarandom': 'mediaRandom',
     'Medialock': 'toggleMediaLock',
+    # Overlay de texto: separar "tipear" (mouse/teclado) de "mostrar"
+    # (pad) es todo el punto -- ver control_script.toggleTextVisible.
+    'Textvisible': 'toggleTextVisible',
+    'Fontnext': 'nextFont',
 }
 
 # 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas

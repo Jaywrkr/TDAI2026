@@ -55,6 +55,18 @@ def safe_expr(o, name, expression):
         return False
 
 
+def safe_expr_first(o, names, expression):
+    """Como safe_set_first pero para o.par.<name>.expr en vez de .val --
+    para cuando el nombre del parametro cambia entre builds de TD (Text
+    TOP es el caso tipico: fontsizex/fontsize, font/fontfile...) y ademas
+    el valor tiene que ser una EXPRESION, no un literal fijo."""
+    for n in names:
+        if safe_expr(o, n, expression):
+            return n
+    log('AVISO expr {}: ninguno de {} existe'.format(o.path, names))
+    return None
+
+
 def connect(dst, src, index=0):
     try:
         dst.inputConnectors[index].connect(src)
