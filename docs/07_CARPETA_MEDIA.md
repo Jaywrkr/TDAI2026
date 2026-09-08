@@ -89,18 +89,29 @@ misma tecla, no un reemplazo.
 
 ---
 
-## Los cuatro controles que funcionan siempre
+## Los controles que funcionan siempre
 
 | Control | Qué hace |
 |---|---|
 | **Imagen siguiente / anterior** | Un paso en el orden de recorrido |
 | **Imagen al azar** | Salta a cualquier otra (nunca a la misma) |
 | **CONGELAR imagen actual** | El blackout de la media: clava lo que hay y ningún modo automático se lo lleva |
+| **Recorrer carpeta (perilla)** | Perilla continua: 0 = primera imagen, 1 = última, ver abajo |
 | **Orden barajado** | Cambia el orden de recorrido, ver abajo |
 
-Los cuatro son **aprendibles por MIDI** (pestaña MIDI Mapping: `Learn Medianext`,
-`Mediaprev`, `Mediarandom`, `Medialock`). El que de verdad pide un pad físico es
-**Medianext**: en modo MANUAL es *la* forma de pasar imágenes.
+Los cinco son **aprendibles por MIDI** (pestaña MIDI Mapping: `Learn Medianext`,
+`Mediaprev`, `Mediarandom`, `Medialock`, `Mediascrub`). El que de verdad pide un
+pad físico es **Medianext**: en modo MANUAL es *la* forma de pasar imágenes.
+
+### La perilla (Mediascrub) — scrub continuo sobre toda la carpeta
+
+Es al modo PIANO lo que un knob es a un teclado: la carpeta entera queda
+repartida sobre el recorrido de la perilla (0 = primera imagen, 1 = última),
+pero a diferencia del piano **funciona en cualquier Mediamode** — no hace falta
+estar en modo PIANO, porque esta perilla no comparte función con nada más.
+Volver al mismo punto del knob vuelve exactamente a la misma imagen, igual que
+con el piano. Como el MiniLab no tiene perillas libres, `Mediascrub` queda sin
+CC de fábrica — se aprende (`Learn Mediascrub`) el día que se libere una.
 
 ### Orden barajado ≠ al azar
 
@@ -143,5 +154,6 @@ set largo.
 | El motor (escaneo, orden, avance, lock, piano) | `td/vjcore/dats/control_script.py` → sección *CARPETA COMÚN DE MEDIA* |
 | El avance por bombo | `td/vjcore/dats/media_logic.py` |
 | La tecla que elige imagen | `td/vjcore/dats/midi_logic.py` → `_handlePianoKey` |
+| La perilla que elige imagen | `td/vjcore/dats/control_script.py` → `mediaScrubSelect` |
 | Los parámetros | `td/vjcore/builder.py` → página *Media* |
 | Tests offline | `python3 td/tools/test_media_comun.py` |

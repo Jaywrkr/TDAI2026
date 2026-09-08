@@ -170,6 +170,12 @@ CONTINUOUS = {
     'Layermix': ('Layermix', 0.0, 1.0),
     'Lookamount': ('Lookamount', 0.0, 1.0),
     'Palettelock': ('Palettelock', 0.0, 1.0),
+    # Carpeta comun de media: perilla continua, recorre TODA la carpeta
+    # por posicion (0..1 = primera..ultima imagen). El trabajo de mapear
+    # esa posicion a un indice de imagen NO pasa por aca -- lo hace
+    # control_script.mediaScrubSelect(), disparado por onValueChange en
+    # builder.py apenas este parametro cambia (mismo patron que 'Energy').
+    'Mediascrub': ('Mediascrub', 0.0, 1.0),
 }
 
 TRIGGERS = {
@@ -204,6 +210,14 @@ TRIGGERS = {
 # funcion sin argumentos, escriben la velocidad del pad (0..1) en su
 # parametro y se resetean solas un par de frames despues -- mismo patron/
 # funcion (_resetEffect) que ya usaba el piano.
+#
+# OJO: esos 2 frames son solo el FLANCO de subida, no la duracion real
+# del efecto. Antes no habia nada mas: el parametro raw iba derecho a la
+# textura de control (config.PAR_CHANNELS) y un pad duraba en pantalla
+# esos mismos ~2 frames (~0.03s a 60fps) -- invisible. Ahora
+# midi.build_effects_envelope() intercepta ese flanco con un Lag CHOP
+# (config.FX_DECAY_SECONDS, hoy 0.6s) antes de que llegue a la textura de
+# control, asi que lo que SE VE es la envolvente, no el flanco crudo.
 EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
                     'Mirror', 'Zoom', 'Posterize']
 

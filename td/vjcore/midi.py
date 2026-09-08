@@ -107,3 +107,53 @@ def build_keypulse(proj):
 
     log('PIANO: cadena de keypulse construida')
     return ren
+
+
+def build_effects_envelope(proj):
+    """Envolvente que decae sola tras cada pad de efecto (Grain, Glitch,
+    Pixelate, Strobe, Invert, Mirror, Zoom, Posterize).
+
+    Bug real que esto arregla: antes, esos 8 parametros iban DIRECTO a la
+    textura de control (via config.PAR_CHANNELS, sin ninguna cadena en el
+    medio). midi_logic.py escribe la velocidad del pad en el parametro y
+    lo resetea a 0 dos frames despues (_resetEffect) -- eso genera el
+    FLANCO que una envolvente necesita para dispararse, pero SIN
+    envolvente esos ~2 frames (~0.03s a 60fps) eran literalmente todo lo
+    que llegaba a pantalla. Invisible. Es el mismo patron que
+    build_keypulse() ya resolvia para el piano (por eso 'keypulse' si se
+    veia), solo que nunca se replico aca.
+
+    LAG, no Trigger: a diferencia de 'keypulse' (que siempre dispara a
+    1.0 -- la intensidad la aporta 'keyvel' aparte), estos parametros SI
+    llevan la velocidad del pad en su propio valor (val = velocidad/127,
+    ver midi_logic.EFFECT_TRIGGERS) y el shader la usa directo para medir
+    cuanto efecto aplicar. Un Trigger CHOP fuerza todo a 1.0 y borraria
+    esa sensibilidad; un Lag CHOP conserva el pico y solo suaviza cuanto
+    tarda en subir y en bajar -- igual que kick_raw -> kick en audio.py.
+    """
+    pars = [p for p, _ in config.FX_TRIGGER_PARS]
+    chans = [c for _, c in config.FX_TRIGGER_PARS]
+
+    par = proj.create(parameterCHOP, 'fx_par')
+    par.nodeX, par.nodeY = -1240, 320
+    safe_set_first(par, ['op', 'ops'], config.PROJECT_PATH)
+    safe_set(par, 'custom', True)
+    safe_set(par, 'builtin', False)
+    safe_set_first(par, ['parameters', 'pars', 'parameter'], ' '.join(pars))
+
+    lag = proj.create(lagCHOP, 'fx_lag')          # noqa: F821
+    lag.nodeX, lag.nodeY = -1080, 320
+    safe_set(lag, 'lag1', 0.008)                  # subida: casi instantanea
+    safe_set(lag, 'lag2', config.FX_DECAY_SECONDS)  # bajada: la que se ve
+    safe_set_first(lag, ['lagmethod', 'method'], 'slew')
+    connect(lag, par)
+
+    ren = proj.create(renameCHOP, 'fx_named')
+    ren.nodeX, ren.nodeY = -920, 320
+    safe_set(ren, 'renamefrom', ' '.join(pars))
+    safe_set(ren, 'renameto', ' '.join(chans))
+    connect(ren, lag)
+
+    log('FX: cadena de envolvente de pads construida ({}s)'.format(
+        config.FX_DECAY_SECONDS))
+    return ren

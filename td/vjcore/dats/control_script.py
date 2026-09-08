@@ -1691,6 +1691,16 @@ def mediaBeat():
         p.store('media_beat_count', n)
 
 
+def _mediaIndexFromPosition(pos, n):
+    """0..1 -> indice 0..n-1, con los DOS extremos alcanzables de verdad
+    (pos=1.0 tiene que dar exactamente el ultimo archivo, no quedarse a
+    un paso). La comparten mediaPianoSelect y mediaScrubSelect: es la
+    misma idea (una posicion continua elige un lugar en la carpeta
+    entera), asi que un ajuste al redondeo no puede quedar bien en una y
+    mal en la otra."""
+    return int(max(0.0, min(1.0, float(pos))) * (n - 1) + 0.5)
+
+
 def mediaPianoSelect(pos):
     """Modo PIANO: la tecla ELIGE la imagen (no avanza a la siguiente).
     'pos' es 0..1, el mismo Keypos que ya calcula midi_logic.py con el
@@ -1705,8 +1715,27 @@ def mediaPianoSelect(pos):
     files = mediaFiles()
     if not files:
         return
-    i = int(max(0.0, min(1.0, float(pos))) * (len(files) - 1) + 0.5)
-    _mediaSetIndex(i)
+    _mediaSetIndex(_mediaIndexFromPosition(pos, len(files)))
+
+
+def mediaScrubSelect(pos):
+    """Perilla continua (parametro Mediascrub, ver builder.py): recorre
+    la carpeta ENTERA por posicion, igual que el piano en modo PIANO
+    pero SIN necesitar ese modo -- es un gesto manual directo, como
+    Medianext/Mediaprev/Mediarandom, solo que continuo en vez de a pasos.
+    Por eso funciona en cualquier Mediamode (a diferencia de
+    mediaPianoSelect, que esta atada al modo PIANO porque esas mismas
+    teclas siempre mueven Keypos/Keyvel para el efecto de firma de cada
+    escena -- esta perilla no hace nada mas que esto).
+
+    Respeta Medialock, igual que Next/Prev/Random: congelar la imagen le
+    gana a cualquier gesto manual o automatico, sin excepcion."""
+    if _mediaLocked():
+        return
+    files = mediaFiles()
+    if not files:
+        return
+    _mediaSetIndex(_mediaIndexFromPosition(pos, len(files)))
 
 
 def _mediaTick(token):
