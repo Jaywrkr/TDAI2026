@@ -1,20 +1,22 @@
 # 07 — Carpeta común de media
 
-Tres de las 36 escenas no dibujan: **tratan una imagen tuya**.
+Cuatro de las 36 escenas no dibujan: **tratan una imagen tuya**.
 
 | Escena | Qué hace con la imagen |
 |---|---|
+| **16 — Media Echo** | La repite en eco: copias cada vez más metidas hacia el centro y giradas, tipo feedback de video |
 | **19 — Media Glitch** | La rompe: pixelado, separación cromática, tearing de bloques |
 | **34 — Caleidoscopio** | La pliega en un mandala simétrico que gira |
 | **35 — Trama / Halftone** | La reimprime como una rejilla de puntos de tinta |
 
-Las tres leen **la misma carpeta y la misma imagen al mismo tiempo**.
+Las cuatro leen **la misma carpeta y la misma imagen al mismo tiempo**.
 
-Eso no es un detalle de implementación, es la razón de que existan las tres:
-pasar de la 19 a la 34 a la 35 en vivo muestra **el mismo material tratado de
-tres maneras**, y se lee como una progresión sobre una idea. Si cada escena
-tuviera su propia carpeta (que es como estaba antes) el cambio de escena sería
-también un cambio de contenido, y se leería como tres cosas sueltas.
+Eso no es un detalle de implementación, es la razón de que existan las
+cuatro: pasar de la 16 a la 19 a la 34 a la 35 en vivo muestra **el mismo
+material tratado de cuatro maneras**, y se lee como una progresión sobre una
+idea. Si cada escena tuviera su propia carpeta (que es como estaba antes) el
+cambio de escena sería también un cambio de contenido, y se leería como
+cuatro cosas sueltas.
 
 ---
 
@@ -29,12 +31,12 @@ también un cambio de contenido, y se leería como tres cosas sueltas.
 
 Si agregás o sacás archivos **con TouchDesigner ya abierto**, apretá
 **Releer la carpeta**. La lista está cacheada a propósito: esto lo consulta la
-expresión `file` de tres Movie File In TOPs, o sea que corre en cada frame, y
-un `os.listdir` por frame se nota en los fps.
+expresión `file` de cuatro Movie File In TOPs, o sea que corre en cada frame,
+y un `os.listdir` por frame se nota en los fps.
 
 > **Si el visual sale negro**, el panel de estado del dashboard te dice por qué:
 > muestra `MEDIA: sin carpeta o 0 archivos` cuando la escena activa es una de
-> las tres y no hay nada que mostrar. Cuando sí hay, muestra el modo, la
+> las cuatro y no hay nada que mostrar. Cuando sí hay, muestra el modo, la
 > posición (`07/24`) y el nombre del archivo.
 
 ---
@@ -128,10 +130,16 @@ set largo.
 
 ## Cómo armar la carpeta (lo que importa en la práctica)
 
-- **Contraste alto y siluetas claras.** Las tres escenas trabajan sobre la
+- **Contraste alto y siluetas claras.** Las cuatro escenas trabajan sobre la
   *forma*, no sobre el detalle fino. Una foto de paisaje con todo en medios
-  tonos se convierte en papilla en las tres; un logo, una silueta, una textura
-  gráfica o una foto muy contrastada funcionan en las tres.
+  tonos se convierte en papilla en las cuatro; un logo, una silueta, una
+  textura gráfica o una foto muy contrastada funcionan en las cuatro.
+- **El eco necesita un elemento reconocible, no simetría perfecta.** El
+  túnel de scene16 se lee mejor con una imagen que tenga un punto de
+  interés claro (una cara, un logo, un objeto) fuera del centro exacto --
+  así las copias se ven viajar en espiral. Una textura totalmente
+  repetitiva (un patrón parejo) hace que el eco case tan bien consigo
+  mismo que apenas se note.
 - **El caleidoscopio no necesita que la imagen sea buena.** Es literalmente su
   razón de ser: pliega cualquier cosa en un mandala. Ahí sí podés meter
   material feo.
