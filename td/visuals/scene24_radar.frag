@@ -14,6 +14,17 @@
 // fijos (hash) que solo se iluminan de verdad cuando el brazo pasa cerca
 // de su angulo.
 //
+// MUÑEQUITOS 8BIT: ademas de los contactos-punto, unos pocos "blips" son
+// figuritas pixeladas de 8x6 celdas que bailan -- pedido explicito de
+// "que no sea tan sencillo". Cada sprite es un bitmask fijo por fila (un
+// entero 0-255 = que celdas de esa fila estan prendidas), con DOS frames
+// que alternan en el tiempo (spriteRow()); drawSprite() convierte la
+// posicion del pixel en una celda del grid y consulta ese bit -- todo
+// binario, sin antialiasing entre celdas, a proposito (asi se ve
+// pixelado de verdad, no una figura suavizada). Se mueven en un vaiven
+// (sway) mas un salto vertical (bob), ambos atados a Speed, como si
+// bailaran al ritmo del barrido.
+//
 // CONTROLES
 //   Speed    velocidad de giro del brazo de barrido
 //   Density  cuantos contactos hay en pantalla
@@ -29,10 +40,47 @@
 //      angular mas amplio)
 // @D2: largo de la estela de fosforo detras del brazo
 // @D3: cuantos anillos de rango (circulos concentricos) se ven
-// @D4: tamano de los contactos
+// @D4: tamano de los contactos (tambien escala un poco el tamano de los
+//      muñequitos 8bit, son parte de la misma familia "puntos en el radar")
 // @D5: brillo de la estela de fosforo, incluso lejos del brazo
 // @D6: brillo de los anillos de rango
 // ===============================================================
+
+// Bit 'col' (0 = izquierda) de una fila de 8 bits codificada como un
+// numero 0..255 -- asi cada fila del sprite es UN float, no un array.
+float spriteBit(float rowBits, float col)
+{
+    float shift = pow(2.0, 7.0 - col);
+    return mod(floor(rowBits / shift), 2.0);
+}
+
+// Dos frames de un muñequito de 8 (ancho) x 6 (alto) celdas -- frame A:
+// brazos bien abiertos, piernas juntas; frame B: brazos abajo, piernas
+// bien abiertas. Alternar entre las dos da el "paso" de baile. 'frame'
+// tiene que ser exactamente 0.0 o 1.0 (nunca algo entre medio: mix()
+// entre dos bitmasks NO tiene sentido como imagen si se interpola).
+float spriteRow(int row, float frame)
+{
+    float rowsA[6];
+    rowsA[0] = 60.0;  rowsA[1] = 60.0;  rowsA[2] = 126.0;
+    rowsA[3] = 255.0; rowsA[4] = 60.0;  rowsA[5] = 102.0;
+    float rowsB[6];
+    rowsB[0] = 60.0;  rowsB[1] = 60.0;  rowsB[2] = 60.0;
+    rowsB[3] = 60.0;  rowsB[4] = 126.0; rowsB[5] = 195.0;
+    return mix(rowsA[row], rowsB[row], frame);
+}
+
+// 1.0 si 'p' cae sobre una celda prendida del sprite centrado en 'pos',
+// 0.0 si no -- binario a proposito, sin smoothstep entre celdas, para
+// que se vea pixelado de verdad.
+float drawSprite(vec2 p, vec2 pos, float cellSize, float frame)
+{
+    vec2 local = (p - pos) / cellSize;
+    if (abs(local.x) >= 4.0 || abs(local.y) >= 3.0) return 0.0;
+    float col = floor(local.x + 4.0);
+    int   row = int(floor(3.0 - local.y));
+    return spriteBit(spriteRow(row, frame), col);
+}
 
 vec4 render(vec2 uv)
 {
@@ -92,6 +140,27 @@ vec4 render(vec2 uv)
         float d = length(p - blipPos);
         float dot = smoothstep(dotSize, 0.0, d) * (lit * 0.9 + 0.1);
         col += vec3(1.0, 0.9, 0.55) * dot * (1.0 + uKick * 1.3);
+    }
+
+    // MUÑEQUITOS 8BIT bailando -- "que no sea tan sencillo". Reparte
+    // unos pocos por la pantalla (atado a Density, igual que los
+    // contactos), cada uno con su propio vaiven (sway) y salto (bob)
+    // atados a Speed, y su propio desfasaje de baile (fs*1.7) para que
+    // no bailen todos exactamente en sincronia.
+    int nDancers = 3 + int(floor(uDensity * 3.99));
+    float danceRate = 2.2 + uSpeed * 3.0;
+    float cellSize = 0.026 + uD4 * 0.012;
+    for (int s = 0; s < 6; s++) {
+        if (s >= nDancers) break;
+        float fs = float(s);
+        vec2 sSeed = vec2(fs * 13.7 + 5.0, fs * 8.3 + 2.0);
+        vec2 basePos = vec2((hash21(sSeed) - 0.5) * 1.5, (hash21(sSeed + 1.0) - 0.5) * 1.0);
+        float sway = sin(t * danceRate * 0.5 + fs * 3.3) * 0.10;
+        float bob = abs(sin(t * danceRate + fs * 2.1)) * 0.05;
+        vec2 spritePos = basePos + vec2(sway, bob);
+        float frame = mod(floor(t * danceRate + fs * 1.7), 2.0);
+        float sPix = drawSprite(p, spritePos, cellSize, frame);
+        col += radarCol * sPix * 1.3 * (0.7 + uKick * 0.6);
     }
 
     // PIANO: "nuevo contacto" -- un blip nuevo aparece en el angulo que
