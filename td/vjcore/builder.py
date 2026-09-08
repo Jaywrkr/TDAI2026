@@ -463,7 +463,8 @@ def build(verbose=True):
     audio_chop = audio.build(proj)
     midi.build(proj, _dat_text('midi_logic'))
     key_chop = midi.build_keypulse(proj)
-    ctrl_chop, ctrl_tex = control.build(proj, audio_chop, key_chop)
+    fx_chop = midi.build_effects_envelope(proj)
+    ctrl_chop, ctrl_tex = control.build(proj, audio_chop, key_chop, fx_chop)
 
     channels = control.resolve_channels(proj)
     log('CTRL canales: {}'.format(channels))

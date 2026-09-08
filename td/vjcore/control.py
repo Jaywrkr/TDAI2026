@@ -3,7 +3,9 @@
 Esta es LA fuente de verdad de todos los visuales.
 
     Parameter CHOP (params custom de /project1)  -.
-    audio_ctrl (audio reactivo)                  -+-> merge -> select (orden) -> ctrl -> ctrl_tex
+    audio_ctrl (audio reactivo)                  -+
+    key_chop (piano: keypulse, ver midi.build_keypulse)         -+-> merge -> select (orden) -> ctrl -> ctrl_tex
+    fx_chop (pads: grain..posterize, ver midi.build_effects_envelope) -+
     Speed CHOPs (time / rtime)                   -'
 
 Ni una sola expresion de Python se evalua por frame en esta cadena:
@@ -28,7 +30,7 @@ from . import config
 from .tdutil import safe_set, safe_set_first, safe_expr, connect, log, chan_names
 
 
-def build(proj, audio_chop, key_chop=None):
+def build(proj, audio_chop, key_chop=None, fx_chop=None):
     # --- parametros custom -> canales ---
     par_chop = proj.create(parameterCHOP, 'par_ctrl')
     par_chop.nodeX, par_chop.nodeY = -1400, 200
@@ -95,6 +97,8 @@ def build(proj, audio_chop, key_chop=None):
         srcs.insert(1, audio_chop)
     if key_chop is not None:
         srcs.insert(1, key_chop)
+    if fx_chop is not None:
+        srcs.insert(1, fx_chop)
     for i, s in enumerate(srcs):
         connect(merge, s, i)
 

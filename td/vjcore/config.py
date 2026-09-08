@@ -164,15 +164,14 @@ PAR_CHANNELS = [
     ('Outputheight', 'resh'),
     ('Keypos', 'keypos'),
     ('Keyvel', 'keyvel'),
-    ('Keypulseraw', 'keypulse'),
-    ('Grain', 'grain'),
-    ('Glitch', 'glitch'),
-    ('Pixelate', 'pixelate'),
-    ('Strobe', 'strobe'),
-    ('Invert', 'invert'),
-    ('Mirror', 'mirror'),
-    ('Zoom', 'zoom'),
-    ('Posterize', 'posterize'),
+    # 'keypulse' y los 8 efectos de pad (grain..posterize) NO van aca a
+    # proposito -- ver FX_TRIGGER_PARS mas abajo. Si un raw de estos
+    # entrara tal cual a la textura de control, el pad durearia en
+    # pantalla los ~2 frames que Python tarda en resetearlo (el bug que
+    # tenian: "nunca se llega a un efecto"). En vez de eso pasan por una
+    # envolvente Lag CHOP (midi.build_effects_envelope, igual que
+    # build_keypulse ya hacia solo para el piano) que estira esos ~2
+    # frames a FX_DECAY_SECONDS reales y SI se ve.
     ('Trails', 'trails'),
     ('Trailszoom', 'trailszoom'),
     ('Trailsrotate', 'trailsrot'),
@@ -190,6 +189,32 @@ PAR_CHANNELS = [
     ('Detail5', 'd5'),
     ('Detail6', 'd6'),
 ]
+
+# ---------------------------------------------------------------
+# ENVOLVENTE DE LOS 8 EFECTOS DE PAD (Grain..Posterize)
+# ---------------------------------------------------------------
+# Mismo par (parametro raw en /project1, nombre de canal en CTRL_CHANNELS)
+# que PAR_CHANNELS, pero via midi.build_effects_envelope() -- un Lag CHOP,
+# no un pasamanos directo. midi_logic.py sigue escribiendo la velocidad
+# del pad en el parametro raw y reseteandolo a los ~2 frames (eso es solo
+# el FLANCO que la envolvente necesita para dispararse); FX_DECAY_SECONDS
+# es lo que de verdad decide cuanto dura el efecto en pantalla.
+FX_TRIGGER_PARS = [
+    ('Grain', 'grain'),
+    ('Glitch', 'glitch'),
+    ('Pixelate', 'pixelate'),
+    ('Strobe', 'strobe'),
+    ('Invert', 'invert'),
+    ('Mirror', 'mirror'),
+    ('Zoom', 'zoom'),
+    ('Posterize', 'posterize'),
+]
+
+# Mas largo que el release del piano (0.35s, ver midi.build_keypulse):
+# un pad es un gesto deliberado de VJ, no una nota tocada rapido -- tiene
+# que leerse con claridad en pantalla, no solo destellar. Antes de esta
+# envolvente, un pad duraba ~2 frames (~0.03s a 60fps): invisible.
+FX_DECAY_SECONDS = 0.6
 
 # ---------------------------------------------------------------
 # MASTER FX - modos de mezcla del modo DOS CAPAS
