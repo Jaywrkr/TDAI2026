@@ -28,12 +28,12 @@ KEYS = '0 1 2 3 4 5 6 7 8 9 leftarrow rightarrow left right space'
 
 def build(proj):
     kb = proj.create(keyboardinCHOP, 'keyboard_in')
-    kb.nodeX, kb.nodeY = -400, 1040
+    kb.nodeX, kb.nodeY = -400, 1290
     safe_set_first(kb, ['active'], 1)
     safe_set_first(kb, ['keys'], KEYS)
 
     logic = proj.create(chopexecuteDAT, 'keyboard_logic')
-    logic.nodeX, logic.nodeY = -240, 1040
+    logic.nodeX, logic.nodeY = -240, 1290
     safe_set(logic, 'chop', kb.path)
     safe_set(logic, 'offtoon', True)
     logic.text = _dat_text()

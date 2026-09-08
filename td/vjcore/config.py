@@ -374,3 +374,14 @@ PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',
                'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6']
 
 PROJECT_PATH = '/project1'
+
+# ---------------------------------------------------------------
+# SEÑALIZACION DE LA RED
+# ---------------------------------------------------------------
+# Color de fondo (0..1 RGB) para los nodos que hay que tocar A MANO antes
+# de un show -- los mismos 4 pasos del reporte "SIGUIENTE PASO MANUAL" al
+# final del build (builder.py._mark_setup_nodes). Puramente cosmetico:
+# no cambia nada de como corre el rig, solo ayuda a encontrarlos al abrir
+# la red por primera vez.
+SETUP_NODE_COLOR = (1.0, 0.55, 0.0)             # naranja -- hace falta si o si
+SETUP_NODE_COLOR_OPTIONAL = (0.55, 0.42, 0.85)  # violeta -- opcional (LEDs de pads)

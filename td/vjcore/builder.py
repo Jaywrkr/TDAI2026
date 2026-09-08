@@ -15,8 +15,9 @@ import os
 
 from . import (config, audio, control, midi, scenes, program, dashboard, shader,
               media, keyboard, autopilot)
-from .tdutil import (safe_set, safe_expr, add_float, add_int, add_toggle,
-                     add_string, add_pulse, log, clear_log, chan_names)
+from .tdutil import (safe_set, safe_expr, safe_mark, add_float, add_int,
+                     add_toggle, add_string, add_pulse, log, clear_log,
+                     chan_names)
 
 DAT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dats')
 
@@ -439,6 +440,40 @@ def onValuesChanged(changes):
 
 
 # ---------------------------------------------------------------
+# SEÑALIZACION DE LA RED
+# ---------------------------------------------------------------
+
+def _mark_setup_nodes(proj, midi_in, dash, show_window):
+    """Pinta y comenta los nodos que hay que tocar A MANO antes de un
+    show -- los mismos 4 pasos del reporte "SIGUIENTE PASO MANUAL" que
+    imprime este mismo build() al final. Puramente cosmetico (color +
+    comentario, ver tdutil.safe_mark): nunca puede romper una conexion
+    ni cambiar como corre el rig, asi que se hace siempre, sin flag."""
+    audio_in = proj.op('audio1')
+    steps = [
+        (audio_in, '1) ELEGIR DEVICE DE AUDIO ACA'),
+        (midi_in, '2) ELEGIR "Arturia MiniLab mkII" ACA'),
+        (dash, '5) ABRIR EN MODO PERFORM (Viewer Active)'),
+        (show_window, '6) Monitor > elegir el proyector > pulso Open'),
+    ]
+    for node, text in steps:
+        if node is not None:
+            safe_mark(node, color=config.SETUP_NODE_COLOR, comment=text)
+        else:
+            log('AVISO _mark_setup_nodes: no encontre el nodo para "{}"'
+                .format(text))
+
+    # Opcional -- los LEDs de pads nunca se probaron contra hardware real
+    # (ver builder.py pagina Bancos, 'Padleds'). Color distinto para que
+    # no se confunda con los 4 pasos que si hacen falta si o si.
+    midi_out = proj.op('midi_out')
+    if midi_out is not None:
+        safe_mark(midi_out, color=config.SETUP_NODE_COLOR_OPTIONAL,
+                  comment='OPCIONAL: Device para LEDs de pads '
+                          '(SIN VERIFICAR contra hardware real)')
+
+
+# ---------------------------------------------------------------
 # BUILD
 # ---------------------------------------------------------------
 
@@ -468,22 +503,22 @@ def build(verbose=True):
 
     # --- runtime DATs primero: el resto los referencia ---
     ctrl_dat = proj.create(textDAT, 'control_script')
-    ctrl_dat.nodeX, ctrl_dat.nodeY = 1560, 400
+    ctrl_dat.nodeX, ctrl_dat.nodeY = 1960, 400
     ctrl_dat.text = _dat_text('control_script')
 
     diag_dat = proj.create(textDAT, 'diagnostics')
-    diag_dat.nodeX, diag_dat.nodeY = 1560, 260
+    diag_dat.nodeX, diag_dat.nodeY = 1960, 260
     diag_dat.text = _dat_text('diagnostics')
 
     rt = proj.create(executeDAT, 'runtime_manager')
-    rt.nodeX, rt.nodeY = 1560, 120
+    rt.nodeX, rt.nodeY = 1960, 120
     safe_set(rt, 'start', True)
     safe_set(rt, 'devicechange', True)
     safe_set(rt, 'framestart', False)
     rt.text = _dat_text('runtime_manager')
 
     pe = proj.create(parameterexecuteDAT, 'par_exec')
-    pe.nodeX, pe.nodeY = 1560, -20
+    pe.nodeX, pe.nodeY = 1960, -20
     safe_set(pe, 'op', proj.path)
     safe_set(pe, 'pars', '*')
     safe_set(pe, 'pulse', True)
@@ -492,7 +527,7 @@ def build(verbose=True):
 
     # --- audio + control + midi ---
     audio_chop = audio.build(proj)
-    midi.build(proj, _dat_text('midi_logic'))
+    midi_in, _midi_logic_dat = midi.build(proj, _dat_text('midi_logic'))
     key_chop = midi.build_keypulse(proj)
     fx_chop = midi.build_effects_envelope(proj)
     ctrl_chop, ctrl_tex = control.build(proj, audio_chop, key_chop, fx_chop)
@@ -514,11 +549,13 @@ def build(verbose=True):
     # ctrl_tex/channels: los shaders de Master FX (dos capas + estela)
     # leen la MISMA textura de control que las escenas -- ver program.py.
     ops = program.build(proj, outs, ctrl_tex, channels)
-    dashboard.build(proj, thumbs, ops['bloom'])
+    dash = dashboard.build(proj, thumbs, ops['bloom'])
+
+    _mark_setup_nodes(proj, midi_in, dash, ops.get('window'))
 
     # --- error log ---
     err = proj.create(errorDAT, 'system_errors')
-    err.nodeX, err.nodeY = 1560, 560
+    err.nodeX, err.nodeY = 1960, 560
     safe_set(err, 'active', True)
     safe_set(err, 'source', '/project1*')
     safe_set(err, 'severity', 'warning abort')
@@ -527,7 +564,7 @@ def build(verbose=True):
 
     # --- contrato visual visible dentro de TD ---
     contract = proj.create(textDAT, 'VISUAL_CONTRACT')
-    contract.nodeX, contract.nodeY = 1560, 700
+    contract.nodeX, contract.nodeY = 1960, 700
     contract.text = _contract_text(channels)
 
     # 'delayFrames' arranca aqui, NO desde runtime_manager.onStart(). onStart

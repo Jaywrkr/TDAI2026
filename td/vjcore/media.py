@@ -23,12 +23,12 @@ from .tdutil import safe_set, safe_set_first, connect, log
 
 def build(proj):
     beat_sel = proj.create(selectCHOP, 'media_beat_chan')
-    beat_sel.nodeX, beat_sel.nodeY = -400, 900
+    beat_sel.nodeX, beat_sel.nodeY = -400, 1150
     safe_set_first(beat_sel, ['channames', 'chan', 'channels'], 'beat')
     connect(beat_sel, proj.op('ctrl'))
 
     logic = proj.create(chopexecuteDAT, 'media_logic')
-    logic.nodeX, logic.nodeY = -240, 900
+    logic.nodeX, logic.nodeY = -240, 1150
     safe_set(logic, 'chop', beat_sel.path)
     safe_set(logic, 'offtoon', True)
     logic.text = _dat_text()

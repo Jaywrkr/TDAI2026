@@ -67,6 +67,29 @@ def safe_expr_first(o, names, expression):
     return None
 
 
+def safe_mark(o, color=None, comment=None):
+    """Pinta y/o comenta un OP para señalarlo en la red de TD -- 100%
+    cosmetico: el color y el comentario no participan de la ejecucion
+    en absoluto, asi que esto no puede romper ninguna conexion ni
+    cambiar el comportamiento del rig.
+
+    '.color' y '.comment' son atributos del OP en si (o.color = (r,g,b),
+    0..1), no un parametro custom (o.par.X) -- por eso no pasan por
+    safe_set. Van en try/except por el mismo motivo que el resto de
+    este archivo: no hay forma de confirmar que el atributo se llame
+    exactamente asi sin TD abierto."""
+    if color is not None:
+        try:
+            o.color = color
+        except Exception as e:
+            log('AVISO color {}: {}'.format(o.path, e))
+    if comment is not None:
+        try:
+            o.comment = comment
+        except Exception as e:
+            log('AVISO comment {}: {}'.format(o.path, e))
+
+
 def connect(dst, src, index=0):
     try:
         dst.inputConnectors[index].connect(src)
