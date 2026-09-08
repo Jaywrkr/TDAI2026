@@ -132,6 +132,14 @@ def _parameters(proj):
     add_pulse(md, 'Medianext', 'Imagen siguiente')
     add_pulse(md, 'Mediaprev', 'Imagen anterior')
     add_pulse(md, 'Mediarandom', 'Imagen al azar')
+    # Perilla continua: recorre la carpeta ENTERA por posicion (0 =
+    # primera imagen, 1 = ultima), como un scrub -- pedido explicito del
+    # usuario para no gastar un pad por cada paso. Es un control
+    # CONTINUO (CONTINUOUS en midi_logic.py, no un TRIGGER): el valor se
+    # escribe solo mientras se aprende/mueve el knob fisico; el trabajo
+    # de verdad (mover Mediaindex) lo hace mediaScrubSelect() al
+    # detectar el cambio (ver _PAR_EXEC.onValueChange mas abajo).
+    add_float(md, 'Mediascrub', 'Recorrer carpeta (perilla)', 0.0, 0, 1)
     # La carpeta se escanea una vez y queda cacheada (se llama desde una
     # expresion de parametro, o sea todos los frames: un os.listdir por
     # frame es inaceptable). Este boton tira el cache -- hay que apretarlo
@@ -399,6 +407,8 @@ def onValueChange(par, prev):
         ctrl.module.startMediaCycles()
     elif par.name == 'Mediashuffle':
         ctrl.module.mediaReshuffle()
+    elif par.name == 'Mediascrub':
+        ctrl.module.mediaScrubSelect(par.val)
     return
 
 

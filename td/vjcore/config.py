@@ -338,7 +338,15 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # Carpeta comun de media (scene19/34/35). 'Medianext' es
               # el unico que de verdad pide un pad fisico: en modo
               # MANUAL es como se pasan las imagenes a mano.
-              'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock']
+              'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock',
+              # Perilla continua: recorre la carpeta ENTERA por posicion
+              # (0 = primera imagen, 1 = ultima), como un scrub. Funciona
+              # en cualquier Mediamode -- es un gesto manual directo,
+              # igual que Medianext/Mediaprev, solo que continuo en vez
+              # de a pasos. Sin default: el controlador no tiene
+              # perillas libres, queda lista para Learn el dia que se
+              # libere una (pedido explicito del usuario).
+              'Mediascrub']
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

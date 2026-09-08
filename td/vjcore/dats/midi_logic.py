@@ -170,6 +170,12 @@ CONTINUOUS = {
     'Layermix': ('Layermix', 0.0, 1.0),
     'Lookamount': ('Lookamount', 0.0, 1.0),
     'Palettelock': ('Palettelock', 0.0, 1.0),
+    # Carpeta comun de media: perilla continua, recorre TODA la carpeta
+    # por posicion (0..1 = primera..ultima imagen). El trabajo de mapear
+    # esa posicion a un indice de imagen NO pasa por aca -- lo hace
+    # control_script.mediaScrubSelect(), disparado por onValueChange en
+    # builder.py apenas este parametro cambia (mismo patron que 'Energy').
+    'Mediascrub': ('Mediascrub', 0.0, 1.0),
 }
 
 TRIGGERS = {

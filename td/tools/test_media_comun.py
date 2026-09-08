@@ -19,6 +19,8 @@ Lo que se verifica:
   5. modo TIEMPO no se mueve por beat, y BEAT no se mueve por tiempo
   6. modo PIANO mapea 0..1 sobre la carpeta entera, extremos incluidos
   7. Mediashuffle recorre TODA la carpeta sin repetir
+  8. la perilla continua (Mediascrub) mapea 0..1 igual que el piano pero
+     en CUALQUIER modo, y respeta Medialock
 """
 import os
 import shutil
@@ -270,6 +272,34 @@ def main():
         m.mediaPianoSelect(1.0)
         check('fuera del modo PIANO la tecla no cambia la imagen',
               p.par.Mediaindex.val, first)
+
+        print('\n--- perilla continua (Mediascrub): recorre la carpeta a diferencia del piano ---')
+        # A diferencia del piano, esta SI tiene que funcionar en
+        # cualquier modo -- la perilla no comparte con nada mas.
+        for mode in ('MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO'):
+            p = new_proj(folder, mode=mode)
+            m = load_control_script(p)
+            m.mediaScrubSelect(0.0)
+            check('{}: extremo grave -> primera imagen'.format(mode),
+                  p.par.Mediaindex.val, 0)
+            m.mediaScrubSelect(1.0)
+            check('{}: extremo agudo -> ultima imagen'.format(mode),
+                  p.par.Mediaindex.val, 3)
+
+        p = new_proj(folder, mode='MANUAL')
+        m = load_control_script(p)
+        m.mediaScrubSelect(0.33)
+        first = p.par.Mediaindex.val
+        m.mediaScrubSelect(0.9)
+        m.mediaScrubSelect(0.33)
+        check('la misma posicion de la perilla vuelve a la misma imagen',
+              p.par.Mediaindex.val, first)
+
+        print('\n--- Mediascrub tambien respeta Medialock ---')
+        p = new_proj(folder, mode='MANUAL', Medialock=True, Mediaindex=2)
+        m = load_control_script(p)
+        m.mediaScrubSelect(1.0)
+        check('lock vs perilla de scrub', p.par.Mediaindex.val, 2)
 
         print('\n--- shuffle: recorre todo sin repetir ---')
         big = make_folder(['{:02d}.png'.format(i) for i in range(12)])
