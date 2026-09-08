@@ -19,7 +19,9 @@
 //   Density  cuantas estrellas hay
 //   Hue      color base de la nube (calido/frio se derivan de este)
 //   Chaos    intensidad del domain warp base (ademas del que mete Mid)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + un grupo de estrellas
+//            "bailarinas" (elegidas por hash, ~1 de cada 4) brillan
+//            bastante mas fuerte con los graves que el resto
 //   Mid      RETUERCE la silueta de la nube (geometria real)
 //   Kick     destello breve en toda la nube + estrellas
 //   High     vibracion micro del warp (excepcion del contrato)
@@ -81,6 +83,13 @@ vec4 render(vec2 uv)
     float starMag = 0.35 + hash21(sid + 21.0) * 1.5;
     float star = smoothstep(starSize * starMag, 0.0, starD) * isStar * twinkle;
     star *= 0.5 + starMag * 0.7;
+    // "Bailarinas": ~1 de cada 4 estrellas (fijo por celda, no cambia)
+    // brilla bastante mas fuerte con los graves que el resto -- el
+    // campo entero deja de titilar todo igual y algunas puntas laten
+    // con la musica, como pedido explicito ("que ciertas estrellas
+    // bailen"). Brillo solamente, nunca tamano -- sigue el contrato.
+    float isDancer = step(0.75, hash21(sid + 40.0));
+    star *= 1.0 + isDancer * uBass * 2.2;
     col += vec3(1.0) * star * (1.0 + uKick * 1.0);
 
     // PIANO: nucleo brillante de la explosion en si -- la dispersion

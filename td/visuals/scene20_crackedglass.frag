@@ -8,10 +8,15 @@
 // COMO FUNCIONA
 // Las grietas salen de la MISMA tecnica Voronoi F2-F1 de scene01: los
 // bordes entre celdas (donde dist2-dist1 ~ 0) forman una red de lineas
-// rectas. La diferencia es la "revelacion": una mascara radial
-// (smoothstep sobre la distancia al centro) solo deja ver grietas hasta
-// un radio que SALTA con cada kick -- el vidrio se agrieta mas y mas
-// lejos del centro con cada golpe, en vez de estar siempre roto igual.
+// rectas. La diferencia es la "revelacion": un CAMPO DE RUIDO fijo
+// (fbm, no anima) cubre toda la pantalla con valores 0..1, y un umbral
+// que SUBE con cada kick decide que zonas del ruido ya "rompieron" --
+// donde el ruido da bajo se revela primero, donde da alto tarda mas.
+// Como el ruido no tiene ninguna simetria radial, las zonas que se
+// agrietan primero quedan REPARTIDAS por toda la pantalla (arriba, en
+// una esquina, al costado...), no una mancha circular creciendo desde
+// el centro -- que es justo lo que se ve mal en vidrio roto real: un
+// impacto real no rompe en circulos perfectos.
 //
 // CONTROLES
 //   Speed    no usado directo (las grietas son estaticas por celda)
@@ -19,11 +24,11 @@
 //   Hue      color base de la dispersion en el borde
 //   Chaos    cuanto se alejan los "puntos de impacto" del centro de su
 //            celda (grietas mas rectas <-> mas irregulares)
-//   Bass     brillo de lo ya claro (audioLift) + radio de revelacion en
-//            reposo un poco mas grande
+//   Bass     brillo de lo ya claro (audioLift) + nivel de revelacion en
+//            reposo un poco mas alto
 //   Mid      tinte adicional (audioHue)
-//   Kick     el radio de revelacion salta hacia afuera -- el vidrio se
-//            agrieta mas con cada golpe
+//   Kick     el nivel de revelacion sube -- se agrietan mas ZONAS
+//            REPARTIDAS por la pantalla con cada golpe
 //   High     vibracion micro de los puntos (excepcion del contrato)
 //
 // @D1: grosor de la grieta nitida
@@ -32,7 +37,7 @@
 // @D4: cuanto se cierra la revelacion en reposo (mas vidrio ya roto de
 //      entrada <-> casi nada hasta el primer golpe)
 // @D5: suavidad del borde de revelacion (recorte duro <-> se pierde
-//      gradualmente hacia afuera)
+//      gradualmente)
 // @D6: variacion de hue a lo largo de las grietas
 // ===============================================================
 
@@ -74,17 +79,18 @@ vec4 render(vec2 uv)
     // ningun brillo. Ahora tienen piso propio.
     float glow = exp(-crack * crack / (0.004 + uD2 * 0.03)) * (0.25 + uD2 * 0.85);
 
-    // Revelacion radial: crece con cada kick, D4 sube el piso en reposo.
-    // Piso subido (0.10->0.35): en D4=0 el vidrio quedaba practicamente
-    // sin grietas visibles hasta el primer golpe -- ahora ya hay una
-    // "telaraña" de grietas de entrada, y el kick sigue agrandandola.
-    float r = length(p);
-    float shatterR = (0.35 + uD4 * 0.4) + uKick * 1.4 + uBass * 0.12;
-    // Borde de revelacion MUCHO mas suave (0.18 -> 0.45 de rampa): con
-    // el borde corto se veia un circulo recortado -- una pelota de
-    // malla -- en vez de grietas que se van perdiendo hacia afuera.
-    float revealSoft = 0.15 + uD5 * 0.55;
-    float reveal = smoothstep(shatterR + revealSoft, shatterR - revealSoft * 0.65, r);
+    // Revelacion por RUIDO, no por distancia radial: 'revealField' es un
+    // fbm FIJO (no anima con el tiempo) que cubre toda la pantalla con
+    // valores 0..1 sin ninguna simetria -- las zonas donde da mas bajo
+    // "rompen" primero. 'shatterLevel' es el umbral, sube con cada kick
+    // igual que antes (D4 sube el piso en reposo), pero ahora empuja el
+    // umbral contra el CAMPO DE RUIDO en vez de contra un radio: mas
+    // umbral = mas AREA del ruido por debajo de el = mas zonas
+    // repartidas por la pantalla se revelan, no un circulo creciendo.
+    float revealField = fbm(p * 1.35 + 41.0, 4, 0.55);
+    float shatterLevel = (0.30 + uD4 * 0.45) + uKick * 0.55 + uBass * 0.06;
+    float revealSoft = 0.05 + uD5 * 0.28;
+    float reveal = smoothstep(shatterLevel + revealSoft, shatterLevel - revealSoft * 0.65, revealField);
 
     float h = audioHue(uHue, uMid * 0.15);
     float crackHueVar = 0.5 + uD6 * 4.0;
@@ -111,7 +117,10 @@ vec4 render(vec2 uv)
         vec2 impactPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 9.0) * 0.8);
         float rImpact = length(p - impactPos);
         float impactR = (1.0 - uKeypulse) * (0.9 + uKeyvel * 0.9);
-        float revealP = smoothstep(impactR + 0.20, impactR - 0.20, rImpact) * uKeypulse;
+        // Mismo campo de ruido mezclado con el radio: el impacto puntual
+        // tambien rompe en un borde irregular, no un circulo perfecto.
+        float impactField = rImpact + (revealField - 0.5) * 0.6;
+        float revealP = smoothstep(impactR + 0.28, impactR - 0.14, impactField) * uKeypulse;
         col += hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * revealP;
         col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * revealP;
     }
