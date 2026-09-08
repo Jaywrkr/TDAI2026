@@ -46,11 +46,21 @@ Una reescritura del build script original con tres cambios de fondo:
 
 ## Crear una escena nueva
 
+Pásale [`docs/04_PROMPT_PARA_IA.md`](docs/04_PROMPT_PARA_IA.md) a ChatGPT,
+Claude o el que uses, pega la respuesta en un archivo y dala de alta con
+`add_scene.py` — elige el índice libre, compila, y sólo si compila copia
+el archivo y sube `N_SCENES` solo:
+
 ```bash
-cp td/visuals/_TEMPLATE.frag td/visuals/scene03_loquesea.frag
-# edita el archivo (o pásale docs/04_PROMPT_PARA_IA.md a una IA)
-python3 td/tools/validate_shaders.py    # compila sin abrir TD
+python3 td/tools/add_scene.py --slug loquesea respuesta.frag
+
+# o 10 de una, una escena por archivo .frag en la carpeta
+python3 td/tools/add_scene.py --dir carpeta_con_visuales_de_la_ia/
 ```
+
+MIDI, audio y las perillas Detail no se cablean por escena — llegan por
+la misma textura de control que ya comparten todas las demás, así que
+un `.frag` que compila ya está completamente conectado.
 
 Luego en TD: `/project1` → **System** → `Recargar Shaders`.
 

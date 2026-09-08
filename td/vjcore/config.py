@@ -25,6 +25,13 @@ MEDIA_SCENES = {19, 34, 35}
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
               '.mov', '.mp4', '.webp')
 
+# Ruta de arranque del parametro Mediafolder -- para no tener que pegarla
+# a mano cada vez que se reconstruye el proyecto desde cero. Es SOLO el
+# valor inicial: sigue siendo un campo de texto editable en /project1 ->
+# Media, y una maquina distinta (o un cambio de carpeta) lo pisa sin
+# tocar este archivo.
+DEFAULT_MEDIA_FOLDER = '/Users/juanjaramillo/Desktop/TD2026/IMAGENES'
+
 # COMO CAMBIA DE IMAGEN. Un solo parametro (Mediamode) decide quien
 # manda; el resto de los controles (Next/Prev/Random/Lock) funcionan
 # siempre, en cualquier modo.
