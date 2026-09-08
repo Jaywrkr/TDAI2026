@@ -12,14 +12,15 @@ N_SCENES = 36
 # del GLSL TOP. El resto de las escenas jamas referencia sTD2DInputs[1]
 # en su .frag, asi que no les afecta.
 #
-# Las tres comparten UNA SOLA CARPETA -- la de la pagina "Media" de
+# Las cuatro comparten UNA SOLA CARPETA -- la de la pagina "Media" de
 # /project1 -- y muestran siempre la MISMA imagen al mismo tiempo. Eso es
-# a proposito: al cambiar de escena 19 -> 34 -> 35 se ve el mismo
-# material tratado de tres maneras distintas (glitch / mandala / trama
-# impresa), que en vivo se lee como una progresion y no como tres cosas
-# sueltas. Antes la carpeta era un parametro POR ESCENA, lo que obligaba
-# a cargar la ruta tres veces y a que se desincronizaran solas.
-MEDIA_SCENES = {19, 34, 35}
+# a proposito: al cambiar de escena 16 -> 19 -> 34 -> 35 se ve el mismo
+# material tratado de cuatro maneras distintas (eco/feedback / glitch /
+# mandala / trama impresa), que en vivo se lee como una progresion y no
+# como cuatro cosas sueltas. Antes la carpeta era un parametro POR
+# ESCENA, lo que obligaba a cargar la ruta varias veces y a que se
+# desincronizaran solas.
+MEDIA_SCENES = {16, 19, 34, 35}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',

@@ -23,7 +23,11 @@
 //
 // CONTROLES
 //   Speed    velocidad de los pulsos que recorren la red
-//   Density  cuantas celdas hay (mas celdas = red mas fina)
+//   Density  ACERCAMIENTO a la red: en 0 (default) esta ALEJADA -- celdas
+//            chicas, se ve toda la trama de golpe. Subir Density te
+//            ACERCA -- celdas mas grandes, menos de la red entra en
+//            pantalla. Invertido a proposito: "subir density" = "acercar
+//            camara", no "agregar detalle".
 //   Hue      paleta
 //   Chaos    cuanto se alejan los sitios del centro de su celda -- mas
 //            Chaos = red mas irregular, menos = mas ordenada/rejilla
@@ -79,11 +83,13 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    // Celdas mas grandes que antes (freq base bajo): antes iba de 3 a 12,
-    // ahora de 1.6 a 7.6 -- Density sigue funcionando igual de proporcional,
-    // solo que el rango entero da celdas mas grandes en cualquier posicion
-    // de la perilla.
-    float freq = 1.6 + uDensity * 6.0;
+    // ACERCAMIENTO invertido: Density=0 (default) es la vista ALEJADA
+    // (freq alta, celdas chicas, se ve la red entera); subir Density
+    // ACERCA la camara (freq baja, celdas grandes, panorama mas
+    // reducido). El piso queda bien lejos (freq=8.2, notablemente mas
+    // alejado que el viejo default de 4.6) y el tope de acercamiento
+    // (freq=2.2) se alcanza recien con Density al maximo.
+    float freq = 8.2 - uDensity * 6.0;
     vec2  g = p * freq;
     vec2  cellId = floor(g);
     vec2  cellF = fract(g);
