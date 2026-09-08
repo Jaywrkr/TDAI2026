@@ -107,20 +107,31 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
 
 === PERILLAS DE DETAIL (uD1..uD6) ===
 
-Usa 2 o 3 de las 6 (no hace falta usarlas todas). Cada una debe cambiar algo
-CONCRETO y VISIBLE -- igual que Speed/Density/Hue/Chaos, una perilla que no
-se nota es una perilla desperdiciada. Ideas: cantidad de elementos, un
-segundo parametro de forma que Density no cubre, velocidad de un efecto
-secundario, intensidad de una capa extra, ángulo de algo.
+Usa las que necesites de las 6 (no hace falta que las 6 hagan algo distinto
+entre si, pero DOCUMENTA LAS 6 IGUAL, uses o no cada una -- ver por qué
+abajo). Cada perilla que SI uses debe cambiar algo CONCRETO y VISIBLE --
+igual que Speed/Density/Hue/Chaos, una perilla que no se nota es una perilla
+desperdiciada. Ideas: cantidad de elementos, un segundo parametro de forma
+que Density no cubre, velocidad de un efecto secundario, intensidad de una
+capa extra, ángulo de algo.
 
-Documenta cada una que uses con un comentario, en cualquier parte del
-archivo (cerca de la cabecera es lo normal):
+Documenta las SEIS con un comentario, en cualquier parte del archivo (cerca
+de la cabecera es lo normal):
 
     // @D1: cantidad de nodos
     // @D2: grosor de linea
+    // @D3: no usado directo (reservado)
+    // @D4: no usado directo (reservado)
+    // @D5: velocidad de rotacion
+    // @D6: brillo del nucleo
 
-Esto alimenta la leyenda que se muestra en el dashboard al activar la
-escena -- sin el comentario, nadie sabe qué hace esa perilla en vivo.
+La que no uses, documentala igual con la frase exacta "no usado directo
+(reservado)" -- así el dashboard siempre muestra la lista completa y pareja
+en todas las escenas, en vez de que unas tengan 6 líneas de leyenda y otras
+2. `tools/test_detail_knobs.py` (se corre solo, ver mas abajo) exige que
+las 6 esten documentadas, y que cualquiera que documentes como funcional
+(no "reservado") de verdad aparezca en el código -- si falta una de las dos
+cosas, avisa pero no bloquea el alta de la escena.
 
 === TÉCNICAS QUE FUNCIONAN BIEN AQUÍ ===
 
@@ -151,23 +162,69 @@ Ejemplos de descripción útil:
 
 ---
 
-## Después de pegar la respuesta
+## Después de pegar la respuesta: `add_scene.py` (recomendado)
+
+No hace falta elegir el número de escena a mano ni acordarse de subir
+`N_SCENES` en `vjcore/config.py` — `add_scene.py` hace las dos cosas, y
+sólo escribe algo si el shader compila primero:
+
+```bash
+# Guarda la respuesta de la IA en un archivo y pásaselo con un nombre corto
+python3 td/tools/add_scene.py --slug tunel_particulas respuesta.frag
+
+# o directo desde el portapapeles / pipe, sin guardar archivo intermedio
+cat respuesta.frag | python3 td/tools/add_scene.py --slug tunel_particulas
+```
+
+Elige el próximo índice libre solo (`scene36_tunel_particulas.frag`, el que
+siga al último que exista), compila en los dos escenarios de
+`validate_shaders.py` (con audio y sin device de audio) **antes** de tocar
+el disco, y si compila: copia el archivo a `td/visuals/` y sube `N_SCENES`
+en `vjcore/config.py` si hace falta. Si no compila, no se escribe nada y
+te muestra el error de glslangValidator línea por línea — pásaselo de
+vuelta a la IA tal cual, normalmente lo arregla al primer intento.
+
+**Diez visuales de una sola vez** (el caso típico: le pediste a ChatGPT
+10 escenas y las guardaste como 10 archivos `.frag` en una carpeta):
+
+```bash
+python3 td/tools/add_scene.py --dir ~/Descargas/visuales_chatgpt/
+```
+
+Cada archivo `.frag` de la carpeta se vuelve una escena, en orden
+alfabético, arrancando en el próximo índice libre. Es todo o nada: si
+UNO de los diez no compila, no se escribe ninguno de los diez y
+`N_SCENES` no se toca — corrige ese archivo (o sacalo de la carpeta) y
+corré el comando de nuevo.
+
+MIDI, audio y las perillas Detail **no se cablean por escena** — llegan
+por la misma textura de control 1×N que ya comparten las otras 36
+escenas (ver `vjcore/shader.py`). Mientras el `.frag` respete el
+contrato de arriba, esas conexiones ya funcionan solas: `add_scene.py`
+no tiene nada que cablear ahí, sólo valida y registra el archivo.
+
+Terminado esto, en TouchDesigner: `/project1` → **System** →
+`Recargar Shaders`, y clic en la escena nueva en el dashboard.
+
+## A mano (si preferís no usar el script)
 
 ```bash
 # 1. Guarda el código en el archivo de la escena que quieras
-#    (NN = 00..19, el nombre después del número es libre)
-$EDITOR td/visuals/scene07_tunel.frag
+#    (el nombre después del número es libre; usa el próximo índice
+#    libre, el que sigue al último scene*.frag que ya exista)
+$EDITOR td/visuals/scene36_tunel.frag
 
 # 2. Compílalo sin abrir TouchDesigner
 python3 td/tools/validate_shaders.py
+
+# 3. Si usaste un índice nuevo (más allá del último que ya existía),
+#    subí N_SCENES en td/vjcore/config.py a mano -- si te olvidás de
+#    este paso, la escena queda en el .frag pero TD nunca la construye.
 ```
 
 Si sale `FAIL`, el validador te muestra la línea culpable del fuente
 compuesto. Pásale ese error de vuelta a la IA tal cual — normalmente lo
 arregla al primer intento.
-
-Si sale `OK`: en TouchDesigner, `/project1` → **System** → `Recargar Shaders`,
-y haz click en la escena en el dashboard.
 
 ---
 
@@ -199,3 +256,10 @@ dónde pegar.
 | Devuelven algo casi negro | "TouchDesigner no aplica gamma. Sube los valores." |
 | Meten 8 octavas en 3 capas | "Máximo ~24 octavas de ruido por píxel en total." |
 | Usan uBass/uLevel para escalar posición, ancho o radio | "El audio no mueve geometría, ver regla 4. Usa `audioLift` para brillo." |
+| Muestrean `sTD2DInputs` directo o lo redeclaran | "Ese uniform ya lo inyecta el sistema. No lo toques — si necesitas la imagen de la carpeta de media, esa es otra escena, no la tuya." |
+
+`add_scene.py` detecta `void main()`, `#version`, `gl_FragColor`,
+`sTD2DInputs` y la falta de `vec4 render(vec2 uv)` de un vistazo y
+rechaza el archivo (sin escribir nada) antes de intentar compilarlo —
+el resto de los errores de la tabla los agarra el compilador real y te
+los devuelve línea por línea.
