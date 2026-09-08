@@ -33,6 +33,9 @@
 // @D3: contraste del gradiente de brillo (parejo <-> valles oscuros muy
 //      marcados contra picos brillantes)
 // @D4: relleno tenue entre curvas de nivel (solo lineas <-> mapa relleno)
+// @D5: cada cuantas curvas hay una "maestra" mas gruesa (seguido <->
+//      rara vez)
+// @D6: intensidad de la oclusion ambiental en zonas escarpadas
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -97,7 +100,8 @@ vec4 render(vec2 uv)
         // relieve de un vistazo -- y el resto son finas. Con TODAS del
         // mismo grosor el dibujo se lee plano y mecanico, que era
         // exactamente el problema de esta escena.
-        bool master = (mod(float(i), 5.0) < 0.5);
+        float masterEvery = 2.0 + floor((1.0 - uD5) * 6.0);
+        bool master = (mod(float(i), masterEvery) < 0.5);
         float lw = lineW * (master ? 2.3 : 0.75);
         float line = edgeLine(hBreath - threshold, lw);
 
@@ -123,7 +127,7 @@ vec4 render(vec2 uv)
     // kick, como si la sombra "pesara" mas con el golpe.
     float bandDensity = levels * length(vec2(dFdx(hBreath), dFdy(hBreath)));
     float ao = smoothstep(0.4, 3.0, bandDensity) * (0.25 + uKick * 0.5);
-    col *= 1.0 - ao * 0.45;
+    col *= 1.0 - ao * (0.15 + uD6 * 0.55);
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

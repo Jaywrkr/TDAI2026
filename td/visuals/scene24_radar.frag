@@ -30,6 +30,8 @@
 // @D2: largo de la estela de fosforo detras del brazo
 // @D3: cuantos anillos de rango (circulos concentricos) se ven
 // @D4: tamano de los contactos
+// @D5: brillo de la estela de fosforo, incluso lejos del brazo
+// @D6: brillo de los anillos de rango
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -63,12 +65,12 @@ vec4 render(vec2 uv)
 
     float h = audioHue(fract(uHue + 0.33), uMid * 0.1);
     vec3 radarCol = hsv2rgb(vec3(h, 0.75, 1.0));
-    vec3 col = radarCol * trail * 0.55;
+    vec3 col = radarCol * trail * (0.25 + uD5 * 0.7);
 
     // Anillos de rango.
     float ringFreq = 2.0 + uD3 * 7.0;
     // Brillo subido (0.12->0.18): anillos de rango un poco mas visibles.
-    float ring = edgeLine(fract(r * ringFreq) - 0.5, 1.0) * 0.18;
+    float ring = edgeLine(fract(r * ringFreq) - 0.5, 1.0) * (0.06 + uD6 * 0.4);
     col += radarCol * ring;
 
     // Contactos: puntos fijos que se prenden cuando el barrido pasa cerca.

@@ -31,6 +31,9 @@
 // @D3: prominencia del core saturado en el borde de la grieta
 // @D4: cuanto se cierra la revelacion en reposo (mas vidrio ya roto de
 //      entrada <-> casi nada hasta el primer golpe)
+// @D5: suavidad del borde de revelacion (recorte duro <-> se pierde
+//      gradualmente hacia afuera)
+// @D6: variacion de hue a lo largo de las grietas
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -80,10 +83,12 @@ vec4 render(vec2 uv)
     // Borde de revelacion MUCHO mas suave (0.18 -> 0.45 de rampa): con
     // el borde corto se veia un circulo recortado -- una pelota de
     // malla -- en vez de grietas que se van perdiendo hacia afuera.
-    float reveal = smoothstep(shatterR + 0.45, shatterR - 0.30, r);
+    float revealSoft = 0.15 + uD5 * 0.55;
+    float reveal = smoothstep(shatterR + revealSoft, shatterR - revealSoft * 0.65, r);
 
     float h = audioHue(uHue, uMid * 0.15);
-    vec3 col = hsv2rgb(vec3(fract(h + crack * 3.0), 0.55, 1.0)) * edge * reveal;
+    float crackHueVar = 0.5 + uD6 * 4.0;
+    vec3 col = hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * reveal;
     col += hsv2rgb(vec3(fract(h + 0.5), 0.35, 1.0)) * glow * reveal * 0.6;
 
     // Nucleo saturado justo en el borde -- D3.
@@ -107,7 +112,7 @@ vec4 render(vec2 uv)
         float rImpact = length(p - impactPos);
         float impactR = (1.0 - uKeypulse) * (0.9 + uKeyvel * 0.9);
         float revealP = smoothstep(impactR + 0.20, impactR - 0.20, rImpact) * uKeypulse;
-        col += hsv2rgb(vec3(fract(h + crack * 3.0), 0.55, 1.0)) * edge * revealP;
+        col += hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * revealP;
         col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * revealP;
     }
 

@@ -35,6 +35,8 @@
 // @D3: variacion de matiz entre triangulos (paleta casi plana <-> muy
 //      variada)
 // @D4: rotacion/inclinacion de la rejilla completa
+// @D5: contraste del biselado falso-3D (parejo <-> muy marcado)
+// @D6: resplandor extra alrededor de cada triangulo encendido
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -95,7 +97,8 @@ vec4 render(vec2 uv)
     // Sombreado falso-3D: mas cerca del centro del triangulo, mas
     // brillante (como si estuviera extruido/biselado hacia la camara).
     float distToEdge = min(diagDist, edgeDist);
-    float bevel = 0.55 + 0.55 * smoothstep(0.0, margin * 3.0, distToEdge);
+    float bevelAmt = 0.25 + uD5 * 0.55;
+    float bevel = (1.0 - bevelAmt) + bevelAmt * smoothstep(0.0, margin * 3.0, distToEdge);
 
     float rate = 0.3 + uChaos * 1.8;
     float stepT = floor(t * rate);
@@ -118,6 +121,11 @@ vec4 render(vec2 uv)
     vec3 triCol = hsv2rgb(vec3(hue, 0.85, 1.0));
 
     vec3 col = triCol * inTri * on * bevel;
+
+    // D6: resplandor extra alrededor de cada triangulo encendido -- en 0
+    // no hay nada extra, en 1 cada triangulo tiene un halo notorio.
+    float triGlow = exp(-distToEdge * distToEdge / (0.002 + uD6 * 0.05)) * on * uD6;
+    col += triCol * triGlow * 0.6;
 
     // PIANO: ademas del volteo de geometria de arriba, el color tambien
     // se invierte dentro del mismo anillo -- refuerza el golpe visual.

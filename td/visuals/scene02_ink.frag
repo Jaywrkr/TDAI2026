@@ -41,6 +41,8 @@
 // @D2: cuanto se separa el segundo warp del primero (mas capas de pliegue)
 // @D3: visibilidad de la niebla de fondo (casi nada <-> bruma densa)
 // @D4: prominencia del nucleo saturado (tinta plana <-> con mucho volumen)
+// @D5: brillo del highlight especular incluso sin kick
+// @D6: tamano de la silueta de la gota (contenida <-> llena la pantalla)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -71,7 +73,10 @@ vec4 render(vec2 uv)
     // como una gota de tinta. Una mascara grande y suave (con su
     // propio ruido para que el borde sea irregular, no un ovalo) le da
     // silueta: hay tinta en el centro y agua limpia alrededor.
-    float shapeMask = 1.0 - smoothstep(0.35, 1.15,
+    // D6: tamano de la gota de tinta -- de una mancha contenida a un
+    // cuerpo que casi llena la pantalla.
+    float bodySize = 0.30 + uD6 * 0.55;
+    float shapeMask = 1.0 - smoothstep(bodySize, bodySize + 0.80,
                       length(p * vec2(0.85, 1.0))
                       + (fbm(p * 0.9 + 31.0, 3) - 0.5) * 0.55);
     ink = mix(0.30, ink, shapeMask);
@@ -113,7 +118,9 @@ vec4 render(vec2 uv)
     // con el kick se veia como un parche entero lavado a blanco/crema
     // en vez de un reflejo angosto sobre el borde.
     float lightMask = smoothstep(-0.4, 0.7, p.x * 0.6 + p.y * 0.4);
-    float rim = pow(1.0 - abs(shape * 2.0 - 1.0), 3.0) * uKick * lightMask;
+    // D5: brillo del highlight incluso sin kick -- en 0 solo aparece con
+    // el golpe, en 1 la tinta ya tiene un reflejo visible en reposo.
+    float rim = pow(1.0 - abs(shape * 2.0 - 1.0), 3.0) * (uD5 * 0.6 + uKick) * lightMask;
 
     // Value bajado (era 1.0): a pedido del usuario quedaba "demasiado
     // claro" -- ahora el cuerpo de tinta es notablemente mas oscuro por

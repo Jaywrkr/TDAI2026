@@ -30,6 +30,8 @@
 // @D3: cuantos anillos concentricos entran (pocos y anchos <-> muchos y
 //      finos)
 // @D4: cantidad de glow en los nodos de interseccion
+// @D5: frecuencia de radios de anclaje gruesos (pocos <-> casi todos)
+// @D6: frecuencia de anillos de anclaje gruesos (pocos <-> casi todos)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -49,7 +51,8 @@ vec4 render(vec2 uv)
     // El hash es por indice de radio, asi que cada radio mantiene su
     // grosor mientras la red gira, en vez de titilar.
     float spokeIdx = floor(ang / spokeAng);
-    float spokeW = (1.2 + uD1 * 2.5) * (0.6 + step(0.68, hash21(vec2(spokeIdx, 3.0))) * 1.5);
+    float anchorChance = 0.85 - uD5 * 0.55;
+    float spokeW = (1.2 + uD1 * 2.5) * (0.6 + step(anchorChance, hash21(vec2(spokeIdx, 3.0))) * 1.5);
     float spokeLine = edgeLine(spokeDist, spokeW);
 
     float ringFreq = 2.0 + uD3 * 6.0;
@@ -63,7 +66,8 @@ vec4 render(vec2 uv)
     float ringSDF = fract(r * ringFreq + pluck) - 0.5;
     // Los anillos tambien: uno de cada tantos mas grueso.
     float ringIdx = floor(r * ringFreq + pluck);
-    float ringW = (1.2 + uD2 * 2.5) * (0.65 + step(0.72, hash21(vec2(ringIdx, 11.0))) * 1.3);
+    float ringAnchorChance = 0.88 - uD6 * 0.55;
+    float ringW = (1.2 + uD2 * 2.5) * (0.65 + step(ringAnchorChance, hash21(vec2(ringIdx, 11.0))) * 1.3);
     float ringLine = edgeLine(ringSDF, ringW);
 
     float web = max(spokeLine, ringLine);

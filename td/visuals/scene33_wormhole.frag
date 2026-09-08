@@ -28,6 +28,8 @@
 // @D2: fuerza de la lente gravitacional cerca del horizonte
 // @D3: contraste/brillo general del disco
 // @D4: tamano del horizonte de sucesos
+// @D5: intensidad de la asimetria Doppler
+// @D6: cuantas bandas concentricas tiene el disco
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -58,12 +60,14 @@ vec4 render(vec2 uv)
     // BANDAS: un disco de acrecion real no es una pelusa pareja, tiene
     // anillos de material a distintos radios. Barato: modular el campo
     // con un seno en r.
-    disk *= 0.72 + 0.28 * sin(r * diskFreq * 2.6 - t * rotSpeed * 0.4);
+    float bandFreqMul = 1.2 + uD6 * 4.0;
+    disk *= 0.72 + 0.28 * sin(r * diskFreq * bandFreqMul - t * rotSpeed * 0.4);
     // DOPPLER: el lado del disco que viene hacia la camara se ve mucho
     // mas brillante que el que se aleja. Es el detalle que hace que la
     // imagen se lea como un agujero negro y no como un anillo con
     // textura.
-    disk *= 0.55 + 0.75 * (0.5 + 0.5 * cos(bentAng - PI * 0.5));
+    float dopplerAmt = 0.3 + uD5 * 0.9;
+    disk *= (1.0 - dopplerAmt * 0.5) + dopplerAmt * (0.5 + 0.5 * cos(bentAng - PI * 0.5));
 
     float diskMask = smoothstep(horizonR, horizonR + 0.06, r) * smoothstep(0.9, 0.4, r);
     float h = audioHue(uHue + 0.05, uMid * 0.15);

@@ -37,6 +37,9 @@
 // @D3: frecuencia de la respiracion de brillo a lo largo de cada cortina
 //      (ondas grandes y lentas <-> muchas y rapidas)
 // @D4: dispersion de color entre cortinas (casi monocromo <-> arcoiris)
+// @D5: velocidad del degradado de hue vertical dentro de cada cortina
+// @D6: frecuencia de los filamentos verticales (pocos y anchos <-> muchos
+//      y finos)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -99,7 +102,8 @@ vec4 render(vec2 uv)
         // cortina por un ruido de alta frecuencia en X, asi los
         // filamentos siguen la forma de la cortina en vez de ser un
         // patron independiente encima.
-        float fil = fbm(vec2((p.x - bend) * 26.0, p.y * 1.2 + fi * 9.0), 2);
+        float filFreq = 12.0 + uD6 * 30.0;
+        float fil = fbm(vec2((p.x - bend) * filFreq, p.y * 1.2 + fi * 9.0), 2);
         curtain *= 0.55 + 0.75 * fil;
 
         // Respiracion suave de brillo a lo largo de la cortina -- sin
@@ -114,7 +118,8 @@ vec4 render(vec2 uv)
         // Ademas, degradado de hue vertical (arriba/abajo de la propia
         // cortina) que se desplaza con los Medios -- como una aurora
         // real que cambia de verde a rosa segun la altura.
-        float vertHue = (p.y * 0.15) + t * (0.02 + uMid * 0.12);
+        float vertHueSpeed = 0.005 + uD5 * 0.08;
+        float vertHue = (p.y * 0.15) + t * (vertHueSpeed + uMid * 0.12);
         float hueI = audioHue(fract(h0 + fi * (0.03 + uD4 * 0.20) + vertHue), uMid * 0.16);
         vec3 curtainCol = hsv2rgb(vec3(hueI, 0.62, 1.0));
         col += curtainCol * curtain;

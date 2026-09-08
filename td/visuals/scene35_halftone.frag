@@ -42,6 +42,9 @@
 // @D3: cuanto conserva el COLOR de la imagen (0 = tinta plana de Hue,
 //      1 = cada punto con el color original de esa zona)
 // @D4: forma del punto (redondo <-> cuadrado)
+// @D5: gamma del tamano de punto segun luminancia (lineal <-> contraste
+//      mas duro entre claros y oscuros)
+// @D6: ganancia de tinta general
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -92,7 +95,8 @@ vec4 render(vec2 uv)
     // un blanco puro da radio ~0.52, o sea puntos que ya se tocan --
     // exactamente el 100% de cobertura de una trama impresa.
     float grow = (0.52 + uD1 * 0.42) * (1.0 + uBass * 0.28 + uKick * 0.45);
-    float radius = sqrt(clamp(lum, 0.0, 1.0)) * grow;
+    float lumGamma = 1.0 - uD5 * 0.6;
+    float radius = sqrt(pow(clamp(lum, 0.0, 1.0), lumGamma)) * grow;
 
     // PIANO: cada tecla gira la trama de golpe a un angulo propio --
     // geometria real (la rejilla entera se reorienta) y vuelve sola.
@@ -121,7 +125,7 @@ vec4 render(vec2 uv)
     // D3: de tinta plana (un solo color, look serigrafia) a que cada
     // punto conserve el color original de esa zona de la imagen.
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 inkCol = mix(hsv2rgb(vec3(h, 0.80, 1.0)), src / max(lum, 0.08), uD3);
+    vec3 inkCol = mix(hsv2rgb(vec3(h, 0.80, 1.0)), src / max(lum, 0.08), uD3) * (0.7 + uD6 * 0.8);
     vec3 col = inkCol * ink;
 
     col = audioLift(col, uBass * 0.6);

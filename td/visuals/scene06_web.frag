@@ -43,6 +43,10 @@
 // @D3: cuanto zigzaguea cada segmento (quiebres suaves <-> muy quebrado
 //      y agresivo)
 // @D4: cuantas ramas se desprenden de cada rayo (0 a 2)
+// @D5: duty cycle del flicker -- que tan seguido esta prendido cada rayo
+//      (raro <-> casi siempre encendido)
+// @D6: tinte del nucleo -- de blanco-azulado frio a un color mas saturado
+//      hacia Hue
 // ===============================================================
 
 float segDist(vec2 p, vec2 a, vec2 b)
@@ -100,7 +104,7 @@ vec4 render(vec2 uv)
 
     vec3 col = vec3(0.0);
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 coreCol = hsv2rgb(vec3(fract(h + 0.55), 0.25, 1.0));  // blanco-azulado
+    vec3 coreCol = hsv2rgb(vec3(fract(h + mix(0.55, 0.0, uD6)), mix(0.25, 0.75, uD6), 1.0));
 
     for (int i = 0; i < 6; i++) {
         if (i >= n) break;
@@ -111,7 +115,8 @@ vec4 render(vec2 uv)
         // cambia a saltos discretos, no en fade suave.
         float step_t = floor(t * flickerRate + fi * 3.7);
         float flickerHash = hash21(seed + step_t * 1.7);
-        if (flickerHash < 0.4) continue;
+        float onChance = 0.15 + uD5 * 0.55;
+        if (flickerHash < 1.0 - onChance) continue;
 
         float baseX = (hash21(seed) - 0.5) * 2.8;
         // Chaos: cuanto se inclina el rayo de arriba a abajo.

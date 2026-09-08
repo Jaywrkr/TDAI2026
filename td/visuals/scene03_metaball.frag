@@ -38,6 +38,8 @@
 //      se funde por todos lados
 // @D4: tamano de las gotas (gotitas finas <-> masas grandes que dominan
 //      la pantalla)
+// @D5: brillo del halo interior incluso sin kick
+// @D6: brillo del rim light especular incluso sin kick
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -140,14 +142,14 @@ vec4 render(vec2 uv)
     // ('contorno fino sobre negro absoluto -- nada de relleno'). El
     // problema de 'gota chiquita en un cuadro vacio' se arregla con la
     // CANTIDAD de gotas (n), no agrandandolas.
-    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * 0.09;
+    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * (0.03 + uD5 * 0.22);
 
     // Rim light: una banda angosta justo por dentro del contorno, tipo
     // gota de mercurio -- se enciende fuerte en el kick, como si la luz
     // rebotara en la superficie con el golpe.
     float rim = smoothstep(threshold - 0.4, threshold, field)
              * smoothstep(threshold + 2.2, threshold + 0.6, field);
-    col += vec3(1.0) * rim * (0.12 + uKick * 0.9);
+    col += vec3(1.0) * rim * (0.12 + uD6 * 0.5 + uKick * 0.9);
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

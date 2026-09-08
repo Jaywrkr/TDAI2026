@@ -32,6 +32,8 @@
 // @D3: cuantos "petalos" tiene la distorsion angular (circulos casi
 //      perfectos <-> flor con muchos petalos)
 // @D4: prominencia del nucleo central brillante
+// @D5: velocidad de rotacion de los petalos
+// @D6: alcance del lens flare fantasma
 //
 // SIMPLIFICADA: menos anillos por defecto (mas grandes y separados),
 // mas gruesos, y con menos fleco cromatico en reposo -- se veia
@@ -48,7 +50,8 @@ vec4 render(vec2 uv)
     // como una flor.
     float ang = atan(p.y, p.x);
     float petals = 2.0 + uD3 * 10.0;
-    float radDist = 1.0 + sin(ang * petals + t * 0.3) * uChaos * 0.15;
+    float petalSpin = 0.05 + uD5 * 0.9;
+    float radDist = 1.0 + sin(ang * petals + t * petalSpin) * uChaos * 0.15;
     float r = length(p) * radDist;
 
     // uHigh: vibracion micro del radio -- unica excepcion del contrato,
@@ -118,7 +121,8 @@ vec4 render(vec2 uv)
     // Lens flare: un par de anillos fantasma chicos, desplazados del
     // centro sobre el eje opuesto al angulo actual -- destellan fuerte
     // en el kick, como el reflejo de una lente real.
-    vec2 flarePos = -p * 0.4;
+    float flareReach = 0.2 + uD6 * 0.6;
+    vec2 flarePos = -p * flareReach;
     float dFlare1 = length(p - flarePos);
     float dFlare2 = length(p - flarePos * 1.8);
     float flare = (exp(-dFlare1 * dFlare1 / 0.004) + exp(-dFlare2 * dFlare2 / 0.008) * 0.6)

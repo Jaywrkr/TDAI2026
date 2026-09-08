@@ -37,6 +37,8 @@
 // @D3: intensidad de la turbulencia del campo de ruido
 // @D4: dispersion del campo (agrupado al centro <-> repartido por toda
 //      la pantalla)
+// @D5: velocidad de deriva del punto de partida de cada streak
+// @D6: velocidad base del corrimiento de tono a lo largo del streak
 // ===============================================================
 
 float flowAngle(vec2 pos, float t, float turbAmt)
@@ -83,8 +85,9 @@ vec4 render(vec2 uv)
         // Punto de partida del streak, repartido por el campo (D4) y
         // desplazandose lento (para que no quede siempre clavado igual).
         vec2 pos = spread * (hash22(seed) * 2.0 - 1.0);
-        pos += 0.06 * vec2(sin(t * 0.05 + hash21(seed) * 6.0),
-                          cos(t * 0.04 + hash21(seed + 1.0) * 6.0));
+        float driftSpeed = 0.15 + uD5 * 1.1;
+        pos += 0.06 * vec2(sin(t * 0.05 * driftSpeed + hash21(seed) * 6.0),
+                          cos(t * 0.04 * driftSpeed + hash21(seed + 1.0) * 6.0));
 
         for (int k = 0; k < 10; k++) {
             if (k >= steps) break;
@@ -98,7 +101,7 @@ vec4 render(vec2 uv)
             // El tono se corre a lo largo del streak -- velocidad segun
             // Mid, look mas energetico.
             vec3 streakCol = hsv2rgb(vec3(fract(h + hash21(seed + 4.0) * 0.12
-                                              + fk * (0.02 + uMid * 0.05)), 0.7, 1.0));
+                                              + fk * (0.005 + uD6 * 0.06 + uMid * 0.05)), 0.7, 1.0));
             col += streakCol * dot;
 
             // Avanza un paso mas siguiendo el campo de flujo -- ESTO es

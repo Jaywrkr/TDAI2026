@@ -27,6 +27,8 @@
 // @D2: no usado directo (reservado)
 // @D3: no usado directo (reservado)
 // @D4: apertura base del abanico (ademas de la que agrega Mid)
+// @D5: ancho del haz incidente
+// @D6: densidad/oscuridad del vidrio del prisma
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -57,7 +59,8 @@ vec4 render(vec2 uv)
     float pTri = max(e0, max(e1, e2));
     float inPrism = smoothstep(0.012, -0.012, pTri);
 
-    float beam = smoothstep(0.045, 0.0, abs(p.y)) * step(p.x, prismCenter.x - 0.08);
+    float beamW = 0.02 + uD5 * 0.08;
+    float beam = smoothstep(beamW, 0.0, abs(p.y)) * step(p.x, prismCenter.x - 0.08);
     vec3 beamCol = vec3(1.0);
     // PIANO: el haz incidente cambia de color un instante antes de
     // entrar al prisma, con cada tecla -- uKeypos elige el tinte,
@@ -77,8 +80,9 @@ vec4 render(vec2 uv)
     //   3. un reflejo especular corrido del centro.
     float edgeGlow = smoothstep(0.05, 0.0, abs(pTri));      // canto
     float depth = smoothstep(0.35, -0.35, pp.y);            // grosor
-    vec3 glassCol = mix(vec3(0.16, 0.21, 0.28),
-                        vec3(0.34, 0.42, 0.52), depth);
+    vec3 glassDark = mix(vec3(0.16, 0.21, 0.28), vec3(0.04, 0.05, 0.07), uD6);
+    vec3 glassLight = mix(vec3(0.34, 0.42, 0.52), vec3(0.14, 0.17, 0.22), uD6);
+    vec3 glassCol = mix(glassDark, glassLight, depth);
     float spec = smoothstep(0.16, 0.0, length(pp - vec2(-0.02, 0.12)));
     glassCol += vec3(0.55, 0.62, 0.70) * spec * 0.35;
     glassCol += vec3(0.75, 0.85, 1.0) * edgeGlow * 0.55;

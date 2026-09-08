@@ -28,6 +28,8 @@
 // @D2: cuantas estrellas se dejan ver (rejilla dispersa <-> casi todas)
 // @D3: separacion de color entre las zonas calidas y frias de la nube
 // @D4: tamano/prominencia de las estrellas
+// @D5: velocidad de deriva/warp de la nube
+// @D6: velocidad de titileo de las estrellas
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -35,7 +37,8 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    vec2 warp = vec2(fbm(p * 0.8 + t * 0.02, 4), fbm(p * 0.8 - t * 0.015 + 9.0, 4)) - 0.5;
+    float warpSpeed = 0.3 + uD5 * 2.0;
+    vec2 warp = vec2(fbm(p * 0.8 + t * 0.02 * warpSpeed, 4), fbm(p * 0.8 - t * 0.015 * warpSpeed + 9.0, 4)) - 0.5;
     // Mid retuerce la silueta de verdad -- pedido de "geometria real",
     // no solo un brillo modulado.
     vec2 pw = p + warp * (0.25 + uChaos * 0.35 + uMid * 0.55);
@@ -70,7 +73,8 @@ vec4 render(vec2 uv)
     float isStar = step(onThresh, starHash);
     float starSize = 0.10 + uD4 * 0.18;
     float starD = length(sf);
-    float twinkle = 0.5 + 0.5 * sin(t * (0.4 + hash21(sid + 6.0) * 1.6) + hash21(sid + 11.0) * TAU);
+    float starTwinkleRate = 0.15 + uD6 * 1.2;
+    float twinkle = 0.5 + 0.5 * sin(t * (starTwinkleRate + hash21(sid + 6.0) * 1.6) + hash21(sid + 11.0) * TAU);
     // Tamano variable por estrella: un campo estelar real tiene unas
     // pocas brillantes y muchas apenas visibles. Todas iguales se leen
     // como ruido de sal y pimienta, que es como se veia.

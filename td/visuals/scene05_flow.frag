@@ -33,6 +33,9 @@
 // @D3: variacion de color entre lineas (todas iguales <-> cada una un
 //      tono bien distinto)
 // @D4: resplandor (glow) alrededor de las lineas, ademas del trazo nitido
+// @D5: velocidad base de la chispa que viaja por cada corriente
+// @D6: fuerza de la perspectiva de profundidad (todas iguales <-> las de
+//      atras notablemente mas finas y tenues)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -100,7 +103,7 @@ vec4 render(vec2 uv)
         // como un dibujo -- era el problema principal de esta escena.
         float wJit = 0.6 + hash21(vec2(fi, 7.3)) * 0.9;
         float back = fi / max(count - 1.0, 1.0);
-        float depth = 1.0 - back * 0.42;
+        float depth = 1.0 - back * (0.15 + uD6 * 0.65);
         float line = edgeLine(sdfN, lineW * wJit * depth) * depth;
         // D4: resplandor ancho ademas del trazo nitido -- en 0 no hay
         // nada extra, en 1 cada linea tiene un halo notable.
@@ -114,7 +117,8 @@ vec4 render(vec2 uv)
         // fases coincidian en la misma columna x, se veia como una
         // barra blanca solida vertical). Intensidad tambien bajada
         // (1.6 -> 0.9) por el mismo motivo.
-        float sparkPhase = fract(p.x * 0.35 - t * (0.3 + uSpeed * 0.9 + uKick * 3.0) + fi * 1.3);
+        float sparkSpeed = 0.05 + uD5 * 0.9;
+        float sparkPhase = fract(p.x * 0.35 - t * (sparkSpeed + uSpeed * 0.9 + uKick * 3.0) + fi * 1.3);
         float spark = smoothstep(0.05, 0.0, abs(sparkPhase - 0.5))
                     * smoothstep(lineW * 1.3, 0.0, abs(sdfN));
 

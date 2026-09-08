@@ -58,6 +58,9 @@
 // @D3: cuanto se desplazan los bloques de tearing
 // @D4: mezcla de tinte de Hue sobre la imagen (colores originales <->
 //      completamente teñida)
+// @D5: cantidad de grano de pelicula, incluso sin kick
+// @D6: dropout de bloques -- fragmentos de imagen que se pierden, como
+//      un frame corrupto (nunca <-> se pierden bloques seguido)
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -98,6 +101,12 @@ vec4 render(vec2 uv)
     media.g = mediaTex(uvTear).g;
     media.b = mediaTex(uvTear - vec2(aberr, 0.0)).b;
 
+    // D6: bloques que se pierden (dropout de senal), como un frame
+    // corrupto -- en 0 nunca pasa, en 1 se pierden bloques seguido.
+    float dropoutHash = hash21(vec2(bandId, stepT) + 77.0);
+    float dropout = step(1.0 - uD6 * 0.35, dropoutHash);
+    media *= 1.0 - dropout;
+
     // D4 + Hue/Mid: tinte mezclado sobre la imagen original.
     float h = audioHue(uHue, uMid * 0.16);
     vec3 tint = hsv2rgb(vec3(h, 0.8, 1.0));
@@ -129,7 +138,7 @@ vec4 render(vec2 uv)
 
     // Grano de pelicula + vinieta -- ambos se intensifican en el kick,
     // como una señal rota que "tose" con el golpe.
-    float grain = (hash21(uv * uResW + fract(uRTime) * 23.0) - 0.5) * (0.02 + uKick * 0.06);
+    float grain = (hash21(uv * uResW + fract(uRTime) * 23.0) - 0.5) * (0.01 + uD5 * 0.10 + uKick * 0.06);
     col += grain;
     col *= vignette(uv, 0.15 + uKick * 0.25);
 

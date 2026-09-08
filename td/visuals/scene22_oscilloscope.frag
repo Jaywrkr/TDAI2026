@@ -30,6 +30,9 @@
 // @D3: mezcla entre el verde fosforo clasico y el tinte de Hue
 // @D4: cuantos lobulos extra se suman a fa/fb (figura mas simple <->
 //      mucho mas intrincada)
+// @D5: respiracion de la amplitud (fija <-> late lento entre chica y
+//      grande)
+// @D6: glow extra en el centro de la figura
 // ===============================================================
 
 // Distancia de un punto al SEGMENTO a-b (formula estandar). Sin esto la
@@ -58,7 +61,8 @@ vec4 render(vec2 uv)
     fa += floor(uKeypos * 6.0) * uKeypulse;
     fb += floor(fract(uKeypos * 3.3) * 6.0) * uKeypulse * (0.5 + uKeyvel * 0.8);
     float phase = t * (0.15 + uSpeed * 0.4) + uHigh * 1.5;
-    float amp = 0.45 + uChaos * 0.4;
+    float breathe = 1.0 + sin(t * 0.5) * uD5 * 0.25;
+    float amp = (0.45 + uChaos * 0.4) * breathe;
 
     // TRAZA CONTINUA. Antes esto medía la distancia a cada PUNTO
     // muestreado (length(p - c)) y la figura salia como un collar de
@@ -89,6 +93,7 @@ vec4 render(vec2 uv)
     vec3 baseCol = mix(phosphor, tint, uD3);
 
     vec3 col = baseCol * (core * 1.6 + glow * 0.7);
+    col += baseCol * exp(-dot(p, p) * 30.0) * uD6 * 1.2;
     col += col * uKick * 0.6;
 
     col = audioLift(col, uBass * 0.5);

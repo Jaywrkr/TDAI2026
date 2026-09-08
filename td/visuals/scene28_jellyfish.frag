@@ -28,6 +28,8 @@
 // @D2: cuantos tentaculos cuelgan de cada medusa
 // @D3: amplitud de la ondulacion de los tentaculos
 // @D4: largo de los tentaculos
+// @D5: profundidad de la pulsacion natural de la campana
+// @D6: brillo del rim (borde luminoso) de la campana
 // ===============================================================
 
 // Densidad de la campana. NO es una silueta rellena: una medusa es
@@ -65,7 +67,8 @@ vec4 render(vec2 uv)
         vec2 basePos = vec2((hash21(seed) - 0.5) * 1.3, (hash21(seed + 1.0) - 0.3) * 0.5);
         basePos += 0.08 * vec2(sin(t * 0.08 + fi * 2.0), cos(t * 0.06 + fi * 1.7));
 
-        float pulse = 0.16 + 0.05 * sin(t * (0.7 + uSpeed * 1.2) + fi * 2.0) + uBass * 0.07;
+        float pulseDepth = 0.02 + uD5 * 0.08;
+        float pulse = 0.16 + pulseDepth * sin(t * (0.7 + uSpeed * 1.2) + fi * 2.0) + uBass * 0.07;
 
         // PIANO: propulsion sincronizada -- TODAS las medusas contraen
         // la campana juntas con cada tecla (geometria real, no solo
@@ -79,7 +82,7 @@ vec4 render(vec2 uv)
         col += jellyCol * bell;
 
         float rim = abs(bellShape(pl, pulse + 0.015) - bellShape(pl, pulse));
-        col += vec3(0.85, 0.95, 1.0) * rim * 6.0;
+        col += vec3(0.85, 0.95, 1.0) * rim * (2.0 + uD6 * 8.0);
 
         // Tentaculos: lineas onduladas colgando del borde de la campana.
         int nTent = 3 + int(floor(uD2 * 6.0));

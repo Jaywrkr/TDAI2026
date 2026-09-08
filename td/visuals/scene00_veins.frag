@@ -52,6 +52,9 @@
 // @D3: alcance de los capilares -- cuanto se alejan del tronco antes de
 //      desvanecerse (cortos y pegados <-> largos, se extienden lejos)
 // @D4: separacion entre troncos -- pocos y muy separados <-> tupido y junto
+// @D5: frecuencia de los pulsos de flujo -- pocos y espaciados <-> muchos,
+//      como un pulso cardiaco acelerado
+// @D6: intensidad de la atmosfera de fondo alrededor de la red
 // ===============================================================
 
 // Baja estas octavas si te faltan fps en una GPU modesta (ver docs/05).
@@ -174,8 +177,11 @@ vec4 render(vec2 uv)
 
     // ---------------- FLUJO ----------------
     // Bandas que viajan a lo largo de la red, como sangre.
+    // D5: cuantos pulsos entran en la red -- pocos y espaciados <->
+    // muchos y seguidos.
+    float flowFreq = 2.0 + uD5 * 6.0;
     float phase = fbm(wa * 0.90, 2);
-    float flow  = fract(phase * 3.5 - t * 0.30 - uBeat * 0.20);
+    float flow  = fract(phase * flowFreq - t * 0.30 - uBeat * 0.20);
     float pulse = smoothstep(0.00, 0.30, flow) * smoothstep(0.90, 0.55, flow);
 
     // Chispa: un pulso angosto y brillante que recorre la MISMA fase que
@@ -183,7 +189,7 @@ vec4 render(vec2 uv)
     // viajando por la vena, no la banda ancha de fondo. Su velocidad
     // sube con Beat, asi el "latido" se siente en el movimiento, no
     // solo en el brillo.
-    float sparkPhase = fract(phase * 3.5 - t * (0.55 + uBeat * 1.2));
+    float sparkPhase = fract(phase * flowFreq - t * (0.55 + uBeat * 1.2));
     float spark = smoothstep(0.06, 0.0, abs(sparkPhase - 0.5)) * veins;
 
     float core = veins * (0.35 + 1.20 * pulse + 1.00 * uKick) + spark * 1.8;
@@ -195,7 +201,9 @@ vec4 render(vec2 uv)
 
     // ---------------- COLOR ----------------
     float h = audioHue(uHue, uMid * 0.15);
-    vec3 cDeep = hsv2rgb(vec3(fract(h + 0.60), 0.85, 1.0)) * 0.10;  // atmosfera
+    // D6: cuanta atmosfera de fondo envuelve la red -- casi negro puro
+    // <-> una bruma de color notoria.
+    vec3 cDeep = hsv2rgb(vec3(fract(h + 0.60), 0.85, 1.0)) * (0.04 + uD6 * 0.22);  // atmosfera
     vec3 cBody = hsv2rgb(vec3(fract(h + 0.98), 0.95, 1.0));         // vaso
     vec3 cCore = hsv2rgb(vec3(fract(h + 0.06), 0.40, 1.0));         // nucleo caliente
 
