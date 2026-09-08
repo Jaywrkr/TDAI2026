@@ -32,8 +32,9 @@
 //
 // @D1: grosor de las lineas
 // @D2: frecuencia de la ondulacion (cuantas curvas por linea)
-// @D3: variacion de color entre lineas (todas iguales <-> cada una un
-//      tono bien distinto)
+// @D3: separacion entre los 2 colores que alternan linea por medio (en
+//      0 todas comparten un color <-> en 1 alternan dos tonos bien
+//      distintos, nunca mas de 2 colores en pantalla)
 // @D4: resplandor (glow) alrededor de las lineas, ademas del trazo nitido
 // @D5: tamano base del punto de cresta (peak)
 // @D6: brillo del punto de cresta
@@ -110,10 +111,12 @@ vec4 render(vec2 uv)
         float sdfG = length(vec2(dFdx(sdf), dFdy(sdf)));
         float sdfN = sdf / max(sdfG, 1e-4);
 
-        // D3: variacion de color por linea -- baseline de 0.05 (no 0.0)
-        // para que por defecto ya haya mas de un color en pantalla, no
-        // todas las lineas identicas hasta que se suba la perilla.
-        vec3 lineCol = hsv2rgb(vec3(fract(h + float(i) * (0.05 + uD3 * 0.09)), 0.75, 1.0));
+        // D3: SOLO 2 colores -- lineas pares se quedan en 'h', impares
+        // se alejan hacia 'h + separacion'. En 0 (default) las dos
+        // coinciden: UN solo color en pantalla, no el degradado
+        // continuo de antes (que ya daba varios tonos incluso en D3=0).
+        float lineParity = mod(float(i), 2.0);
+        vec3 lineCol = hsv2rgb(vec3(fract(h + lineParity * 0.5 * uD3), 0.75, 1.0));
         // JERARQUIA + PROFUNDIDAD por linea: un hash le da a cada una
         // su propio grosor y las de mas atras van mas finas y tenues.
         // Con todas identicas la escena se leia como un diagrama, no

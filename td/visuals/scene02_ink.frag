@@ -48,7 +48,8 @@
 vec4 render(vec2 uv)
 {
     float t = uTime;
-    vec2  p = centered(uv);
+    vec2  pOrig = centered(uv);
+    vec2  p = pOrig;
     p += vec2(t * (0.008 + uSpeed * 0.05), t * (0.006 + uSpeed * 0.035));
 
     // Primer warp. Bass agrega un poco de movimiento ademas del brillo de
@@ -75,9 +76,17 @@ vec4 render(vec2 uv)
     // silueta: hay tinta en el centro y agua limpia alrededor.
     // D6: tamano de la gota de tinta -- de una mancha contenida a un
     // cuerpo que casi llena la pantalla.
+    // BUG REAL (encontrado con el rig corriendo unos minutos): esto usaba
+    // 'p' -- que para este punto YA lleva la deriva de tiempo sumada mas
+    // arriba -- para centrar la silueta. La deriva NUNCA para (uTime
+    // integra sin limite en toda la sesion), asi que a los pocos minutos
+    // el centro de la mascara ya estaba bien afuera de pantalla: la gota
+    // entera se corria hacia abajo-izquierda hasta desaparecer. La
+    // silueta tiene que quedar ANCLADA a la pantalla -- usa 'pOrig' (el
+    // centered(uv) de ANTES de la deriva), no 'p'.
     float bodySize = 0.30 + uD6 * 0.55;
     float shapeMask = 1.0 - smoothstep(bodySize, bodySize + 0.80,
-                      length(p * vec2(0.85, 1.0))
+                      length(pOrig * vec2(0.85, 1.0))
                       + (fbm(p * 0.9 + 31.0, 3) - 0.5) * 0.55);
     ink = mix(0.30, ink, shapeMask);
 
@@ -117,7 +126,10 @@ vec4 render(vec2 uv)
     // brillaba en TODO ese ancho de transicion (una franja gruesa), y
     // con el kick se veia como un parche entero lavado a blanco/crema
     // en vez de un reflejo angosto sobre el borde.
-    float lightMask = smoothstep(-0.4, 0.7, p.x * 0.6 + p.y * 0.4);
+    // Misma correccion: una direccion de luz fija tiene que quedar
+    // anclada a la pantalla, no a la coordenada que ya derivo con el
+    // tiempo -- por eso pOrig, no p.
+    float lightMask = smoothstep(-0.4, 0.7, pOrig.x * 0.6 + pOrig.y * 0.4);
     // D5: brillo del highlight incluso sin kick -- en 0 solo aparece con
     // el golpe, en 1 la tinta ya tiene un reflejo visible en reposo.
     float rim = pow(1.0 - abs(shape * 2.0 - 1.0), 3.0) * (uD5 * 0.6 + uKick) * lightMask;

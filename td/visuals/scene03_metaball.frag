@@ -127,7 +127,9 @@ vec4 render(vec2 uv)
     }
 
     float threshold = 2.5 + uD2 * 9.0;
-    float contourW = 0.8 + uD1 * 3.0;
+    // Piso subido (0.8 -> 1.6): "que se note" -- el contorno por defecto
+    // se leia demasiado fino/apagado, sobre todo lejos de la camara.
+    float contourW = 1.6 + uD1 * 3.2;
     float edge = edgeLine(field - threshold, contourW);
 
     float h = audioHue(uHue, uMid * 0.16);
@@ -142,14 +144,18 @@ vec4 render(vec2 uv)
     // ('contorno fino sobre negro absoluto -- nada de relleno'). El
     // problema de 'gota chiquita en un cuadro vacio' se arregla con la
     // CANTIDAD de gotas (n), no agrandandolas.
-    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * (0.03 + uD5 * 0.22);
+    // Piso subido (0.03 -> 0.10): "que se note" -- el halo interior era
+    // casi invisible por defecto.
+    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * (0.10 + uD5 * 0.35);
 
     // Rim light: una banda angosta justo por dentro del contorno, tipo
     // gota de mercurio -- se enciende fuerte en el kick, como si la luz
     // rebotara en la superficie con el golpe.
     float rim = smoothstep(threshold - 0.4, threshold, field)
              * smoothstep(threshold + 2.2, threshold + 0.6, field);
-    col += vec3(1.0) * rim * (0.12 + uD6 * 0.5 + uKick * 0.9);
+    // Piso subido (0.12 -> 0.22): "que se note" -- el rim casi no se
+    // veia sin kick.
+    col += vec3(1.0) * rim * (0.22 + uD6 * 0.7 + uKick * 0.9);
 
     // Kick: flash breve.
     col += col * uKick * 0.5;
