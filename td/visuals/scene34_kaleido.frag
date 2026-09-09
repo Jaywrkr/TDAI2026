@@ -133,9 +133,10 @@ vec4 render(vec2 uv)
          * exp(-r * r * 22.0) * (0.45 + uD3 * 0.9);
 
     // Bajos: brillo de lo ya claro. Nunca geometria (el giro de arriba
-    // es la excepcion documentada). Multiplicador subido (0.5 -> 1.1):
-    // pedido explicito de mas reaccion al bajo para el bloom/brillo.
-    col = audioLift(col, uBass * 1.1);
+    // es la excepcion documentada). Multiplicador subido de nuevo
+    // (0.5 -> 1.1 -> 2.4): la primera subida seguia sin notarse -- pedido
+    // explicito de mas reaccion al bajo para el bloom/brillo.
+    col = audioLift(col, uBass * 2.4);
     col += col * uKick * 0.3;
 
     col *= vignette(uv, 0.35);
