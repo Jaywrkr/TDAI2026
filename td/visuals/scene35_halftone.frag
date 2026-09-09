@@ -94,7 +94,7 @@ vec4 render(vec2 uv)
     // veces mas oscura que scene19 con la misma imagen (medido). En 0.52
     // un blanco puro da radio ~0.52, o sea puntos que ya se tocan --
     // exactamente el 100% de cobertura de una trama impresa.
-    float grow = (0.52 + uD1 * 0.42) * (1.0 + uBass * 0.28 + uKick * 0.45);
+    float grow = (0.52 + uD1 * 0.42) * (1.0 + uBass * 0.45 + uKick * 0.45);
     float lumGamma = 1.0 - uD5 * 0.6;
     float radius = sqrt(pow(clamp(lum, 0.0, 1.0), lumGamma)) * grow;
 
@@ -128,7 +128,9 @@ vec4 render(vec2 uv)
     vec3 inkCol = mix(hsv2rgb(vec3(h, 0.80, 1.0)), src / max(lum, 0.08), uD3) * (0.7 + uD6 * 0.8);
     vec3 col = inkCol * ink;
 
-    col = audioLift(col, uBass * 0.6);
+    // Multiplicador subido (0.6 -> 1.1): pedido explicito de mas
+    // reaccion al bajo para el bloom/brillo en las escenas de imagen.
+    col = audioLift(col, uBass * 1.1);
     col += col * uKick * 0.35;
 
     col *= vignette(uv, 0.25);

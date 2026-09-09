@@ -123,7 +123,15 @@ vec4 render(vec2 uv)
     // Verde tipo Matrix por defecto: offset fijo sobre Hue, para que el
     // knob siga sirviendo para variar la paleta sin perder la identidad.
     float h = fract(uHue + 0.33 + uMid * 0.10);
-    vec3 streamCol = hsv2rgb(vec3(h, 0.85, 1.0));
+    // Saturacion mezclada con noise por columna -- "haz una mascara con
+    // noise para que no aparezca todo el color" (mismo pedido y misma
+    // tecnica que scene08): sin esto, con Hue en cualquier posicion,
+    // TODA columna visible sale igual de verde/saturada. Un fbm lento
+    // por columna deja algunas leer casi blancas/grises (terminal viejo,
+    // fosforo gastado) y otras con el verde completo.
+    float satNoise = fbm(vec2(colId * 0.10, t * 0.03) + 70.0, 2);
+    float sat = mix(0.10, 0.70, smoothstep(0.35, 0.75, satNoise));
+    vec3 streamCol = hsv2rgb(vec3(h, sat, 1.0));
 
     // "Empuje" hacia adelante en el kick: la cola se apaga un poco mas
     // (simula que se desenfoca hacia atras) mientras la cabeza se

@@ -140,8 +140,12 @@ vec4 render(vec2 uv)
     // completo -- mismo campo de "zonas" que ya arma composicion en
     // colMask, reusado para que la desaturacion tambien venga en bloques,
     // no en ruido de sal y pimienta.
-    float satNoise = fbm(vec2(colId * 0.12, t * 0.03) + 50.0, 2);
-    float sat = mix(0.12, 0.85, smoothstep(0.30, 0.65, satNoise));
+    // Reforzado otra vez: seguia leyendose "todo de un color". Bloques
+    // mas anchos (0.12 -> 0.08 de escala), techo de saturacion mas bajo
+    // (0.85 -> 0.55) y el umbral corrido para que la MAYORIA del campo
+    // (que centra en ~0.5) caiga del lado desaturado, no la mitad.
+    float satNoise = fbm(vec2(colId * 0.08, t * 0.03) + 50.0, 2);
+    float sat = mix(0.05, 0.55, smoothstep(0.40, 0.80, satNoise));
     // Los acentos SI quedan bien saturados siempre -- son el "esto se
     // salió de la norma" que Density/D4 ya controlan a proposito.
     sat = mix(sat, 0.85, max(isAccent1, isAccent2));

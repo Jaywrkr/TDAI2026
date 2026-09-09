@@ -36,6 +36,14 @@
 // @D5: cada cuantas curvas hay una "maestra" mas gruesa (seguido <->
 //      rara vez)
 // @D6: intensidad de la oclusion ambiental en zonas escarpadas
+//
+// LEVANTAMIENTOS: ademas de la respiracion pareja de todo el campo
+// (hBreath de mas abajo), un SEGUNDO campo de ruido (mucho mas grande y
+// lento, independiente del terreno) decide en que zonas -- no en todas
+// por igual -- el terreno se levanta de verdad con los graves, como si
+// placas tectonicas puntuales empujaran desde abajo con cada golpe de
+// bajo. Pedido explicito: "que existan levantamientos de ciertas partes
+// con los bajos", no toda la pantalla respirando igual.
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -66,6 +74,16 @@ vec4 render(vec2 uv)
     // entero, asi el espaciado entre curvas se comprime/expande con la
     // musica (uBass ya suavizado, Fase 2), en vez de quedar fijo.
     float hBreath = h * (1.0 + uBass * 0.15);
+
+    // LEVANTAMIENTOS LOCALIZADOS: un campo de ruido aparte, mucho mas
+    // grande y lento que el terreno (independiente de 'warpP', para que
+    // las zonas que se levantan no queden pegadas a los propios picos
+    // del terreno) decide QUE partes de la pantalla son "puntos calientes"
+    // -- solo esas suben de verdad con el bajo, el resto del terreno
+    // sigue respirando parejo como antes. uBass ya suavizado (Fase 2).
+    float upliftField = fbm(p * 0.35 + 71.0, 3);
+    float upliftMask = smoothstep(0.55, 0.85, upliftField);
+    hBreath += upliftMask * uBass * 0.55;
 
     // PIANO: un pico nuevo se levanta al instante en el punto que elige
     // uKeypos -- se suma directo al campo de altura (antes de las

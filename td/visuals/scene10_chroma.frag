@@ -50,27 +50,30 @@ vec4 render(vec2 uv)
     // como una flor.
     float ang = atan(p.y, p.x);
     float petals = 2.0 + uD3 * 10.0;
+    // Coeficientes bajados en todo este bloque (petalos, noise, wobbles
+    // de audio): "hazla menos temblorosa y menos psicodelica" -- Chaos
+    // sigue pudiendo traer de vuelta la complejidad si se sube, pero el
+    // reposo (Chaos ~0.3, la posicion tipica del knob) queda mucho mas
+    // calmo que antes.
     float petalSpin = 0.05 + uD5 * 0.9;
-    float radDist = 1.0 + sin(ang * petals + t * petalSpin) * uChaos * 0.15;
+    float radDist = 1.0 + sin(ang * petals + t * petalSpin) * uChaos * 0.08;
     float r = length(p) * radDist;
 
     // uHigh: vibracion micro del radio -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado desde el core.
-    r += uHigh * 0.01 * sin(t * 15.0 + ang * 8.0);
+    r += uHigh * 0.006 * sin(t * 15.0 + ang * 8.0);
     // Bass: un poco de movimiento del radio ademas del brillo de mas
     // abajo -- seguro porque uBass ya llega suavizado (Fase 2).
-    r += uBass * 0.02 * sin(t * 1.8 + ang * 3.0);
-    // El radio TAMBIEN respira de verdad con los bajos -- pedido
-    // explicito del usuario (perimetro bailando, igual que las
-    // metaballs): escala 'r' entero, asi los anillos se expanden y
-    // contraen de forma notoria, no solo un temblor sutil.
-    r *= 1.0 + uBass * 0.10;
+    r += uBass * 0.012 * sin(t * 1.8 + ang * 3.0);
+    // El radio respira con los bajos, pero mas contenido que antes.
+    r *= 1.0 + uBass * 0.06;
 
     // Estilo noise: los anillos dejan de ser curvas matematicamente
     // perfectas -- un fbm de baja frecuencia los deforma un poco, como
-    // ondas de agua reales en vez de circulos de compas. Pedido explicito
-    // de "mas estilo noise".
-    float noiseWarp = (fbm(p * 2.6 + t * 0.08, 3) - 0.5) * (0.06 + uChaos * 0.18);
+    // ondas de agua reales en vez de circulos de compas. Amplitud
+    // bajada (0.06+Chaos*0.18 -> 0.02+Chaos*0.08): antes era la mayor
+    // fuente de "temblor" constante, notoria incluso con Chaos bajo.
+    float noiseWarp = (fbm(p * 2.6 + t * 0.08, 3) - 0.5) * (0.02 + uChaos * 0.08);
     r += noiseWarp;
 
     // Simplificada de nuevo a pedido del usuario: aun menos anillos por
