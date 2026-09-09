@@ -50,7 +50,8 @@ vec4 render(vec2 uv)
     // la INTERFERENCIA -- que es el punto de la escena -- casi no
     // aparecia.
     int   nSources = 3 + int(floor(uDensity * 2.99));
-    float width = 0.025 + uD1 * 0.11;
+    // Piso bajado (0.025 -> 0.014): "las bolas por defecto mas chicas".
+    float width = 0.014 + uD1 * 0.11;
     float h = audioHue(uHue, uMid * 0.16);
     vec3  waveCol = hsv2rgb(vec3(h, 0.75, 1.0));
 

@@ -105,11 +105,12 @@ vec2 boltDist(vec2 p, vec2 seed, float topY, float botY, int segs,
 }
 
 // Mas grueso cerca del origen (topY, la "nube"), se afina hacia la punta.
-// Piso subido (0.28 -> 0.55): "mas gruesos siempre" -- incluso la punta
-// mas fina se queda notoriamente mas gruesa que antes.
+// Piso subido otra vez (0.55 -> 0.72): seguia leyendose fino por
+// defecto -- ahora incluso la punta mas afinada queda notoriamente
+// gruesa.
 float boltTaper(float frac)
 {
-    return mix(1.4, 0.55, clamp(frac, 0.0, 1.0));
+    return mix(1.5, 0.72, clamp(frac, 0.0, 1.0));
 }
 
 // Nucleo fino + halo medio + atmosfera ancha, a partir de la MISMA
@@ -138,10 +139,9 @@ vec4 render(vec2 uv)
     int   n = 2 + int(floor(uDensity * 5.99));
     // El grosor del rayo respira con los bajos -- uBass ya suavizado
     // (Fase 2), mismo patron que el perimetro de las metaballs.
-    // Piso subido (0.62 -> 1.5): "mas gruesos los rayos siempre" -- el
-    // nucleo minimo (D1=0) ya se lee como un canal de plasma real, no
-    // como un hilo.
-    float lineW = (1.5 + uD1 * 2.2) * (1.0 + uBass * 0.3);
+    // Piso subido otra vez (1.5 -> 2.3): "por default ya deben estar mas
+    // gruesos" -- seguia leyendose fino.
+    float lineW = (2.3 + uD1 * 2.2) * (1.0 + uBass * 0.3);
     float glowAmt = 0.30 + uD2 * 0.9;
     // Piso subido (0.025 -> 0.09): un rayo real NUNCA se ve casi recto.
     // D3 en 0 sigue bien quebrado; D3 en 1 llega a agresivo/catico.

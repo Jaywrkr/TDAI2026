@@ -42,7 +42,8 @@
 // @D3: visibilidad de la niebla de fondo (casi nada <-> bruma densa)
 // @D4: prominencia del nucleo saturado (tinta plana <-> con mucho volumen)
 // @D5: brillo del highlight especular incluso sin kick
-// @D6: tamano de la silueta de la gota (contenida <-> llena la pantalla)
+// @D6: tamano de la silueta de la gota -- ya cubre la pantalla entera
+//      por defecto, D6 empuja el sobrante mas alla de las esquinas
 // ===============================================================
 
 vec4 render(vec2 uv)
@@ -84,8 +85,14 @@ vec4 render(vec2 uv)
     // entera se corria hacia abajo-izquierda hasta desaparecer. La
     // silueta tiene que quedar ANCLADA a la pantalla -- usa 'pOrig' (el
     // centered(uv) de ANTES de la deriva), no 'p'.
-    float bodySize = 0.30 + uD6 * 0.55;
-    float shapeMask = 1.0 - smoothstep(bodySize, bodySize + 0.80,
+    // Piso subido bastante (0.30 -> 1.05): "la nube es muy chica, necesito
+    // que cubra toda la pantalla" -- la esquina mas lejana del cuadro
+    // (16:9) esta a ~1.81 en esta metrica, asi que con radio 1.05 +
+    // rampa de 0.9 la cobertura ya llega bien mas alla de cualquier
+    // esquina en reposo. D6 sigue empujando un poco mas por si se quiere
+    // un margen negro alrededor.
+    float bodySize = 1.05 + uD6 * 0.75;
+    float shapeMask = 1.0 - smoothstep(bodySize, bodySize + 0.90,
                       length(pOrig * vec2(0.85, 1.0))
                       + (fbm(p * 0.9 + 31.0, 3) - 0.5) * 0.55);
     ink = mix(0.30, ink, shapeMask);

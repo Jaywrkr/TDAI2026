@@ -133,8 +133,10 @@ vec4 render(vec2 uv)
     // Kick: flash breve.
     col += col * uKick * 0.3;
 
-    // Bajos: brillo de lo ya claro. Nunca geometria.
-    col = audioLift(col, uBass * 0.6);
+    // Bajos: brillo de lo ya claro. Nunca geometria. Multiplicador
+    // subido (0.6 -> 1.1): pedido explicito de mas reaccion al bajo
+    // para el bloom/brillo en las escenas de imagen.
+    col = audioLift(col, uBass * 1.1);
 
     // Grano de pelicula + vinieta -- ambos se intensifican en el kick,
     // como una señal rota que "tose" con el golpe.

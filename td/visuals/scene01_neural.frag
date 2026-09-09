@@ -23,16 +23,19 @@
 //
 // CONTROLES
 //   Speed    velocidad de los pulsos que recorren la red
-//   Density  ACERCAMIENTO a la red: en 0 (default) esta ALEJADA -- celdas
-//            chicas, se ve toda la trama de golpe. Subir Density te
-//            ACERCA -- celdas mas grandes, menos de la red entra en
-//            pantalla. Invertido a proposito: "subir density" = "acercar
-//            camara", no "agregar detalle".
+//   Density  ACERCAMIENTO a la red: en el REPOSO del knob compartido
+//            (0.5) ya esta bien ALEJADA -- muchas celdas chicas, se ve
+//            toda la trama de golpe. Subir Density te ACERCA -- celdas
+//            mas grandes, menos de la red entra en pantalla. Invertido a
+//            proposito: "subir density" = "acercar camara", no "agregar
+//            detalle".
 //   Hue      paleta
 //   Chaos    cuanto se alejan los sitios del centro de su celda -- mas
 //            Chaos = red mas irregular, menos = mas ordenada/rejilla
-//   Bass     brillo de lo ya claro (audioLift) + un poco de movimiento de
-//            los sitios (ya suavizado, no reintroduce temblor)
+//   Bass     brillo de lo ya claro (audioLift) + el reacomodo de los
+//            sitios (lo que controla D4) baila mas fuerte con los
+//            graves, ademas de un poco de movimiento base (ya
+//            suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro de los sitios (excepcion del contrato)
@@ -41,7 +44,8 @@
 // @D2: cantidad de resplandor (glow) alrededor de los segmentos
 // @D3: frecuencia radial del pulso (pocos anillos anchos <-> muchos y finos)
 // @D4: velocidad de deriva de los sitios (rejilla casi fija <-> siempre
-//      reacomodandose)
+//      reacomodandose) -- ese reacomodo tambien "baila", brilla/se
+//      acelera mas fuerte con los graves
 // @D5: velocidad base del "paquete de datos" que recorre la red
 // @D6: ancho del "paquete de datos" (punto angosto <-> banda ancha que
 //      cubre casi todo el segmento)
@@ -84,13 +88,13 @@ vec4 render(vec2 uv)
     float t = uTime;
     vec2  p = centered(uv);
 
-    // ACERCAMIENTO invertido: Density=0 (default) es la vista ALEJADA
-    // (freq alta, celdas chicas, se ve la red entera); subir Density
-    // ACERCA la camara (freq baja, celdas grandes, panorama mas
-    // reducido). El piso queda bien lejos (freq=8.2, notablemente mas
-    // alejado que el viejo default de 4.6) y el tope de acercamiento
-    // (freq=2.2) se alcanza recien con Density al maximo.
-    float freq = 8.2 - uDensity * 6.0;
+    // ACERCAMIENTO invertido, y reacomodado para que el REPOSO del knob
+    // compartido (0.5, no editable por escena) ya se vea alejado: antes
+    // freq(0.5)=5.2, todavia bastante acercado. Ahora freq(0.5)=9.25 --
+    // bien alejado, muchas celdas -- y freq(1.0)=6.5 sigue siendo un
+    // acercamiento real (menos celdas, mas grandes) sin llegar al
+    // extremo anterior.
+    float freq = 6.5 + (1.0 - uDensity) * 5.5;
     vec2  g = p * freq;
     vec2  cellId = floor(g);
     vec2  cellF = fract(g);
@@ -101,7 +105,14 @@ vec4 render(vec2 uv)
     for (int oy = -1; oy <= 1; oy++) {
         for (int ox = -1; ox <= 1; ox++) {
             vec2 neighbor = vec2(float(ox), float(oy));
-            vec2 site = sitePoint(cellId + neighbor, t, uChaos, uHigh, uD4, uBass);
+            // D4 "baila" con los graves -- pedido explicito: ademas del
+            // empujon chico que bassAmt ya le da al alcance del drift
+            // (dentro de sitePoint), el driftAmt EFECTIVO crece con
+            // uBass, asi el reacomodo entero (velocidad Y alcance,
+            // ambos escalan con driftAmt) se acelera y agranda con el
+            // bajo. Seguro: uBass ya llega suavizado (Fase 2).
+            float driftLive = uD4 * (1.0 + uBass * 1.3);
+            vec2 site = sitePoint(cellId + neighbor, t, uChaos, uHigh, driftLive, uBass);
             vec2 diff = neighbor + site - cellF;
             float d = length(diff);
 

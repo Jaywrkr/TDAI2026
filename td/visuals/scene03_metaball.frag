@@ -21,7 +21,10 @@
 // CONTROLES
 //   Speed    velocidad de traslacion de las gotas
 //   Density  que tan lejos del centro orbitan (spread por la pantalla)
-//   Hue      color del contorno
+//   Hue      centro de la paleta -- cada gota tiene su PROPIO offset fijo
+//            sobre este (hash por gota, no todas el mismo color), y en
+//            un borde de fusion entre dos gotas de distinto color se ve
+//            una mezcla real, pesada por cuanto aporta cada una al campo
 //   Chaos    cuanto se desvian las gotas de su orbita (mas caotico el
 //            movimiento)
 //   Bass     brillo de lo ya claro (audioLift) + el PERIMETRO de cada
@@ -54,6 +57,15 @@ vec4 render(vec2 uv)
     // no tamano: agrandarlas las convierte en siluetas rellenas.
     int   n = 6 + int(floor(uD3 * 8.99));
     float field = 0.0;
+    // "Las bolas pueden tener otros colores": cada gota tiene su propio
+    // hue (offset fijo por hash sobre Hue), y el color final en cada
+    // pixel es el PROMEDIO de esos hues pesado por cuanto aporta cada
+    // gota al campo en ese punto -- misma logica que la fusion geometrica
+    // (sumar campos), aplicada al color. Donde domina una sola gota se ve
+    // su color puro; donde dos gotas de distinto color se funden, el
+    // borde de union pasa por una mezcla real entre ambas.
+    vec3  fieldCol = vec3(0.0);
+    float h0 = audioHue(uHue, uMid * 0.16);
 
     // PIANO: bola invitada -- se define ANTES del loop porque ademas de
     // fundirse ella misma con el campo (mas abajo), empuja (repele) a
@@ -112,7 +124,14 @@ vec4 render(vec2 uv)
         // de la escena lo lleva la cantidad de gotas, no su tamano.
         float ballSize = ((0.135 + uD4 * 0.22) + hash21(seed + 3.0) * 0.10) * bassPulse;
         float d2 = dot(p - pos, p - pos);
-        field += ballSize * ballSize / (d2 + 0.0025);
+        float contrib = ballSize * ballSize / (d2 + 0.0025);
+        field += contrib;
+
+        // Cada gota, su propio hue -- offset fijo por hash sobre Hue, no
+        // anima (si el hue de una gota cambiara con el tiempo el color
+        // del borde de fusion "nadaria" sin ningun disparador real).
+        float ballHue = fract(h0 + hash21(seed + 5.0) * 0.5);
+        fieldCol += hsv2rgb(vec3(ballHue, 0.80, 1.0)) * contrib;
     }
 
     // PIANO: la bola invitada misma -- temporalmente MAS GRANDE que
@@ -123,8 +142,18 @@ vec4 render(vec2 uv)
     if (uKeypulse > 0.0015) {
         float guestSize = (0.22 + uKeyvel * 0.35) * uKeypulse;
         float dGuest2 = dot(p - guestPos, p - guestPos);
-        field += guestSize * guestSize / (dGuest2 + 0.0025);
+        float guestContrib = guestSize * guestSize / (dGuest2 + 0.0025);
+        field += guestContrib;
+        // La invitada siempre casi-blanca (baja saturacion): se lee como
+        // un impacto de energia, no como una gota mas del mismo enjambre.
+        fieldCol += hsv2rgb(vec3(fract(h0 + 0.5), 0.25, 1.0)) * guestContrib;
     }
+
+    // Color final: promedio de los hues de cada gota, pesado por cuanto
+    // aporta cada una al campo en ESTE pixel -- donde domina una gota se
+    // ve su color puro, en un borde de fusion entre dos de distinto
+    // color se ve una mezcla real entre ambas.
+    vec3 avgCol = fieldCol / max(field, 1e-4);
 
     float threshold = 2.5 + uD2 * 9.0;
     // Piso subido (0.8 -> 1.6): "que se note" -- el contorno por defecto
@@ -132,8 +161,7 @@ vec4 render(vec2 uv)
     float contourW = 1.6 + uD1 * 3.2;
     float edge = edgeLine(field - threshold, contourW);
 
-    float h = audioHue(uHue, uMid * 0.16);
-    vec3 col = hsv2rgb(vec3(h, 0.80, 1.0)) * edge;
+    vec3 col = avgCol * edge;
 
     // Un halo tenue justo por dentro del contorno, para que la forma se
     // lea con un poco de volumen sin llegar a ser un relleno solido.
@@ -146,7 +174,7 @@ vec4 render(vec2 uv)
     // CANTIDAD de gotas (n), no agrandandolas.
     // Piso subido (0.03 -> 0.10): "que se note" -- el halo interior era
     // casi invisible por defecto.
-    col += hsv2rgb(vec3(h, 0.80, 1.0)) * inside * (0.10 + uD5 * 0.35);
+    col += avgCol * inside * (0.10 + uD5 * 0.35);
 
     // Rim light: una banda angosta justo por dentro del contorno, tipo
     // gota de mercurio -- se enciende fuerte en el kick, como si la luz

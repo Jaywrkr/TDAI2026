@@ -102,7 +102,8 @@ vec4 render(vec2 uv)
         // cortina por un ruido de alta frecuencia en X, asi los
         // filamentos siguen la forma de la cortina en vez de ser un
         // patron independiente encima.
-        float filFreq = 12.0 + uD6 * 30.0;
+        // Piso subido (12 -> 24): "ponle mas rayas por default".
+        float filFreq = 24.0 + uD6 * 36.0;
         float fil = fbm(vec2((p.x - bend) * filFreq, p.y * 1.2 + fi * 9.0), 2);
         curtain *= 0.55 + 0.75 * fil;
 
