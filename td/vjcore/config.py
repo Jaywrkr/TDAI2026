@@ -5,7 +5,7 @@
 # totalmente nuevas. Y de 34 a 36: los dos casilleros que sobraban en la
 # grilla 6x6 los ocupan scene34 (caleidoscopio) y scene35 (trama /
 # halftone), las dos sobre la CARPETA COMUN de media (ver MEDIA_SCENES).
-N_SCENES = 40
+N_SCENES = 41
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
