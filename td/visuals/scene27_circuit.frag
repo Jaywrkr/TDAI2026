@@ -68,8 +68,14 @@ vec4 render(vec2 uv)
     // rayado tenue mientras los chips (abajo) dominaban con cuadrados
     // amarillos planos: quedaba 'cuadrados al azar sobre ruido'. Se
     // invierte el peso -- trazas mas presentes, chips mas discretos.
-    vec3 col = traceCol * trace * (0.85 + uD2 * 0.6);
+    // Placa real, no vacio: verde PCB oscuro de fondo -- lo que separa
+    // "lineas sobre negro" de "una placa de circuito real iluminada".
+    vec3 col = hsv2rgb(vec3(fract(h - 0.02), 0.55, 0.09));
+    col += traceCol * trace * (0.85 + uD2 * 0.6);
     col += vec3(0.6, 1.0, 0.85) * pulse * (1.0 + uKick * 1.8);
+    // Bloom ancho de las trazas: un halo mas difuso ademas del trazo
+    // nitido, como luz de LED real reflejando en la placa.
+    col += traceCol * exp(-d * d / 0.01) * 0.18;
 
     // Chips: cuadraditos brillantes ocasionales en celdas hasheadas.
     float chipHash = hash21(cellId + 50.0);

@@ -60,6 +60,12 @@ vec4 render(vec2 uv)
     int n = 1 + int(floor(uDensity * 3.99));
     float h = audioHue(fract(uHue + 0.6), uMid * 0.1);
 
+    // Agua profunda real, no vacio: un azul-negro muy apagado, mas oscuro
+    // hacia arriba (como la luz que ya no llega desde la superficie) --
+    // da contexto de "esto flota en algo", no en la nada.
+    col += mix(hsv2rgb(vec3(fract(h + 0.55), 0.6, 0.05)),
+               hsv2rgb(vec3(fract(h + 0.6), 0.5, 0.02)), smoothstep(-0.6, 0.8, p.y));
+
     for (int i = 0; i < 4; i++) {
         if (i >= n) break;
         float fi = float(i);

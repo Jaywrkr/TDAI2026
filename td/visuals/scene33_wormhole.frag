@@ -74,7 +74,16 @@ vec4 render(vec2 uv)
     vec3 hotCol = hsv2rgb(vec3(fract(h), 0.7, 1.0));
     vec3 coolCol = hsv2rgb(vec3(fract(h + 0.08), 0.85, 0.6));
     float contrast = 0.3 + uD3 * 0.7;
-    vec3 col = mix(coolCol, hotCol, smoothstep(0.5 - contrast, 0.5 + contrast, disk))
+
+    // Espacio profundo real detras del disco: un fondo estrellado tenue
+    // (rejilla fina con hash, mismo espiritu que scene23) en vez de negro
+    // absoluto -- el disco deja de flotar en un vacio de estudio.
+    vec2 starG = p * 60.0;
+    float starHash2 = hash21(floor(starG) + 7.0);
+    float star2 = smoothstep(0.988, 1.0, starHash2) * (0.5 + 0.5 * sin(t * 2.0 + starHash2 * 40.0));
+    vec3 col = vec3(1.0) * star2 * 0.5;
+
+    col += mix(coolCol, hotCol, smoothstep(0.5 - contrast, 0.5 + contrast, disk))
              * diskMask * (0.5 + disk * 0.8) * (0.5 + uD3 * 0.7);
 
     // Horizonte de sucesos: borde brillante fino, negro absoluto adentro.

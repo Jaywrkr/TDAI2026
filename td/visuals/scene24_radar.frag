@@ -113,7 +113,12 @@ vec4 render(vec2 uv)
 
     float h = audioHue(fract(uHue + 0.33), uMid * 0.1);
     vec3 radarCol = hsv2rgb(vec3(h, 0.75, 1.0));
-    vec3 col = radarCol * trail * (0.25 + uD5 * 0.7);
+
+    // Pantalla de radar real: un verde de fosforo apagado de fondo (nunca
+    // negro puro) mas una vinieta de tubo mas marcada -- lo que separa
+    // "un brazo verde sobre negro" de "una consola encendida".
+    vec3 col = radarCol * 0.045 * (1.0 - smoothstep(0.0, 1.3, r));
+    col += radarCol * trail * (0.25 + uD5 * 0.7);
 
     // Anillos de rango.
     float ringFreq = 2.0 + uD3 * 7.0;
