@@ -1,18 +1,20 @@
 // ===============================================================
-// SCENE 25 - TELARANA / RED EN TENSION
-// Una red de radios + anillos concentricos (como una telarana o una red
-// bajo tension) que "vibra" hacia afuera con cada golpe de bombo, como
-// una cuerda real pulsada.
+// SCENE 09 - TELARANA / RED VIVA
+// Una red de radios + anillos concentricos que respira sola, como un
+// pulso cardiaco -- late todo el tiempo, no solo con el kick -- y cuyos
+// radios ondulan un poco en vez de ser rectas perfectas, para que se
+// lea como algo vivo (una tela de araña real nunca es geometria
+// perfecta) y no como un dartboard.
 // ===============================================================
 //
 // COMO FUNCIONA
 // Los radios salen de partir el angulo en cunas iguales y medir la
-// distancia (aproximada) al radio mas cercano. Los anillos salen del
-// mismo sawtooth radial que scene10 (fract(r*freq)). El "pulso" es una
-// onda que viaja en el radio (sin(r*k - t)), pero su AMPLITUD la da
-// uKick directamente -- como uKick ya llega con envolvente de golpe y
-// caida (audio.py), la red vibra fuerte en el golpe y se aquieta sola,
-// sin necesitar temporizador propio.
+// distancia (aproximada) al radio mas cercano, con una ondulacion
+// organica sumada (un seno en funcion del radio y el angulo) que hace
+// que cada hilo serpentee apenas. Los anillos salen del mismo sawtooth
+// radial de siempre. El "pulso" tiene DOS capas: una respiracion lenta
+// y constante (la red esta viva aunque no haya musica) y la vibracion
+// de golpe que da uKick encima (mucho mas fuerte, decae sola).
 //
 // CONTROLES
 //   Speed    no usado directo (los radios/anillos son estaticos)
@@ -44,7 +46,11 @@ vec4 render(vec2 uv)
     float spokes = 6.0 + floor(uDensity * 12.0);
     float spokeAng = TAU / spokes;
     float aMod = mod(ang, spokeAng);
-    float spokeDist = min(aMod, spokeAng - aMod) * max(r, 0.05);
+    // Ondulacion organica: cada radio serpentea un poco a lo largo de
+    // su propio largo -- una tela de arana real nunca es geometria
+    // perfecta. Respiracion CONSTANTE, no atada al kick.
+    float breathe = sin(t * 0.6 + ang * 3.0) * 0.02;
+    float spokeDist = min(aMod, spokeAng - aMod) * max(r, 0.05) + breathe * r;
     // JERARQUIA: una telarana real tiene unos pocos hilos de ANCLAJE
     // gruesos y el resto finos. Con todos iguales -- que era el caso --
     // el dibujo se leia como una diana de dardos, perfecto y mecanico.
@@ -56,8 +62,13 @@ vec4 render(vec2 uv)
     float spokeLine = edgeLine(spokeDist, spokeW);
 
     float ringFreq = 2.0 + uD3 * 6.0;
-    // Kick: la red vibra -- amplitud directamente del envolvente de golpe.
-    float pluck = sin(r * 14.0 - t * 3.0) * uKick * 0.18;
+    // Respiracion constante: un pulso lento y siempre presente, como un
+    // latido -- la red esta viva aunque no haya musica. Amplitud chica
+    // a proposito, nunca compite con el pulso real del kick.
+    float pluck = sin(r * 10.0 - t * 1.1) * 0.025;
+    // Kick: la red vibra fuerte -- amplitud directamente del envolvente
+    // de golpe, encima de la respiracion de arriba.
+    pluck += sin(r * 14.0 - t * 3.0) * uKick * 0.18;
     // PIANO: el anillo concentrico mas cercano tambien vibra con cada
     // tecla -- mismo mecanismo que el kick (desplaza el radio real de
     // los anillos), asi la tecla se siente en toda la red, no solo en
@@ -71,7 +82,9 @@ vec4 render(vec2 uv)
     float ringLine = edgeLine(ringSDF, ringW);
 
     float web = max(spokeLine, ringLine);
-    float h = audioHue(uHue, uMid * 0.1);
+    // Offset +0.5: default cian (Hue arranca en 0) en vez de rojo,
+    // coherente con la paleta fria del resto del set.
+    float h = audioHue(fract(uHue + 0.5), uMid * 0.1);
 
     // Atmosfera de fondo: la red cuelga en un aire tenuemente iluminado,
     // no en el vacio -- amplitud chica, nunca compite con los hilos.
