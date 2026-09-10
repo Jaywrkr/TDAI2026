@@ -174,7 +174,9 @@ void main() {
     vec2 renderUV = vUV.st;
 
     if (uPixelate > 0.0015) {
-        float pxCount = mix(200.0, 16.0, uPixelate);
+        // Piso bajado (16 -> 10): a fondo de pad, bloques bien grandes,
+        // que se note de verdad -- pedido explicito de mas intensidad.
+        float pxCount = mix(200.0, 10.0, uPixelate);
         renderUV = (floor(renderUV * pxCount) + 0.5) / pxCount;
     }
     if (uZoom > 0.0015) {
@@ -203,27 +205,38 @@ void main() {
     // ---- EFECTOS DE PAD (8: Grain, Glitch, Pixelate, Strobe, Invert,
     // Mirror, Zoom, Posterize -- ver dats/midi_logic.py EFFECT_TRIGGERS) ----
 
-    // Grain: añade ruido fino al color
+    // Grain: añade ruido fino al color. Ganancia subida (0.3 -> 0.55):
+    // pedido explicito de que se note mas.
     if (uGrain > 0.0015) {
         float grain = hash21(vUV.st * 100.0 + uRTime * 20.0);
         grain = (grain - 0.5) * 2.0 * uGrain;
-        c.rgb += grain * 0.3;
+        c.rgb += grain * 0.55;
     }
 
-    // Glitch: desplaza canales RGB independientemente (chromatic aberration-like)
+    // Glitch: desplaza canales RGB independientemente (chromatic
+    // aberration-like). Amplitud subida (0.15 -> 0.34) y ademas, por
+    // bandas horizontales, un intercambio de canales completo al azar
+    // (RGB -> GBR) -- eso es lo que lee como "datos corruptos" de
+    // verdad, no solo un tinte de borde. Pedido explicito de mas
+    // intensidad.
     if (uGlitch > 0.0015) {
-        float glitch_amt = sin(uRTime * 30.0 + uGlitch * 10.0) * uGlitch * 0.15;
+        float glitchBand = floor(vUV.y * (8.0 + uGlitch * 24.0));
+        float bandHash = hash21(vec2(glitchBand, floor(uRTime * 12.0)));
+        float glitch_amt = sin(uRTime * 30.0 + uGlitch * 10.0) * uGlitch * 0.34;
         float glitch_r = c.r + glitch_amt * 0.5;
         float glitch_b = c.b - glitch_amt * 0.5;
         c.rgb = vec3(glitch_r, c.g, glitch_b);
+        c.rgb = mix(c.rgb, c.rgb.gbr, step(0.985 - uGlitch * 0.25, bandHash));
         c.rgb = clamp(c.rgb, 0.0, 1.0);
     }
 
-    // Strobe: destello periodico
+    // Strobe: destello periodico. Amplitud subida (0.6 -> 0.9) y el pico
+    // de brillo tambien (x2.0 -> x2.6) -- pedido explicito de que se
+    // note mas.
     if (uStrobe > 0.0015) {
         float strobe_freq = 8.0 + uStrobe * 20.0;
         float strobe = step(0.5, sin(uRTime * strobe_freq * TAU));
-        c.rgb = mix(c.rgb, c.rgb * 2.0, strobe * uStrobe * 0.6);
+        c.rgb = mix(c.rgb, c.rgb * 2.6, strobe * uStrobe * 0.9);
     }
 
     // Invert: invierte colores
