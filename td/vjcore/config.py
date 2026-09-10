@@ -20,14 +20,17 @@ N_SCENES = 53
 # cosas sueltas. Antes la carpeta era un parametro POR ESCENA, lo que
 # obligaba a cargar la ruta varias veces y a que se desincronizaran solas.
 #
-# Indices re-mapeados tras mandar scene00-07 (veins/neural/ink/metaball/
-# caustics/flow/web/aurora) a "la carcel" (bloqueadas, al final de la
-# lista) -- mediaecho 16->8, mediaglitch 19->11, kaleido 34->26,
-# halftone 35->27. Los nombres de archivo son la fuente de verdad real
-# (scenes.py arma esto leyendo el prefijo sceneNN_ de cada .frag), este
-# set tiene que seguir esos mismos indices o las dos escenas de imagen
-# quedan sin su segundo input.
-MEDIA_SCENES = {8, 11, 26, 27}
+# Indices re-mapeados cada vez que un grupo de escenas se manda a "la
+# carcel" (bloqueadas, al final de la lista): primero scene00-07
+# (veins/neural/ink/metaball/caustics/flow/web/aurora) -- mediaecho
+# 16->8, mediaglitch 19->11, kaleido 34->26, halftone 35->27 -- y despues
+# lines/contour/ripple/orbit/dots/crackedglass/bokeh/nebula -- mediaecho
+# 8->3, mediaglitch 11->6, kaleido 26->18, halftone 27->19. Los nombres
+# de archivo son la fuente de verdad real (scenes.py arma esto leyendo
+# el prefijo sceneNN_ de cada .frag), este set tiene que seguir esos
+# mismos indices o las dos escenas de imagen quedan sin su segundo
+# input.
+MEDIA_SCENES = {3, 6, 18, 19}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
