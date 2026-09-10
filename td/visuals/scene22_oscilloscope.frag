@@ -113,12 +113,17 @@ vec4 render(vec2 uv)
     vec3 tint = hsv2rgb(vec3(uHue, 0.6, 1.0));
     vec3 baseCol = mix(phosphor, tint, uD3);
 
+    // Pantalla de fosforo real, no vacio: un verde oscuro de fondo (el
+    // tubo apagado tiene ese tinte) mas scanlines finas -- lo que separa
+    // "una linea sobre negro" de "un osciloscopio real encendido".
+    vec3 col = baseCol * 0.05 * (1.0 - smoothstep(0.2, 1.4, length(p)));
+    col *= 1.0 - 0.08 * smoothstep(0.4, 0.6, abs(fract(uv.y * uResH * 0.5) * 2.0 - 1.0));
+
     // TRES capas a distinta "profundidad": la principal, mas dos ecos
     // mas chicos y tenues con fa/fb apenas distintos y su propia fase --
     // pedido explicito de que no haya una sola figura. Los ecos usan
     // menos pasos de muestreo (son mas chicos, no necesitan tanta
     // resolucion) para no triplicar el costo de la capa principal.
-    vec3 col = vec3(0.0);
     for (int layer = 0; layer < 3; layer++) {
         float fl = float(layer);
         float depthFade = 1.0 - fl * 0.38;

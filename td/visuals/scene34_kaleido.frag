@@ -132,6 +132,11 @@ vec4 render(vec2 uv)
     col += hsv2rgb(vec3(fract(h + 0.5), 0.4, 1.0))
          * exp(-r * r * 22.0) * (0.45 + uD3 * 0.9);
 
+    // Grading tipo lente real: un tinte frio muy sutil hacia los bordes y
+    // calido hacia el centro -- el toque de color grading que separa una
+    // imagen "cruda" de una trabajada, sin tapar el dibujo del mandala.
+    col = mix(col * vec3(0.96, 1.0, 1.06), col * vec3(1.05, 1.0, 0.94), 1.0 - smoothstep(0.0, 1.1, r));
+
     // Bajos: brillo de lo ya claro. Nunca geometria (el giro de arriba
     // es la excepcion documentada). Multiplicador subido de nuevo
     // (0.5 -> 1.1 -> 2.4): la primera subida seguia sin notarse -- pedido

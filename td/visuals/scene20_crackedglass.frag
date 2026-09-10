@@ -94,8 +94,20 @@ vec4 render(vec2 uv)
 
     float h = audioHue(uHue, uMid * 0.15);
     float crackHueVar = 0.5 + uD6 * 4.0;
-    vec3 col = hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * reveal;
+
+    // Atmosfera de fondo: un lift de color muy sutil detras del vidrio,
+    // en vez de negro absoluto -- da la sensacion de estar iluminado por
+    // algo, no de flotar en el vacio. Amplitud chica a proposito, nunca
+    // compite con las grietas.
+    vec3 col = hsv2rgb(vec3(fract(h + 0.55), 0.5, 0.35)) * (1.0 - smoothstep(0.1, 1.3, length(p))) * 0.05;
+
+    col += hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * reveal;
     col += hsv2rgb(vec3(fract(h + 0.5), 0.35, 1.0)) * glow * reveal * 0.6;
+    // Bloom ancho: un segundo halo bastante mas difuso que 'glow' para
+    // que el brillo de la grieta "sangre" al aire, no solo el trazo con
+    // blur fijo de siempre.
+    float bloomWide = exp(-crack * crack / (0.05 + uD2 * 0.12)) * (0.10 + uD2 * 0.25);
+    col += hsv2rgb(vec3(fract(h + 0.5), 0.35, 1.0)) * bloomWide * reveal;
 
     // Nucleo saturado justo en el borde -- D3.
     // Mismo problema que el glow: estaba multiplicado por uD3 CRUDO, o

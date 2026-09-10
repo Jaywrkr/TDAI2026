@@ -88,8 +88,17 @@ vec4 render(vec2 uv)
 
     vec3 metalCol = hsv2rgb(vec3(h, 0.10, 0.34)) * shade
                   + vec3(0.85, 0.90, 1.0) * spec * 0.22;
-    vec3 col = metalCol * isBlade;
+
+    // Fondo de estudio: un degrade radial tenue detras del diafragma (mas
+    // claro cerca del centro, se apaga hacia las esquinas) en vez de
+    // negro absoluto -- asi el metal de las hojas tiene contra que
+    // recortarse, como una foto de producto real.
+    vec3 col = hsv2rgb(vec3(fract(h + 0.55), 0.35, 0.12)) * (1.0 - smoothstep(0.0, 1.3, r));
+    col += metalCol * isBlade;
     col += hsv2rgb(vec3(fract(h + 0.5), 0.6, 1.0)) * edgeGlow * (0.5 + uD3 * 1.1);
+    // Bloom ancho del filo: un segundo halo mas difuso para que la luz
+    // del borde "sangre" sobre el fondo, no solo el trazo nitido.
+    col += hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0)) * exp(-bladeSDF * bladeSDF / 0.02) * 0.12;
 
     // Luz que escapa por la apertura central.
     float centerGlow = exp(-r * r / (openR * openR * 0.5 + 0.001)) * (1.0 - isBlade);

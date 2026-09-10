@@ -63,7 +63,11 @@ vec4 render(vec2 uv)
     vec3 warmCol = hsv2rgb(vec3(fract(h + 0.02), 0.75, 1.0));
     vec3 coolCol = hsv2rgb(vec3(fract(h + 0.52 + uD3 * 0.15), 0.65, 0.85));
     float zoneMix = smoothstep(0.35, 0.75, cloud);
-    vec3 col = mix(coolCol, warmCol, zoneMix) * smoothstep(0.15, 0.7, cloud) * (0.5 + uD1 * 0.9);
+    // Fondo de espacio profundo real, no negro absoluto -- un violeta muy
+    // apagado que llena los huecos entre nubes, como el resplandor
+    // dificil de fotografiar que rodea cualquier nebulosa real.
+    vec3 col = mix(coolCol, warmCol, 0.35) * 0.035;
+    col += mix(coolCol, warmCol, zoneMix) * smoothstep(0.15, 0.7, cloud) * (0.5 + uD1 * 0.9);
 
     // Estrellas: rejilla fina, hash por celda, titileo independiente.
     float sfreq = 18.0 + uDensity * 26.0;

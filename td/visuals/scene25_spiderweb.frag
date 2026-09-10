@@ -72,7 +72,14 @@ vec4 render(vec2 uv)
 
     float web = max(spokeLine, ringLine);
     float h = audioHue(uHue, uMid * 0.1);
-    vec3 col = hsv2rgb(vec3(h, 0.6, 1.0)) * web;
+
+    // Atmosfera de fondo: la red cuelga en un aire tenuemente iluminado,
+    // no en el vacio -- amplitud chica, nunca compite con los hilos.
+    vec3 col = hsv2rgb(vec3(fract(h + 0.5), 0.4, 0.3)) * (1.0 - smoothstep(0.0, 1.2, r)) * 0.04;
+    col += hsv2rgb(vec3(h, 0.6, 1.0)) * web;
+    // Bloom ancho: el mismo trazo, con un halo bastante mas difuso, para
+    // que la red brille en el aire y no solo tenga un trazo con blur fijo.
+    col += hsv2rgb(vec3(h, 0.5, 1.0)) * exp(-spokeDist * spokeDist * 1.2) * 0.10;
 
     // Glow en los nodos (donde radio y anillo casi se cruzan).
     float node = exp(-(spokeDist * spokeDist) * 8.0) * exp(-(ringSDF * ringSDF) * 30.0);

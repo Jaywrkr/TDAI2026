@@ -42,6 +42,11 @@ vec4 render(vec2 uv)
     int n = 10 + int(floor(uDensity * 26.0));
     float h = audioHue(uHue, uMid * 0.1);
 
+    // Atmosfera de fondo: noche real, no negro de estudio -- un lift muy
+    // sutil que se apaga hacia las esquinas, como la contaminacion
+    // luminica de una ciudad de noche.
+    col += hsv2rgb(vec3(fract(h + 0.58), 0.45, 0.3)) * (1.0 - smoothstep(0.0, 1.5, length(p))) * 0.04;
+
     // PIANO: rafaga de viento real -- las luciernagas cercanas al punto
     // elegido por uKeypos se EMPUJAN y AGRANDAN de verdad (cambio real
     // de posicion/tamano, no solo un flare de mas encima). uKeypulse

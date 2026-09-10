@@ -61,7 +61,10 @@ vec4 render(vec2 uv)
     float colorSpread = uD6;
 
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 col = vec3(0.0);
+    // Pared de noche real detras del cartel, no vacio absoluto -- un
+    // violeta/azul muy apagado, como la luz ambiente de una calle de
+    // noche reflejando en la pared donde cuelga el neon.
+    vec3 col = hsv2rgb(vec3(fract(h + 0.6), 0.5, 0.06));
 
     // Se guarda la distancia con signo de cada tubo -- hace falta para
     // el destello de cruce (D5) en un segundo paso, sin recalcularla.

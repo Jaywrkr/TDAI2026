@@ -80,7 +80,14 @@ vec4 render(vec2 uv)
     float glow = exp(-minRing * minRing / (0.001 + uD2 * 0.02)) * uD2;
 
     float h = audioHue(uHue, uMid * 0.1);
-    vec3 col = hsv2rgb(vec3(h, 0.55, 1.0)) * (line + glow * 0.5);
+
+    // Atmosfera de fondo: un dorado muy apagado en vez de negro absoluto,
+    // como si la reticula flotara sobre una superficie iluminada.
+    vec3 col = hsv2rgb(vec3(fract(h), 0.5, 0.25)) * (1.0 - smoothstep(0.0, 1.2, length(p))) * 0.045;
+    col += hsv2rgb(vec3(h, 0.55, 1.0)) * (line + glow * 0.5);
+    // Bloom ancho: halo bastante mas difuso ademas del glow nitido, para
+    // que la reticula brille en el aire.
+    col += hsv2rgb(vec3(h, 0.45, 1.0)) * exp(-minRing * minRing * 6.0) * 0.10;
 
     // PIANO: un anillo especifico de la reticula (a la distancia del
     // centro que elige uKeypos) pulsa mas brillante con cada tecla --

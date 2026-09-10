@@ -40,6 +40,10 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.15);
     vec3 inkCol = hsv2rgb(vec3(h, 0.85, 0.9));
 
+    // Papel real, no vacio: un tinte muy apagado de fondo (el color de la
+    // tinta empapando el papel) en vez de negro absoluto.
+    col += hsv2rgb(vec3(fract(h + 0.02), 0.3, 0.05)) * (1.0 - smoothstep(0.0, 1.4, length(p)));
+
     // Umbral bajado (0.45-0.65 -> 0.32-0.52): el charco base casi nunca
     // llegaba a mostrarse -- ahora aparece de forma confiable en reposo,
     // no solo en zonas de fbm con suerte.

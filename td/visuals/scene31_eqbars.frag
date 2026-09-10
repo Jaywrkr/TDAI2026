@@ -75,7 +75,17 @@ vec4 render(vec2 uv)
 
     float h = audioHue(fract(uHue + level * uD3 * 0.6), uMid * 0.1);
     vec3 barCol = hsv2rgb(vec3(h, 0.8, 1.0));
-    vec3 col = barCol * inBar * bevel;
+
+    // Gabinete real, no vacio: panel oscuro con un degrade sutil (mas
+    // claro abajo, como si el propio equipo tuviera luz de fondo cerca
+    // de la base) en vez de negro plano -- lo que separa "barras sobre
+    // negro" de "un equipo de audio real encendido".
+    vec3 col = hsv2rgb(vec3(fract(h + 0.02), 0.35, 0.05))
+             * mix(1.0, 0.3, smoothstep(-1.0, 0.6, p.y));
+    col += barCol * inBar * bevel;
+    // Resplandor de la barra sobre el panel, justo debajo de su base --
+    // como la luz de un LED real reflejando en el gabinete.
+    col += barCol * inBar * exp(-abs(p.y + 1.0) * 3.0) * 0.25;
 
     float peak = smoothstep(0.03, 0.0, abs(p.y - barTop)) * barMaskX;
     col += vec3(1.0) * peak * (0.4 + uD4 * 1.0);
