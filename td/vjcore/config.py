@@ -1,11 +1,10 @@
 """Configuracion global del rig. Editar aqui, no dentro del build."""
 
-# Subido de 20 a 34: 4 escenas promovidas desde los prototipos de "ideas
-# nuevas" (cracked glass, bokeh, osciloscopio, nebulosa) + 10 escenas
-# totalmente nuevas. Y de 34 a 36: los dos casilleros que sobraban en la
-# grilla 6x6 los ocupan scene34 (caleidoscopio) y scene35 (trama /
-# halftone), las dos sobre la CARPETA COMUN de media (ver MEDIA_SCENES).
-N_SCENES = 53
+# Bajado de 53 a 46: se eliminaron 7 escenas (pulso, cristal, fusion,
+# telarana, jellyfish, floweroflife, eqbars) por pedido directo del
+# usuario, y el resto se renumero para cerrar los huecos (mismo
+# mecanismo de dos pasadas usado para mandar escenas a "la carcel").
+N_SCENES = 46
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -25,12 +24,14 @@ N_SCENES = 53
 # (veins/neural/ink/metaball/caustics/flow/web/aurora) -- mediaecho
 # 16->8, mediaglitch 19->11, kaleido 34->26, halftone 35->27 -- y despues
 # lines/contour/ripple/orbit/dots/crackedglass/bokeh/nebula -- mediaecho
-# 8->3, mediaglitch 11->6, kaleido 26->18, halftone 27->19. Los nombres
-# de archivo son la fuente de verdad real (scenes.py arma esto leyendo
-# el prefijo sceneNN_ de cada .frag), este set tiene que seguir esos
-# mismos indices o las dos escenas de imagen quedan sin su segundo
-# input.
-MEDIA_SCENES = {3, 6, 18, 19}
+# 8->3, mediaglitch 11->6, kaleido 26->18, halftone 27->19. Y despues, al
+# eliminar 7 escenas (pulso/cristal/fusion/telarana/jellyfish/
+# floweroflife/eqbars) y cerrar los huecos -- mediaecho 3->2, mediaglitch
+# 6->3, kaleido 18->11, halftone 19->12. Los nombres de archivo son la
+# fuente de verdad real (scenes.py arma esto leyendo el prefijo sceneNN_
+# de cada .frag), este set tiene que seguir esos mismos indices o las
+# dos escenas de imagen quedan sin su segundo input.
+MEDIA_SCENES = {2, 3, 11, 12}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',

@@ -10,10 +10,13 @@
 // El brazo de barrido es el angulo actual (gira con el tiempo); la
 // estela sale de medir cuanto angulo hay ENTRE el barrido y cada pixel,
 // yendo hacia atras, y aplicarle un exp() -- la persistencia de fosforo
-// de un radar real. Los "contactos" son puntos fijos (hash) que titilan
-// SOLOS todo el tiempo (como luciernagas reales) y se iluminan bastante
-// mas fuerte justo cuando el brazo pasa cerca -- la deteccion es un
-// PLUS sobre una vida propia, no lo unico que los enciende.
+// de un radar real. Los "contactos" ya NO son puntos fijos: cada uno
+// deriva lento por su propia orbita/paseo (una suma de senos a fases y
+// velocidades distintas por luciernaga, via hash), como un enjambre real
+// que nunca esta quieto, y ademas titilan SOLOS todo el tiempo y se
+// iluminan bastante mas fuerte justo cuando el brazo pasa cerca -- la
+// deteccion es un PLUS sobre una vida propia, no lo unico que los
+// enciende.
 //
 // CONTROLES
 //   Speed    velocidad de giro del brazo de barrido
@@ -78,6 +81,14 @@ vec4 render(vec2 uv)
         float fAng = hash21(seed) * TAU;
         float fR = spread * (0.2 + hash21(seed + 1.0) * 0.9);
         vec2  fPos = fR * vec2(cos(fAng), sin(fAng));
+        // Deriva propia: cada luciernaga pasea lento (frecuencia y fase
+        // por hash, distinta por bicho) en vez de quedarse fija en su
+        // punto de nacimiento -- un enjambre real nunca esta quieto.
+        // Amplitud contenida para no salirse de su zona del enjambre.
+        vec2  driftFreq = vec2(0.05, 0.04) + hash21(seed + 5.0) * 0.08;
+        vec2  driftPhase = vec2(hash21(seed + 6.0), hash21(seed + 7.0)) * TAU;
+        fPos += 0.14 * vec2(sin(t * driftFreq.x + driftPhase.x + fi * 1.7),
+                             cos(t * driftFreq.y + driftPhase.y + fi * 2.1));
         // uHigh: vibracion micro de posicion -- unica excepcion del
         // contrato, amplitud pequena.
         fPos += uHigh * 0.008 * vec2(sin(t * 9.0 + fi), cos(t * 7.0 + fi));

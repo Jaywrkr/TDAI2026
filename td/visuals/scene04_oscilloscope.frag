@@ -16,6 +16,11 @@
 // persistencia de fosforo de scene00_pulso, aplicada a una curva 2D en
 // vez de una onda 1D.
 //
+// El fondo YA NO es pantalla vacia: hay un campo de energia (fbm que
+// fluye lento) y un campo de estrellas dispersas que titilan solas --
+// asi la escena se lee como "un cometa cruzando un campo estelar", no
+// como un trazo de osciloscopio aislado en el vacio.
+//
 // CONTROLES
 //   Speed    velocidad con la que el cabezal recorre la curva
 //   Density  no aplica (la resolucion de muestreo es fija, barata)
@@ -74,8 +79,24 @@ vec4 render(vec2 uv)
     vec3 tint = hsv2rgb(vec3(uHue, 0.6, 1.0));
     vec3 baseCol = mix(phosphor, tint, uD3);
 
-    // Pantalla de fosforo real, no vacio absoluto.
-    vec3 col = baseCol * 0.04 * (1.0 - smoothstep(0.2, 1.4, length(p)));
+    // Campo de energia de fondo: un fbm que fluye lento y contenido, en
+    // vez de la pantalla plana de antes -- da profundidad detras del
+    // cometa sin competir con la traza.
+    float bgField = fbm(p * 1.3 + vec2(t * 0.035, -t * 0.028), 4);
+    vec3 col = baseCol * bgField * 0.11 * (1.0 - smoothstep(0.2, 1.4, length(p)));
+
+    // Campo estelar: rejilla fina con puntos esporadicos (hash por
+    // celda) que titilan solos -- barato, y le da al fondo la sensacion
+    // de un espacio real por el que cruza el cometa.
+    vec2  starGrid = p * 14.0;
+    vec2  starCell = floor(starGrid);
+    vec2  starF = fract(starGrid) - 0.5;
+    float starHash = hash21(starCell);
+    float starOn = step(0.93, starHash);
+    float starTwinkle = 0.5 + 0.5 * sin(t * (1.5 + starHash * 3.0) + starHash * 30.0);
+    float star = starOn * exp(-dot(starF, starF) * 60.0) * starTwinkle;
+    col += vec3(0.8, 0.9, 1.0) * star * 0.6;
+
     col *= 1.0 - 0.06 * smoothstep(0.4, 0.6, abs(fract(uv.y * uResH * 0.5) * 2.0 - 1.0));
 
     // D5: largo de la cola. D1: grosor del nucleo. D2: glow.
