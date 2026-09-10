@@ -99,6 +99,30 @@ THUMB_W = 120
 THUMB_H = 84
 THUMB_LABEL_H = 18
 
+# Antes vivian SOLO adentro de dashboard.build() (definian el alto
+# reservado del panel), asi que diagnostics.py no tenia forma de saber
+# cuantas lineas entran de verdad y podia armar mas texto del que cabe
+# -- Text TOP no hace word-wrap (dashboard._build_text_panel pone
+# wordwrap=False), asi que lo que sobra se CORTA en silencio, sin
+# aviso. Con esto centralizado, diagnostics.update() puede truncar el
+# panel de status el mismo antes de escribirlo (ver ese archivo) en vez
+# de confiar en que nunca se junten demasiados avisos a la vez.
+STATUS_FONTSIZE = 12
+STATUS_MAX_LINES = 22
+
+# Leyenda de Detail (que hace cada perilla D1-D6 EN LA ESCENA ACTIVA,
+# ver shader.parse_detail_legend). Son SIEMPRE como mucho 6 lineas (una
+# por perilla documentada), nunca menos previsible que el panel de
+# status -- pero a fontsize 13 y 110px de alto (lo que tenia este panel
+# antes) solo entraban 5 de esas 6 lineas: la convencion del repo pide
+# documentar las 6 perillas en CADA .frag, asi que la ultima linea
+# (D6) se cortaba en silencio en TODAS las escenas, siempre, no en un
+# caso raro. Subido a 130 -- entran las 6 con margen -- usando el
+# colchon de 30px que sobraba entre la columna derecha real (1014px) y
+# el limite de 1080p (el dashboard sigue entrando: 1070 de 1080).
+LEGEND_H = 130
+LEGEND_GAP = 10
+
 # ---------------------------------------------------------------
 # POSTER FRAMES (miniaturas pre-renderizadas)
 # ---------------------------------------------------------------

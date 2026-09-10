@@ -33,10 +33,10 @@ def layout():
     grid_h = c.GRID_ROWS * c.THUMB_H + (c.GRID_ROWS - 1) * c.GAP
     dash_w = c.DASH_MARGIN * 2 + grid_w + 24 + c.PROGRAM_W
 
-    STATUS_FONTSIZE, STATUS_MAX_LINES = 12, 22
+    STATUS_FONTSIZE, STATUS_MAX_LINES = c.STATUS_FONTSIZE, c.STATUS_MAX_LINES
     status_h = int(STATUS_MAX_LINES * STATUS_FONTSIZE * 1.7) + 16
     BEAT_STRIP_H, BEAT_GAP = 40, 8
-    legend_h, legend_gap = 110, 10
+    legend_h, legend_gap = c.LEGEND_H, c.LEGEND_GAP
     dash_h = (max(grid_h, c.PROGRAM_H + BEAT_STRIP_H + BEAT_GAP
                   + legend_h + legend_gap + status_h + legend_gap + 12)
               + c.DASH_MARGIN * 2)
@@ -118,6 +118,14 @@ def main():
     check('master fx: {} lineas caben en {} px'.format(fx_lines, fx_h),
           fx_lines * 12 * 1.7 <= fx_h,
           'necesita {:.0f}, hay {}'.format(fx_lines * 12 * 1.7, fx_h))
+    # leyenda detail: SIEMPRE puede tener 6 lineas (D1-D6, ver
+    # shader.parse_detail_legend) a fontsize 12 -- no es un caso raro,
+    # es el caso normal de CUALQUIER escena que documente las 6 perillas.
+    legend_lines = 6
+    check('leyenda detail: {} lineas caben en {} px'.format(
+          legend_lines, c.LEGEND_H),
+          legend_lines * 12 * 1.7 <= c.LEGEND_H,
+          'necesita {:.0f}, hay {}'.format(legend_lines * 12 * 1.7, c.LEGEND_H))
 
     print('\n--- el tile deja lugar a la etiqueta ---')
     img_h = c.THUMB_H - 3 * 2 - c.THUMB_LABEL_H
@@ -128,8 +136,9 @@ def main():
 
     print('\n--- constantes en sync con dashboard.py ---')
     src = open(os.path.join(TD, 'vjcore', 'dashboard.py')).read()
-    for needle in ('STATUS_MAX_LINES = 22', 'FX_H = avail_h',
-                   'PREV_W = 300', 'BTN_H = 36'):
+    for needle in ('STATUS_MAX_LINES = c.STATUS_MAX_LINES', 'FX_H = avail_h',
+                   'PREV_W = 300', 'BTN_H = 36', 'legend_h = c.LEGEND_H',
+                   'fontsize=12, fontcolor=(0.75, 0.85, 1.0)'):
         check('dashboard.py contiene "{}"'.format(needle), needle in src)
 
     print('')
