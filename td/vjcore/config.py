@@ -1,5 +1,7 @@
 """Configuracion global del rig. Editar aqui, no dentro del build."""
 
+import math
+
 # Bajado de 53 a 46: se eliminaron 7 escenas (pulso, cristal, fusion,
 # telarana, jellyfish, floweroflife, eqbars) por pedido directo del
 # usuario, y el resto se renumero para cerrar los huecos (mismo
@@ -58,12 +60,15 @@ DEFAULT_MEDIA_FOLDER = '/Users/juanjaramillo/Desktop/TD2026/IMAGENES'
 #           orden y volver a una tecla vuelve exactamente a esa imagen.
 MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 
-# 6x6 = 36 casilleros. OJO: N_SCENES ya paso los 36 hace rato (46 ahora)
-# y dashboard.build() sigue poniendo un tile por escena sin paginar --
-# los casilleros 36-45 caen fuera del area de grilla reservada (bug
-# latente, ver conversacion / lo que falta: rediseno del dashboard).
+# GRID_ROWS se calcula SOLO a partir de N_SCENES (con GRID_ROWS=6 fijo
+# quedo un bug real: al pasar de 36 a 46 escenas, dashboard.build()
+# seguia poniendo un tile por escena mas alla de la fila 5, fuera del
+# area de grilla reservada -- invisibles o pisando otros paneles en un
+# build real). Con el ceil() la grilla siempre tiene exactamente las
+# filas que necesita, sin volver a tocar esto a mano cada vez que se
+# agregan o sacan escenas.
 GRID_COLS = 6
-GRID_ROWS = 6
+GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
 
 # TouchDesigner NON-COMMERCIAL limita la salida a 1280x1280.
 DEFAULT_OUTPUT_W = 1280
@@ -74,14 +79,24 @@ MAX_OUTPUT = 1280
 # Thumbnails achicados (208x117 -> 150x84, misma proporcion) al pasar de
 # 20 a 34 escenas -- si se mantenia el tamano viejo con 36 casilleros el
 # dashboard entero quedaba enorme.
-THUMB_W = 150
+# Achicados otra vez (150 -> 120, y 104 -> 84 abajo) al pasar GRID_ROWS
+# de fijo en 6 a dinamico: con 46 escenas la grilla necesita 8 filas, y
+# al tile viejo no le entraban sin invadir el panel de Master FX de
+# abajo. Con este tamano las 8 filas caben en el mismo alto que ya
+# reservaba la columna derecha (ver mas abajo), asi que el dashboard NO
+# crece -- de hecho el dashboard entero se angosta un poco, porque la
+# grilla tambien se achica a lo ancho.
+THUMB_W = 120
 # Subido de 84 a 104 para hacerle lugar a la ETIQUETA (numero + nombre)
 # abajo de cada miniatura. Sin nombre, una grilla de 34 casilleros obliga
 # a acordarse de memoria que la 17 es "triangles" -- y con las miniaturas
 # congeladas (ver POSTER FRAMES abajo) no habia forma de saberlo.
 # El alto del dashboard NO lo manda la grilla sino la columna derecha,
-# asi que agrandar el tile no agranda el dashboard.
-THUMB_H = 104
+# asi que agrandar el tile no agranda el dashboard -- pero si GRID_ROWS
+# crece (ver arriba), la grilla SI puede empezar a comerse el hueco de
+# abajo (Master FX + preview + TAKE/PANICO), que es lo que paso con 46
+# escenas y forzo bajar esto de 104 a 84.
+THUMB_H = 84
 THUMB_LABEL_H = 18
 
 # ---------------------------------------------------------------
