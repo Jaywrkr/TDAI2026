@@ -14,13 +14,20 @@ N_SCENES = 53
 #
 # Las cuatro comparten UNA SOLA CARPETA -- la de la pagina "Media" de
 # /project1 -- y muestran siempre la MISMA imagen al mismo tiempo. Eso es
-# a proposito: al cambiar de escena 16 -> 19 -> 34 -> 35 se ve el mismo
-# material tratado de cuatro maneras distintas (eco/feedback / glitch /
-# mandala / trama impresa), que en vivo se lee como una progresion y no
-# como cuatro cosas sueltas. Antes la carpeta era un parametro POR
-# ESCENA, lo que obligaba a cargar la ruta varias veces y a que se
-# desincronizaran solas.
-MEDIA_SCENES = {16, 19, 34, 35}
+# a proposito: al cambiar de escena entre ellas se ve el mismo material
+# tratado de cuatro maneras distintas (eco/feedback / glitch / mandala /
+# trama impresa), que en vivo se lee como una progresion y no como cuatro
+# cosas sueltas. Antes la carpeta era un parametro POR ESCENA, lo que
+# obligaba a cargar la ruta varias veces y a que se desincronizaran solas.
+#
+# Indices re-mapeados tras mandar scene00-07 (veins/neural/ink/metaball/
+# caustics/flow/web/aurora) a "la carcel" (bloqueadas, al final de la
+# lista) -- mediaecho 16->8, mediaglitch 19->11, kaleido 34->26,
+# halftone 35->27. Los nombres de archivo son la fuente de verdad real
+# (scenes.py arma esto leyendo el prefijo sceneNN_ de cada .frag), este
+# set tiene que seguir esos mismos indices o las dos escenas de imagen
+# quedan sin su segundo input.
+MEDIA_SCENES = {8, 11, 26, 27}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
