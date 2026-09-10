@@ -6,7 +6,7 @@ import math
 # telarana, jellyfish, floweroflife, eqbars) por pedido directo del
 # usuario, y el resto se renumero para cerrar los huecos (mismo
 # mecanismo de dos pasadas usado para mandar escenas a "la carcel").
-N_SCENES = 46
+N_SCENES = 48
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
