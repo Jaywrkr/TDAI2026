@@ -116,6 +116,20 @@ vec4 render(vec2 uv)
     // copias, en 1 se lee claramente por arriba.
     col += core * (uD6 * 0.9);
 
+    // Bloom suave: unas pocas muestras extra, bien desenfocadas
+    // alrededor del centro del tunel, se suman como resplandor ambiental
+    // -- la version "echo con bokeh" del mismo mecanismo, sin cambiar el
+    // tunel en si. Pedido explicito: mismo dato, mas prolijo.
+    vec2 coreUV = p * 0.5 + 0.5;
+    vec3 bloom = vec3(0.0);
+    for (int k = 0; k < 4; k++) {
+        float fk = float(k);
+        float ang = fk * 1.5708;
+        vec2  off = vec2(cos(ang), sin(ang)) * 0.05;
+        bloom += mediaTex(clamp(coreUV + off, 0.0, 1.0)).rgb;
+    }
+    col += bloom * 0.0375;
+
     // PIANO: un "golpe" de zoom -- una copia extra, mucho mas metida
     // hacia el centro que cualquier eco normal, se suma brillante con
     // cada tecla, como un pulso de feedback real disparandose. uKeypos
@@ -140,6 +154,11 @@ vec4 render(vec2 uv)
     // subida seguia sin notarse -- pedido explicito de que las escenas
     // de imagen reaccionen bastante mas al bajo para el bloom/brillo.
     col = audioLift(col, uBass * 2.4);
+
+    // Grading tipo lente real: tinte frio muy sutil hacia los bordes y
+    // calido hacia el centro, mismo toque que scene18_kaleido /
+    // scene19_halftone -- separa una imagen cruda de una trabajada.
+    col = mix(col * vec3(0.96, 1.0, 1.06), col * vec3(1.04, 1.0, 0.95), 1.0 - smoothstep(0.0, 1.1, length(p)));
 
     col *= vignette(uv, 0.35);
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.01;

@@ -1,149 +1,102 @@
 // ===============================================================
-// SCENE 19 - MEDIA GLITCH
-// Toma la imagen actual de la CARPETA COMUN de media (pagina "Media" de
-// /project1, compartida con scene34 caleidoscopio y scene35 trama) y le
-// aplica un efecto de glitch: pixelado + separacion cromatica + tearing
-// de bloques, todo reactivo al audio. Reemplaza al viejo "void" (orbe
-// minimalista).
+// SCENE 06 - MEDIA GLITCH (AGUA)
+// Toma la imagen actual de la carpeta comun de media y la distorsiona
+// como si se viera a traves de agua en movimiento -- reemplaza al
+// glitch de bloques/tearing/dropout por un oleaje continuo (domain
+// warp), siguiendo el mismo criterio de "organico, con glow, sin
+// cortes duros" que el resto del set ya perfecto.
 // ===============================================================
 //
 // COMO FUNCIONA
 //
-// mediaTex(uv) (definida en el header automatico, solo para las escenas
-// de config.MEDIA_SCENES) lee el input 1 del GLSL TOP, que es un Movie
-// File In TOP. Su parametro 'file' NO apunta a un archivo fijo: llama a
-// control_script.currentMediaPath(), que devuelve el archivo que la
-// carpeta comun tenga seleccionado en ese momento. Como el indice es
-// GLOBAL, esta escena, la 34 y la 35 muestran siempre la misma imagen:
-// pasar de una a otra en vivo se lee como el mismo material tratado de
-// tres maneras, no como tres cosas sueltas.
-//
-// Quien cambia de imagen lo decide Mediamode (MANUAL / TIEMPO / BEAT /
-// COMPAS / PIANO) -- ver control_script.py, seccion CARPETA COMUN DE
-// MEDIA.
-//
-// Carpeta vacia/sin setear, o Movie File In TOP sin archivo cargado
-// todavia -> sale negro. La escena sigue compilando y corriendo bien
-// igual, simplemente no hay nada que mostrar hasta que se configure (el
-// panel de estado del dashboard avisa cuando ese es el caso).
-//
-// El efecto en si:
-// 1. PIXELADO: se cuantiza el uv antes de muestrear (D1 = tamano de
-//    bloque), el look "8-bit" clasico.
-// 2. SEPARACION CROMATICA: cada canal RGB se muestrea con un offset
-//    horizontal propio (D2 = cuanto).
-// 3. TEARING: bloques horizontales aleatorios (por fila cuantizada) se
-//    desplazan en X a saltos, como una señal de video rota (D3 = cuanto).
-// 4. Todo se banea contra un umbral de Chaos para que en Chaos=0 el
-//    glitch case casi no se note (imagen casi limpia) y suba desde ahi.
+// mediaTex(uv) lee la carpeta comun (compartida con scene18 caleido y
+// scene19 halftone -- ver config.MEDIA_SCENES). En vez de cuantizar y
+// cortar el uv (pixelado + tearing de antes), se lo desplaza con un
+// campo fbm CONTINUO que fluye con el tiempo -- el mismo truco de
+// domain warp que scene02_caustica/scene17_wormhole -- asi la imagen
+// se ve ondulada como a traves de agua, nunca rota en bloques.
 //
 // CONTROLES
-//   Speed    velocidad a la que cambian los bloques de tearing
-//   Density  tamano de la rejilla de tearing (mas Density = bandas mas
-//            finas)
-//   Hue      tinte adicional mezclado sobre la imagen (0 = colores
-//            originales)
-//   Chaos    cuanto del glitch total se deja pasar (0 = imagen casi
-//            limpia, 1 = glitch a full)
+//   Speed    velocidad del flujo del oleaje
+//   Density  frecuencia del oleaje (ondas anchas <-> muchas y finas)
+//   Hue      tinte adicional mezclado sobre la imagen (0 = original)
+//   Chaos    turbulencia del oleaje (agua quieta <-> agitada)
 //   Bass     brillo de lo ya claro (audioLift)
-//   Mid      tinte adicional (audioHue), se suma al de Hue
-//   Kick     tearing y separacion cromatica se disparan mas fuerte un
-//            instante -- ya llega con envolvente de golpe-y-caida
-//            (audio.py)
-//   High     vibracion micro del offset de tearing (excepcion del
-//            contrato)
+//   Mid      tinte adicional (audioHue)
+//   Kick     el oleaje se agita mas fuerte un instante
+//   High     vibracion micro adicional (excepcion del contrato)
 //
-// @D1: tamano del pixelado (nitido/original <-> bloques bien grandes)
-// @D2: cantidad de separacion cromatica (RGB split)
-// @D3: cuanto se desplazan los bloques de tearing
-// @D4: mezcla de tinte de Hue sobre la imagen (colores originales <->
-//      completamente teñida)
-// @D5: cantidad de grano de pelicula, incluso sin kick
-// @D6: dropout de bloques -- fragmentos de imagen que se pierden, como
-//      un frame corrupto (nunca <-> se pierden bloques seguido)
+// @D1: fuerza de la distorsion del oleaje
+// @D2: cuanto se separan los canales de color (aberracion suave, como
+//      luz refractada)
+// @D3: mezcla de tinte de Hue sobre la imagen
+// @D4: velocidad del flujo interno del oleaje
+// @D5: cantidad de grano fino, incluso sin kick
+// @D6: profundidad de una segunda capa de oleaje mas fina, encima de
+//      la primera
 // ===============================================================
 
 vec4 render(vec2 uv)
 {
     float t = uTime;
+    vec2  p = centered(uv);
 
-    // Chaos: cuanto del glitch se deja pasar en total -- en 0, la imagen
-    // queda casi limpia (todos los efectos de abajo casi no se notan).
-    float glitchAmt = 0.05 + uChaos * 0.95;
+    float freq = mix(1.5, 6.0, uDensity);
+    float flowSpeed = 0.15 + uD4 * 0.6;
+    float turb = 0.5 + uChaos * 1.3;
 
-    // 1. PIXELADO -- D1 controla el tamano de bloque. El tamano tambien
-    // respira con los bajos (mismo patron que el perimetro de las
-    // metaballs): mas bass = bloques mas grandes por un instante.
-    float pixelSize = mix(1.0, 60.0, uD1 * glitchAmt) / (1.0 + uBass * 0.5);
-    vec2 uvPix = floor(uv * pixelSize) / max(pixelSize, 1.0);
+    vec2  warp = vec2(fbm(p * freq + t * flowSpeed, 4),
+                       fbm(p * freq - t * flowSpeed * 0.8 + 7.0, 4)) - 0.5;
+    // D6: segunda capa de oleaje mas fina, encima de la primera.
+    vec2  warp2 = vec2(fbm(p * freq * 2.6 - t * flowSpeed * 1.3 + 3.0, 3),
+                        fbm(p * freq * 2.6 + t * flowSpeed * 1.1 + 11.0, 3)) - 0.5;
+    vec2  totalWarp = warp * turb + warp2 * turb * uD6 * 0.6;
 
-    // 3. TEARING -- bloques horizontales que se desplazan en X a saltos.
-    // Density controla cuantas bandas hay, Speed que tan seguido cambian.
-    float bands = 6.0 + uDensity * 40.0;
-    float bandId = floor(uv.y * bands);
-    float tearRate = 1.0 + uSpeed * 6.0;
-    float stepT = floor(t * tearRate + bandId * 0.7);
-    float tearHash = hash21(vec2(bandId, stepT));
-    // Kick: tearing mas fuerte un instante, ademas del brillo de mas
-    // abajo -- ya llega con envolvente de golpe-y-caida.
-    float tearAmt = (0.02 + uD3 * 0.18) * glitchAmt * (1.0 + uKick * 2.0);
-    float tearShift = (tearHash - 0.5) * tearAmt;
-    // uHigh: vibracion micro del offset -- unica excepcion del contrato,
-    // amplitud pequena, ya suavizado.
-    tearShift += uHigh * 0.01 * sin(t * 20.0 + bandId);
+    // Kick: el oleaje se agita mas fuerte un instante.
+    float amt = mix(0.02, 0.14, uD1) * (1.0 + uKick * 1.8);
+    vec2  offset = totalWarp * amt;
+    // uHigh: vibracion micro adicional -- unica excepcion del contrato.
+    offset += uHigh * 0.006 * vec2(sin(t * 14.0), cos(t * 12.0));
 
-    vec2 uvTear = uvPix + vec2(tearShift, 0.0);
+    vec2  muv = clamp(uv + offset, 0.0, 1.0);
 
-    // 2. SEPARACION CROMATICA -- cada canal con su propio offset en X.
-    float aberr = (0.002 + uD2 * 0.035) * glitchAmt * (1.0 + uKick * 1.0);
-    vec3 media;
-    media.r = mediaTex(uvTear + vec2(aberr, 0.0)).r;
-    media.g = mediaTex(uvTear).g;
-    media.b = mediaTex(uvTear - vec2(aberr, 0.0)).b;
+    // D2: aberracion cromatica suave, como luz refractada por el agua
+    // (no un split duro de senal rota).
+    float aberr = uD2 * 0.012 * (1.0 + uKick * 0.8);
+    vec3  media;
+    media.r = mediaTex(clamp(muv + offset * aberr * 8.0, 0.0, 1.0)).r;
+    media.g = mediaTex(muv).g;
+    media.b = mediaTex(clamp(muv - offset * aberr * 8.0, 0.0, 1.0)).b;
 
-    // D6: bloques que se pierden (dropout de senal), como un frame
-    // corrupto -- en 0 nunca pasa, en 1 se pierden bloques seguido.
-    float dropoutHash = hash21(vec2(bandId, stepT) + 77.0);
-    float dropout = step(1.0 - uD6 * 0.35, dropoutHash);
-    media *= 1.0 - dropout;
-
-    // D4 + Hue/Mid: tinte mezclado sobre la imagen original.
+    // D3 + Hue/Mid: tinte mezclado sobre la imagen original.
     float h = audioHue(uHue, uMid * 0.16);
-    vec3 tint = hsv2rgb(vec3(h, 0.8, 1.0));
+    vec3  tint = hsv2rgb(vec3(h, 0.7, 1.0));
     float lum = dot(media, vec3(0.299, 0.587, 0.114));
-    vec3 col = mix(media, tint * lum, uD4 * 0.85);
+    vec3  col = mix(media, tint * lum, uD3 * 0.75);
 
-    // PIANO: corrupcion mucho mas fuerte con cada tecla -- pixelado AL
-    // MAXIMO (bloques enormes, la imagen se vuelve irreconocible un
-    // instante, no solo un poco mas gruesa) + tearing de bandas propio
-    // (desplazamiento X grande, sincronizado a la tecla) + tinte de
-    // color. uKeypos elige el tamano de bloque y la banda; uKeyvel
-    // escala la mezcla de tinte. uKeypulse decae solo.
+    // PIANO: una onda de choque de agua nace en el punto que elige
+    // uKeypos y empuja el muestreo desde ahi -- geometria real (el
+    // muestreo se desplaza), decae sola con uKeypulse.
     if (uKeypulse > 0.0015) {
-        float pixSizeP = mix(3.0, 90.0, 1.0 - uKeypos);
-        float bandIdP = floor(uv.y * (6.0 + uKeypos * 40.0));
-        float tearShiftP = (fract(bandIdP * 12.9898) - 0.5) * 0.35;
-        vec2 uvPixP = floor((uv + vec2(tearShiftP, 0.0)) * pixSizeP) / pixSizeP;
-        vec3 mediaP = mediaTex(uvPixP).rgb;
-        vec3 tintP = hsv2rgb(vec3(fract(uKeypos + 0.5), 0.85, 1.0));
-        vec3 corrupted = mix(mediaP, tintP * dot(mediaP, vec3(0.299, 0.587, 0.114)), 0.5 + uKeyvel * 0.4);
-        col = mix(col, corrupted, uKeypulse);
+        vec2  gp = vec2(uKeypos, 0.5);
+        vec2  toG = uv - gp;
+        float dG = length(toG);
+        vec2  ripple = normalize(toG + 1e-4) * sin(dG * 30.0 - t * 8.0) * uKeypulse * (0.03 + uKeyvel * 0.05);
+        vec3  ripCol = mediaTex(clamp(muv + ripple, 0.0, 1.0)).rgb;
+        col = mix(col, ripCol, uKeypulse * exp(-dG * dG * 8.0) * 0.8 + uKeypulse * 0.2);
     }
 
     // Kick: flash breve.
     col += col * uKick * 0.3;
 
-    // Bajos: brillo de lo ya claro. Nunca geometria. Multiplicador
-    // subido de nuevo (0.6 -> 1.1 -> 2.4): la primera subida seguia sin
-    // notarse -- pedido explicito de mas reaccion al bajo para el
-    // bloom/brillo en las escenas de imagen.
+    // Bajos: brillo de lo ya claro. Mismo multiplicador que el resto de
+    // las escenas de imagen del set.
     col = audioLift(col, uBass * 2.4);
 
-    // Grano de pelicula + vinieta -- ambos se intensifican en el kick,
-    // como una señal rota que "tose" con el golpe.
-    float grain = (hash21(uv * uResW + fract(uRTime) * 23.0) - 0.5) * (0.01 + uD5 * 0.10 + uKick * 0.06);
+    // D5: grano fino, incluso sin kick.
+    float grain = (hash21(uv * uResW + fract(uRTime) * 23.0) - 0.5) * (0.01 + uD5 * 0.08 + uKick * 0.04);
     col += grain;
-    col *= vignette(uv, 0.15 + uKick * 0.25);
+    col *= vignette(uv, 0.2);
 
     return vec4(col, 1.0);
 }
