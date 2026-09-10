@@ -154,7 +154,12 @@ vec4 render(vec2 uv)
 
     float h0 = audioHue(uHue, uMid * 0.16);
     vec3 coreCol = hsv2rgb(vec3(fract(h0 + 0.66), 0.75, 1.0));   // indigo/violeta
-    vec3 col = coreCol * core;
+
+    // Atmosfera de fondo: un lift de color muy sutil en vez de negro
+    // absoluto -- como si el flujo entero estuviera suspendido en un
+    // medio tenuemente iluminado, no en el vacio.
+    vec3 col = coreCol * (1.0 - smoothstep(0.0, 1.4, length(p))) * 0.035;
+    col += coreCol * core;
 
     // Density: cuantos pares acompañantes (cyan/amarillo) hay, cada uno
     // mas fino y mas tenue que el anterior -- el look de "muchos hilos

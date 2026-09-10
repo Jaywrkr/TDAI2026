@@ -87,7 +87,10 @@ vec4 render(vec2 uv)
     float lineD = min(edgeDist.x, edgeDist.y);
     float aaLine = max(fwidth(lineD), 1e-5);
     float gridLine = 1.0 - smoothstep(0.0, aaLine * 1.5, lineD);
-    vec3  col = vec3(gridLine) * 0.10;
+    // Tablero real, no vacio: un fondo oscuro con un leve tinte (fieltro
+    // de mesa de juego) en vez de negro plano detras de la grilla.
+    vec3  col = hsv2rgb(vec3(fract(audioHue(uHue, uMid * 0.10) + 0.42), 0.35, 0.05));
+    col += vec3(gridLine) * 0.10;
 
     // --- LA FICHA DE ESTA CELDA ---
     // D1: probabilidad de que la celda tenga ficha.
@@ -144,6 +147,9 @@ vec4 render(vec2 uv)
         vec3  tokenCol = hsv2rgb(vec3(h, sat, 1.0));
 
         col += tokenCol * coverage;
+        // Bloom ancho: la ficha "sangra" un halo tenue sobre el fieltro,
+        // como una pieza real con brillo propio en vez de un color plano.
+        col += tokenCol * exp(-d * d * 10.0) * 0.18;
 
         // Bajos: brillo de lo ya claro, mas fuerte en fichas rellenas
         // (tienen mas superficie solida para lucir el bloom) que en

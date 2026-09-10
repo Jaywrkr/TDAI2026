@@ -137,6 +137,16 @@ vec4 render(vec2 uv)
 
     vec3 col = mix(colA, colB, proj);
 
+    // Brillo de vidrio: una franja especular diagonal fija (no rota con
+    // el reseed de color) que cruza cada panel en un angulo propio --
+    // como la luz de una vidriera real reflejando en el vidrio, no solo
+    // el degradado plano de tinta.
+    float sheenAng = hash21(vec2(nodeHash, 777.0)) * PI;
+    vec2  sheenDir = vec2(cos(sheenAng), sin(sheenAng));
+    float sheenPos = dot(panelLocal - 0.5, sheenDir);
+    float sheen = exp(-sheenPos * sheenPos * 14.0) * 0.16;
+    col += vec3(1.0) * sheen;
+
     // D6: ganancia general, antes del brillo de audio.
     col *= 0.6 + uD6 * 0.7;
 

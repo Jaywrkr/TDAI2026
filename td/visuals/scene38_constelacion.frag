@@ -118,6 +118,12 @@ vec4 render(vec2 uv)
     float regionH = audioHue(paletteHue(colorIdx), 0.0) + h0;
     vec3  col = hsv2rgb(vec3(fract(regionH), 0.78, 0.82));
 
+    // Sombreado tipo gema pulida: cada region gana un leve brillo cerca
+    // de su semilla y se oscurece hacia el borde -- en vez de un color
+    // plano, se lee como una teselacion con volumen propio.
+    float regionShade = mix(1.18, 0.82, smoothstep(0.0, cellSize * 0.9, minBlockD));
+    col *= regionShade;
+
     // --- CURVA (Lissajous, se dibuja de a poco y se queda quieta) ---
     // D2: complejidad -- rango de lobulos que puede tocar el hash.
     float fa = 3.0 + floor(hash21(vec2(gs, 11.0)) * (3.0 + uD2 * 5.0));

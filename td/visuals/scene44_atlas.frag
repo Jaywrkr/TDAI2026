@@ -112,8 +112,15 @@ vec4 render(vec2 uv)
     float field = fbm(wp * 0.9 + t * flowSpeed * 0.6, 6, 0.5);
 
     int   nRegions = 2 + int(floor(uD1 * 3.99));
-    int   regionIdx = int(clamp(field * float(nRegions), 0.0, float(nRegions) - 0.001));
+    float bandPos = field * float(nRegions);
+    int   regionIdx = int(clamp(bandPos, 0.0, float(nRegions) - 0.001));
     vec3  baseCol = hsv2rgb(vec3(fract(audioHue(territoryHue(regionIdx), 0.0) + h0), sat, mix(0.55, 0.95, uD6)));
+
+    // Relieve de mapa fisico: cada territorio se ilumina un poco en su
+    // centro y se oscurece cerca de la frontera con el vecino -- en vez
+    // de bandas de color plano, se lee como un relieve real.
+    float bandFrac = abs(fract(bandPos) - 0.5) * 2.0;
+    baseCol *= mix(1.12, 0.85, bandFrac);
 
     // --- ZONAS OSCURAS: segundo fbm independiente ---
     float darkField = fbm(wp * 1.3 + 50.0 + t * flowSpeed * 0.4, 4);
