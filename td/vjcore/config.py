@@ -58,7 +58,10 @@ DEFAULT_MEDIA_FOLDER = '/Users/juanjaramillo/Desktop/TD2026/IMAGENES'
 #           orden y volver a una tecla vuelve exactamente a esa imagen.
 MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 
-# 6x6 = 36 casilleros para las 36 escenas -- la grilla queda exacta.
+# 6x6 = 36 casilleros. OJO: N_SCENES ya paso los 36 hace rato (46 ahora)
+# y dashboard.build() sigue poniendo un tile por escena sin paginar --
+# los casilleros 36-45 caen fuera del area de grilla reservada (bug
+# latente, ver conversacion / lo que falta: rediseno del dashboard).
 GRID_COLS = 6
 GRID_ROWS = 6
 
