@@ -238,15 +238,24 @@ def _assertRange(par, lo, hi):
     justo al lado de la perilla, un clic o un scroll de mas ahi alcanza.
     builder.py crea estos parametros con clampMin/clampMax=True (para que
     nunca reciban un valor fuera de rango), pero eso mismo significa que
-    si el Range queda corrompido (ej. normMax en 0.0078 en vez de 1.0), TD
+    si el Range queda corrompido (ej. max en 0.0078 en vez de 1.0), TD
     trunca CUALQUIER valor que Python le escriba a ese rango -- aunque
     _handle() este escribiendo 0.0..1.0 perfecto, lo que llega al shader
     es como mucho 0.0078. La perilla o el pad quedan "conectados" pero el
-    efecto es invisible, sin ningun error en ningun lado. Reafirmando el
-    rango en cada movimiento esto se autocorrige solo, sin depender de que
-    alguien note el dialogo de Parameters ni de un Reconstruir Todo.
+    efecto es invisible, sin ningun error en ningun lado.
+
+    CORREGIDO: la primera version de esto solo reafirmaba normMin/normMax
+    y el bug SIGUIO pasando (reportado de nuevo en vivo, Detail6 seguia en
+    0..0.0078 con el fix ya mergeado) -- porque TD tiene DOS pares de
+    atributos de rango distintos (min/max, el "Range" que se ve en el
+    dialogo de Parameters, y normMin/normMax, el rango normalizado) y el
+    primer intento solo cubria uno de los dos. Sin poder confirmar cual de
+    los dos es el que de verdad clampea el valor en esta build de TD, se
+    reafirman los CUATRO juntos -- asi no importa cual sea.
     """
     try:
+        par.min = lo
+        par.max = hi
         par.normMin = lo
         par.normMax = hi
         par.clampMin = True
