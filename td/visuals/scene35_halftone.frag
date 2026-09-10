@@ -128,9 +128,10 @@ vec4 render(vec2 uv)
     vec3 inkCol = mix(hsv2rgb(vec3(h, 0.80, 1.0)), src / max(lum, 0.08), uD3) * (0.7 + uD6 * 0.8);
     vec3 col = inkCol * ink;
 
-    // Multiplicador subido (0.6 -> 1.1): pedido explicito de mas
-    // reaccion al bajo para el bloom/brillo en las escenas de imagen.
-    col = audioLift(col, uBass * 1.1);
+    // Multiplicador subido de nuevo (0.6 -> 1.1 -> 2.4): la primera
+    // subida seguia sin notarse -- pedido explicito de mas reaccion al
+    // bajo para el bloom/brillo en las escenas de imagen.
+    col = audioLift(col, uBass * 2.4);
     col += col * uKick * 0.35;
 
     col *= vignette(uv, 0.25);

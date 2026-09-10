@@ -230,6 +230,31 @@ def _ctx():
     return op('/project1'), op('/project1/control_script')
 
 
+def _assertRange(par, lo, hi):
+    """Reafirma el rango real de un parametro antes de escribirle un valor.
+
+    BUG real encontrado en vivo: el dialogo de Parameters de TD deja
+    editar/arrastrar a mano el campo Range de cualquier parametro -- esta
+    justo al lado de la perilla, un clic o un scroll de mas ahi alcanza.
+    builder.py crea estos parametros con clampMin/clampMax=True (para que
+    nunca reciban un valor fuera de rango), pero eso mismo significa que
+    si el Range queda corrompido (ej. normMax en 0.0078 en vez de 1.0), TD
+    trunca CUALQUIER valor que Python le escriba a ese rango -- aunque
+    _handle() este escribiendo 0.0..1.0 perfecto, lo que llega al shader
+    es como mucho 0.0078. La perilla o el pad quedan "conectados" pero el
+    efecto es invisible, sin ningun error en ningun lado. Reafirmando el
+    rango en cada movimiento esto se autocorrige solo, sin depender de que
+    alguien note el dialogo de Parameters ni de un Reconstruir Todo.
+    """
+    try:
+        par.normMin = lo
+        par.normMax = hi
+        par.clampMin = True
+        par.clampMax = True
+    except Exception:
+        pass
+
+
 def _handle(channel, val, is_trigger):
     p, ctrl = _ctx()
     if not p or not ctrl:
@@ -250,12 +275,14 @@ def _handle(channel, val, is_trigger):
         par_name, lo, hi = CONTINUOUS[slot]
         par = getattr(p.par, par_name, None)
         if par is not None:
+            _assertRange(par, lo, hi)
             par.val = lo + (hi - lo) * max(0.0, min(1.0, float(val) / 127.0))
     elif is_trigger and slot in TRIGGERS:
         getattr(m, TRIGGERS[slot])()
     elif is_trigger and slot in EFFECT_TRIGGERS:
         par = getattr(p.par, slot, None)
         if par is not None:
+            _assertRange(par, 0.0, 1.0)
             par.val = max(0.0, min(1.0, float(val) / 127.0))
         _refreshLeds()
         run("op('/project1/midi_logic').module._resetEffect('{}')".format(slot), delayFrames=2)

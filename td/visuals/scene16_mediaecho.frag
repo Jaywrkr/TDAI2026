@@ -136,9 +136,10 @@ vec4 render(vec2 uv)
 
     // Bajos: brillo de lo ya claro. Nunca geometria (salvo el empujon
     // chico de zoom de arriba, ya suavizado -- ver contrato de audio).
-    // Multiplicador subido (0.6 -> 1.1): pedido explicito de que las
-    // escenas de imagen reaccionen mas al bajo para el bloom/brillo.
-    col = audioLift(col, uBass * 1.1);
+    // Multiplicador subido de nuevo (0.6 -> 1.1 -> 2.4): la primera
+    // subida seguia sin notarse -- pedido explicito de que las escenas
+    // de imagen reaccionen bastante mas al bajo para el bloom/brillo.
+    col = audioLift(col, uBass * 2.4);
 
     col *= vignette(uv, 0.35);
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.01;
