@@ -92,7 +92,12 @@ vec4 render(vec2 uv)
     vec3 landCol = hsv2rgb(vec3(fract(h0 + 0.82), 0.22, 0.58)) * (0.8 + uD6 * 0.6);
     float grain = (fbm(lp * 9.0 + 5.0, 2) - 0.5) * 0.25;
     landCol *= (1.0 + grain);
-    vec3 col = landCol * landMask;
+
+    // Oceano real, no vacio: un azul muy oscuro de fondo (en vez de
+    // negro puro) detras de las estrellas, como agua profunda bajo un
+    // cielo nocturno.
+    vec3 col = hsv2rgb(vec3(fract(h0 + 0.55), 0.5, 0.025)) * (1.0 - landMask);
+    col += landCol * landMask;
 
     // --- COSTA (titila, no se mueve) ---
     float coastD = land - threshold;
@@ -109,6 +114,10 @@ vec4 render(vec2 uv)
     float shimmer = 0.55 + 0.45 * sin(t * (1.0 + uSpeed * 4.5) + shimmerPhase);
     vec3  coastCol = hsv2rgb(vec3(fract(h0 + 0.38), 0.72, 1.0));
     col += coastCol * coastGlow * shimmer;
+    // Bloom ancho: la costa "sangra" un halo mucho mas difuso sobre el
+    // oceano, como luz real reflejando en el agua cerca de la orilla.
+    float coastGlowWide = exp(-coastD * coastD / (glowW * glowW * 12.0));
+    col += coastCol * coastGlowWide * shimmer * 0.15;
 
     // --- GRIETAS (Worley F2-F1, solo dentro de la tierra) ---
     float crackFreq = mix(3.5, 15.0, uD3);

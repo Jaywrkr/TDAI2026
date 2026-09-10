@@ -134,6 +134,11 @@ vec4 render(vec2 uv)
     col = audioLift(col, uBass * 2.4);
     col += col * uKick * 0.35;
 
+    // Grading tipo prensa real: un tinte frio muy sutil hacia los bordes
+    // y calido hacia el centro -- mismo toque que scene34_kaleido, para
+    // que las dos escenas de imagen se lean como una familia trabajada.
+    col = mix(col * vec3(0.96, 1.0, 1.06), col * vec3(1.05, 1.0, 0.94), 1.0 - smoothstep(0.0, 1.1, length(p)));
+
     col *= vignette(uv, 0.25);
     col += (hash21(uv * uResW + fract(uRTime) * 17.0) - 0.5) * 0.01;
 

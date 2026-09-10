@@ -165,6 +165,13 @@ vec4 render(vec2 uv)
         }
 
         col = mix(colA, colB, mixV);
+
+        // Relieve tallado: cada celda se ilumina un poco cerca de su
+        // centro y se oscurece hacia sus bordes -- el bisel que separa
+        // "un patron plano" de "una talla real con profundidad".
+        vec2  cCenter = cellUV - 0.5;
+        float carve = 1.0 - dot(cCenter, cCenter) * 1.4;
+        col *= mix(0.78, 1.15, clamp(carve, 0.0, 1.0));
     }
 
     // --- MARCO (linea oscura del borde del panel) ---
@@ -185,6 +192,10 @@ vec4 render(vec2 uv)
         vec3  eyeB = hsv2rgb(vec3(fract(h0 + 0.68), sat, 0.15));
         col = mix(eyeA, eyeB, ring);
     }
+    // Bloom ancho: el ojo central derrama un halo tenue sobre el panel a
+    // su alrededor, como si tuviera luz propia -- la identidad visual
+    // del totem se nota incluso fuera de su propio marco.
+    col += hsv2rgb(vec3(fract(h0 + 0.98), sat, 1.0)) * exp(-eyeD * eyeD * 2.0) * 0.10;
 
     // PIANO: la celda de columna mas cercana a uKeypos destella blanco
     // -- color encima, no reordena nada.

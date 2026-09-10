@@ -134,7 +134,10 @@ vec4 render(vec2 uv)
         m = step(fx, barW) * step(air, rowY) * step(rowY, 1.0 - air);
     }
 
-    vec3 col = motifCol * m;
+    // Tela real, no vacio: un fondo calido muy oscuro (el color base de
+    // la trama del textil) en vez de negro absoluto entre los motivos.
+    vec3 col = hsv2rgb(vec3(fract(h0 + 0.03), 0.4, 0.04)) * (1.0 - m);
+    col += motifCol * m;
 
     // D6: brillo/resplandor general.
     col *= 0.75 + uD6 * 0.6;

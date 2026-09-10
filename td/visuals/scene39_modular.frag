@@ -91,7 +91,10 @@ vec4 render(vec2 uv)
     // D1: fraccion de celdas vacias.
     float emptyProb = mix(0.12, 0.62, uD1);
     float typeH = hash21(id + gs * 11.0 + 1.0);
-    vec3 col = vec3(0.0);
+    // Panel real, no vacio: las celdas apagadas quedan con un gris de
+    // chasis muy oscuro en vez de negro puro -- se leen como pantallitas
+    // apagadas dentro de un panel fisico, no como huecos.
+    vec3 col = hsv2rgb(vec3(fract(h0 + 0.6), 0.2, 0.035));
 
     if (typeH >= emptyProb) {
         // D2: sesga la mezcla hacia patrones simples (indice bajo) o
@@ -187,8 +190,9 @@ vec4 render(vec2 uv)
     // Kick: flash de toda la pared.
     col += col * uKick * 0.4;
 
-    // Bajos: brillo de lo ya claro. Las celdas vacias (col == 0) no se
-    // ven afectadas -- audioLift multiplica luminancia existente.
+    // Bajos: brillo de lo ya claro. Las celdas "apagadas" (chasis casi
+    // negro) apenas se ven afectadas -- audioLift multiplica luminancia
+    // existente, y la de ese gris es minuscula por construccion.
     col = audioLift(col, uBass * 0.6);
 
     col *= vignette(uv, 0.25);

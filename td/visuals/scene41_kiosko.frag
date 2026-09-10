@@ -151,6 +151,12 @@ vec4 render(vec2 uv)
 
     // --- PANTALLA DE KIOSKO (rectangulo fijo, contenido que reordena) ---
     vec2 boxLo = vec2(0.26, 0.66), boxHi = vec2(0.56, 0.90);
+    // Resplandor de bisel: la pantalla real derrama luz sobre el marco
+    // que la rodea, no corta seco al borde de la caja.
+    vec2  boxC = (boxLo + boxHi) * 0.5, boxHalf = (boxHi - boxLo) * 0.5;
+    vec2  boxD = max(abs(uv - boxC) - boxHalf, 0.0);
+    float bezelGlow = exp(-dot(boxD, boxD) * 900.0) * (0.5 + uD6 * 0.6);
+    col += hsv2rgb(vec3(fract(0.11 + h0 * 0.4), 0.7, 1.0)) * bezelGlow;
     if (uv.x > boxLo.x && uv.x < boxHi.x && uv.y > boxLo.y && uv.y < boxHi.y) {
         col = vec3(0.015);
         vec2 boxUV = (uv - boxLo) / (boxHi - boxLo);
