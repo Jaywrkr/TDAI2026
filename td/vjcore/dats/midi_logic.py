@@ -208,19 +208,19 @@ TRIGGERS = {
     'Fontnext': 'nextFont',
 }
 
-# 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, notas
-# 45-52, ver config.DEFAULT_MIDI) -- se comportan como cualquier otro
-# TRIGGER (se pueden reaprender con Learn), solo que en vez de llamar una
-# funcion sin argumentos, escriben la velocidad del pad (0..1) en su
-# parametro y se resetean solas un par de frames despues -- mismo patron/
-# funcion (_resetEffect) que ya usaba el piano.
+# 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, ver
+# config.DEFAULT_MIDI) -- se comportan como cualquier otro TRIGGER (se
+# pueden reaprender con Learn), solo que en vez de llamar una funcion sin
+# argumentos, escriben la velocidad del pad (0..1) en su parametro y se
+# resetean solas un par de frames despues -- mismo patron/funcion
+# (_resetEffect) que ya usaba el piano.
 #
 # OJO: esos 2 frames son solo el FLANCO de subida, no la duracion real
 # del efecto. Antes no habia nada mas: el parametro raw iba derecho a la
 # textura de control (config.PAR_CHANNELS) y un pad duraba en pantalla
 # esos mismos ~2 frames (~0.03s a 60fps) -- invisible. Ahora
 # midi.build_effects_envelope() intercepta ese flanco con un Lag CHOP
-# (config.FX_DECAY_SECONDS, hoy 0.6s) antes de que llegue a la textura de
+# (config.FX_DECAY_SECONDS, hoy 1.4s) antes de que llegue a la textura de
 # control, asi que lo que SE VE es la envolvente, no el flanco crudo.
 EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
                     'Mirror', 'Zoom', 'Posterize']

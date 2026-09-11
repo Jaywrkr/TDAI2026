@@ -357,8 +357,10 @@ DEFAULT_MIDI = {
     # Actualizado con el mapeo REAL confirmado via MIDI Learn en la pagina
     # MIDI Mapping del usuario (todos los knobs/perillas ya aprendidos,
     # no solo los 6 originales) -- ver captura de la sesion. Detail5/6
-    # se dejan sin default: el controlador no tiene mas perillas libres
-    # ("ya no tengo perillas libres", dicho explicitamente antes).
+    # antes se dejaban sin default ("ya no tengo perillas libres"), pero
+    # el usuario libero/reuso dos controles mas: ch1ctrl2 (un CC que no
+    # estaba en uso) y ch1pitch (la rueda de pitch bend, reusada como
+    # perilla continua).
     'Speed':      'ch1ctrl75',
     'Density':    'ch1ctrl72',
     'Hue':        'ch1ctrl77',
@@ -378,20 +380,27 @@ DEFAULT_MIDI = {
     'Detail2': 'ch1ctrl92',
     'Detail3': 'ch1ctrl80',
     'Detail4': 'ch1ctrl73',
-    'Detail5': '',
-    'Detail6': '',
-    # 8 efectos en los 8 pads del banco B del MiniLab mkII (pads 9-16),
-    # confirmados por el usuario: canal 10, notas 45-52 consecutivas. Ya
-    # vienen con default -- no hace falta Learn para que funcionen desde
-    # el primer arranque (igual que los knobs).
-    'Grain':     'ch10n45',
-    'Glitch':    'ch10n46',
-    'Pixelate':  'ch10n47',
-    'Strobe':    'ch10n48',
-    'Invert':    'ch10n49',
+    'Detail5': 'ch1ctrl2',
+    'Detail6': 'ch1pitch',
+    # 8 efectos en los 8 pads del banco B del MiniLab mkII (pads 9-16).
+    # Los primeros 5 (Grain-Invert) se remapearon de las notas 45-49 a
+    # 37-41 -- confirmado por el usuario en la pagina MIDI Mapping.
+    # Mirror/Zoom/Posterize se quedaron en 50-52. Ya vienen con default
+    # -- no hace falta Learn para que funcionen desde el primer arranque
+    # (igual que los knobs).
+    'Grain':     'ch10n37',
+    'Glitch':    'ch10n38',
+    'Pixelate':  'ch10n39',
+    'Strobe':    'ch10n40',
+    'Invert':    'ch10n41',
     'Mirror':    'ch10n50',
     'Zoom':      'ch10n51',
     'Posterize': 'ch10n52',
+    # Carpeta comun de media -- tambien confirmados en la misma captura,
+    # antes sin default.
+    'Medianext': 'ch1ctrl24',
+    'Mediaprev': 'ch1ctrl23',
+    'Medialock': 'ch1ctrl25',
 }
 
 # Orden en que aparecen en la pagina MIDI Mapping. Esto es lo unico que
@@ -419,7 +428,7 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # los unicos que se aprietan con urgencia.
               'Lookamount', 'Palettelock',
               'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic',
-              # Carpeta comun de media (scene19/34/35). 'Medianext' es
+              # Carpeta comun de media (ver MEDIA_SCENES). 'Medianext' es
               # el unico que de verdad pide un pad fisico: en modo
               # MANUAL es como se pasan las imagenes a mano.
               'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock',
