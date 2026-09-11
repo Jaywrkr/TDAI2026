@@ -83,7 +83,11 @@ vec4 render(vec2 uv)
     // uKeypos y empuja el muestreo desde ahi -- geometria real (el
     // muestreo se desplaza), decae sola con uKeypulse.
     if (uKeypulse > 0.0015) {
-        vec2  gp = vec2(uKeypos, 0.5);
+        // Acotado (0.12..0.88, no 0..1 crudo): con uKeypos=0 o 1 el
+        // origen quedaba pegado al borde exacto de la imagen -- la
+        // mitad de la onda de choque nacia fuera de cuadro. Mismo
+        // margen que el resto del set usa para esto.
+        vec2  gp = vec2(mix(0.12, 0.88, uKeypos), 0.5);
         vec2  toG = uv - gp;
         float dG = length(toG);
         vec2  ripple = normalize(toG + 1e-4) * sin(dG * 30.0 - t * 8.0) * uKeypulse * (0.03 + uKeyvel * 0.05);

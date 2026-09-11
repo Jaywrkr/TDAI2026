@@ -171,7 +171,15 @@ vec4 render(vec2 uv)
         // medio en la columna que elige uKeypos -- no una franja vertical
         // repetida en cada fila (eso pasaba con un intento anterior que
         // comparaba contra cellF.y, local a la fila de CADA pixel).
-        vec2  guestCell = vec2(mix(0.5, cols - 0.5, uKeypos), cols / uAspect * 0.5);
+        // La grilla real vive en g = (uv.x*uAspect, uv.y) * cols -- el
+        // ancho visible en X es uAspect*cols, no cols. Con el rango
+        // viejo (0.5..cols-0.5) la ficha invitada nunca llegaba a la
+        // mitad derecha de la pantalla en una salida ancha (16:9,
+        // uAspect>1): quedaba siempre corrida a la izquierda. La fila
+        // del medio tampoco era cols*0.5 -- estaba dividida por
+        // uAspect sin motivo, corrida hacia arriba o abajo del centro
+        // real segun el aspecto.
+        vec2  guestCell = vec2(mix(0.5, uAspect * cols - 0.5, uKeypos), cols * 0.5);
         float dGuest = length(g - guestCell) - (0.55 + uKeyvel * 0.45);
         float aaGuest = max(fwidth(dGuest), 1e-4);
         float guestCov = (1.0 - smoothstep(0.0, aaGuest * 1.5, dGuest)) * uKeypulse;

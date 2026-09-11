@@ -89,7 +89,13 @@ vec4 render(vec2 uv)
     // uKeypulse decae solo (se expande y se disuelve); uKeyvel escala el
     // tamano.
     if (uKeypulse > 0.0015) {
-        vec2 guestOrigin = vec2((uKeypos - 0.5) * 2.2, cos(uKeypos * 8.0) * 0.7);
+        // Antes (uKeypos-0.5)*2.2 llegaba a +-1.1 en X -- mas ancho que
+        // la pantalla en una salida cuadrada o casi cuadrada (uAspect
+        // cerca de 1), asi que la gota podia nacer fuera de cuadro.
+        // centered() ya escala por uAspect solo, asi que esto entra
+        // siempre, sea cual sea la salida.
+        vec2 guestOrigin = centered(vec2(mix(0.15, 0.85, uKeypos), 0.5));
+        guestOrigin.y = cos(uKeypos * 8.0) * 0.55;
         float guestAng = fract(uKeypos * 13.0) * TAU;
         vec2 guestDir = vec2(cos(guestAng), sin(guestAng));
         float guestCycle = 1.0 - uKeypulse;
