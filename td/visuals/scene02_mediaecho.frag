@@ -29,13 +29,17 @@
 //   Density  cuantas copias (ecos) entran (tunel corto <-> profundo)
 //   Hue      tinte que se mezcla sobre las copias (0 = colores
 //            originales de la imagen)
-//   Chaos    cuanto se desvia cada copia de la espiral perfecta --
-//            jitter propio de rotacion/escala por copia, fijo (no
-//            anima), para que el tunel se vea organico y no como una
-//            espiral matematica exacta
+//   Chaos    doble uso, pedido explicito -- antes casi no se notaba:
+//            (1) velocidad de giro del tunel entero (lento y quieto en
+//            0, la velocidad de antes en 1 -- la perilla que faltaba
+//            para controlar "la velocidad de la imagen" en vivo) y
+//            (2) cuanto se desvia cada copia de la espiral perfecta,
+//            fijo por copia (no anima), para que el tunel se vea mas
+//            organico a la vez que va mas rapido
 //   Bass     brillo de lo ya claro (audioLift, subido -- pedido
 //            explicito de que se note mas) + un empujon chico al zoom
-//            de cada copia (ya suavizado, no reintroduce temblor)
+//            de cada copia (ya suavizado, no reintroduce temblor) +
+//            empujon extra al bloom (pedido explicito)
 //   Mid      tinte adicional (audioHue), antes de construir el tinte
 //            por copia
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
@@ -67,10 +71,13 @@ vec4 render(vec2 uv)
     float hueDrift = uD5 * 0.16;
 
     float hueBase = audioHue(uHue, uMid * 0.08);
-    // Bajado (0.04/0.35 -> 0.02/0.18): pedido explicito de que la
-    // velocidad por defecto sea mas lenta -- el mismo valor de Speed da
-    // ahora poco mas de la mitad de giro que antes.
-    float baseSpin = t * (0.02 + uSpeed * 0.18);
+    // Bajado de nuevo (0.02/0.18 -> 0.008/0.10): pedido explicito otra
+    // vez de que sea MUCHO mas lento por defecto. Chaos ahora es la
+    // perilla dedicada para subir esa velocidad en vivo -- en su
+    // default (0.5) el giro queda igual de lento que el minimo de
+    // Speed solo, y llevando Chaos a fondo se llega a un giro rapido.
+    float chaosSpeedMult = mix(0.25, 2.4, uChaos);
+    float baseSpin = t * (0.008 + uSpeed * 0.10) * chaosSpeedMult;
 
     vec3 col = vec3(0.0);
     vec3 core = vec3(0.0);
@@ -133,6 +140,14 @@ vec4 render(vec2 uv)
         bloom += mediaTex(clamp(coreUV + off, 0.0, 1.0)).rgb;
     }
     col += bloom * 0.0375;
+    // Bass: empujon extra al bloom -- pedido explicito de que se note
+    // mas el resplandor cuando hay grave, ademas del audioLift general
+    // de mas abajo.
+    // Chico a proposito (no 0.22): ese valor compuesto con el
+    // audioLift de mas abajo lavaba el tunel a blanco solido con bajo
+    // a fondo -- mismo problema documentado arriba para el brillo
+    // general, mismo criterio de solucion.
+    col += bloom * uBass * 0.07;
 
     // PIANO: un "golpe" de zoom -- una copia extra, mucho mas metida
     // hacia el centro que cualquier eco normal, se suma brillante con

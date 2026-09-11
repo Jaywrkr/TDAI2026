@@ -22,7 +22,9 @@
 //            turbulencia del warp -- el fluido se agita de verdad con
 //            el grave, acotado (nunca se dispara, sigue el nivel)
 //   Mid      tinte adicional (audioHue)
-//   Kick     destello breve en todo el patron
+//   Kick     ademas del destello, un empujon fuerte y breve de
+//            turbulencia -- el fluido se mueve de verdad en el golpe,
+//            no solo brilla, y vuelve solo cuando uKick decae
 //   High     vibracion micro del warp (excepcion del contrato)
 //
 // @D1: contraste de las bandas de luz (suaves <-> nitidas)
@@ -47,7 +49,7 @@ vec4 render(vec2 uv)
     // explicito, empuje acotado sobre la turbulencia (nunca se dispara,
     // sigue el nivel en vivo como el resto de los empujones de bajo del
     // set).
-    float turb = 0.6 + uChaos * 1.4 + uD2 * 1.2 + uBass * 1.1;
+    float turb = 0.6 + uChaos * 1.4 + uD2 * 1.2 + uBass * 1.1 + uKick * 1.8;
     vec2  warp = vec2(fbm(p * 1.8 + t * warpSpeed, 4), fbm(p * 1.8 - t * warpSpeed * 0.8 + 9.0, 4)) - 0.5;
     // uHigh: vibracion micro del warp -- unica excepcion del contrato.
     warp += uHigh * 0.015 * vec2(sin(t * 9.0), cos(t * 7.5));

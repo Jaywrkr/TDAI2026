@@ -29,9 +29,11 @@
 //   Density  zoom sobre la imagen (de la imagen entera a un detalle)
 //   Hue      tinte que se mezcla sobre la imagen (0 = colores originales)
 //   Chaos    ondulacion del radio -- los espejos dejan de ser rectos
-//   Bass     ACELERA el giro (geometria real, mismo criterio que el
-//            disco de scene33) + suma amplitud a la ondulacion del
-//            radio (el mandala tambien "respira" mas fuerte) + brillo
+//   Bass     el giro queda ESTATICO a proposito (pedido explicito, ya
+//            no acelera con el bajo) -- en cambio suma amplitud a la
+//            ondulacion del radio (el mandala sigue "respirando" mas
+//            fuerte) y empuja mucho mas fuerte el brillo/bloom del
+//            nucleo y de la imagen entera
 //   Mid      tinte adicional (audioHue)
 //   Kick     empujon de zoom hacia adentro, y vuelve solo
 //   High     vibracion micro del angulo (excepcion del contrato)
@@ -55,13 +57,11 @@ vec4 render(vec2 uv)
     float ang = atan(p.y, p.x);
 
     // --- GIRO ---
-    // Bass acelera el giro de verdad. Es geometria, pero del mismo tipo
-    // que ya se acepto en scene33 (el disco de acrecion): un cambio de
-    // VELOCIDAD continuo y acotado, no un salto de posicion por frame,
-    // y uBass llega suavizado desde audio.py. No tiembla. Empuje subido
-    // (0.45 -> 1.1): pedido explicito -- "nada se mueve con la
-    // musica", el empuje anterior era demasiado sutil para notarse.
-    ang += t * (0.10 + uSpeed * 0.55 + uBass * 1.1);
+    // Estatico a proposito -- pedido explicito de que el bajo YA NO
+    // acelere el giro (antes lo hacia). Solo Speed y el tiempo lo
+    // mueven; el resto del audio se nota en otro lado (respiracion del
+    // radio y brillo/bloom, ver mas abajo).
+    ang += t * (0.10 + uSpeed * 0.55);
 
     // uHigh: vibracion micro del angulo -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado.
@@ -88,7 +88,7 @@ vec4 render(vec2 uv)
     // amplitud extra a esa misma ondulacion -- otro punto donde el
     // mandala "baila" con la musica, no solo gira mas rapido.
     float wobbleSpeed = 0.1 + uD5 * 1.4;
-    float wobbleAmt = uChaos * 0.18 + uBass * 0.22;
+    float wobbleAmt = uChaos * 0.18 + uBass * 0.30;
     float rr = r * (1.0 + sin(a * segs * 2.0 + t * wobbleSpeed) * wobbleAmt);
 
     // --- ZOOM ---
@@ -136,18 +136,21 @@ vec4 render(vec2 uv)
     // caleidoscopio real tiene luz justo en el eje, es de donde parece
     // venir todo el dibujo.
     col += hsv2rgb(vec3(fract(h + 0.5), 0.4, 1.0))
-         * exp(-r * r * 22.0) * (0.45 + uD3 * 0.9);
+         * exp(-r * r * 22.0) * (0.45 + uD3 * 0.9 + uBass * 0.20);
 
     // Grading tipo lente real: un tinte frio muy sutil hacia los bordes y
     // calido hacia el centro -- el toque de color grading que separa una
     // imagen "cruda" de una trabajada, sin tapar el dibujo del mandala.
     col = mix(col * vec3(0.96, 1.0, 1.06), col * vec3(1.05, 1.0, 0.94), 1.0 - smoothstep(0.0, 1.1, r));
 
-    // Bajos: brillo de lo ya claro. Nunca geometria (el giro de arriba
-    // es la excepcion documentada). Multiplicador subido de nuevo
-    // (0.5 -> 1.1 -> 2.4): la primera subida seguia sin notarse -- pedido
-    // explicito de mas reaccion al bajo para el bloom/brillo.
-    col = audioLift(col, uBass * 2.4);
+    // Bajos: brillo de lo ya claro. El giro ya NO es excepcion (ver
+    // arriba, ahora es estatico) -- parte de ese peso se movio para
+    // aca y al nucleo de arriba, pedido explicito de que se note mas
+    // el bloom ya que la rotacion dejo de reaccionar. Bajado de la
+    // primera prueba (2.7 -> 1.8): con una imagen clara se lavaba a
+    // blanco solido ya a partir de bajo medio, sin dejar margen para
+    // que "mas bajo" siguiera notandose mas.
+    col = audioLift(col, uBass * 1.8);
     col += col * uKick * 0.3;
 
     col *= vignette(uv, 0.35);

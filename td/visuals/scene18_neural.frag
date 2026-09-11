@@ -180,10 +180,12 @@ vec4 render(vec2 uv)
         float fireAng = uKeypos * TAU;
         vec2 pickedCell = floor(vec2(cos(fireAng), sin(fireAng)) * freq * 0.55);
         float cellDist = length(cellId - pickedCell);
-        float fire = smoothstep(1.6, 0.0, cellDist) * uKeypulse * (0.6 + uKeyvel * 1.0);
+        // Subido (radio 1.6->2.6, multiplicador 0.6/1.0->1.1/1.6): casi
+        // no se notaba -- pedido explicito de que se note mas al tocar.
+        float fire = smoothstep(3.5, 0.0, cellDist) * uKeypulse * (1.6 + uKeyvel * 2.2);
         vec3 fireCol = hsv2rgb(vec3(fract(uHue + 0.5), 0.55, 1.0));
         col += fireCol * fire;
-        col += vec3(1.0) * fire * edge * 0.8;
+        col += vec3(1.0) * fire * edge * 2.0;
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

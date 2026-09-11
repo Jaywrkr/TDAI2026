@@ -48,11 +48,15 @@ vec4 render(vec2 uv)
     // un punto elegido por uKeypos -- se propaga por las 4 iteraciones de
     // seno cruzado y deforma el patron entero de caustics (no un anillo
     // dibujado encima). uKeypulse decae solo; uKeyvel escala la fuerza.
+    vec2 splashPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 7.0) * 1.6) * (1.0 + uDensity * 2.5);
     if (uKeypulse > 0.0015) {
-        vec2 splashPos = vec2((uKeypos - 0.5) * 2.4, cos(uKeypos * 7.0) * 1.6) * (1.0 + uDensity * 2.5);
         vec2 toSplash = q - splashPos;
         float dSplash2 = dot(toSplash, toSplash);
-        q += toSplash / sqrt(dSplash2 + 0.02) * uKeypulse * (0.5 + uKeyvel * 0.9) * exp(-dSplash2 * 1.5);
+        // Subido bastante (0.5/0.9 -> 1.4/2.2, y caida mas ancha
+        // 1.5 -> 0.6): la distorsion sola se disolvia rapido en el
+        // patron de senos cruzados y casi no se notaba -- pedido
+        // explicito de que se note al tocar.
+        q += toSplash / sqrt(dSplash2 + 0.02) * uKeypulse * (1.4 + uKeyvel * 2.2) * exp(-dSplash2 * 0.6);
     }
 
     // Bajado el default (era 2+floor(D2*2.99), minimo 2 capas siempre) --
@@ -115,6 +119,16 @@ vec4 render(vec2 uv)
     // Tonemap: v puede crecer bastante en los picos, sin esto se clavan
     // en blanco plano.
     col = col / (1.0 + col);
+
+    // PIANO, resplandor directo ademas de la distorsion de arriba -- la
+    // distorsion sola no siempre se notaba (se disuelve rapido en el
+    // patron periodico), asi que esto asegura que el golpe SIEMPRE se
+    // vea, encima de lo que ya hace la red.
+    if (uKeypulse > 0.0015) {
+        float dSp = dot(p - splashPos, p - splashPos);
+        vec3  splashCol = hsv2rgb(vec3(fract(h + 0.5), 0.4, 1.0));
+        col += splashCol * exp(-dSp * 1.0) * uKeypulse * (1.4 + uKeyvel * 1.6);
+    }
 
     // Kick: flash breve.
     col += col * uKick * 0.4;
