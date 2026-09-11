@@ -299,12 +299,38 @@ def update():
             active, _sceneName(active),
             '{:02d}'.format(target) if moving else '-'),
     ]
+
+    # Valores en vivo: van ARRIBA de los avisos opcionales (Cue/Failsafe/
+    # Record/Setlist/Banco/Energia/Media/Learn/Autopilot), no abajo. Esos
+    # avisos son cada uno opcional, pero NADA impide que varios esten
+    # prendidos a la vez en medio de un show real (grabando + en cue +
+    # con banco activo + con la energia prendida, por ejemplo) -- juntos
+    # pueden pasar largo las 22 lineas que entran en el panel (Text TOP
+    # no hace word-wrap, lo que no entra se corta en silencio). Si eso
+    # pasa, que se corten avisos secundarios y no las perillas/bandas de
+    # audio en vivo, que es lo que hay que poder leer siempre de reojo.
+    lines.append('')
+    lines.append('VALORES EN VIVO')
+    lines.append('Speed {:.2f}  Density {:.2f}  Hue {:.2f}  Chaos {:.2f}  Bright {:.2f}'.format(
+        _par_val('Speed'), _par_val('Density'), _par_val('Hue'),
+        _par_val('Chaos'), _par_val('Brightness')))
+    lines.append('Detail  D1 {:.2f}  D2 {:.2f}  D3 {:.2f}  D4 {:.2f}  D5 {:.2f}  D6 {:.2f}'.format(
+        _par_val('Detail1'), _par_val('Detail2'), _par_val('Detail3'),
+        _par_val('Detail4'), _par_val('Detail5'), _par_val('Detail6')))
+    bass, mid, high, kick = (_chan_val('/project1/ctrl', n)
+                             for n in ('bass', 'mid', 'high', 'kick'))
+    lines.append('Bass {} {:.2f}   Mid  {} {:.2f}'.format(
+        _bar(bass, 8), bass, _bar(mid, 8), mid))
+    lines.append('High {} {:.2f}   Kick {} {:.2f}'.format(
+        _bar(high, 8), high, _bar(kick, 8), kick))
+
     if learn:
         lines.append('')
         lines.append('>> MIDI LEARN ARMADO: {}'.format(learn))
 
-    # Avisos de show: van ARRIBA de los valores en vivo porque son lo
-    # que hay que ver primero si algo va mal.
+    # Avisos de show: van DEBAJO de los valores en vivo (ver arriba) --
+    # son cada uno opcional, y si el panel se llena son estos, y no las
+    # perillas/bandas en vivo, los que se cortan primero.
     if bool(_par_val('Cuemode')):
         lines.append('')
         lines.append('>> CUE ON  el click carga PREVIEW (escena {:02d}), '
@@ -373,30 +399,6 @@ def update():
                 mode, idx + 1, len(files), lock))
             lines.append('   ' + name[:52])
 
-    # Valores en vivo: contexto pedido explicitamente -- saber en que
-    # posicion esta cada perilla (y cada banda de audio) sin tener que
-    # adivinar mirando solo el visual. Mismo tick que el resto del panel
-    # (Diagnosticinterval, ~5x por segundo por defecto) -- suficiente
-    # para leer una perilla en movimiento sin gastar mas costo por frame.
-    lines.append('')
-    lines.append('VALORES EN VIVO')
-    lines.append('Speed {:.2f}  Density {:.2f}  Hue {:.2f}  Chaos {:.2f}  Bright {:.2f}'.format(
-        _par_val('Speed'), _par_val('Density'), _par_val('Hue'),
-        _par_val('Chaos'), _par_val('Brightness')))
-    lines.append('Detail  D1 {:.2f}  D2 {:.2f}  D3 {:.2f}  D4 {:.2f}  D5 {:.2f}  D6 {:.2f}'.format(
-        _par_val('Detail1'), _par_val('Detail2'), _par_val('Detail3'),
-        _par_val('Detail4'), _par_val('Detail5'), _par_val('Detail6')))
-
-    # Medidores VU: una barra en texto por banda, mas facil de leer de
-    # reojo en vivo que solo el numero. 2 lineas (no 4) para no inflar el
-    # panel -- barras mas cortas (8, no 14) para que quepan dos por linea.
-    bass, mid, high, kick = (_chan_val('/project1/ctrl', n)
-                             for n in ('bass', 'mid', 'high', 'kick'))
-    lines.append('Bass {} {:.2f}   Mid  {} {:.2f}'.format(
-        _bar(bass, 8), bass, _bar(mid, 8), mid))
-    lines.append('High {} {:.2f}   Kick {} {:.2f}'.format(
-        _bar(high, 8), high, _bar(kick, 8), kick))
-
     try:
         autopilot_on = bool(p.par.Autopilot.eval())
     except Exception:
@@ -408,6 +410,24 @@ def update():
             secs = 0.0
         lines.append('')
         lines.append('>> AUTOPILOT ON  (cada {:.0f}s + por beat)'.format(secs))
+
+    # Red de seguridad: nada de lo de arriba impide que varios avisos
+    # opcionales esten prendidos a la vez (grabando + en cue + con
+    # failsafe activo + con setlist/banco/energia/media + con Learn
+    # armado + con autopilot, todos juntos), y ESE combo real pasa las
+    # STATUS_MAX_LINES que entran en el panel. Sin este corte, Text TOP
+    # (wordwrap=False) recorta las lineas de mas en silencio -- con
+    # esto, si hay que perder algo se pierde a proposito, con un aviso
+    # explicito de cuantas lineas quedaron afuera, nunca sin decir nada.
+    try:
+        import vjcore.config as _vjconfig
+        max_lines = _vjconfig.STATUS_MAX_LINES
+    except Exception:
+        max_lines = 22
+    if len(lines) > max_lines:
+        hidden = len(lines) - (max_lines - 1)
+        lines = lines[:max_lines - 1]
+        lines.append('>> (+{} lineas mas, panel lleno)'.format(hidden))
 
     status.text = '\n'.join(lines)
     try:

@@ -63,29 +63,27 @@ def build(proj, thumbs, program_clean):
     # el supuesto de "~16px por linea" era muy optimista -- el interlineado
     # real de un Text TOP a fontsize 12 es mas cerca de 1.6-1.7x el
     # fontsize. Calculado explicito por CANTIDAD DE LINEAS en vez de una
-    # reserva de pixeles adivinada, con el peor caso (Learn armado +
-    # Autopilot ON a la vez) contemplado.
-    # Bajado de 24 a 18 lineas. El dashboard media 1640x1091 y NO entraba
-    # en una pantalla de 1080p (se pasaba por 11 px, o sea que quedaba
-    # cortado abajo justo donde vive la leyenda de Detail). El panel de
-    # status era lo mas alto de todo (505 px) y la mayor parte era
-    # diagnostico que se mira una vez al arrancar, no en vivo -- asi que
-    # diagnostics.py ahora emite el mismo contenido en menos lineas
-    # (campos relacionados en una sola) en vez de perder informacion.
-    STATUS_FONTSIZE = 12
+    # reserva de pixeles adivinada.
+    # STATUS_FONTSIZE/STATUS_MAX_LINES viven en config.py (no aca) para
+    # que diagnostics.py pueda truncar su propio texto al mismo limite
+    # ANTES de escribirlo -- confiar en que nunca se junten demasiados
+    # avisos a la vez (record+cue+failsafe+setlist+banco+energia+media+
+    # learn+autopilot, todos juntos son 31 lineas reales, no 22) dejaba
+    # el panel cortado en silencio en un show con varias cosas prendidas
+    # a la vez, no solo en el caso Learn+Autopilot que se habia probado.
+    STATUS_FONTSIZE = c.STATUS_FONTSIZE
     STATUS_LINE_H = STATUS_FONTSIZE * 1.7
-    # Subido de 18 a 22 al aparecer la carpeta comun de media: el panel
-    # gana hasta 3 lineas cuando la escena activa es una de las tres que
-    # usan imagen (19/34/35), y un texto que no entra se corta SIN AVISO.
-    # Los 4 renglones extra caben: el dashboard pasa de 969 a 1051 px de
-    # alto y el limite sigue siendo 1080.
-    STATUS_MAX_LINES = 22
+    STATUS_MAX_LINES = c.STATUS_MAX_LINES
     status_h = int(STATUS_MAX_LINES * STATUS_LINE_H) + 16
 
     BEAT_STRIP_H = 40
     BEAT_GAP = 8
-    legend_h = 110
-    legend_gap = 10
+    # LEGEND_H vive en config.py: a 110 (el valor viejo) solo entraban 5
+    # de las 6 lineas que puede tener la leyenda de Detail (D1-D6), y
+    # CADA escena documenta las 6 -- se cortaba la de D6 siempre, no en
+    # un caso raro (ver el comentario ahi para la cuenta completa).
+    legend_h = c.LEGEND_H
+    legend_gap = c.LEGEND_GAP
     dash_h = (max(grid_h, c.PROGRAM_H + BEAT_STRIP_H + BEAT_GAP
                   + legend_h + legend_gap + status_h + legend_gap + 12)
               + c.DASH_MARGIN * 2)
@@ -468,10 +466,17 @@ def build_detail_legend_panel(dash, x, y, w, h):
     control_script.py actualiza el Text DAT (_src) cada vez que cambia la
     escena activa -- no hay costo por frame, es un evento infrecuente.
     """
+    # Bajado de 13 a 12 (mismo tamano que el panel de status): a 13,
+    # incluso con LEGEND_H subido a 130, el margen contra las 6 lineas
+    # que puede tener esta leyenda (D1-D6) era de menos de 3px -- muy
+    # poco colchon contra el "1.6-1.7x" del interlineado real de un Text
+    # TOP, que es una estimacion, no un numero exacto. A 12 el margen es
+    # comodo (130 vs ~122 necesarios) sin tener que empujar el dashboard
+    # entero mas cerca del limite de 1080p.
     return _build_text_panel(
         dash, 'detail_legend', x, y, w, h,
         '(esta escena no documento perillas Detail)',
-        fontsize=13, fontcolor=(0.75, 0.85, 1.0), bgcolor=(0.05, 0.055, 0.08))
+        fontsize=12, fontcolor=(0.75, 0.85, 1.0), bgcolor=(0.05, 0.055, 0.08))
 
 
 def _click_text():

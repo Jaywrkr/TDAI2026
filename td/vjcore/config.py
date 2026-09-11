@@ -1,11 +1,12 @@
 """Configuracion global del rig. Editar aqui, no dentro del build."""
 
-# Subido de 20 a 34: 4 escenas promovidas desde los prototipos de "ideas
-# nuevas" (cracked glass, bokeh, osciloscopio, nebulosa) + 10 escenas
-# totalmente nuevas. Y de 34 a 36: los dos casilleros que sobraban en la
-# grilla 6x6 los ocupan scene34 (caleidoscopio) y scene35 (trama /
-# halftone), las dos sobre la CARPETA COMUN de media (ver MEDIA_SCENES).
-N_SCENES = 53
+import math
+
+# Bajado de 53 a 46: se eliminaron 7 escenas (pulso, cristal, fusion,
+# telarana, jellyfish, floweroflife, eqbars) por pedido directo del
+# usuario, y el resto se renumero para cerrar los huecos (mismo
+# mecanismo de dos pasadas usado para mandar escenas a "la carcel").
+N_SCENES = 48
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -25,12 +26,14 @@ N_SCENES = 53
 # (veins/neural/ink/metaball/caustics/flow/web/aurora) -- mediaecho
 # 16->8, mediaglitch 19->11, kaleido 34->26, halftone 35->27 -- y despues
 # lines/contour/ripple/orbit/dots/crackedglass/bokeh/nebula -- mediaecho
-# 8->3, mediaglitch 11->6, kaleido 26->18, halftone 27->19. Los nombres
-# de archivo son la fuente de verdad real (scenes.py arma esto leyendo
-# el prefijo sceneNN_ de cada .frag), este set tiene que seguir esos
-# mismos indices o las dos escenas de imagen quedan sin su segundo
-# input.
-MEDIA_SCENES = {3, 6, 18, 19}
+# 8->3, mediaglitch 11->6, kaleido 26->18, halftone 27->19. Y despues, al
+# eliminar 7 escenas (pulso/cristal/fusion/telarana/jellyfish/
+# floweroflife/eqbars) y cerrar los huecos -- mediaecho 3->2, mediaglitch
+# 6->3, kaleido 18->11, halftone 19->12. Los nombres de archivo son la
+# fuente de verdad real (scenes.py arma esto leyendo el prefijo sceneNN_
+# de cada .frag), este set tiene que seguir esos mismos indices o las
+# dos escenas de imagen quedan sin su segundo input.
+MEDIA_SCENES = {2, 3, 11, 12}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
@@ -57,9 +60,15 @@ DEFAULT_MEDIA_FOLDER = '/Users/juanjaramillo/Desktop/TD2026/IMAGENES'
 #           orden y volver a una tecla vuelve exactamente a esa imagen.
 MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 
-# 6x6 = 36 casilleros para las 36 escenas -- la grilla queda exacta.
+# GRID_ROWS se calcula SOLO a partir de N_SCENES (con GRID_ROWS=6 fijo
+# quedo un bug real: al pasar de 36 a 46 escenas, dashboard.build()
+# seguia poniendo un tile por escena mas alla de la fila 5, fuera del
+# area de grilla reservada -- invisibles o pisando otros paneles en un
+# build real). Con el ceil() la grilla siempre tiene exactamente las
+# filas que necesita, sin volver a tocar esto a mano cada vez que se
+# agregan o sacan escenas.
 GRID_COLS = 6
-GRID_ROWS = 6
+GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
 
 # TouchDesigner NON-COMMERCIAL limita la salida a 1280x1280.
 DEFAULT_OUTPUT_W = 1280
@@ -70,15 +79,49 @@ MAX_OUTPUT = 1280
 # Thumbnails achicados (208x117 -> 150x84, misma proporcion) al pasar de
 # 20 a 34 escenas -- si se mantenia el tamano viejo con 36 casilleros el
 # dashboard entero quedaba enorme.
-THUMB_W = 150
+# Achicados otra vez (150 -> 120, y 104 -> 84 abajo) al pasar GRID_ROWS
+# de fijo en 6 a dinamico: con 46 escenas la grilla necesita 8 filas, y
+# al tile viejo no le entraban sin invadir el panel de Master FX de
+# abajo. Con este tamano las 8 filas caben en el mismo alto que ya
+# reservaba la columna derecha (ver mas abajo), asi que el dashboard NO
+# crece -- de hecho el dashboard entero se angosta un poco, porque la
+# grilla tambien se achica a lo ancho.
+THUMB_W = 120
 # Subido de 84 a 104 para hacerle lugar a la ETIQUETA (numero + nombre)
 # abajo de cada miniatura. Sin nombre, una grilla de 34 casilleros obliga
 # a acordarse de memoria que la 17 es "triangles" -- y con las miniaturas
 # congeladas (ver POSTER FRAMES abajo) no habia forma de saberlo.
 # El alto del dashboard NO lo manda la grilla sino la columna derecha,
-# asi que agrandar el tile no agranda el dashboard.
-THUMB_H = 104
+# asi que agrandar el tile no agranda el dashboard -- pero si GRID_ROWS
+# crece (ver arriba), la grilla SI puede empezar a comerse el hueco de
+# abajo (Master FX + preview + TAKE/PANICO), que es lo que paso con 46
+# escenas y forzo bajar esto de 104 a 84.
+THUMB_H = 84
 THUMB_LABEL_H = 18
+
+# Antes vivian SOLO adentro de dashboard.build() (definian el alto
+# reservado del panel), asi que diagnostics.py no tenia forma de saber
+# cuantas lineas entran de verdad y podia armar mas texto del que cabe
+# -- Text TOP no hace word-wrap (dashboard._build_text_panel pone
+# wordwrap=False), asi que lo que sobra se CORTA en silencio, sin
+# aviso. Con esto centralizado, diagnostics.update() puede truncar el
+# panel de status el mismo antes de escribirlo (ver ese archivo) en vez
+# de confiar en que nunca se junten demasiados avisos a la vez.
+STATUS_FONTSIZE = 12
+STATUS_MAX_LINES = 22
+
+# Leyenda de Detail (que hace cada perilla D1-D6 EN LA ESCENA ACTIVA,
+# ver shader.parse_detail_legend). Son SIEMPRE como mucho 6 lineas (una
+# por perilla documentada), nunca menos previsible que el panel de
+# status -- pero a fontsize 13 y 110px de alto (lo que tenia este panel
+# antes) solo entraban 5 de esas 6 lineas: la convencion del repo pide
+# documentar las 6 perillas en CADA .frag, asi que la ultima linea
+# (D6) se cortaba en silencio en TODAS las escenas, siempre, no en un
+# caso raro. Subido a 130 -- entran las 6 con margen -- usando el
+# colchon de 30px que sobraba entre la columna derecha real (1014px) y
+# el limite de 1080p (el dashboard sigue entrando: 1070 de 1080).
+LEGEND_H = 130
+LEGEND_GAP = 10
 
 # ---------------------------------------------------------------
 # POSTER FRAMES (miniaturas pre-renderizadas)
