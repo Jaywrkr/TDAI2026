@@ -6,8 +6,13 @@ import math
 # wormhole, constelacion, paneles, kiosko, atlas, sampler, delta,
 # bienestar) por pedido directo del usuario, y el resto se renumero para
 # cerrar los huecos (mismo mecanismo de dos pasadas usado para mandar
-# escenas a "la carcel").
-N_SCENES = 48
+# escenas a "la carcel"). Subido de 38 a 48 al agregar 10 escenas nuevas
+# (cubos/costas/gusanitos/ecucircular/laseres/anillosneon/red/imgfuego/
+# mosaico/persianas). Bajado de 48 a 45: se eliminaron neontubes, hebras
+# y cortes por pedido directo del usuario (justo despues de pedirles
+# ajustes de contenido -- el usuario cambio de opinion y prefirio
+# sacarlas), y el resto se renumero para cerrar los huecos.
+N_SCENES = 45
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -34,12 +39,14 @@ N_SCENES = 48
 # (oscilloscope/inksplatter/wormhole/constelacion/paneles/kiosko/atlas/
 # sampler/delta/bienestar) -- mediaecho se queda en 2, mediaglitch en 3,
 # kaleido 11->8, halftone 12->9. Y al agregar 3 escenas nuevas de imagen
-# (imgfuego/mosaico/persianas, indices 45/46/47) se suman al set. Los
-# nombres de archivo son la fuente de verdad real (scenes.py arma esto
-# leyendo el prefijo sceneNN_ de cada .frag), este set tiene que seguir
-# esos mismos indices o las escenas de imagen quedan sin su segundo
-# input.
-MEDIA_SCENES = {2, 3, 8, 9, 45, 46, 47}
+# (imgfuego/mosaico/persianas, indices 45/46/47) se suman al set. Y al
+# eliminar neontubes/hebras/cortes (indices 7/16/18) y cerrar los huecos
+# -- mediaecho se queda en 2, mediaglitch en 3, kaleido 8->7, halftone
+# 9->8, imgfuego 45->42, mosaico 46->43, persianas 47->44. Los nombres de
+# archivo son la fuente de verdad real (scenes.py arma esto leyendo el
+# prefijo sceneNN_ de cada .frag), este set tiene que seguir esos mismos
+# indices o las escenas de imagen quedan sin su segundo input.
+MEDIA_SCENES = {2, 3, 7, 8, 42, 43, 44}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
