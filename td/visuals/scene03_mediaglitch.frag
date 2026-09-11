@@ -23,15 +23,18 @@
 //   Chaos    turbulencia del oleaje (agua quieta <-> agitada)
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
-//   Kick     el oleaje se agita mas fuerte un instante
-//   High     vibracion micro adicional (excepcion del contrato)
+//   Kick     el oleaje se agita mas fuerte un instante (acotado, mas
+//            suave que antes -- temblaba demasiado)
+//   High     vibracion micro adicional (excepcion del contrato, bajada)
 //
 // @D1: fuerza de la distorsion del oleaje
 // @D2: cuanto se separan los canales de color (aberracion suave, como
 //      luz refractada)
 // @D3: mezcla de tinte de Hue sobre la imagen
 // @D4: velocidad del flujo interno del oleaje
-// @D5: cantidad de grano fino, incluso sin kick
+// @D5: cantidad de "estrellas" (motas finas) flotando sobre el agua --
+//      derivan CON el mismo oleaje que mueve la imagen, no son estatica
+//      de TV
 // @D6: profundidad de una segunda capa de oleaje mas fina, encima de
 //      la primera
 // ===============================================================
@@ -52,11 +55,13 @@ vec4 render(vec2 uv)
                         fbm(p * freq * 2.6 + t * flowSpeed * 1.1 + 11.0, 3)) - 0.5;
     vec2  totalWarp = warp * turb + warp2 * turb * uD6 * 0.6;
 
-    // Kick: el oleaje se agita mas fuerte un instante.
-    float amt = mix(0.02, 0.14, uD1) * (1.0 + uKick * 1.8);
+    // Kick: el oleaje se agita mas fuerte un instante -- bajado (1.8 ->
+    // 0.9), temblaba demasiado (pedido explicito).
+    float amt = mix(0.02, 0.14, uD1) * (1.0 + uKick * 0.9);
     vec2  offset = totalWarp * amt;
-    // uHigh: vibracion micro adicional -- unica excepcion del contrato.
-    offset += uHigh * 0.006 * vec2(sin(t * 14.0), cos(t * 12.0));
+    // uHigh: vibracion micro adicional -- unica excepcion del contrato,
+    // bajada (0.006 -> 0.003) por el mismo pedido.
+    offset += uHigh * 0.003 * vec2(sin(t * 14.0), cos(t * 12.0));
 
     vec2  muv = clamp(uv + offset, 0.0, 1.0);
 
@@ -93,9 +98,22 @@ vec4 render(vec2 uv)
     // las escenas de imagen del set.
     col = audioLift(col, uBass * 2.4);
 
-    // D5: grano fino, incluso sin kick.
-    float grain = (hash21(uv * uResW + fract(uRTime) * 23.0) - 0.5) * (0.01 + uD5 * 0.08 + uKick * 0.04);
-    col += grain;
+    // D5: "estrellas" de fondo -- antes era estatica de TV (random puro
+    // por pixel y por frame, sin vida propia). Ahora es una grilla fina
+    // de motas muestreada sobre 'muv' (la coordenada YA desplazada por
+    // el oleaje) en vez de 'uv' -- las motas quedan pegadas al agua y
+    // derivan con ella, y ademas titilan solas (no solo con el kick).
+    float starFreq = 34.0;
+    vec2  sg = muv * starFreq;
+    vec2  sid = floor(sg);
+    vec2  sf = fract(sg) - 0.5;
+    float starHash = hash21(sid);
+    float onThresh = 0.965 - uD5 * 0.35;
+    float isStar = step(onThresh, starHash);
+    float twinkle = 0.5 + 0.5 * sin(t * (0.6 + hash21(sid + 3.0) * 1.5) + hash21(sid + 7.0) * TAU);
+    float starD = length(sf);
+    float star = smoothstep(0.3, 0.0, starD) * isStar * twinkle;
+    col += vec3(1.0) * star * (0.18 + uD5 * 0.5 + uKick * 0.15);
     col *= vignette(uv, 0.2);
 
     return vec4(col, 1.0);

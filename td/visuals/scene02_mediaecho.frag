@@ -33,8 +33,9 @@
 //            jitter propio de rotacion/escala por copia, fijo (no
 //            anima), para que el tunel se vea organico y no como una
 //            espiral matematica exacta
-//   Bass     brillo de lo ya claro (audioLift) + un empujon chico al
-//            zoom de cada copia (ya suavizado, no reintroduce temblor)
+//   Bass     brillo de lo ya claro (audioLift, subido -- pedido
+//            explicito de que se note mas) + un empujon chico al zoom
+//            de cada copia (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue), antes de construir el tinte
 //            por copia
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
@@ -66,7 +67,10 @@ vec4 render(vec2 uv)
     float hueDrift = uD5 * 0.16;
 
     float hueBase = audioHue(uHue, uMid * 0.08);
-    float baseSpin = t * (0.04 + uSpeed * 0.35);
+    // Bajado (0.04/0.35 -> 0.02/0.18): pedido explicito de que la
+    // velocidad por defecto sea mas lenta -- el mismo valor de Speed da
+    // ahora poco mas de la mitad de giro que antes.
+    float baseSpin = t * (0.02 + uSpeed * 0.18);
 
     vec3 col = vec3(0.0);
     vec3 core = vec3(0.0);
@@ -150,10 +154,14 @@ vec4 render(vec2 uv)
 
     // Bajos: brillo de lo ya claro. Nunca geometria (salvo el empujon
     // chico de zoom de arriba, ya suavizado -- ver contrato de audio).
-    // Multiplicador subido de nuevo (0.6 -> 1.1 -> 2.4): la primera
-    // subida seguia sin notarse -- pedido explicito de que las escenas
-    // de imagen reaccionen bastante mas al bajo para el bloom/brillo.
-    col = audioLift(col, uBass * 2.4);
+    // Multiplicador subido de nuevo (0.6 -> 1.1 -> 2.4 -> 3.0): seguia
+    // sin notarse -- pedido explicito otra vez de que el bajo ilumine
+    // mas y se note mas. El empujon PLANO extra es CHICO a proposito:
+    // en una primera vuelta (3.6 + 0.5) el tunel se lavaba a blanco
+    // solido con el bajo a fondo con una imagen clara -- tiene que
+    // notarse MAS, no perder la imagen entera.
+    col = audioLift(col, uBass * 3.0);
+    col += col * uBass * 0.1;
 
     // Grading tipo lente real: tinte frio muy sutil hacia los bordes y
     // calido hacia el centro, mismo toque que scene18_kaleido /

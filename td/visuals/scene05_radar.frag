@@ -31,11 +31,37 @@
 // @D1: cuan angosta es la ventana de deteccion del barrido (contactos
 //      se prenden fuerte solo justo cuando pasa <-> en un rango amplio)
 // @D2: largo de la estela de fosforo detras del brazo
-// @D3: cuantos anillos de rango (circulos concentricos) se ven
+// @D3: cuantos anillos de rango (ya no siempre circulos -- ver mas
+//      abajo) se ven
 // @D4: tamano de las luciernagas
 // @D5: brillo de la estela de fosforo, incluso lejos del brazo
 // @D6: brillo de los anillos de rango
 // ===============================================================
+
+// Distancia efectiva de un poligono regular de N lados, tal que a N muy
+// grande se comporta como length(p) (circulo) -- pedido explicito de
+// que "lo del medio" no sea siempre un circulo. Se usa esta distancia
+// en vez de r para los anillos de rango: mismo patron concentrico, pero
+// con facetas rectas cuando N es chico.
+float polyDist(vec2 pp, float sides)
+{
+    float a = atan(pp.y, pp.x);
+    float seg = TAU / sides;
+    float a2 = mod(a + seg * 0.5, seg) - seg * 0.5;
+    return length(pp) * cos(a2) / cos(seg * 0.5);
+}
+
+// Que figura toca ahora: circulo, triangulo, cuadrado, pentagono,
+// hexagono -- se van turnando solas cada tanto (nunca con el audio, es
+// geometria de tiempo puro, como el resto del set).
+float sidesForIndex(float k)
+{
+    if (k < 0.5) return 60.0;
+    if (k < 1.5) return 3.0;
+    if (k < 2.5) return 4.0;
+    if (k < 3.5) return 5.0;
+    return 6.0;
+}
 
 vec4 render(vec2 uv)
 {
@@ -66,9 +92,23 @@ vec4 render(vec2 uv)
     vec3  col = radarCol * 0.045 * (1.0 - smoothstep(0.0, 1.3, r));
     col += radarCol * trail * (0.2 + uD5 * 0.6);
 
-    // Anillos de rango, suaves.
+    // Anillos de rango: ya no son siempre circulos -- turnan solos
+    // entre circulo/triangulo/cuadrado/pentagono/hexagono cada
+    // shapePeriod segundos, con un morph suave entre una figura y la
+    // siguiente (nunca ligado al audio, es geometria de tiempo puro).
+    float shapePeriod = 14.0;
+    float shapeCyc = t / shapePeriod;
+    float shapeIdx = floor(shapeCyc);
+    float shapeFrac = fract(shapeCyc);
+    float morphT = smoothstep(0.0, 0.2, shapeFrac) * (1.0 - smoothstep(0.8, 1.0, shapeFrac));
+    float sidesA = sidesForIndex(mod(shapeIdx, 5.0));
+    float sidesB = sidesForIndex(mod(shapeIdx + 1.0, 5.0));
+    float rShapeA = polyDist(p, sidesA);
+    float rShapeB = polyDist(p, sidesB);
+    float rShape = mix(rShapeA, rShapeB, morphT);
+
     float ringFreq = 2.0 + uD3 * 7.0;
-    float ring = exp(-pow(fract(r * ringFreq) - 0.5, 2.0) * 400.0) * (0.05 + uD6 * 0.3);
+    float ring = exp(-pow(fract(rShape * ringFreq) - 0.5, 2.0) * 400.0) * (0.05 + uD6 * 0.3);
     col += radarCol * ring;
 
     // Luciernagas: titilan solas, se prenden mas fuerte con el barrido.
