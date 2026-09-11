@@ -173,6 +173,24 @@ vec4 render(vec2 uv)
         col += boltCol * boltShape * envelope * (1.0 + uKick * 0.8);
     }
 
+    // PIANO: cada tecla dispara un rayo EXTRA, independiente del
+    // periodico de arriba, cayendo en la posicion X que elige uKeypos
+    // -- geometria real (un rayo nuevo, no solo un tinte encima), y se
+    // apaga solo cuando uKeypulse decae. Esta escena no tenia
+    // interaccion de teclado -- pedido explicito de que TODAS la
+    // tengan y que se note al tocar.
+    if (uKeypulse > 0.0015) {
+        float seedK = floor(uKeypos * 97.0) + 500.0;
+        vec2  startK = vec2(mix(-0.9, 0.9, uKeypos), 1.05);
+        float dropK = 1.5 + hash21(vec2(seedK, 1.0)) * 0.5;
+        float jagK = 0.035 + uChaos * 0.16;
+        float dK = boltMinDist(p, startK, dropK, 9, seedK, jagK, 0.0);
+        float lineWK = 0.006 + uKeyvel * 0.010;
+        float glowWK = 0.004 + uKeyvel * 0.020;
+        vec3  boltColK = mix(vec3(1.0), hsv2rgb(vec3(fract(uHue + 0.5), 0.5, 1.0)), 0.3);
+        col += boltColK * coreGlow(dK, lineWK, glowWK) * uKeypulse * (0.8 + uKeyvel * 0.8);
+    }
+
     col += col * uKick * 0.25;
     col = audioLift(col, uBass * 0.55);
     col *= vignette(uv, 0.18);

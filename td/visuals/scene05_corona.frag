@@ -22,7 +22,10 @@
 //   Density  no usado directo (reservado)
 //   Hue      color base de la corona
 //   Chaos    no usado directo (reservado)
-//   Bass     agranda el disco un poco (geometria real) + brillo
+//   Bass     agranda el disco un poco (geometria real) + brillo + hace
+//            bailar la turbulencia de la corona de verdad (pedido
+//            explicito: sin bajo la corona casi no se mueve, con bajo
+//            se nota el movimiento)
 //   Mid      tinte adicional (audioHue)
 //   Kick     el anillo de borde destella mas fuerte un instante
 //   High     no usado directo (reservado)
@@ -50,8 +53,14 @@ vec4 render(vec2 uv)
     // con uKeypulse, uKeyvel escala cuanto.
     diskR += uKeypulse * (0.05 + uKeyvel * 0.08);
 
-    float turbSpeed = 0.05 + uD5 * 0.35;
-    float turb = fbm(vec2(ang * 2.5, r * 4.0) + vec2(t * turbSpeed, -t * turbSpeed * 0.7), 5, 0.5 + uD1 * 0.2);
+    // Bajado (0.05/0.35 -> 0.015/0.10): idle case casi quieto -- el
+    // movimiento real ahora lo trae el bajo (bassFlow), pedido
+    // explicito de "sin bajo no se mueve, con bajo si". Amplitud
+    // escalada por uBass (no re-escala de t), asi es continuo: crece
+    // suave con el nivel en vez de saltar cuando cruza un umbral.
+    float turbSpeed = 0.015 + uD5 * 0.10;
+    vec2  bassFlow = uBass * (0.5 + uD5 * 0.5) * vec2(sin(t * 0.8), cos(t * 0.65));
+    float turb = fbm(vec2(ang * 2.5, r * 4.0) + vec2(t * turbSpeed, -t * turbSpeed * 0.7) + bassFlow, 5, 0.5 + uD1 * 0.2);
 
     float rayFreq = mix(6.0, 26.0, uD2);
     float rays = pow(abs(sin(ang * rayFreq * 0.5 + turb * 4.0)), 3.0);

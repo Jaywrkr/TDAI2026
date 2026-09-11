@@ -124,12 +124,14 @@ vec4 render(vec2 uv)
         vec2 guestSrc = vec2((uKeypos - 0.5) * 1.4, cos(uKeypos * 9.0) * 0.5);
         float guestFront = (1.0 - uKeypulse) * (0.6 + uKeyvel * 0.7);
         float dG = length(pw - guestSrc);
+        // Subido (ancho de banda x1.8, brillo x1.7): casi no se notaba
+        // entre las ondas normales -- pedido explicito de que se note.
         for (int ge = 0; ge < 4; ge++) {
             if (ge >= echoes) break;
             float fge = float(ge);
             float rrG = guestFront - fge * echoSpacing;
             float ddG = dG - rrG;
-            col += waveCol * exp(-ddG * ddG / (width * width * 2.6)) * exp(-fge * 0.8) * uKeypulse;
+            col += waveCol * exp(-ddG * ddG / (width * width * 4.6)) * exp(-fge * 0.6) * uKeypulse * 1.7;
         }
     }
 

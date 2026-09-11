@@ -75,7 +75,10 @@ vec4 render(vec2 uv)
     if (uKeypulse > 0.0015) {
         float guestR = (1.0 - uKeypulse) * 1.1;
         float dG = abs(r - guestR);
-        float guestRing = exp(-dG * dG / 0.0015) * uKeypulse * (0.6 + uKeyvel * 0.8);
+        // Anillo mucho mas ancho (0.0015 -> 0.006) y mas brillante --
+        // a 320x240 el anillo viejo era casi un hilo de un pixel,
+        // pedido explicito de que se note al tocar.
+        float guestRing = exp(-dG * dG / 0.02) * uKeypulse * (1.6 + uKeyvel * 2.0);
         col += hsv2rgb(vec3(fract(uKeypos), 0.6, 1.0)) * guestRing;
     }
 

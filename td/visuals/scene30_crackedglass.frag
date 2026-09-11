@@ -135,6 +135,11 @@ vec4 render(vec2 uv)
         float revealP = smoothstep(impactR + 0.28, impactR - 0.14, impactField) * uKeypulse;
         col += hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * revealP;
         col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * revealP;
+        // Flash blanco directo sobre TODA la zona de impacto (no solo
+        // sobre las grietas ya visibles) -- la revelacion sola se
+        // confundia con el patron de vidrio que ya estaba ahi, pedido
+        // explicito de que el golpe se note mas.
+        col += vec3(1.0) * exp(-rImpact * rImpact / (impactR * impactR * 1.1 + 0.004)) * uKeypulse * (1.1 + uKeyvel * 1.1);
     }
 
     col = audioLift(col, uBass * 0.5);

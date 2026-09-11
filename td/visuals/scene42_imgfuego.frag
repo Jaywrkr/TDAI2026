@@ -92,12 +92,17 @@ vec4 render(vec2 uv)
     if (uKeypulse > 0.0015) {
         vec2  gp = centered(vec2(mix(0.15, 0.85, uKeypos), 0.5));
         vec2  local = p - gp;
-        float gSize = size * 1.3;
+        // Mas grande (1.3 -> 2.0) y con un borde brillante -- la copia
+        // chica se perdia entre las demas, pedido explicito de que se
+        // note mas al tocar.
+        float gSize = size * 2.0;
         if (abs(local.x) < gSize * 0.5 && abs(local.y) < gSize * 0.5) {
             vec2  guv = local / gSize + 0.5;
             vec3  gsrc = mediaTex(guv).rgb;
-            col = mix(col, gsrc * (1.0 + uKeyvel * 0.5), uKeypulse);
+            col = mix(col, gsrc * (1.3 + uKeyvel * 0.9), uKeypulse);
         }
+        float edgeGD = max(abs(local.x), abs(local.y)) - gSize * 0.5;
+        col += vec3(1.0) * exp(-edgeGD * edgeGD * 250.0) * uKeypulse * (0.5 + uKeyvel * 0.6);
     }
 
     col += col * uKick * 0.35;

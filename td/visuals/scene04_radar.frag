@@ -23,10 +23,14 @@
 //   Density  cuantas luciernagas hay en pantalla
 //   Hue      color del radar (cian por defecto via offset)
 //   Chaos    dispersion del enjambre de luciernagas
-//   Bass     brillo de lo ya claro (audioLift)
-//   Mid      tinte adicional (audioHue)
+//   Bass     brillo de lo ya claro (audioLift) + deforma el anillo de
+//            rango en una onda real (pedido explicito: que se note la
+//            musica en las lineas del anillo, no solo el brillo)
+//   Mid      tinte adicional (audioHue) + su propio armonico de onda
+//            en el anillo de rango
 //   Kick     las luciernagas laten mas fuerte en el golpe
-//   High     vibracion micro de posicion (excepcion del contrato)
+//   High     vibracion micro de posicion + tercer armonico de onda
+//            en el anillo (excepcion del contrato para la posicion)
 //
 // @D1: cuan angosta es la ventana de deteccion del barrido (contactos
 //      se prenden fuerte solo justo cuando pasa <-> en un rango amplio)
@@ -106,6 +110,15 @@ vec4 render(vec2 uv)
     float rShapeA = polyDist(p, sidesA);
     float rShapeB = polyDist(p, sidesB);
     float rShape = mix(rShapeA, rShapeB, morphT);
+
+    // Onda real de audio sobre el anillo -- tres armonicos, uno por
+    // banda, asi las lineas del anillo se leen como una onda de musica
+    // de verdad y no solo laten de brillo. Bounded por cada nivel de
+    // audio (ya suavizado), vuelve sola a la forma limpia sin musica.
+    float wave = uBass * 0.05 * sin(ang * 3.0 + t * 4.0)
+               + uMid  * 0.03 * sin(ang * 7.0 - t * 3.0)
+               + uHigh * 0.02 * sin(ang * 13.0 + t * 6.0);
+    rShape += wave;
 
     float ringFreq = 2.0 + uD3 * 7.0;
     float ring = exp(-pow(fract(rShape * ringFreq) - 0.5, 2.0) * 400.0) * (0.05 + uD6 * 0.3);

@@ -76,8 +76,12 @@ vec4 render(vec2 uv)
     // todo un instante.
     if (uKeypulse > 0.0015) {
         float targetSlat = floor(mix(0.0, nSlats - 1.0, uKeypos));
-        float onSlat = 1.0 - smoothstep(0.0, 0.8, abs(slatId - targetSlat));
-        col = mix(col, imgCol * 1.3, onSlat * uKeypulse * (0.5 + uKeyvel * 0.5));
+        // Rango mas ancho (0.8 -> 1.8 lamas vecinas) y mezcla mas
+        // fuerte -- una sola lama entre 8-39 casi no se notaba, pedido
+        // explicito de que se note mas al tocar.
+        float onSlat = 1.0 - smoothstep(0.0, 1.8, abs(slatId - targetSlat));
+        col = mix(col, imgCol * 1.6, onSlat * uKeypulse * (0.8 + uKeyvel * 0.8));
+        col += vec3(1.0) * onSlat * uKeypulse * (0.3 + uKeyvel * 0.4);
     }
 
     col += col * uKick * 0.2;
