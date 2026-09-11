@@ -39,6 +39,8 @@
 //            rompe la lectura de "tablero", no la mejora
 //   Bass     brillo de lo ya claro (audioLift), mas fuerte en las
 //            fichas rellenas que en los contornos (que son mas tenues)
+//            + una fraccion chica de fichas (fija por celda, ~15%)
+//            CRECE de tamano con el bajo -- no todas, unas pocas
 //   Mid      tinte adicional (audioHue)
 //   Kick     ademas del flash, ACELERA el parpadeo un instante (multiplica
 //            el avance del contador de color) -- geometria de color, no
@@ -93,16 +95,22 @@ vec4 render(vec2 uv)
     col += vec3(gridLine) * 0.10;
 
     // --- LA FICHA DE ESTA CELDA ---
-    // D1: probabilidad de que la celda tenga ficha.
-    float tokenProb = mix(0.12, 0.85, uD1);
+    // D1: probabilidad de que la celda tenga ficha. Piso y techo subidos
+    // (0.12/0.85 -> 0.35/0.95): pedido explicito de que por defecto se
+    // vean MUCHAS fichas, no un tablero a medio llenar.
+    float tokenProb = mix(0.35, 0.95, uD1);
     float hasToken = step(hash21(gi + 1.0), tokenProb);
 
     if (hasToken > 0.5) {
         // D2: mezcla de forma.
         float isSquare = step(hash21(gi + 2.0), uD2);
-        // D3: tamano.
+        // D3: tamano. Una fraccion CHICA de fichas (fija por celda, no
+        // cambia cual) crece de verdad con el bajo -- pedido explicito
+        // de que sean "unas pocas", no todas. Empuje acotado (sigue el
+        // nivel en vivo, nunca se dispara solo).
+        float growsWithBass = step(0.85, hash21(gi + 8.0));
         float sizeBase = mix(0.26, 0.42, hash21(gi + 4.0));
-        float size = sizeBase * (0.55 + uD3 * 0.9);
+        float size = sizeBase * (0.55 + uD3 * 0.9) * (1.0 + growsWithBass * uBass * 0.7);
         // D4: mezcla relleno/contorno.
         float isFilled = step(hash21(gi + 3.0), uD4);
         float strokeW = size * 0.22;
@@ -143,7 +151,9 @@ vec4 render(vec2 uv)
         float h = audioHue(paletteHue(colorIdx) + uHue, uMid * 0.10);
         // Las fichas de contorno se leen mas tenues que las rellenas en
         // el tablero de referencia -- menos saturacion, no menos brillo.
-        float sat = mix(0.55, 0.85, isFilled);
+        // Rango bajado (0.55/0.85 -> 0.30/0.55): pedido explicito de que
+        // el tablero se vea menos colorido en general.
+        float sat = mix(0.30, 0.55, isFilled);
         vec3  tokenCol = hsv2rgb(vec3(h, sat, 1.0));
 
         col += tokenCol * coverage;

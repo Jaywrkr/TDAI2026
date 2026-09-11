@@ -95,7 +95,9 @@ vec4 render(vec2 uv)
     float sat = mix(0.35, 0.90, uD5);
     int   baseIdx = int(mod(hash21(vec2(nodeHash, colorGs * 5.0 + 1.0)) * 4.0, 4.0));
     float baseHue = fract(audioHue(paletteHue2(baseIdx), 0.0) + h0);
-    vec3  panelCol = hsv2rgb(vec3(baseHue, sat, 0.92));
+    // Value bajado (0.92 -> 0.5): pedido explicito de que la escena sea
+    // mucho mas oscura.
+    vec3  panelCol = hsv2rgb(vec3(baseHue, sat, 0.5));
 
     int   finish = int(mod(hash21(vec2(nodeHash, colorGs * 7.0 + 20.0)) * 3.999, 4.0));
     vec3  col;
@@ -119,7 +121,7 @@ vec4 render(vec2 uv)
     } else if (finish == 2) {
         // GRANO: degradado de dos colores con ruido animado.
         int   idxB = int(mod(hash21(vec2(nodeHash, colorGs * 7.0 + 21.0)) * 4.0, 4.0));
-        vec3  colB = hsv2rgb(vec3(fract(audioHue(paletteHue2(idxB), 0.0) + h0), sat, 0.98));
+        vec3  colB = hsv2rgb(vec3(fract(audioHue(paletteHue2(idxB), 0.0) + h0), sat, 0.55));
         vec3  grad = mix(panelCol, colB, panelLocal.y);
         // uHigh: vibracion micro del grano -- unica excepcion del
         // contrato, amplitud pequena.
@@ -137,8 +139,9 @@ vec4 render(vec2 uv)
         col = mix(bg2, panelCol, stripe);
     }
 
-    // D6: ganancia general.
-    col *= 0.6 + uD6 * 0.7;
+    // D6: ganancia general. Rango bajado (0.6/1.3 -> 0.22/0.55): pedido
+    // explicito de que la escena sea mucho mas oscura.
+    col *= 0.22 + uD6 * 0.33;
 
     // PIANO: el panel mas cercano a uKeypos destella blanco.
     if (uKeypulse > 0.0015) {

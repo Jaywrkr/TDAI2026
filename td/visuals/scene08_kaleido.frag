@@ -30,7 +30,8 @@
 //   Hue      tinte que se mezcla sobre la imagen (0 = colores originales)
 //   Chaos    ondulacion del radio -- los espejos dejan de ser rectos
 //   Bass     ACELERA el giro (geometria real, mismo criterio que el
-//            disco de scene33) + brillo
+//            disco de scene33) + suma amplitud a la ondulacion del
+//            radio (el mandala tambien "respira" mas fuerte) + brillo
 //   Mid      tinte adicional (audioHue)
 //   Kick     empujon de zoom hacia adentro, y vuelve solo
 //   High     vibracion micro del angulo (excepcion del contrato)
@@ -57,8 +58,10 @@ vec4 render(vec2 uv)
     // Bass acelera el giro de verdad. Es geometria, pero del mismo tipo
     // que ya se acepto en scene33 (el disco de acrecion): un cambio de
     // VELOCIDAD continuo y acotado, no un salto de posicion por frame,
-    // y uBass llega suavizado desde audio.py. No tiembla.
-    ang += t * (0.10 + uSpeed * 0.55 + uBass * 0.45);
+    // y uBass llega suavizado desde audio.py. No tiembla. Empuje subido
+    // (0.45 -> 1.1): pedido explicito -- "nada se mueve con la
+    // musica", el empuje anterior era demasiado sutil para notarse.
+    ang += t * (0.10 + uSpeed * 0.55 + uBass * 1.1);
 
     // uHigh: vibracion micro del angulo -- unica excepcion del contrato,
     // amplitud pequena, ya suavizado.
@@ -81,9 +84,12 @@ vec4 render(vec2 uv)
     a = abs(a - seg * 0.5);
 
     // Chaos: el radio ondula, asi los espejos dejan de ser rectos y el
-    // mandala "respira" en vez de ser un patron rigido.
+    // mandala "respira" en vez de ser un patron rigido. El bajo suma
+    // amplitud extra a esa misma ondulacion -- otro punto donde el
+    // mandala "baila" con la musica, no solo gira mas rapido.
     float wobbleSpeed = 0.1 + uD5 * 1.4;
-    float rr = r * (1.0 + sin(a * segs * 2.0 + t * wobbleSpeed) * uChaos * 0.18);
+    float wobbleAmt = uChaos * 0.18 + uBass * 0.22;
+    float rr = r * (1.0 + sin(a * segs * 2.0 + t * wobbleSpeed) * wobbleAmt);
 
     // --- ZOOM ---
     // Density va de ver la imagen entera a clavarse en un detalle. El

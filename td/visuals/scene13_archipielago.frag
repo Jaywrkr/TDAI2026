@@ -41,7 +41,9 @@
 //   Hue      hue base (tinta del interior y de la costa)
 //   Chaos    turbulencia del contorno (costas suaves <-> bien
 //            fractales, con canales y penínsulas)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + empuje de la
+//            turbulencia del contorno -- el "liquido"/noise de la costa
+//            tambien baila con el bajo, acotado (nunca se dispara)
 //   Mid      tinte adicional (audioHue)
 //   Kick     ademas del flash, las grietas se iluminan como venas con
 //            energia -- geometria de COLOR encima, no mueve nada
@@ -68,7 +70,12 @@ vec4 render(vec2 uv)
     // --- TIERRA (fija, solo depende de las perillas) ---
     float scale = mix(0.55, 1.8, uDensity);
     vec2  lp = p * scale;
-    float turb = 0.4 + uChaos * 1.1;
+    // Bass: el "liquido"/noise de la costa tambien baila con el bajo --
+    // pedido explicito, empuje acotado (sigue el nivel en vivo, nunca
+    // se dispara solo). La silueta se sigue derivando SOLO de las
+    // perillas + este empuje, nunca de uTime -- sigue siendo un mapa
+    // estable, no algo que se retuerce solo con el reloj.
+    float turb = 0.4 + uChaos * 1.1 + uBass * 0.9;
     vec2  warp = vec2(fbm(lp * 0.8 + 11.0, 3), fbm(lp * 0.8 + 37.0, 3)) - 0.5;
     // Frecuencia de muestreo del ruido subida bastante (1.1 -> 3.2, con
     // dos octavos mas): a la escala anterior el ruido base quedaba tan

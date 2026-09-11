@@ -80,6 +80,11 @@ vec4 render(vec2 uv)
     // cada punto sea de UN color solido, como una gota de tinta.
     vec2 cellCenter = unrot * ((cellId + 0.5) / freq);
     vec2 muv = clamp(cellCenter * 0.5 + 0.5, 0.0, 1.0);
+    // Espejo en cruz (4 cuadrantes reflejados desde el centro) -- el
+    // efecto "mirror" clasico de VJ, pedido explicito. Se aplica ANTES
+    // de tramar, asi la trama entera hereda la simetria en vez de verse
+    // como dos imagenes distintas con puntos encima.
+    muv = 0.5 - abs(muv - 0.5);
     vec3 src = mediaTex(muv).rgb;
     float lum = dot(src, vec3(0.299, 0.587, 0.114));
 
