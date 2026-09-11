@@ -20,7 +20,9 @@
 //   Density  cuantas columnas estan activas a la vez
 //   Hue      color base (se mezcla con el degradado cian/violeta)
 //   Chaos    cuanto varia la velocidad entre columnas
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + la cabeza de cada gota
+//            crece con el golpe de grave y encoge cuando baja -- empuje
+//            acotado, sigue el bajo en vivo en vez de quedar fijo
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en toda la lluvia
 //   High     vibracion micro horizontal de cada gota (excepcion)
@@ -54,7 +56,11 @@ vec4 render(vec2 uv)
     float y = fract(uv.y * 2.4 - t * speed + phase);
 
     // D1: cabeza nitida. D2: largo de la estela.
-    float headSize = mix(0.010, 0.05, uD1);
+    // Bass: la cabeza de la gota crece con el bajo y encoge cuando baja
+    // -- pedido explicito ("que la llama crezca o decrezca con el
+    // bajo"), acotado (headSize nunca se dispara, sigue el nivel en
+    // vivo, no acumula).
+    float headSize = mix(0.010, 0.05, uD1) * (1.0 + uBass * 0.9);
     float trailLen = mix(0.15, 0.85, uD2);
     float drip = smoothstep(0.0, headSize, y) * smoothstep(trailLen, headSize, y);
 

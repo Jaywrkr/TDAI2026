@@ -18,7 +18,9 @@
 //   Density  frecuencia de los anillos de caustics
 //   Hue      color base
 //   Chaos    turbulencia del domain warp (agua quieta <-> agitada)
-//   Bass     brillo de lo ya claro (audioLift)
+//   Bass     brillo de lo ya claro (audioLift) + empuje de la
+//            turbulencia del warp -- el fluido se agita de verdad con
+//            el grave, acotado (nunca se dispara, sigue el nivel)
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en todo el patron
 //   High     vibracion micro del warp (excepcion del contrato)
@@ -41,7 +43,11 @@ vec4 render(vec2 uv)
     float h = audioHue(fract(uHue + 0.55), uMid * 0.12);
 
     float warpSpeed = 0.15 + uSpeed * 0.4;
-    float turb = 0.6 + uChaos * 1.4 + uD2 * 1.2;
+    // Bass: el fluido/noise baila con el bajo tambien -- pedido
+    // explicito, empuje acotado sobre la turbulencia (nunca se dispara,
+    // sigue el nivel en vivo como el resto de los empujones de bajo del
+    // set).
+    float turb = 0.6 + uChaos * 1.4 + uD2 * 1.2 + uBass * 1.1;
     vec2  warp = vec2(fbm(p * 1.8 + t * warpSpeed, 4), fbm(p * 1.8 - t * warpSpeed * 0.8 + 9.0, 4)) - 0.5;
     // uHigh: vibracion micro del warp -- unica excepcion del contrato.
     warp += uHigh * 0.015 * vec2(sin(t * 9.0), cos(t * 7.5));
