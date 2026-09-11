@@ -174,13 +174,18 @@ void main() {
     vec2 renderUV = vUV.st;
 
     if (uPixelate > 0.0015) {
-        // Piso bajado (16 -> 10): a fondo de pad, bloques bien grandes,
-        // que se note de verdad -- pedido explicito de mas intensidad.
-        float pxCount = mix(200.0, 10.0, uPixelate);
+        // Piso bajado otra vez (16 -> 10 -> 6): a fondo de pad, bloques
+        // enormes -- pedido explicito de que TODOS los efectos de pad
+        // funcionen mucho mas.
+        float pxCount = mix(200.0, 6.0, uPixelate);
         renderUV = (floor(renderUV * pxCount) + 0.5) / pxCount;
     }
     if (uZoom > 0.0015) {
-        renderUV = vec2(0.5) + (renderUV - vec2(0.5)) * (1.0 - uZoom * 0.5);
+        // Factor de escala subido (0.5 -> 0.75 -> 4x de zoom a fondo de
+        // pad): a 0.5 el empujon era tan suave que se leia como una
+        // vibracion, no como un efecto -- pedido explicito de mas
+        // intensidad.
+        renderUV = vec2(0.5) + (renderUV - vec2(0.5)) * (1.0 - uZoom * 0.75);
     }
     if (uMirror > 0.0015) {
         float mFold = renderUV.x > 0.5 ? (1.0 - renderUV.x) : renderUV.x;
@@ -230,24 +235,30 @@ void main() {
         c.rgb = clamp(c.rgb, 0.0, 1.0);
     }
 
-    // Strobe: destello periodico. Amplitud subida (0.6 -> 0.9) y el pico
-    // de brillo tambien (x2.0 -> x2.6) -- pedido explicito de que se
-    // note mas.
+    // Strobe: destello periodico. Amplitud subida otra vez (0.6 -> 0.9)
+    // y el pico de brillo tambien (x2.0 -> x2.6 -> x3.4), mas un
+    // blanqueo real en el pico (no solo mas brillo del mismo color) --
+    // asi se lee como un flash de luz real, no un simple aumento de
+    // ganancia. Pedido explicito de que se note mas.
     if (uStrobe > 0.0015) {
         float strobe_freq = 8.0 + uStrobe * 20.0;
         float strobe = step(0.5, sin(uRTime * strobe_freq * TAU));
-        c.rgb = mix(c.rgb, c.rgb * 2.6, strobe * uStrobe * 0.9);
+        float hit = strobe * uStrobe;
+        c.rgb = mix(c.rgb, c.rgb * 3.4, hit * 0.9);
+        c.rgb = mix(c.rgb, vec3(1.0), hit * 0.35);
     }
 
-    // Invert: invierte colores
+    // Invert: invierte colores. Subido a full (0.8 -> 1.0) -- pedido
+    // explicito de mas intensidad.
     if (uInvert > 0.0015) {
-        c.rgb = mix(c.rgb, vec3(1.0) - c.rgb, uInvert * 0.8);
+        c.rgb = mix(c.rgb, vec3(1.0) - c.rgb, uInvert);
     }
 
     // Posterize: cuantiza el color en pocos niveles -- look retro de
-    // pantalla de pocos bits.
+    // pantalla de pocos bits. Piso bajado (3 -> 2): a fondo de pad,
+    // blanco y negro puro -- pedido explicito de mas intensidad.
     if (uPosterize > 0.0015) {
-        float levels = mix(16.0, 3.0, uPosterize);
+        float levels = mix(16.0, 2.0, uPosterize);
         c.rgb = floor(c.rgb * levels + 0.5) / levels;
     }
 

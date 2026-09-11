@@ -276,12 +276,12 @@ FX_TRIGGER_PARS = [
 # que leerse con claridad en pantalla, no solo destellar. Antes de esta
 # envolvente, un pad duraba ~2 frames (~0.03s a 60fps): invisible.
 #
-# Subido de 0.6 a 1.4 (pedido explicito: "deben durar mas... no se
-# notan"): con 0.6s un pad tocado y soltado rapido -- el gesto normal en
-# vivo -- ya se habia apagado casi del todo para cuando el ojo llega a
-# registrarlo. 1.4s da tiempo real a leer el efecto en pantalla incluso
-# con un toque corto.
-FX_DECAY_SECONDS = 1.4
+# Subido de 0.6 a 1.4, y ahora a 2.2 (pedido explicito otra vez: "solo
+# el glitch se llega a anotar, un segundo y levemente... la idea es que
+# funcione mucho mas"). Con 1.4s un toque corto de pad seguia leyendose
+# como un parpadeo breve -- 2.2s alcanza para que el ojo lo registre con
+# claridad incluso en el toque mas corto.
+FX_DECAY_SECONDS = 2.2
 
 # ---------------------------------------------------------------
 # MASTER FX - modos de mezcla del modo DOS CAPAS
