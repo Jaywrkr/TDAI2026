@@ -38,6 +38,36 @@ _NOTE_PATTERNS = [
     re.compile(r'^ch(\d+)key(\d+)$', re.IGNORECASE),
 ]
 
+_PITCH_RE = re.compile(r'^ch(\d+)pitch$', re.IGNORECASE)
+
+
+def _norm01(name, val):
+    """0..1 desde el valor RAW de un canal MIDI.
+
+    BUG real reportado en vivo: Detail6 (mapeado a la rueda de pitch
+    bend, ch1pitch -- ver config.DEFAULT_MIDI) practicamente no se movia
+    ("el valor sigue siendo demasiado bajo"). Causa: CC/nota vienen de
+    TD como el byte MIDI crudo, 0..127 -- por eso el resto de este
+    archivo divide por 127.0 -- pero Pitch Bend NO es un CC: es un valor
+    ya centrado en 0 que TD normaliza aparte, tipicamente -1..1 (bend
+    para abajo <-> para arriba). Dividir ESO por 127 lo deja practicamente
+    inmovil (como mucho +-0.0078, el mismo numero que el bug de rango
+    de hace un tiempo, pero esta vez la causa es una escala distinta,
+    no el dialogo de Parameters corrompido).
+    """
+    if _PITCH_RE.match(name):
+        v = float(val)
+        if -1.5 <= v <= 1.5:
+            return max(0.0, min(1.0, (v + 1.0) * 0.5))
+        # Por si algun build expone Pitch ya en 0..1, o crudo de 14 bits
+        # (0..16383, centro 8192) -- para que esto se degrade con
+        # gracia en vez de volver a quedar mudo si la suposicion de
+        # arriba no aplica en un build puntual.
+        if 0.0 <= v <= 1.0:
+            return v
+        return max(0.0, min(1.0, v / 16383.0))
+    return max(0.0, min(1.0, float(val) / 127.0))
+
 
 def _parse_note(name):
     """(canal, nota) de un nombre de canal MIDI tipo 'ch13n49', o None si
@@ -285,14 +315,21 @@ def _handle(channel, val, is_trigger):
         par = getattr(p.par, par_name, None)
         if par is not None:
             _assertRange(par, lo, hi)
-            par.val = lo + (hi - lo) * max(0.0, min(1.0, float(val) / 127.0))
+            par.val = lo + (hi - lo) * _norm01(name, val)
     elif is_trigger and slot in TRIGGERS:
         getattr(m, TRIGGERS[slot])()
     elif is_trigger and slot in EFFECT_TRIGGERS:
+        # Siempre a full (1.0), no la velocidad del pad. Pedido explicito
+        # ("que funcione mucho mas"): un pad de efecto es un gesto de
+        # ON/OFF -- si el pad fisico manda velocidad baja o pareja (varia
+        # por controlador/config), el efecto se sentia siempre a medias
+        # sin ninguna forma de saberlo desde la pantalla. A full, el
+        # efecto pega con toda la intensidad que ya tiene el shader
+        # (ver _FOOTER) cada vez, sin depender de que tan fuerte se toque.
         par = getattr(p.par, slot, None)
         if par is not None:
             _assertRange(par, 0.0, 1.0)
-            par.val = max(0.0, min(1.0, float(val) / 127.0))
+            par.val = 1.0
         _refreshLeds()
         run("op('/project1/midi_logic').module._resetEffect('{}')".format(slot), delayFrames=2)
 
