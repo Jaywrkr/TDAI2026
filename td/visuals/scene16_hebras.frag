@@ -1,22 +1,21 @@
 // ===============================================================
-// SCENE 48 - HEBRAS
+// SCENE 48 - HEBRAS ("TALLARINES")
 // Cadenas organicas tipo bacteria -- una fila de cuentas redondeadas
-// que se van sumando en un camino que se retuerce solo -- cruzandose
-// por toda la pantalla, cada una con un borde negro marcado y una
-// textura de grano fino adentro que titila. La forma de las cadenas
-// es FIJA (solo las perillas la cambian); lo que se anima es el
-// grano.
+// que se van sumando en un camino que se retuerce -- cruzandose por
+// toda la pantalla, cada una con un borde negro marcado y una textura
+// de grano fino adentro que titila. El CAMINO ONDULA de verdad con el
+// tiempo (no solo el grano) -- pedido explicito: "que bailen bastante
+// pero con su movimiento, no solo bloom o brillo". Fondo oscuro.
 // ===============================================================
 //
 // COMO FUNCIONA
 //
 // 1. CAMINO: cada cadena arranca en un punto y un angulo al azar
-//    (hash por indice de cadena) y avanza en pasos fijos, girando un
-//    poco en cada paso (tambien por hash, no por tiempo) -- una
-//    caminata aleatoria pero SUAVE, no ruido. Se mide la distancia de
-//    cada pixel al SEGMENTO mas cercano de esa polilinea (igual que
-//    traceFigure en scene22), y se guarda tambien la posicion a lo
-//    largo del camino ('u') del segmento mas cercano.
+//    (hash por indice de cadena) y avanza en pasos fijos, girando en
+//    cada paso -- un giro FIJO por hash (la forma base de la cadena)
+//    mas un giro que ONDULA suave con el tiempo (seno, fase y
+//    velocidad propia por cadena), asi el tallarin entero se retverce
+//    de verdad en vivo, no solo su textura interna.
 //
 // 2. CUENTAS: el ancho de la cadena en cada punto no es constante --
 //    oscila con sin(u * frecuencia) (D2/D3), asi la cadena se ve como
@@ -29,11 +28,12 @@
 //    tiempo da la textura granulada.
 //
 // CONTROLES
-//   Speed    velocidad del titileo del grano
+//   Speed    velocidad a la que el camino ondula (y del titileo del
+//            grano)
 //   Density  cuantas cadenas hay
 //   Hue      hue base (rota el color de las cadenas y del fondo)
 //   Chaos    cuanto gira cada cadena en cada paso (casi recta <-> bien
-//            retorcida)
+//            retorcida) -- se suma a la ondulacion, no la reemplaza
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash breve
@@ -60,7 +60,9 @@ vec4 render(vec2 uv)
     vec2  p = centered(uv);
     float h0 = audioHue(uHue, uMid * 0.10);
 
-    vec3  bgCol = hsv2rgb(vec3(fract(h0 + 0.78), 0.28, mix(0.55, 0.85, uD6)));
+    // Rango bajado (0.55/0.85 -> 0.04/0.15): pedido explicito de fondo
+    // oscuro -- el anterior era casi tan claro como las propias cadenas.
+    vec3  bgCol = hsv2rgb(vec3(fract(h0 + 0.78), 0.28, mix(0.04, 0.15, uD6)));
     vec3  col = bgCol;
 
     int   nStrands = 3 + int(floor(uDensity * 5.99));
@@ -78,9 +80,17 @@ vec4 render(vec2 uv)
         float ang = hash21(seed + 9.0) * TAU;
         float u = 0.0;
 
+        // Ondulacion real: cada cadena tiene su propia velocidad y fase
+        // de "baile" (por hash, distinta por cadena) -- el camino
+        // entero se retverce con el tiempo en vez de quedar congelado.
+        // Chaos SUMA a esto (mas retorcido), no lo reemplaza.
+        float driftSpeed = 0.12 + uSpeed * 0.55 + hash21(seed + 15.0) * 0.15;
+        float driftPhase = hash21(seed + 21.0) * TAU;
+
         for (int i = 1; i <= 24; i++) {
             float fi = float(i);
-            ang += (hash21(seed + fi * 3.3) - 0.5) * turnAmt;
+            ang += (hash21(seed + fi * 3.3) - 0.5) * turnAmt
+                 + sin(t * driftSpeed + driftPhase + fi * 0.55) * 0.35;
             vec2 cur = prev + vec2(cos(ang), sin(ang)) * stepLen;
             float d = segDist2(p, prev, cur);
             if (d < minD) {

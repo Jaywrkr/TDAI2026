@@ -111,8 +111,11 @@ vec4 render(vec2 uv)
 
         // D3: largo visible -- ventana suave a lo largo de la propia
         // linea, con fase distinta por tubo (hash) para que no todos
-        // corten justo en el mismo punto.
-        float halfLen = mix(3.0, 0.35, lenWindow);
+        // corten justo en el mismo punto. Rango subido (3.0/0.35 ->
+        // 4.5/1.2): pedido explicito de que los tubos sean mas largos,
+        // como un neon real -- con el rango viejo, ya en el default
+        // (D3=0.5) se veian como segmentos cortos, no como caños.
+        float halfLen = mix(4.5, 1.2, lenWindow);
         float lenCenter = (hash21(seed + 4.0) - 0.5) * 1.2 * lenWindow;
         float endFade = smoothstep(halfLen, halfLen - 0.5, abs(along - lenCenter));
 

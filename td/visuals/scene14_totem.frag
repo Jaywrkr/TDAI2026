@@ -5,8 +5,11 @@
 // patron completo (no un color liso): a cuadros, rayas, chevron,
 // cuadrados concentricos, matriz de puntos o nube de ruido. Un "ojo"
 // fijo (rectangulos anidados) queda siempre en el centro. Cada tanto
-// el panel entero se reordena de golpe. Afuera del marco, un fondo de
-// manchas en bloques.
+// el panel entero se reordena de golpe. SIN fondo detras del marco
+// (pedido explicito -- "quita el fondo y deja solo el rectangulo"):
+// afuera del panel es negro solido, para poder usar el panel como un
+// escenario/cartel que se puede recortar o acercar sin arrastrar
+// ruido de fondo.
 // ===============================================================
 //
 // COMO FUNCIONA
@@ -54,7 +57,8 @@
 // @D2: cuantos niveles de columnas por fila (pocas y anchas <-> muchas
 //      y finas)
 // @D3: frecuencia de los patrones dentro de cada celda
-// @D4: cuanta mancha tiene el fondo exterior
+// @D4: reservado (antes controlaba la mancha del fondo exterior, ya
+//      sacado -- ver "SIN fondo" arriba)
 // @D5: tamano del ojo central
 // @D6: contraste/saturacion general de la paleta
 // ===============================================================
@@ -77,14 +81,9 @@ vec4 render(vec2 uv)
     float cycleLen = mix(9.0, 3.0, uSpeed);
     float gs = floor(t * cycleLen + uKick * 23.0);
 
-    // --- FONDO EXTERIOR: manchas en bloques ---
-    float pxStep = mix(0.09, 0.02, uD4);
-    vec2  pq = (floor(p / pxStep) + 0.5) * pxStep;
-    float bgN = fbm(pq * 2.0 + 5.0, 3);
-    float bgBlot = step(0.62 - uD4 * 0.18, bgN);
-    vec3  bgA = hsv2rgb(vec3(fract(h0 + 0.68), sat, 0.85));   // azul
-    vec3  bgB = hsv2rgb(vec3(fract(h0 + 0.98), sat, 0.85));   // rojo
-    vec3  col = mix(bgA, bgB, bgBlot);
+    // --- FONDO: negro solido, sin manchas -- pedido explicito de dejar
+    // solo el panel, como si fuera un escenario recortable.
+    vec3  col = vec3(0.0);
 
     // --- PANEL ENMARCADO ---
     float panelScale = mix(1.35, 0.55, uDensity);

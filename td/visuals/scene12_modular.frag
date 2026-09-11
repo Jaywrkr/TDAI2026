@@ -182,7 +182,12 @@ vec4 render(vec2 uv)
     // geometria de COLOR encima, no reordena nada, y uKeypulse decae
     // solo.
     if (uKeypulse > 0.0015) {
-        float targetCol = floor(mix(0.0, cols - 1.0, uKeypos) + 0.5);
+        // id.x sale de floor(uv.x*uAspect*cols) -- su rango real es
+        // [0, uAspect*cols), no [0, cols). Con el rango viejo la
+        // columna que se encendia nunca llegaba a la mitad derecha de
+        // la pantalla en una salida ancha (uAspect>1): quedaba siempre
+        // del lado izquierdo.
+        float targetCol = floor(mix(0.0, uAspect * cols - 1.0, uKeypos) + 0.5);
         float onCol = 1.0 - smoothstep(0.0, 0.6, abs(id.x - targetCol));
         col += vec3(1.0) * onCol * uKeypulse * (0.35 + uKeyvel * 0.5);
     }

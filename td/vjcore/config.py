@@ -2,10 +2,11 @@
 
 import math
 
-# Bajado de 53 a 46: se eliminaron 7 escenas (pulso, cristal, fusion,
-# telarana, jellyfish, floweroflife, eqbars) por pedido directo del
-# usuario, y el resto se renumero para cerrar los huecos (mismo
-# mecanismo de dos pasadas usado para mandar escenas a "la carcel").
+# Bajado de 48 a 38: se eliminaron 10 escenas (oscilloscope, inksplatter,
+# wormhole, constelacion, paneles, kiosko, atlas, sampler, delta,
+# bienestar) por pedido directo del usuario, y el resto se renumero para
+# cerrar los huecos (mismo mecanismo de dos pasadas usado para mandar
+# escenas a "la carcel").
 N_SCENES = 48
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
@@ -29,11 +30,16 @@ N_SCENES = 48
 # 8->3, mediaglitch 11->6, kaleido 26->18, halftone 27->19. Y despues, al
 # eliminar 7 escenas (pulso/cristal/fusion/telarana/jellyfish/
 # floweroflife/eqbars) y cerrar los huecos -- mediaecho 3->2, mediaglitch
-# 6->3, kaleido 18->11, halftone 19->12. Los nombres de archivo son la
-# fuente de verdad real (scenes.py arma esto leyendo el prefijo sceneNN_
-# de cada .frag), este set tiene que seguir esos mismos indices o las
-# dos escenas de imagen quedan sin su segundo input.
-MEDIA_SCENES = {2, 3, 11, 12}
+# 6->3, kaleido 18->11, halftone 19->12. Y despues, al eliminar otras 10
+# (oscilloscope/inksplatter/wormhole/constelacion/paneles/kiosko/atlas/
+# sampler/delta/bienestar) -- mediaecho se queda en 2, mediaglitch en 3,
+# kaleido 11->8, halftone 12->9. Y al agregar 3 escenas nuevas de imagen
+# (imgfuego/mosaico/persianas, indices 45/46/47) se suman al set. Los
+# nombres de archivo son la fuente de verdad real (scenes.py arma esto
+# leyendo el prefijo sceneNN_ de cada .frag), este set tiene que seguir
+# esos mismos indices o las escenas de imagen quedan sin su segundo
+# input.
+MEDIA_SCENES = {2, 3, 8, 9, 45, 46, 47}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
