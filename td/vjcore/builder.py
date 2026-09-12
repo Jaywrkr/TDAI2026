@@ -62,7 +62,13 @@ def _parameters(proj):
     add_int(o, 'Outputheight', 'Output Height', c.DEFAULT_OUTPUT_H, 240, c.MAX_OUTPUT)
 
     a = proj.appendCustomPage('Audio')
-    add_float(a, 'Mastergain', 'Master Gain', 4.0, 0.1, 40)
+    # Rango ampliado (0.1-40 -> 0.02-100): pedido explicito para cubrir
+    # los casos extremos de microfono en vivo -- parado pegado al
+    # parlante (necesita poder bajar mucho mas de 0.1 para no saturar)
+    # o con un parlante chico lejos (necesita poder subir mucho mas de
+    # 40 para que la banda no quede muerta). El default (4.0) no
+    # cambia -- nadie que ya tenia esto calibrado nota diferencia.
+    add_float(a, 'Mastergain', 'Master Gain', 4.0, 0.02, 100)
     add_float(a, 'Bassgain', 'Bass Gain', 8.0, 0.1, 60)
     add_float(a, 'Midgain', 'Mid Gain', 6.0, 0.1, 60)
     add_float(a, 'Highgain', 'High Gain', 10.0, 0.1, 60)
