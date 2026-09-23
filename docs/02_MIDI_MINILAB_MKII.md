@@ -1,6 +1,98 @@
 # MIDI — Arturia MiniLab MkII
 
-## Mapeo por defecto — confirmado en vivo, no adivinado
+## Layout v2 — el mapa actual
+
+**Qué tiene el controlador:** 16 perillas, 8 pads × 2 bancos (botón
+`Pad 1-8 / 9-16`) = 16 pads, tira de pitch, tira de modulación, 25 teclas.
+Extras: `Shift` + perilla 1 o 9 manda un CC alternativo (2 perillas más).
+
+> ⚠️ **`Shift` + pad NO cambia de banco: cambia de MEMORIA** del MiniLab
+> (y con eso todos los CC). El banco se cambia con el botón
+> **`Pad 1-8 / 9-16`**.
+
+### Perillas
+
+Se indica **qué perilla física es** por lo que hacía antes — así no hay que
+adivinar la posición:
+
+| Perilla (hoy manda) | Qué hacía | **Qué hace ahora** |
+|---|---|---|
+| `ch1ctrl74` | Transition | **ENERGÍA** — la principal: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset |
+| `ch1ctrl77` | Hue | Hue (igual) |
+| `ch1ctrl75` | Speed | Speed (igual — pisa a Energía hasta que muevas Energía) |
+| `ch1ctrl72` | Density | Density (igual) |
+| `ch1ctrl78` | Chaos | Chaos (igual) |
+| `ch1ctrl76` | Audio Amount | Reacción al audio (igual) |
+| `ch1ctrl94` | Brightness | Master (igual) |
+| `ch1ctrl19` | Bass Amount | **ESTELA** (Trails) |
+| `ch1ctrl20` | Mid Amount | **LOOK** (cuánto se aplica el look del show) |
+| `ch1ctrl17` | High Amount | **PALETA** (paleta del show) |
+| `ch1ctrl18` `92` `80` `73` `2` | Detail 1–5 | Detail 1–5 (igual) |
+| tira **pitch** | Detail 6 | Detail 6 (igual) — ojo: la tira vuelve sola al centro al soltarla |
+| tira **mod** (`ch1ctrl1`) | — | **IMAGEN (scrub)**: recorre la carpeta con el dedo |
+| `Shift` + perilla 1 | — | libre → sugerido `Learn Layermix` (mezcla de Dos Capas) |
+| `Shift` + perilla 9 | — | libre → sugerido `Learn Transition` (fundido a mano, pisa a Energía) |
+
+Las bandas Bass/Mid/High Amount salen del controlador porque con
+**Auto-gain** ya no hace falta corregirlas en vivo: quedan en la pestaña
+**Audio**.
+
+### Pads — banco A (`Pad 1-8`): el show
+
+| Pad | Manda | Antes | **Ahora** |
+|---|---|---|---|
+| 1 | `ch1ctrl30` | Next | NEXT (igual) |
+| 2 | `ch1ctrl29` | Prev | PREV (igual) |
+| 3 | `ch1ctrl28` | Blackout | BLACKOUT (igual) |
+| 4 | `ch1ctrl27` | Snapshot | **AUTOPILOT** on/off |
+| 5 | `ch1ctrl26` | Reset | **TEXTO** mostrar/ocultar |
+| 6 | `ch1ctrl24` | Imagen → | IMAGEN → (igual) |
+| 7 | `ch1ctrl23` | Imagen ← | **DOS CAPAS** on/off |
+| 8 | `ch1ctrl25` | Imagen fija | IMAGEN FIJA (igual) |
+
+### Pads — banco B (`Pad 9-16`): efectos (golpe, decaen solos)
+
+| Pad | Manda | Antes | **Ahora** |
+|---|---|---|---|
+| 9 | `ch10n37` | Grain | **RETRO** = Grain + Posterize juntos |
+| 10 | `ch10n38` | Glitch | Glitch (igual) |
+| 11 | `ch10n39` | Pixelate | Pixelate (igual) |
+| 12 | `ch10n40` | Strobe | Strobe (igual, tope 3 Hz) |
+| 13 | `ch10n41` | Invert | Invert (igual) |
+| 14 | `ch10n50` | Mirror | Mirror (igual) |
+| 15 | `ch10n51` | Zoom | Zoom (igual) |
+| 16 | `ch10n52` | Posterize | **MODO DE MEZCLA** de Dos Capas (cicla) |
+
+### Lo que salió del controlador (y dónde quedó)
+
+Nada se pierde:
+
+| Qué | Dónde |
+|---|---|
+| Pánico, Take | Dashboard (botones grandes) |
+| Snapshot, Reset | `/project1` → pulsos (y `Learn` si algún día liberas algo) |
+| Imagen ←, imagen al azar, fuente siguiente | `/project1` → Media / Texto |
+| Bass/Mid/High Amount | `/project1` → Audio (con Auto-gain no hace falta tocarlos) |
+| Cue (modo, siguiente, anterior), Layerswap, Trails on/off | Dashboard / `/project1` |
+| Zoom de estela | slot `Trailszoom` listo para Learn (ideal en la tira de pitch) |
+
+### Cómo se aplica
+
+**Automático:** al arrancar, si tu `td/config/midi_map.json` es del layout
+anterior, se **migra solo** una vez: cada control de la tabla pasa a su
+función nueva y el slot viejo queda vacío. Después se guarda marcado como
+`v2`, así que un `Learn` que hagas más tarde ya no se pisa.
+
+**A mano (solo lo nuevo):** `Shift`+perilla 1 y 9 si los quieres usar
+(`Learn Layermix`, `Learn Transition`). La tira mod viene como `ch1ctrl1`;
+si no responde, `Learn Mediascrub`.
+
+`Learn` ahora **reasigna**: si el control ya estaba en otro slot, se lo
+quita (antes quedaban los dos y ganaba uno al azar).
+
+---
+
+## Mapeo original (histórico)
 
 Estos son los canales reales, verificados con MIDI Learn sobre la unidad de
 producción (TouchDesigner Build 2025.32820, macOS). Con `/project1/midi1` →

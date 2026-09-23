@@ -20,6 +20,26 @@ Fase 2 (estabilidad de audio):
   la que de verdad llega a los visuales como uBass/uMid/uHigh/uLevel. Sin
   esto el ruido de sala del microfono se notaba como temblor en cualquier
   visual que reaccionara al nivel de audio.
+
+Auto-gain (normalizacion automatica por banda):
+- Antes cada banda era RMS * ganancia FIJA, recortado a 1.0. En un venue
+  real el volumen cambia 15-20 dB entre prueba de sonido, apertura, pico y
+  cambio de DJ: en lo fuerte el bass quedaba clavado en 1.0 (los visuales
+  dejaban de reaccionar justo en el drop) y en lo suave casi no se movia
+  nada; el umbral del beat, absoluto, disparaba sin parar o nunca.
+- Ahora cada banda se divide por su propio PICO RECIENTE (Lag CHOP: sube
+  al instante, baja en Agcrelease segundos). 1.0 = "lo mas fuerte de los
+  ultimos segundos", suene la sala como suene. Como el kick sale de la
+  banda de graves ya normalizada, su umbral queda relativo solo.
+- Piso (Agcfloor): debajo de ese nivel no se amplifica mas -- el silencio
+  entre temas no se convierte en "musica". Esta expresado como fraccion
+  del fondo de escala de la ganancia fija de fabrica, asi que un solo
+  valor sirve para las 4 bandas.
+- Las ganancias por banda (Mastergain, Bassgain...) siguen existiendo como
+  AJUSTE FINO relativo a su valor de fabrica: con Autogain prendido, 8 en
+  Bassgain = x1.0, 16 = x2.0. Con Autogain apagado vuelven a ser lo que
+  eran (el comportamiento de antes, bit a bit).
+- Todo en CHOPs nativos: 3 nodos por banda, cero Python por frame.
 """
 
 # TouchDesigner inyecta sus globales (op, run, absTime, project y las
@@ -33,7 +53,8 @@ except ImportError:
     pass
 
 
-from .tdutil import safe_set, safe_set_first, safe_expr, connect, log
+from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
+                     connect, log)
 
 # Bandas en Hz
 BASS_HI = 180.0
@@ -53,6 +74,51 @@ def _filter(proj, src, name, ftype, cutoff, x, y):
     safe_set(f, 'drywet', 1)
     connect(f, src)
     return f
+
+
+# Ganancia de fabrica de cada banda (tiene que coincidir con los defaults
+# de builder.py, pagina Audio). Con Autogain prendido, la ganancia de la
+# banda se lee RELATIVA a este valor (ajuste fino, 1.0 en el default) y el
+# piso del auto-gain se escala por el mismo numero.
+FACTORY_GAIN = {
+    'Mastergain': 4.0,
+    'Bassgain': 8.0,
+    'Midgain': 6.0,
+    'Highgain': 10.0,
+}
+
+
+def _autogain(proj, fl, name, x, y, gain_par):
+    """Divide 'fl' por su pico reciente (o por 1 si Autogain esta apagado).
+
+    peak    : Lag CHOP, ataque 0 / caida Agcrelease -> pico reciente.
+    divisor : Autogain ? max(peak, piso) : 1. Con Mult-Add de Math CHOP
+              (gain = Autogain, postoff = 1 - Autogain) y clamp bajo en el
+              piso -- con Autogain apagado vale 1 exacto, y 1 > piso.
+    norm    : fl / divisor.
+    """
+    P = "op('/project1').par."
+    peak = proj.create(lagCHOP, name + '_peak')
+    peak.nodeX, peak.nodeY = x, y
+    safe_set(peak, 'lag1', 0.0)
+    safe_expr(peak, 'lag2', P + 'Agcrelease')
+    connect(peak, fl)
+
+    div = proj.create(mathCHOP, name + '_agcdiv')
+    div.nodeX, div.nodeY = x + 160, y
+    safe_expr(div, 'gain', 'float(' + P + 'Autogain.eval())')
+    safe_expr(div, 'postoff', '1.0 - float(' + P + 'Autogain.eval())')
+    safe_set(div, 'clamplow', True)
+    safe_expr_first(div, ['clamplowvalue', 'clamplowval'],
+                    P + 'Agcfloor.eval() / {}'.format(FACTORY_GAIN[gain_par]))
+    connect(div, peak)
+
+    norm = proj.create(mathCHOP, name + '_agcnorm')
+    norm.nodeX, norm.nodeY = x + 320, y
+    safe_set_first(norm, ['chopop', 'chanop'], 'divide')
+    connect(norm, fl, 0)
+    connect(norm, div, 1)
+    return norm
 
 
 def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
@@ -75,9 +141,17 @@ def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
     safe_set(fl, 'width', smooth)
     connect(fl, an)
 
+    # Auto-gain: sus 3 nodos van en una columna libre a la izquierda de
+    # audio1 (x -2080..-1760), a la altura de la banda -- la zona de la
+    # cadena de audio ya esta llena y ahi se pisarian en el canvas.
+    norm = _autogain(proj, fl, name, -2080, y, gain_par)
+
     mt = proj.create(mathCHOP, name + '_gain')
     mt.nodeX, mt.nodeY = x + 300, y
-    parts = ["op('/project1').par.{}.eval()".format(gain_par)]
+    # Autogain prendido: la ganancia de la banda es un ajuste fino relativo
+    # a su valor de fabrica (8 en Bassgain = x1). Apagado: la de siempre.
+    parts = ["(op('/project1').par.{g}.eval() / ({f} if op('/project1').par.Autogain.eval() else 1.0))"
+             .format(g=gain_par, f=FACTORY_GAIN[gain_par])]
     if amount_par:
         parts.append("op('/project1').par.{}.eval()".format(amount_par))
     parts.append("op('/project1').par.Audioamount.eval()")
@@ -86,7 +160,7 @@ def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
     safe_set(mt, 'clamphigh', True)
     safe_set_first(mt, ['clamplowvalue', 'clamplowval'], 0.0)
     safe_set_first(mt, ['clamphighvalue', 'clamphighval'], 1.0)
-    connect(mt, fl)
+    connect(mt, norm)
     return mt
 
 

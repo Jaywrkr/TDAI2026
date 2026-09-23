@@ -49,6 +49,16 @@ def build_all(proj, channels):
     return scenes, outs, thumbs
 
 
+def _render_res_expr(out_par, i):
+    """Expresion de TD para el ancho/alto de render de la escena i:
+    salida x Renderscale, o la salida tal cual si la escena esta en
+    config.FULLRES_SCENES. Piso de 64 px por si alguien pone 0 a mano."""
+    if i in config.FULLRES_SCENES:
+        return "op('/project1').par.{}".format(out_par)
+    return ("max(64, int(op('/project1').par.{}.eval() * "
+            "op('/project1').par.Renderscale.eval()))".format(out_par))
+
+
 def build_scene(scenes, i, channels):
     sc = scenes.create(baseCOMP, 'scene{}'.format(i))
     sc.nodeX = (i % config.GRID_COLS) * 200
@@ -105,9 +115,12 @@ def build_scene(scenes, i, channels):
         connect(glsl, media_in, 1)
     # IMPORTANTE: sin esto el GLSL TOP hereda la resolucion del input 0,
     # que es la textura de control de 1 x 15 px.
+    # Resolucion = salida x Renderscale (ver config.DEFAULT_RENDER_SCALE),
+    # salvo las escenas de lineas finas (config.FULLRES_SCENES), que van
+    # siempre a resolucion completa.
     safe_set(glsl, 'outputresolution', 'custom')
-    safe_expr(glsl, 'resolutionw', "op('/project1').par.Outputwidth")
-    safe_expr(glsl, 'resolutionh', "op('/project1').par.Outputheight")
+    safe_expr(glsl, 'resolutionw', _render_res_expr('Outputwidth', i))
+    safe_expr(glsl, 'resolutionh', _render_res_expr('Outputheight', i))
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
 
     out_top = content.create(nullTOP, 'content_out')

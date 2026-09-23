@@ -16,7 +16,25 @@
 
 ## Palancas, de mayor a menor efecto
 
-### 1. Resolución de salida
+### 1. Escala de render de las escenas
+
+`/project1` → Output → `Escala de render (escenas)`. **Por defecto 0.75.**
+
+Las escenas (los `.frag`, donde está casi todo el costo) se calculan a esa
+fracción de la salida; crossfade, Master FX, bloom, texto y dither siguen a
+resolución completa y reescalan con filtro lineal. A 0.75 cada escena
+calcula **44% menos píxeles**, y en un crossfade o en Dos Capas se calculan
+dos a la vez. El bloom y el dither a resolución completa disimulan el
+reescalado; el texto del artista queda nítido.
+
+Las escenas de líneas muy finas (web, tormenta, láseres, red) van siempre a
+resolución completa (`config.FULLRES_SCENES`).
+
+Es un ajuste del equipo, no del show: se deja fijo. Si el FPS cae igual, el
+failsafe la baja sola a 0.5 como **primer** escalón (antes de apagar estela
+o dos capas, y mucho antes de bajar la salida), y `Reset` la devuelve.
+
+### 1b. Resolución de salida
 
 `/project1` → Output → `Output Width` / `Output Height`.
 
@@ -127,7 +145,8 @@ En orden:
 1. ¿`COOCINANDO` dice más de 2? → revisa Performance Mode / Preview All.
 2. ¿`GPU show` sube solo en una escena concreta? → ese `.frag` es el problema:
    baja sus octavas.
-3. ¿`GPU show` es alto en todas? → baja la resolución de salida.
+3. ¿`GPU show` es alto en todas? → baja `Escala de render` (0.6 o 0.5)
+   antes que la resolución de salida.
 4. ¿Los fps caen pero `GPU show` es bajo? → el cuello está en CPU: revisa
    el Performance Monitor, típicamente devices de audio/MIDI o DATs.
 5. ¿Caen solo al cambiar de escena? → sube `Prewarm Frames` o acorta la

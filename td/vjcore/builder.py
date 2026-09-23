@@ -60,6 +60,10 @@ def _parameters(proj):
     o = proj.appendCustomPage('Output')
     add_int(o, 'Outputwidth', 'Output Width', c.DEFAULT_OUTPUT_W, 320, c.MAX_OUTPUT)
     add_int(o, 'Outputheight', 'Output Height', c.DEFAULT_OUTPUT_H, 240, c.MAX_OUTPUT)
+    # Fraccion de la salida a la que se calculan las escenas (ver
+    # config.DEFAULT_RENDER_SCALE). Ajuste del equipo, no de show.
+    add_float(o, 'Renderscale', 'Escala de render (escenas)',
+              c.DEFAULT_RENDER_SCALE, 0.4, 1.0)
 
     a = proj.appendCustomPage('Audio')
     add_float(a, 'Mastergain', 'Master Gain', 4.0, 0.1, 40)
@@ -69,6 +73,13 @@ def _parameters(proj):
     add_float(a, 'Kickwindow', 'Kick Window (s)', 0.35, 0.05, 2.0)
     add_float(a, 'Kickgain', 'Kick Gain', 9.0, 0.1, 60)
     add_float(a, 'Kickthreshold', 'Beat Threshold', 0.30, 0.01, 1.0)
+    # Auto-gain (ver audio.py): cada banda se normaliza a su pico reciente,
+    # asi el rig reacciona igual en una sala suave o a todo volumen sin
+    # tocar ganancias en vivo. Prendido por defecto. Con el prendido, las
+    # ganancias de arriba son ajuste fino relativo a su valor de fabrica.
+    add_toggle(a, 'Autogain', 'Auto-gain (normalizar audio)', True)
+    add_float(a, 'Agcrelease', 'Auto-gain: memoria del pico (s)', 12.0, 2.0, 60.0)
+    add_float(a, 'Agcfloor', 'Auto-gain: piso (no amplifica debajo)', 0.25, 0.02, 1.0)
     # Perillas de performance: cuanto deja pasar el audio hacia los visuales.
     # Default 1.0 = no cambia nada hasta que se toquen (sin sorpresas para
     # quien ya tenia el rig funcionando).
@@ -255,7 +266,9 @@ def _parameters(proj):
     # drama (gana lo ultimo que tocaste), que es como se espera que se
     # comporte un macro en vivo.
     add_float(bk, 'Energy', 'MACRO ENERGIA (calma <-> pico)', 0.5, 0, 1)
-    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', False)
+    # Prendido por defecto (layout v2): Energia es la perilla principal.
+    # Tocar la perilla via MIDI tambien la vuelve a prender.
+    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', True)
 
     # --- LEDs DE LOS PADS (sin verificar) ---
     # Default APAGADO a proposito: el protocolo de color del MiniLab mkII

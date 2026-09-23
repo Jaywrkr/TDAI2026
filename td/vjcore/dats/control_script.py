@@ -637,10 +637,16 @@ def refreshPadLeds():
     try:
         if not bool(p.par.Padleds.eval()):
             return
-        for i, name in enumerate(('Grain', 'Glitch', 'Pixelate', 'Strobe',
-                                  'Invert', 'Mirror', 'Zoom', 'Posterize')):
-            par = getattr(p.par, name, None)
-            sendPadLed(i, par is not None and float(par.eval()) > 0.005)
+        # Layout v2: pad 9 = RETRO (Grain + Posterize), pad 16 = modo de
+        # mezcla de Dos Capas (encendido mientras Dos Capas esta activo).
+        def _on(n):
+            par = getattr(p.par, n, None)
+            return par is not None and float(par.eval()) > 0.005
+        states = [_on('Grain') or _on('Posterize'), _on('Glitch'),
+                  _on('Pixelate'), _on('Strobe'), _on('Invert'),
+                  _on('Mirror'), _on('Zoom'), _on('Duallayer')]
+        for i, on in enumerate(states):
+            sendPadLed(i, on)
     except Exception as e:
         print('refreshPadLeds ERROR:', e)
 
@@ -667,10 +673,17 @@ def applyEnergy():
         if not bool(p.par.Energyactive.eval()):
             return
         e = max(0.0, min(1.0, float(p.par.Energy.eval())))
+        # Layout v2: ademas del look (velocidad/densidad/caos/estela),
+        # Energia maneja el RITMO del show: con calma, fundidos largos y
+        # escenas que duran en autopilot; en el pico, cortes rapidos y
+        # cambios frecuentes (que igual caen a tiempo con el beat, ver
+        # _autopilotTick).
         for name, lo, hi in (('Speed', 0.25, 0.90),
                              ('Density', 0.35, 0.80),
                              ('Chaos', 0.08, 0.92),
-                             ('Trails', 0.00, 0.55)):
+                             ('Trails', 0.00, 0.55),
+                             ('Transitionseconds', 2.2, 0.3),
+                             ('Autopilotseconds', 40.0, 8.0)):
             par = getattr(p.par, name, None)
             if par is not None:
                 par.val = lo + (hi - lo) * e
@@ -785,6 +798,10 @@ def swapLayer():
 # recupera a mano con Failsafereset, cuando el VJ decide.
 
 _FAILSAFE_STEPS = [
+    # Primero la escala de render de las escenas: es lo que mas GPU libera
+    # y lo que menos se ve (bloom, texto y salida siguen a resolucion
+    # completa). failsafeReset() la devuelve a su valor.
+    ('escenas al 50%', 'Renderscale', 0.5),
     ('estela apagada', 'Trails', 0.0),
     ('dos capas apagadas', 'Duallayer', False),
 ]
@@ -811,6 +828,8 @@ def failsafeStep():
             label, par_name, val = _FAILSAFE_STEPS[level]
             par = getattr(p.par, par_name, None)
             if par is not None:
+                if par_name == 'Renderscale' and p.fetch('failsafe_scale', None) is None:
+                    p.store('failsafe_scale', float(par.eval()))
                 par.val = val
         else:
             # Ultimo escalon: bajar la resolucion de salida a 70%. Es lo
@@ -828,9 +847,10 @@ def failsafeStep():
 
 
 def failsafeReset():
-    """Vuelve la resolucion y el contador a como estaban. No vuelve a
-    prender estela ni dos capas a proposito: eso es una decision
-    artistica, no algo que un boton de recuperacion deba adivinar."""
+    """Vuelve la resolucion, la escala de render y el contador a como
+    estaban. No vuelve a prender estela ni dos capas a proposito: eso es
+    una decision artistica, no algo que un boton de recuperacion deba
+    adivinar."""
     p = _p()
     if not p:
         return
@@ -840,6 +860,10 @@ def failsafeReset():
             p.par.Outputwidth = int(res[0])
             p.par.Outputheight = int(res[1])
             p.store('failsafe_res', None)
+        scale = p.fetch('failsafe_scale', None)
+        if scale is not None:
+            p.par.Renderscale = float(scale)
+            p.store('failsafe_scale', None)
         p.par.Failsafelevel = 0
         p.store('failsafe_low_since', 0.0)
         print('FAILSAFE reseteado')
@@ -1194,6 +1218,16 @@ def applyLearn(chan_name):
     par = getattr(p.par, 'Midi' + slot.lower(), None)
     if par is None:
         return False
+    # Un canal = un slot: si otro slot tenia este mismo control, se le
+    # quita. Antes quedaban los dos y ganaba el que estuviera mas abajo en
+    # config.MIDI_SLOTS -- un Learn podia "no hacer nada" sin aviso.
+    for other in _midi_slots():
+        if other == slot:
+            continue
+        opar = getattr(p.par, 'Midi' + other.lower(), None)
+        if opar is not None and str(opar.eval()).strip() == chan_name:
+            opar.val = ''
+            print('MIDI LEARN: {} liberado (tenia {})'.format(other, chan_name))
     par.val = chan_name
     p.store('learn_slot', '')
     print('MIDI LEARN: {} -> {}'.format(slot, chan_name))
@@ -1209,12 +1243,39 @@ def saveMidiMap():
     p = _p()
     data = {s: str(getattr(p.par, 'Midi' + s.lower()).eval())
             for s in _midi_slots() if getattr(p.par, 'Midi' + s.lower(), None)}
+    data['_layout'] = _midi_layout()[0]
     try:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
         print('MIDI map guardado en', path)
     except Exception as e:
         print('saveMidiMap ERROR:', e)
+
+
+def _midi_layout():
+    try:
+        import vjcore.config as _vjconfig
+        return _vjconfig.MIDI_LAYOUT, dict(_vjconfig.MIDI_LAYOUT_V2)
+    except Exception:
+        return '', {}
+
+
+def _migrateMidiLayout(assign):
+    """Cada slot de 'assign' se queda con su canal; cualquier otro slot
+    que tuviera ese mismo canal queda vacio. Ver config.MIDI_LAYOUT_V2."""
+    p = _p()
+    if not p:
+        return
+    for slot, chan in assign.items():
+        for other in _midi_slots():
+            if other == slot:
+                continue
+            opar = getattr(p.par, 'Midi' + other.lower(), None)
+            if opar is not None and str(opar.eval()).strip() == chan:
+                opar.val = ''
+        par = getattr(p.par, 'Midi' + slot.lower(), None)
+        if par is not None:
+            par.val = chan
 
 
 def loadMidiMap():
@@ -1226,10 +1287,17 @@ def loadMidiMap():
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         for slot, val in data.items():
+            if str(slot).startswith('_'):
+                continue
             par = getattr(p.par, 'Midi' + str(slot).lower(), None)
             if par is not None:
                 par.val = str(val)
         print('MIDI map cargado desde', path)
+        layout, assign = _midi_layout()
+        if assign and data.get('_layout') != layout:
+            _migrateMidiLayout(assign)
+            print('MIDI map migrado al layout', layout)
+            saveMidiMap()
     except Exception as e:
         print('loadMidiMap ERROR:', e)
 
@@ -1854,14 +1922,67 @@ def currentFontName():
 # ---------------------------------------------------------------
 
 def _autopilotTick():
+    """Cumplido el tiempo, NO cambia de escena en el acto: ARMA el cambio
+    y lo deja para el proximo golpe de bombo (autopilot_logic lo
+    dispara). Asi cada cambio cae a tiempo con la musica. Si en
+    _AUTOPILOT_BEAT_WAIT segundos no llega ningun golpe (musica sin
+    bombo, silencio), cambia igual."""
     p = _p()
     if p:
         try:
             if bool(p.par.Autopilot.eval()):
-                nextScene()
+                token = int(p.fetch('autopilot_token', 0)) + 1
+                p.store('autopilot_token', token)
+                p.store('autopilot_armed', True)
+                run("op('/project1/control_script').module._autopilotFallback({})".format(token),
+                    delayMilliSeconds=int(_AUTOPILOT_BEAT_WAIT * 1000))
         except Exception as e:
             print('_autopilotTick ERROR:', e)
     _scheduleAutopilot()
+
+
+_AUTOPILOT_BEAT_WAIT = 3.0
+
+
+def autopilotBeat():
+    """Llamado por autopilot_logic en cada golpe: cambia de escena solo
+    si _autopilotTick dejo el cambio armado."""
+    p = _p()
+    if not p:
+        return
+    try:
+        if bool(p.par.Autopilot.eval()) and p.fetch('autopilot_armed', False):
+            p.store('autopilot_armed', False)
+            nextScene()
+    except Exception as e:
+        print('autopilotBeat ERROR:', e)
+
+
+def _autopilotFallback(token):
+    p = _p()
+    if not p:
+        return
+    try:
+        if (p.fetch('autopilot_armed', False)
+                and int(p.fetch('autopilot_token', 0)) == int(token)):
+            p.store('autopilot_armed', False)
+            if bool(p.par.Autopilot.eval()):
+                nextScene()
+    except Exception as e:
+        print('_autopilotFallback ERROR:', e)
+
+
+def toggleAutopilot():
+    p = _p()
+    if not p:
+        return
+    try:
+        on = not bool(p.par.Autopilot.eval())
+        p.par.Autopilot = on
+        p.store('autopilot_armed', False)
+        print('AUTOPILOT', 'ON' if on else 'OFF')
+    except Exception as e:
+        print('toggleAutopilot ERROR:', e)
 
 
 def _scheduleAutopilot():
