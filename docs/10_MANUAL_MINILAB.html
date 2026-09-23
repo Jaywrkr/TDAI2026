@@ -124,7 +124,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   <header>
     <span class="eyebrow">TDAI2026 · Arturia MiniLab mkII · layout v2</span>
     <h1>Qué hace cada control</h1>
-    <p>Toca cualquier perilla, pad o tira del dibujo para ver qué hace. El color dice a qué grupo pertenece. Los pads tienen dos bancos: cámbialos con el selector (en el equipo, con el botón <kbd>Pad 1-8 / 9-16</kbd>).</p>
+    <p>Toca cualquier perilla, pad o tira del dibujo para ver qué hace. El color dice a qué grupo pertenece. Cada pad muestra sus dos funciones: arriba la del banco A, abajo la del B (en el equipo se cambia con el botón <kbd>Pad 1-8 / 9-16</kbd>).</p>
     <nav class="toc" aria-label="Secciones">
       <a href="#controlador">Controlador</a>
       <a href="#probador">Probador MIDI</a>
@@ -137,8 +137,8 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   <section id="controlador" aria-label="Controlador">
     <div class="rig-bar">
       <div class="seg" role="group" aria-label="Banco de pads">
-        <button id="bankA" type="button" aria-pressed="true">Banco A · Show</button>
-        <button id="bankB" type="button" aria-pressed="false">Banco B · Efectos</button>
+        <button id="bankA" type="button" aria-pressed="true">Resaltar banco A</button>
+        <button id="bankB" type="button" aria-pressed="false">Resaltar banco B</button>
       </div>
       <div class="legend">
         <span><i style="background:var(--show)"></i>Show</span>
@@ -439,21 +439,33 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
       });
     });
 
-    // pads: UNA fila de 8 debajo de las perillas (como el equipo)
-    const pads = bank === 'A' ? padsA : padsB;
-    pads.forEach((p, i) => {
-      const x = KX(i) - 38, y = 262;
-      ctl(p.id, 'Pad ' + p.n + ' ' + p.name, g => {
-        el('rect', {class:'hl', x:x - 6, y:y - 6, width:88, height:88, rx:12, fill:'none', stroke:'#4fd1d9', 'stroke-width':4, filter:'url(#glow)'}, g);
-        const led = padLed[p.n];
-        el('rect', {x, y, width:76, height:76, rx:8, fill:'#2b2e34', stroke: led && led !== 'off' ? LEDCSS[led] : C[p.g], 'stroke-width': led && led !== 'off' ? 5 : 3}, g);
-        el('rect', {x:x + 6, y:y + 58, width:64, height:12, rx:3, fill:'#3a3d44'}, g);
-        text(x + 38, y + 67.5, p.n + ' / ' + (p.n <= 8 ? p.n + 8 : p.n - 8), {'font-size':'8', fill:'#9aa0aa'}, g);
-        const words = p.name.split(' ');
-        words.forEach((w, j) => text(x + 38, y + 30 + (j - (words.length - 1) / 2) * 13, w, {'font-size': w.length >= 8 ? '9.5' : '11', fill:C[p.g]}, g));
+    // pads: UNA fila de 8 debajo de las perillas (como el equipo). Cada pad
+    // muestra sus DOS funciones, como el "1/9" impreso en el equipo: arriba
+    // el banco A, abajo el banco B. El boton Pad 1-8/9-16 del MiniLab no
+    // manda MIDI, asi que la pagina resalta el banco del ultimo pad tocado.
+    padsA.forEach((A, i) => {
+      const B = padsB[i];
+      const x = KX(i) - 40, y = 258, w = 80, h = 100;
+      const ledA = padLed[A.n], ledB = padLed[B.n];
+      const led = bank === 'A' ? ledA : ledB;
+      const lit = led && led !== 'off';
+      el('rect', {x, y, width:w, height:h, rx:9, fill:'#2b2e34', stroke: lit ? LEDCSS[led] : '#1d2026', 'stroke-width': lit ? 5 : 2});
+      el('line', {x1:x + 8, y1:y + h / 2, x2:x + w - 8, y2:y + h / 2, stroke:'#474b53', 'stroke-width':1, 'stroke-dasharray':'3 3'});
+      [[A, 0, bank === 'A'], [B, 1, bank === 'B']].forEach(([p, half, active]) => {
+        ctl(p.id, 'Pad ' + p.n + ' ' + p.name, g => {
+          const hy = y + half * (h / 2);
+          el('rect', {class:'hl', x:x - 5, y:hy - (half ? 0 : 5), width:w + 10, height:h / 2 + 5, rx:10, fill:'none', stroke:'#4fd1d9', 'stroke-width':4, filter:'url(#glow)'}, g);
+          const words = p.name.split(' ');
+          const cy = hy + h / 4 + 3;
+          words.forEach((wd, j) => text(x + w / 2, cy + (j - (words.length - 1) / 2) * 12, wd,
+            {'font-size': wd.length >= 8 ? '9' : '10.5', fill:C[p.g], opacity: active ? 1 : 0.38}, g));
+          el('rect', {x, y:hy, width:w, height:h / 2, fill:'transparent'}, g);
+        });
       });
+      text(x + w / 2, y + h + 13, A.n + ' / ' + B.n, {'font-size':'9', fill:'#6d7078'});
     });
-    text(KX(0) - 38, 360, bank === 'A' ? 'BANCO A · SHOW' : 'BANCO B · EFECTOS', {'font-size':'10', fill:'#6d7078', 'text-anchor':'start', 'letter-spacing':'.12em'});
+    text(KX(0) - 40, 392, 'ARRIBA BANCO A · ABAJO BANCO B · RESALTADO: ' + (bank === 'A' ? 'A (SHOW)' : 'B (EFECTOS)'),
+      {'font-size':'10', fill:'#6d7078', 'text-anchor':'start', 'letter-spacing':'.1em'});
     text(66, 424, 'MINILAB', {'font-size':'22', 'font-weight':'700', fill:'#26282d'});
     text(915, 424, 'ARTURIA', {'font-size':'20', 'font-weight':'700', fill:'#26282d'});
 
@@ -529,7 +541,11 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     } else if (type === 0x90 && d2 > 0) {
       const id = ch === 10 ? NOTE_MAP[d1] : undefined;
       if (id) report(id, 'Nota ' + d1 + ' · canal ' + ch, d2 / 127, 'vel ' + d2);
-      else {
+      else if (ch === 10) {
+        // Un pad (canal 10) que manda una nota que el rig no conoce: casi
+        // seguro otra memoria del MiniLab, o un pad reprogramado.
+        report(undefined, 'Pad · nota ' + d1 + ' · canal 10', d2 / 127, 'vel ' + d2);
+      } else {
         // teclas del piano
         all['hw_Keys'] && liveFlash('hw_Keys');
         $('nowFn').textContent = 'TECLADO'; $('nowFn').style.color = C.scene;
