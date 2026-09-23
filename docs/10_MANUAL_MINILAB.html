@@ -96,6 +96,9 @@ td.n { font-variant-numeric: tabular-nums; color: var(--muted); width: 3.2em; }
 .now .val { font: 600 26px/1 var(--font-m); font-variant-numeric: tabular-nums; }
 .bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--show); transition: width .06s linear; }
+.mode { grid-column: 1 / -1; font: 600 12.5px/1.4 var(--font-b); }
+.mode.okm { color: var(--ok); }
+.mode.bad { color: var(--scene); }
 .log { font-family: var(--font-m); font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; max-height: 176px; overflow: auto; }
 .log .unk { color: var(--scene); }
 .padtest { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
@@ -128,6 +131,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     <nav class="toc" aria-label="Secciones">
       <a href="#controlador">Controlador</a>
       <a href="#probador">Probador MIDI</a>
+      <a href="#perillas19">Perillas 1 y 9</a>
       <a href="#colores">Colores de pads</a>
       <a href="#probar">Probar todo</a>
       <a href="#referencia">Referencia</a>
@@ -173,6 +177,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
         <div><div class="fn" id="nowFn">—</div><div class="src" id="nowSrc">Mueve un control</div></div>
         <div class="val" id="nowVal">&nbsp;</div>
         <div class="bar"><i id="nowBar"></i></div>
+        <div class="mode" id="nowMode"></div>
       </div>
       <div>
         <div class="eyebrow" style="margin-bottom:8px">Últimos mensajes</div>
@@ -180,6 +185,22 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
       </div>
     </div>
     <p class="muted">El probador usa Web MIDI: funciona en Chrome o Edge. Si este visor no lo permite, abre <span class="mono">docs/10_MANUAL_MINILAB.html</span> del repo con doble clic en Chrome. En Windows cierra TouchDesigner antes: el puerto MIDI no se comparte entre programas.</p>
+  </section>
+
+  <section id="perillas19">
+    <span class="eyebrow">Las dos perillas especiales</span>
+    <h2>Perillas 1 y 9</h2>
+    <p>Son distintas a las otras 14: se pueden apretar, con <kbd>Shift</kbd> mandan un segundo control, y en la memoria de fábrica vienen en <b>modo relativo</b> para navegar presets. En modo relativo la perilla no dice "estoy en 80", dice "un paso más" repitiendo el mismo número. TouchDesigner solo reacciona cuando el número cambia, así que <b>en el rig una perilla relativa se lee como un solo paso</b>.</p>
+    <p>Con el probador lo ves en segundos: gira la perilla y mira el aviso debajo del valor. Si dice <b>RELATIVO</b>, pásala a absoluto una vez:</p>
+    <ol class="steps">
+      <li>Cierra TouchDesigner y abre <b>Arturia MIDI Control Center</b> con el MiniLab enchufado.</li>
+      <li>Elige la memoria que usas en el show (la que está activa en el equipo).</li>
+      <li>Haz clic en la perilla 1 del dibujo del programa. En <b>Mode</b> elige <b>Absolute</b>, <b>Min 0</b>, <b>Max 127</b>, canal 1. Anota su CC.</li>
+      <li>Lo mismo con la perilla 9.</li>
+      <li>Guarda en la memoria del equipo (<b>Store To</b> → la misma memoria).</li>
+      <li>Vuelve al probador: las dos tienen que decir <b>✓ Modo absoluto</b>.</li>
+    </ol>
+    <p class="muted">Pista: en tu mapeo aprendido hay 14 perillas con CC normales más <span class="mono">ctrl2</span> y la tira de pitch. De 16 faltan dos, que muy probablemente son la 1 y la 9. Cuando estén en absoluto, Energía y Detail 1 (con Mezcla 2 capas y Transición en Shift) quedan donde las muestra el dibujo.</p>
   </section>
 
   <section id="colores">
@@ -519,6 +540,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   }
   function report(id, src, value01, raw) {
     const e = all[id];
+    $('nowMode').textContent = ''; $('nowMode').className = 'mode';
     $('nowFn').textContent = e ? e.item.name : 'Sin asignar';
     $('nowFn').style.color = e ? C[e.item.g] : 'var(--scene)';
     $('nowSrc').textContent = src + (e ? ' · ' + e.kind : ' · no está en el mapeo del rig');
@@ -531,13 +553,48 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
       show(id);
     }
   }
+  // --- modo de cada perilla: absoluto o relativo ---
+  // En ABSOLUTO el MiniLab solo manda cuando el valor cambia: nunca llegan
+  // dos valores iguales seguidos (salvo en los topes 0/127). En RELATIVO
+  // manda lo mismo una y otra vez (65 65 65 = un paso mas, un paso mas...).
+  // TouchDesigner solo reacciona a cambios, asi que una perilla relativa
+  // en el rig se leeria como un solo paso: hay que pasarla a Absolute.
+  const ccHist = {};
+  const ccMode = {};
+  function trackMode(cc, v) {
+    const h = ccHist[cc] = ccHist[cc] || [];
+    h.push(v); if (h.length > 24) h.shift();
+    let repeats = 0;
+    for (let i = 1; i < h.length; i++) if (h[i] === h[i - 1] && h[i] !== 0 && h[i] !== 127) repeats++;
+    if (repeats >= 3) ccMode[cc] = 'rel';
+    else if (h.length >= 8 && repeats === 0) ccMode[cc] = 'abs';
+    return ccMode[cc];
+  }
+  function showMode(cc, id) {
+    const m = ccMode[cc], box = $('nowMode');
+    const isKnob = id && knobs.some(k => k.id === id);
+    if (m === 'rel') {
+      box.className = 'mode bad';
+      box.textContent = '⚠ Esta perilla manda en modo RELATIVO: en el rig se va a leer como un solo paso. En MIDI Control Center ponla en "Absolute" (ver "Perillas 1 y 9" abajo).';
+    } else if (m === 'abs') {
+      box.className = 'mode okm';
+      box.textContent = '✓ Modo absoluto: funciona bien en el rig.';
+    } else {
+      box.className = 'mode';
+      box.textContent = isKnob || id === undefined ? 'Gira un poco más para detectar el modo (absoluto o relativo)…' : '';
+    }
+  }
+
   function onMessage(ev) {
     const [st, d1, d2] = ev.data;
     const type = st & 0xF0, ch = (st & 0x0F) + 1;
     if (type === 0xB0) {
+      trackMode(d1, d2);
       const id = ch === 1 ? CC_MAP[d1] : undefined;
       if (d1 === 1 && id) { report(id, 'Tira mod · CC 1 · canal ' + ch, d2 / 127, d2); return; }
       report(id, 'CC ' + d1 + ' · canal ' + ch, d2 / 127, d2);
+      if (!padsA.some(p => p.id === id)) showMode(d1, id);
+      else $('nowMode').textContent = '';
     } else if (type === 0x90 && d2 > 0) {
       const id = ch === 10 ? NOTE_MAP[d1] : undefined;
       if (id) report(id, 'Nota ' + d1 + ' · canal ' + ch, d2 / 127, 'vel ' + d2);
@@ -549,6 +606,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
         // teclas del piano
         all['hw_Keys'] && liveFlash('hw_Keys');
         $('nowFn').textContent = 'TECLADO'; $('nowFn').style.color = C.scene;
+        $('nowMode').textContent = '';
         $('nowSrc').textContent = 'Nota ' + d1 + ' · canal ' + ch + ' · la tecla elige dónde, la fuerza cuánto';
         $('nowVal').textContent = 'vel ' + d2; $('nowBar').style.width = Math.round(d2 / 127 * 100) + '%';
         log('Nota ' + d1 + ' · canal ' + ch + '  →  teclado  (vel ' + d2 + ')');
@@ -617,6 +675,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   const tests = [
     {t:'Cargar y reconstruir', how:'Rama claude/elegant-cannon-z3clen → /project1 → System → Reconstruir Todo. En el Textport debe aparecer "MIDI map migrado al layout v2".', fail:'Copia el reporte del Textport completo.'},
     {t:'Probador MIDI', how:'En esta página, Conectar y mover las 16 perillas, las 2 tiras y los 16 pads. Cada uno debe marcar su función.', fail:'Anota qué control físico marca algo distinto (o "sin asignar").'},
+    {t:'Perillas 1 y 9 en absoluto', how:'En el probador, gira la perilla 1 y la 9 (y con Shift). Las dos deben decir "✓ Modo absoluto".', fail:'Si dice RELATIVO, sigue los pasos de "Perillas 1 y 9". Anota qué CC manda cada una.'},
     {t:'Energía de punta a punta', how:'Gira Energía despacio de 0 a 1: el visual pasa de calma a pico y el status dice ENERGIA con la barra moviéndose.', fail:'¿Qué parámetro no se movió?'},
     {t:'Autopilot a tiempo', how:'Pad 4 con música con bombo. Con Energía alta, los cambios caen justo en el golpe.', fail:'¿Cambia fuera de tiempo, o no cambia nunca?'},
     {t:'Auto-gain', how:'Con música, espera 5 s y baja o sube mucho el volumen. Los visuales siguen reaccionando parecido; en /project1/ctrl, bass se mueve en todo su rango.', fail:'¿Se queda clavado arriba, o casi quieto? ¿Se mueve en silencio?'},
@@ -647,6 +706,9 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   }
   $('resetChecks').addEventListener('click', () => { done = {}; try { localStorage.removeItem(KEY); } catch (e) {} renderChecks(); });
   renderChecks();
+
+  // Para pruebas automaticas: inyecta un mensaje MIDI como si llegara del equipo.
+  window.__tdaiSim = bytes => onMessage({data: bytes});
 
   setBank('A', true);
   show('Energy');
