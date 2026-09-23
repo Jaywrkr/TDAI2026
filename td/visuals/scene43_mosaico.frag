@@ -77,7 +77,10 @@ vec4 render(vec2 uv)
     // Junta entre baldosas.
     vec2  edgeDist = min(gf, 1.0 - gf);
     float lineD = min(edgeDist.x, edgeDist.y);
-    float jointW = mix(0.002, 0.03, uD1);
+    // Piso de 1 px (en unidades de celda: cols/uResH). Con D1 bajo, 0.002
+    // de una celda de 72-240 px es menos de medio pixel: la junta
+    // aparecia y desaparecia a saltos en vez de ser una linea fina.
+    float jointW = max(mix(0.002, 0.03, uD1), cols / uResH);
     float joint = 1.0 - smoothstep(0.0, jointW, lineD);
     col *= mix(1.0, 1.0 - uD2 * 0.85, joint);
 

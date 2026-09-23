@@ -77,7 +77,9 @@ vec4 render(vec2 uv)
                     float hh = clamp(dot(ap, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
                     float d = length(ap - ab * hh);
 
-                    float lineW = 0.003 + uD2 * 0.01;
+                    // Piso de 1.5 px: 0.003 era ~1 px a 720p y las
+                    // conexiones titilaban / se cortaban al moverse.
+                    float lineW = max(0.003 + uD2 * 0.01, 3.0 / uResH);
                     float lineCov = 1.0 - smoothstep(0.0, lineW, d);
                     float fadeEdge = 1.0 - smoothstep(maxConn * cell * 1.6, maxConn * cell * 2.2, distAB);
 

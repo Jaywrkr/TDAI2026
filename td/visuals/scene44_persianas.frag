@@ -51,7 +51,13 @@ vec4 render(vec2 uv)
                        + uBass * 0.12 + uKick * 0.35, 0.02, 0.98);
     open += uHigh * 0.01 * sin(t * 12.0 + slatId);
 
-    float visible = step(1.0 - open, slatF);
+    // Antialiasing: el corte de la lama era un step() duro, y con 8-38
+    // lamas moviendose (breathe) el borde "caminaba" de a un pixel
+    // entero. pxF = un pixel en unidades de lama. Tambien se suaviza el
+    // borde superior (fract vuelve a 0 en la lama siguiente).
+    float pxF = nSlats / uResH;
+    float visible = smoothstep(1.0 - open - pxF * 0.5, 1.0 - open + pxF * 0.5, slatF)
+                  * clamp((1.0 - slatF) / pxF + 0.5, 0.0, 1.0);
 
     // Deriva vertical de la imagen detras de las lamas -- D3.
     float drift = t * (0.02 + uD3 * 0.15);
@@ -64,7 +70,7 @@ vec4 render(vec2 uv)
     vec3  imgCol = mix(src, tint * lum, uD4);
 
     // Canto de la lama: oscuro, con un brillo metalico apenas (D5).
-    float edgeW = mix(0.02, 0.16, uD2);
+    float edgeW = max(mix(0.02, 0.16, uD2), pxF * 1.5);
     float onEdge = 1.0 - smoothstep(0.0, edgeW, abs(slatF - (1.0 - open)));
     vec3  edgeCol = vec3(0.05, 0.05, 0.06) + vec3(0.5, 0.55, 0.6) * (0.1 + uD5 * 0.4) * onEdge;
 

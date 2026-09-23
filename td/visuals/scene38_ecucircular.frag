@@ -54,16 +54,26 @@ vec4 render(vec2 uv)
     barLen += uHigh * 0.015 * sin(t * 14.0 + idx);
 
     float halfW = mix(seg * 0.15, seg * 0.48, uD4);
-    bool  inBar = abs(within) < halfW && r > coreR && r < coreR + barLen;
+    // Cobertura antialiasada en vez de un bool: los cuatro bordes de la
+    // barra (dos laterales, base y punta) eran cortes duros, y los
+    // laterales -- diagonales en casi todo el circulo -- se veian en
+    // escalera. Distancia a cada borde en pixeles (centered(): 2/uResH
+    // por pixel); el lateral se pasa de fraccion de segmento a arco.
+    float px = 2.0 / uResH;
+    float sideD = (halfW - abs(within)) * seg * r / px;
+    float baseD = (r - coreR) / px;
+    float tipEdge = (coreR + barLen - r) / px;
+    float sideCov = clamp(sideD + 0.5, 0.0, 1.0);
+    float barCov = min(sideCov, clamp(min(baseD, tipEdge) + 0.5, 0.0, 1.0));
 
     float h = audioHue(uHue, uMid * 0.10);
     vec3  barCol = hsv2rgb(vec3(fract(h + hash21(seed + 5.0) * 0.05), 0.7, 1.0));
 
     vec3  col = vec3(0.0);
-    if (inBar) col = barCol;
+    col = barCol * barCov;
 
     float tipD = abs(r - (coreR + barLen));
-    float tipGlow = exp(-tipD * tipD / (0.0006 + uD6 * 0.01)) * step(abs(within), halfW);
+    float tipGlow = exp(-tipD * tipD / (0.0006 + uD6 * 0.01)) * sideCov;
     col += barCol * tipGlow * (0.3 + uD6 * 0.7);
 
     vec3  coreCol = hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0));
@@ -73,7 +83,7 @@ vec4 render(vec2 uv)
     if (uKeypulse > 0.0015) {
         float targetIdx = floor(uKeypos * nBars);
         float onBar = 1.0 - smoothstep(0.0, 1.2, abs(idx - targetIdx));
-        if (inBar) col += vec3(1.0) * onBar * uKeypulse * (0.5 + uKeyvel * 1.0);
+        col += vec3(1.0) * barCov * onBar * uKeypulse * (0.5 + uKeyvel * 1.0);
     }
 
     col += col * uKick * 0.4;

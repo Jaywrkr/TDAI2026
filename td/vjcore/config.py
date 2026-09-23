@@ -83,6 +83,17 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 GRID_COLS = 6
 GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
 
+# STROBE (pad) - frecuencia MAXIMA del destello, en Hz (con el pad a
+# fondo). Las guias de fotosensibilidad (WCAG 2.3.1, Ofcom/ITC) ponen el
+# limite en 3 destellos por segundo: entre ~3 y ~30 Hz esta la franja con
+# mas riesgo de disparar crisis en personas con epilepsia fotosensible, y
+# el strobe iba de 8 a 28 Hz -- justo el centro de esa franja. La
+# INTENSIDAD del destello no cambia (sigue siendo el flash fuerte que se
+# pidio); solo se limita la cadencia. Subirlo es decision del venue: si
+# el lugar avisa al publico de efectos estroboscopicos, se puede editar
+# aca y rehacer (Recargar Shaders).
+STROBE_MAX_HZ = 3.0
+
 # TouchDesigner NON-COMMERCIAL limita la salida a 1280x1280.
 DEFAULT_OUTPUT_W = 1280
 DEFAULT_OUTPUT_H = 720

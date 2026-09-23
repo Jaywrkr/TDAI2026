@@ -249,8 +249,12 @@ void main() {
     // blanqueo real en el pico (no solo mas brillo del mismo color) --
     // asi se lee como un flash de luz real, no un simple aumento de
     // ganancia. Pedido explicito de que se note mas.
+    // Frecuencia: antes 8-28 Hz, el centro de la franja de riesgo de
+    // epilepsia fotosensible. Ahora el pad va de 1 Hz a STROBE_MAX_HZ
+    // (config.py, 3 Hz por defecto = limite de las guias). El flash es
+    // igual de fuerte; cambia la cadencia.
     if (uStrobe > 0.0015) {
-        float strobe_freq = 8.0 + uStrobe * 20.0;
+        float strobe_freq = mix(1.0, STROBE_MAX_HZ, uStrobe);
         float strobe = step(0.5, sin(uRTime * strobe_freq * TAU));
         float hit = strobe * uStrobe;
         c.rgb = mix(c.rgb, c.rgb * 3.4, hit * 0.9);
@@ -432,6 +436,11 @@ def ctrl_header(channels, input_index):
 
 def make_header(scene_index, channels):
     header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+    # Tope de frecuencia del pad Strobe (ver config.STROBE_MAX_HZ). Como
+    # #define y no uniform: es politica de seguridad del venue, no una
+    # perilla en vivo.
+    header += '#define STROBE_MAX_HZ {:.2f}\n'.format(
+        max(0.5, float(config.STROBE_MAX_HZ)))
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
     return header
