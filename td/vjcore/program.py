@@ -29,58 +29,99 @@ from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
 
 
 # ---------------------------------------------------------------
-# BLOOM - post-proceso de UNA sola pasada GLSL sobre la salida final
+# BLOOM - dos GLSL TOP: prefiltro de brillos + glow por mipmaps
 # ---------------------------------------------------------------
-# Extrae brillos por encima de un umbral y los difumina con un anillo de
-# muestras (16 + centro): una aproximacion barata de un blur ancho en una
-# sola pasada, sin downsample/upsample. Se suma sobre la imagen original.
+# Version anterior: UNA pasada con 16 muestras en dos anillos (4 y 8 px).
+# Daba un halo angosto y con "dientes" -- a 1280 px de salida, 8 px de
+# radio no llega a leerse como resplandor, y 8 muestras por anillo dejan
+# el patron del anillo a la vista sobre lineas finas.
 #
-# A proposito UN SOLO GLSL TOP, no una cadena de Blur TOP + Level TOP +
-# Composite TOP: esa es exactamente la arquitectura que este rig evita
-# (ver la nota al principio de scenes.py) -- ademas los nombres de
-# parametro de Blur/Level TOP varian entre builds de TD y no se pueden
-# verificar sin la app abierta, mientras que este shader se valida solo
-# con glslangValidator, igual que las 20 escenas.
+# Ahora:
+#   1. bloom_prefilter: se queda solo con lo que pasa del umbral (con
+#      rodilla suave, sin corte duro). Tiene que ser una pasada APARTE:
+#      si el umbral se aplicara sobre los mipmaps de la imagen completa,
+#      una linea fina brillante se promediaria con el negro de al lado
+#      en los niveles chicos, caeria bajo el umbral y perderia el glow
+#      justo donde mas se luce en este set.
+#   2. program_bloom: lee los MIPMAPS del prefiltro (textureLod, niveles
+#      1..6 = de ~2 a ~64 px) con 4 muestras giradas por nivel. El GPU ya
+#      hizo el promedio al generar los mips, asi que 24 muestras cubren
+#      un radio que a mano pediria cientos. Resultado: glow ancho y suave
+#      tipo lente, por el mismo costo que el anillo de antes.
 #
-# Umbral/cantidad/radio quedan fijos (no son perillas en vivo) -- es un
-# acabado esteticto del programa completo, no un parametro de performance
-# que el VJ necesite tocar escena por escena.
-_BLOOM_FRAG = """
+# Siguen siendo GLSL TOP y no Blur/Level/Composite TOP: los nombres de
+# parametro de esos varian entre builds de TD y no se pueden verificar
+# sin la app abierta; estos se validan con glslangValidator como las
+# escenas. El unico parametro nuevo es el filtro de entrada en mipmap
+# (ver _build_bloom); si esa build de TD no lo acepta, las muestras
+# desplazadas por nivel igual dan un blur -- mas grueso, no negro.
+#
+# Umbral/cantidad quedan fijos (no son perillas en vivo) -- es un acabado
+# estetico del programa completo, no un parametro de performance que el
+# VJ necesite tocar escena por escena.
+_BLOOM_PREFILTER_FRAG = """
 out vec4 fragColor;
 
 float luminance(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 
 void main() {
-    const float TAU = 6.2831853072;
-    // Bajado el umbral (0.55->0.35) y subidos amount/radio (0.55->1.1,
-    // 3.0->4.0): a pedido del usuario, el glow tiene que notarse SIEMPRE
-    // por defecto en las 20 escenas, no solo en las partes casi quemadas.
+    // Mismo umbral que la version de una pasada (0.35): el glow tiene que
+    // notarse SIEMPRE por defecto, no solo en las partes casi quemadas.
+    // KNEE: la entrada al glow es una curva cuadratica de ancho 2*KNEE
+    // alrededor del umbral, no un escalon -- sin esto, un brillo que
+    // oscila justo en el umbral (audioLift) hace titilar el halo.
     const float THRESH = 0.35;
-    const float AMOUNT = 1.1;
-    const float RADIUS = 4.0;
+    const float KNEE = 0.2;
+
+    vec3 c = texture(sTD2DInputs[0], vUV.st).rgb;
+    float l = luminance(c);
+    float soft = clamp(l - THRESH + KNEE, 0.0, 2.0 * KNEE);
+    soft = soft * soft / (4.0 * KNEE);
+    float contrib = max(soft, l - THRESH) / max(l, 1e-4);
+
+    fragColor = TDOutputSwizzle(vec4(c * contrib, 1.0));
+}
+"""
+
+_BLOOM_FRAG = """
+out vec4 fragColor;
+
+void main() {
+    // AMOUNT: cuanto glow se suma (afinado en simulacion CPU contra el
+    // bloom anterior: mismo pico junto a la linea, mas aire alrededor).
+    // LEVELS: cuantos niveles de mip (el ultimo, 6, cubre ~64 px).
+    const float AMOUNT = 1.6;
+    const int LEVELS = 6;
 
     vec2 uv = vUV.st;
-    vec2 texel = uTD2DInfos[0].res.zw;
-
-    vec3 base = texture(sTD2DInputs[0], uv).rgb;
+    // Input 0: imagen original. Input 1: prefiltro (solo brillos).
+    // textureLod 0 explicito: la entrada tiene filtro mipmap y no hace
+    // falta que el GPU adivine el nivel por derivadas.
+    vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb;
+    vec2 texel = uTD2DInfos[1].res.zw;
 
     vec3 glow = vec3(0.0);
     float wsum = 0.0;
-
-    // Anillo interno (8 muestras a RADIUS) + anillo externo (8 muestras a
-    // 2*RADIUS).
-    for (int i = 0; i < 16; i++) {
-        float ring = (i < 8) ? 1.0 : 2.0;
-        int idx = (i < 8) ? i : i - 8;
-        float ang = (float(idx) / 8.0) * TAU;
-        vec2 off = vec2(cos(ang), sin(ang)) * texel * RADIUS * ring;
-        vec3 s = texture(sTD2DInputs[0], uv + off).rgb;
-        float bright = max(luminance(s) - THRESH, 0.0);
-        float w = 1.0 / ring;
-        glow += s * bright * w;
+    for (int i = 1; i <= LEVELS; i++) {
+        float lod = float(i);
+        // 4 muestras en cruz a ~1 texel DEL NIVEL (2^lod px de salida),
+        // giradas distinto en cada nivel: los mips de caja dejan bloques
+        // cuadrados, y la cruz girada los redondea sin sumar costo.
+        float ang = lod * 0.9;
+        vec2 d1 = vec2(cos(ang), sin(ang)) * texel * exp2(lod) * 0.75;
+        vec2 d2 = vec2(-d1.y, d1.x);
+        vec3 s = textureLod(sTD2DInputs[1], uv + d1, lod).rgb
+               + textureLod(sTD2DInputs[1], uv - d1, lod).rgb
+               + textureLod(sTD2DInputs[1], uv + d2, lod).rgb
+               + textureLod(sTD2DInputs[1], uv - d2, lod).rgb;
+        // Peso 1/nivel: los niveles chicos dan el nucleo junto a la
+        // linea, los anchos el "aire" alrededor. Con peso plano el
+        // nucleo quedaba debil y el glow se leia como neblina.
+        float w = 1.0 / lod;
+        glow += s * 0.25 * w;
         wsum += w;
     }
-    glow /= max(wsum, 1e-5);
+    glow /= wsum;
 
     vec3 col = base + glow * AMOUNT;
 
@@ -101,6 +142,16 @@ void main() {
 
 
 def _build_bloom(proj, src_top):
+    pre_src = proj.create(textDAT, 'bloom_prefilter_src')
+    pre_src.nodeX, pre_src.nodeY = 1000, 160
+    pre_src.text = _BLOOM_PREFILTER_FRAG
+
+    pre = proj.create(glslTOP, 'bloom_prefilter')
+    pre.nodeX, pre.nodeY = 1000, 380
+    safe_set_first(pre, ['pixeldat', 'pixelshader'], pre_src.path)
+    connect(pre, src_top, 0)
+    safe_set_first(pre, ['format', 'pixelformat'], 'rgba16float')
+
     src = proj.create(textDAT, 'bloom_src')
     src.nodeX, src.nodeY = 1160, 160
     src.text = _BLOOM_FRAG
@@ -109,9 +160,17 @@ def _build_bloom(proj, src_top):
     glsl.nodeX, glsl.nodeY = 1160, 380
     safe_set_first(glsl, ['pixeldat', 'pixelshader'], src.path)
     connect(glsl, src_top, 0)
+    connect(glsl, pre, 1)
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
-    log('BLOOM: post-proceso de una pasada OK')
-    return glsl
+    # Filtro de entrada en mipmap: es lo que hace que TD genere los mips
+    # del prefiltro para que textureLod los lea. 'Input Smoothness' en la
+    # pagina Common del TOP.
+    if not safe_set_first(glsl, ['inputfiltertype', 'inputfilter'], 'mipmap'):
+        log('AVISO BLOOM: sin filtro mipmap -- el glow sale mas grueso. '
+            'Poner a mano program_bloom > Common > Input Smoothness = '
+            'Mipmap Pixels')
+    log('BLOOM: prefiltro + glow por mipmaps OK')
+    return {'bloom': glsl, 'bloom_prefilter': pre}
 
 
 # ---------------------------------------------------------------
@@ -525,7 +584,8 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
         connect(clean, cross)
         post = clean
 
-    bloom = _build_bloom(proj, post)
+    bloom_fx = _build_bloom(proj, post)
+    bloom = bloom_fx['bloom']
 
     # --- overlay de texto (nombre de artista) -- DESPUES del bloom (que
     # el texto quede nitido, sin el glow difuminandolo) y ANTES del
@@ -557,7 +617,8 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # declarada hereda la del input, y el Feedback TOP de la estela tiene
     # que coincidir SI O SI con el shader que lo alimenta (si no, cada
     # frame se reescala contra el anterior y la estela "respira" sola).
-    res_nodes = [black, cross, clean, bloom, master, show,
+    res_nodes = [black, cross, clean, bloom, bloom_fx['bloom_prefilter'],
+                 master, show,
                  text_fx['text_y'], text_fx['text_composite']]
     res_nodes += [fx[k] for k in ('blend', 'pick', 'trails', 'trails_fb',
                                   'trails_pick') if k in fx]
@@ -581,6 +642,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     log('PROGRAM: bus A/B + preview + crossfade nativo + master fade OK')
     out = {'a': sw_a, 'b': sw_b, 'preview': sw_prev, 'cross': cross,
            'clean': clean, 'bloom': bloom, 'master': master, 'show': show,
+           'bloom_prefilter': bloom_fx['bloom_prefilter'],
            'window': win}
     out.update(fx)
     out.update(text_fx)
