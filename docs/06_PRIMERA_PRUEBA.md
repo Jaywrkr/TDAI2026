@@ -192,8 +192,17 @@ ver 24 canales, y `level`, `bass`, `mid`, `high` **moviéndose con la música**.
 
 Ajusta en `/project1` → pestaña **Audio**:
 
-- `Master/Bass/Mid/High Gain` → sube hasta que los canales lleguen cerca de 1
-  en los picos, sin quedarse clavados arriba.
+- **`Auto-gain` viene prendido**: cada banda se normaliza sola a su pico de
+  los últimos ~12 s, así que **no hace falta calibrar ganancias** ni
+  corregirlas en el show aunque cambie el volumen de la sala. Al arrancar
+  la música, dale unos segundos para que encuentre el nivel.
+  - `Master/Bass/Mid/High Gain` quedan como **ajuste fino** relativo a su
+    valor de fábrica (ej. `Bass Gain` 8 = normal, 12 = los graves pesan
+    ×1.5). Si apagas `Auto-gain`, vuelven a ser la ganancia fija de antes.
+  - `Auto-gain: memoria del pico` (12 s): más corto = se adapta más rápido
+    a cambios de volumen, pero "aplana" más las dinámicas.
+  - `Auto-gain: piso` (0.25): debajo de ese nivel no amplifica. Si en los
+    silencios entre temas los visuales siguen moviéndose, súbelo.
 - `Beat Threshold` → baja hasta que `beat` dispare en cada bombo.
 - `Kick Window` (0.35 s por defecto) → ventana de la media móvil. Más corta =
   más sensible a golpes rápidos.
@@ -206,7 +215,8 @@ bombo** y engrosar con los graves.
 | Síntoma | Causa | Solución |
 |---|---|---|
 | `AUDIO  SIN DATOS (0 ch)` en el panel | Device no seleccionado | Elígelo en `audio1` |
-| Canales existen pero valen 0 | Ganancia muy baja, o entrada muda | Sube los `Gain`; verifica en `audio1` que entra señal |
+| Canales existen pero valen 0 | Entrada muda, o señal por debajo del piso | Verifica en `audio1` que entra señal; baja `Auto-gain: piso` |
+| Los visuales se mueven en silencio | Ruido de sala amplificado | Sube `Auto-gain: piso` |
 | `kick` clavado en 1 | Ganancia demasiado alta | Baja `Kick Gain` |
 | `beat` no dispara nunca | Umbral muy alto | Baja `Beat Threshold` |
 
