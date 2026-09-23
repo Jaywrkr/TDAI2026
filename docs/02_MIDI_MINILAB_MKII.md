@@ -37,6 +37,26 @@ Las bandas Bass/Mid/High Amount salen del controlador porque con
 **Auto-gain** ya no hace falta corregirlas en vivo: quedan en la pestaña
 **Audio**.
 
+### Perillas 1 y 9: tienen que estar en modo Absolute
+
+Las perillas 1 y 9 son especiales: se pueden apretar, con `Shift` mandan un
+segundo control, y en la memoria de fábrica vienen en **modo relativo**
+(para navegar presets). En relativo la perilla manda el mismo número una y
+otra vez ("un paso más"), y el MIDI In CHOP de TouchDesigner solo reacciona
+cuando el valor **cambia**: una perilla relativa se lee como un solo paso.
+Por eso el rig no intenta decodificar relativo: la solución es ponerlas en
+absoluto una vez.
+
+1. Cierra TouchDesigner y abre **Arturia MIDI Control Center**.
+2. En la memoria que usas: perilla 1 → **Mode: Absolute**, Min 0, Max 127,
+   canal 1. Lo mismo con la perilla 9.
+3. **Store To** → la misma memoria.
+4. Verifica con el probador del manual (`docs/10_MANUAL_MINILAB.html`):
+   al girarlas tiene que decir **✓ Modo absoluto**.
+
+Pista: tu mapeo aprendido tiene 14 perillas con CC normales, más `ctrl2` y
+la tira de pitch. De 16 faltan dos, y muy probablemente son la 1 y la 9.
+
 ### Pads — banco A (`Pad 1-8`): el show
 
 | Pad | Manda | Antes | **Ahora** |
