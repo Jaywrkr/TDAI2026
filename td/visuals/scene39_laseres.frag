@@ -64,7 +64,9 @@ vec4 render(vec2 uv)
         dists[i] = dist;
 
         float along = dot(rel, nrm);
-        float coreW = 0.003 + uD1 * 0.01;
+        // Auditoria de Detail (render 0 vs 1): mismo bug que costas: edgeLine() mide en
+        // PIXELES y recibia 0.003-0.013 -> nucleo invisible, D1 muerta.
+        float coreW = mix(1.0, 5.0, uD1);
         float core = edgeLine(dist, coreW) * step(0.0, along);
         float glowW = 0.002 + uD2 * 0.05;
         float glow = exp(-dist * dist / glowW) * step(0.0, along) * (0.5 + uBass * 0.6);
@@ -94,7 +96,7 @@ vec4 render(vec2 uv)
         float kAng = uKeypos * TAU;
         vec2  nrm = vec2(cos(kAng), sin(kAng));
         float dist = dot(p, nrm);
-        float core = edgeLine(dist, 0.012);
+        float core = edgeLine(dist, 3.0);   // pixeles (antes 0.012 = invisible)
         float glow = exp(-dist * dist / 0.006);
         col += vec3(1.0) * (core + glow * 0.6) * uKeypulse * (0.6 + uKeyvel * 1.0);
     }

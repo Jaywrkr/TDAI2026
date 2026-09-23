@@ -88,11 +88,15 @@ vec4 render(vec2 uv)
 
     // Nube de tormenta de fondo: fbm oscuro que deriva lento -- nunca es
     // vacio absoluto, es un cielo cargado.
-    float driftSpeed = 0.15 + uD6 * 0.6;
+    // Auditoria de Detail (render 0 vs 1): a 0.15-0.75 la nube casi no se movia.
+    float driftSpeed = 0.2 + uD6 * 4.0;
     float cloud = fbm(p * 1.1 + vec2(t * 0.02 * driftSpeed, -t * 0.015 * driftSpeed), 5, 0.55);
     float h = audioHue(fract(uHue + 0.58), uMid * 0.08);
     vec3  cloudCol = hsv2rgb(vec3(h, 0.30, 0.5));
-    vec3  col = cloudCol * (0.06 + cloud * (0.05 + uD5 * 0.14));
+    // Auditoria de Detail: la nube llegaba a ~9/255 de brillo, tan oscura
+    // que D6 (deriva) no cambiaba nada visible. Sigue siendo un cielo
+    // oscuro, pero ahora se lee.
+    vec3  col = cloudCol * (0.05 + cloud * (0.16 + uD5 * 0.45));
 
     // Relampagos lejanos: sin trazo, solo un resplandor amplio en el
     // cielo, cada uno con su propio periodo y desfasaje -- nunca

@@ -93,7 +93,10 @@ vec4 render(vec2 uv)
     float reveal = smoothstep(shatterLevel + revealSoft, shatterLevel - revealSoft * 0.65, revealField);
 
     float h = audioHue(uHue, uMid * 0.15);
-    float crackHueVar = 0.5 + uD6 * 4.0;
+    // Auditoria de Detail (render 0 vs 1): D6 multiplicaba 'crack', que en el borde de
+    // la grieta vale casi 0 -> el hue no variaba. Ahora varia a lo largo
+    // de la grieta con ruido suave.
+    float crackHueVar = (noise21(p * 2.5) - 0.5) * uD6 * 1.6;
 
     // Atmosfera de fondo: un lift de color muy sutil detras del vidrio,
     // en vez de negro absoluto -- da la sensacion de estar iluminado por
@@ -101,8 +104,10 @@ vec4 render(vec2 uv)
     // compite con las grietas.
     vec3 col = hsv2rgb(vec3(fract(h + 0.55), 0.5, 0.35)) * (1.0 - smoothstep(0.1, 1.3, length(p))) * 0.05;
 
-    col += hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * reveal;
-    col += hsv2rgb(vec3(fract(h + 0.5), 0.35, 1.0)) * glow * reveal * 0.6;
+    // D6 tambien sube la saturacion del trazo: sobre una grieta casi
+    // blanca, variar el tono no se veia.
+    col += hsv2rgb(vec3(fract(h + crackHueVar), 0.55 + uD6 * 0.4, 1.0)) * edge * reveal;
+    col += hsv2rgb(vec3(fract(h + 0.5 + crackHueVar), 0.35, 1.0)) * glow * reveal * 0.6;
     // Bloom ancho: un segundo halo bastante mas difuso que 'glow' para
     // que el brillo de la grieta "sangre" al aire, no solo el trazo con
     // blur fijo de siempre.
@@ -114,9 +119,14 @@ vec4 render(vec2 uv)
     // sea que con la perilla en 0 (el default) el nucleo brillante de la
     // grieta valia exactamente cero. Ahora tiene piso propio y D3 lo
     // sube desde ahi.
-    float core = smoothstep(0.018, 0.0, crack);
-    col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core
-         * (0.35 + uD3 * 0.9) * reveal;
+    // Auditoria de Detail: sumado, el nucleo caia sobre un borde que ya
+    // estaba casi blanco (borde + glow + bloom) y D3 no se veia. Ahora
+    // REEMPLAZA el color del borde por uno saturado, mas ancho: en 0 la
+    // grieta es blanca y fria, en 1 tiene un corazon de color caliente.
+    float core = smoothstep(0.05, 0.0, crack);
+    col = mix(col, hsv2rgb(vec3(fract(h + 0.08 + crackHueVar), 1.0, 1.0)) * 1.2,
+              core * uD3 * reveal);
+    col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * 0.1 * reveal;
 
     // PIANO: un impacto EXTRA agrieta el vidrio en el punto que elige
     // uKeypos, ademas de la revelacion central -- reusa la misma red de
@@ -133,7 +143,7 @@ vec4 render(vec2 uv)
         // tambien rompe en un borde irregular, no un circulo perfecto.
         float impactField = rImpact + (revealField - 0.5) * 0.6;
         float revealP = smoothstep(impactR + 0.28, impactR - 0.14, impactField) * uKeypulse;
-        col += hsv2rgb(vec3(fract(h + crack * crackHueVar), 0.55, 1.0)) * edge * revealP;
+        col += hsv2rgb(vec3(fract(h + crackHueVar), 0.55, 1.0)) * edge * revealP;
         col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * revealP;
         // Flash blanco directo sobre TODA la zona de impacto (no solo
         // sobre las grietas ya visibles) -- la revelacion sola se

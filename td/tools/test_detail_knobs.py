@@ -11,9 +11,12 @@ escena futura: para cada visuals/*.frag exige que el CUERPO (sin el
 header @D1..@D6, que documenta la intencion pero no cuenta como uso)
 referencie uD1..uD6 al menos una vez cada una.
 
-Un @Dn documentado como "reservado"/"no usado directo" en el header es
-la unica excepcion legitima -- se detecta por texto y no exige uso real
-de esa perilla.
+Antes un @Dn documentado como "reservado" era una excepcion aceptada, y
+por ahi se colaron perillas muertas (filamentos D4/D5, totem D4): el
+dashboard les mostraba una funcion y no hacian nada. Ya NO se acepta: una
+perilla del controlador siempre tiene que hacer algo en cada escena. La
+auditoria que lo detecto (render de cada perilla en 0 y en 1) esta en
+docs/11_AUDITORIA_DETAIL.md.
 """
 import os
 import re
@@ -68,8 +71,8 @@ def main():
               'faltan: {}'.format(missing_legend))
 
         for d, reserved in legend.items():
-            if reserved:
-                continue
+            check('{}: {} no esta "reservado" (tiene que hacer algo)'.format(fname, d),
+                  not reserved)
             uname = 'u' + d
             # El header documenta '@D5' (sin 'u'), nunca 'uD5' literal --
             # asi que cualquier aparicion de 'uD5' en el archivo viene del

@@ -41,9 +41,9 @@
 // @D2: frecuencia de la hebra (pocas y separadas <-> muchas y juntas)
 // @D3: separacion de fase entre el nucleo y su acompañante (casi
 //      pegados <-> bien separados)
-// @D4: reservado (antes controlaba los marcadores, ya sacados de esta
-//      escena para simplificarla)
-// @D5: reservado (antes controlaba la deriva de los marcadores)
+// @D4: curvatura de las hebras (casi rectas <-> muy onduladas)
+//      (antes D4 y D5 estaban "reservados" y no hacian nada)
+// @D5: color de la hebra acompañante (cerca del nucleo <-> opuesto)
 // @D6: ancho del resplandor suave debajo de la linea nitida
 // ===============================================================
 
@@ -73,7 +73,7 @@ vec4 render(vec2 uv)
     // Misma razon que arriba: pocos octavos, amplitud contenida.
     float curveT = t * (0.02 + uSpeed * 0.06);
     float curve = fbm(warpP * 0.5 + curveT + 5.0, 3) - 0.5;
-    float bandCoord = warpP.y + curve * 1.5;
+    float bandCoord = warpP.y + curve * mix(0.2, 3.2, uD4);   // D4 (0.5 ~ el 1.5 de antes)
 
     // --- HEBRAS ---
     // D2: frecuencia. Rango bajado (era 4-15): con eso entraban 15-30
@@ -124,7 +124,7 @@ vec4 render(vec2 uv)
     float halfW = coreHalf * 0.5;
     float dA = abs(fract(phase + sep) - 0.5);
     float lineA = (1.0 - smoothstep(halfW, halfW + aaPhase * 2.0, dA)) * uDensity;
-    vec3  colA = hsv2rgb(vec3(fract(h0 + 0.5), 0.6, 1.0));    // cyan
+    vec3  colA = hsv2rgb(vec3(fract(h0 + mix(0.12, 0.88, uD5)), 0.6, 1.0));    // D5 (0.5 = cyan de antes)
     col += colA * lineA;
 
     // D6: resplandor suave debajo de las lineas nitidas (gaussiana ancha

@@ -67,7 +67,7 @@ vec4 render(vec2 uv)
 
     // D2: aberracion cromatica suave, como luz refractada por el agua
     // (no un split duro de senal rota).
-    float aberr = uD2 * 0.012 * (1.0 + uKick * 0.8);
+    float aberr = uD2 * 0.07 * (1.0 + uKick * 0.8);   // D2: rango x6 (auditoria: casi no se veia)
     vec3  media;
     media.r = mediaTex(clamp(muv + offset * aberr * 8.0, 0.0, 1.0)).r;
     media.g = mediaTex(muv).g;

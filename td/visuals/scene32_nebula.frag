@@ -75,11 +75,11 @@ vec4 render(vec2 uv)
     vec2  sid = floor(sg);
     vec2  sf = fract(sg) - 0.5;
     float starHash = hash21(sid + 3.0);
-    float onThresh = 0.985 - uD2 * 0.10;
+    float onThresh = 0.99 - uD2 * 0.16;
     float isStar = step(onThresh, starHash);
     float starSize = 0.10 + uD4 * 0.18;
     float starD = length(sf);
-    float starTwinkleRate = 0.15 + uD6 * 1.2;
+    float starTwinkleRate = 0.1 + uD6 * 4.0;
     float twinkle = 0.5 + 0.5 * sin(t * (starTwinkleRate + hash21(sid + 6.0) * 1.6) + hash21(sid + 11.0) * TAU);
     // Tamano variable por estrella: un campo estelar real tiene unas
     // pocas brillantes y muchas apenas visibles. Todas iguales se leen
@@ -94,7 +94,10 @@ vec4 render(vec2 uv)
     // bailen"). Brillo solamente, nunca tamano -- sigue el contrato.
     float isDancer = step(0.75, hash21(sid + 40.0));
     star *= 1.0 + isDancer * uBass * 2.2;
-    col += vec3(1.0) * star * (1.0 + uKick * 1.0);
+    // Auditoria de Detail (render 0 vs 1): las estrellas (D2 cantidad, D4 tamano, D6
+    // titileo) se perdian contra la nube: sumaban poco sobre un fondo ya
+    // claro. Mas brillo, y apagan un poco la nube detras para leerse.
+    col = col * (1.0 - clamp(star, 0.0, 1.0) * 0.5) + vec3(1.0) * star * 2.2 * (1.0 + uKick * 1.0);
 
     // PIANO: nucleo brillante de la explosion en si -- la dispersion
     // real de la nube ya paso arriba (empuja pw), esto solo marca el

@@ -76,7 +76,10 @@ vec4 render(vec2 uv)
     float inside = 1.0 - smoothstep(-0.01, 0.01, sdf);
     float fieldFreq = 2.0 + uD3 * 5.0;
     float fieldLine = ridge(fbm(ridgeDom * 0.35 + fieldFreq, 3, 0.5), 6.0);
-    vec3  col = liquidCol * inside * (0.10 + fieldLine * uD3 * 0.25);
+    // Auditoria de Detail (render 0 vs 1): las lineas de campo se multiplicaban por el
+    // color del liquido (casi negro) -> D3 no se veia. Ahora suman un
+    // brillo propio, tenue, dentro del charco.
+    vec3  col = liquidCol * inside * 0.45 + vec3(0.45, 0.52, 0.62) * inside * fieldLine * uD3 * 0.45;
 
     // Brillo especular sobre el borde: una linea fina justo en sdf=0,
     // mas fuerte donde el pico es mas agudo (como luz real prendiendo

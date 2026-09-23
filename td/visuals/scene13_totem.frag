@@ -57,8 +57,8 @@
 // @D2: cuantos niveles de columnas por fila (pocas y anchas <-> muchas
 //      y finas)
 // @D3: frecuencia de los patrones dentro de cada celda
-// @D4: reservado (antes controlaba la mancha del fondo exterior, ya
-//      sacado -- ver "SIN fondo" arriba)
+// @D4: relieve tallado de cada celda (plano <-> muy hundido en los bordes)
+//      (antes "reservado": no hacia nada)
 // @D5: tamano del ojo central
 // @D6: contraste/saturacion general de la paleta
 // ===============================================================
@@ -178,7 +178,7 @@ vec4 render(vec2 uv)
         // "un patron plano" de "una talla real con profundidad".
         vec2  cCenter = cellUV - 0.5;
         float carve = 1.0 - dot(cCenter, cCenter) * 1.4;
-        col *= mix(0.78, 1.15, clamp(carve, 0.0, 1.0));
+        col *= mix(1.0 - uD4 * 0.6, 1.0 + uD4 * 0.3, clamp(carve, 0.0, 1.0));   // D4 (0.5 ~ antes)
     }
 
     // --- MARCO (linea oscura del borde del panel) ---
