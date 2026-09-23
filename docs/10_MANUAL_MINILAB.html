@@ -101,6 +101,17 @@ td.n { font-variant-numeric: tabular-nums; color: var(--muted); width: 3.2em; }
 .mode.bad { color: var(--scene); }
 .log { font-family: var(--font-m); font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; max-height: 176px; overflow: auto; }
 .log .unk { color: var(--scene); }
+.wiz { display: grid; gap: 14px; }
+.wiz-step { display: grid; gap: 6px; background: var(--surface-2); border-radius: 10px; padding: 16px; }
+.wiz-step .ask { font: 700 22px/1.2 var(--font-d); }
+.wiz-step .where { color: var(--muted); }
+.wiz-prog { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.wiz-prog i { display: block; height: 100%; background: var(--ok); width: 0; }
+.wiz-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 16px; font-size: 13.5px; }
+.wiz-list span { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dashed var(--line); padding: 3px 0; }
+.wiz-list .cur { color: var(--show); font-weight: 600; }
+.wiz-list .rel { color: var(--scene); }
+textarea.json { width: 100%; min-height: 180px; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.45 var(--font-m); padding: 10px; resize: vertical; }
 .padtest { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
 .padtest .p { display: grid; gap: 6px; justify-items: center; }
 .padtest .face { width: 100%; aspect-ratio: 1; max-width: 72px; border-radius: 8px; background: #2a2d33; border: 3px solid #444; display: grid; place-items: center; font: 600 11px/1 var(--font-d); color: var(--muted); }
@@ -131,6 +142,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     <nav class="toc" aria-label="Secciones">
       <a href="#controlador">Controlador</a>
       <a href="#probador">Probador MIDI</a>
+      <a href="#learn">Learn guiado</a>
       <a href="#perillas19">Perillas 1 y 9</a>
       <a href="#colores">Colores de pads</a>
       <a href="#probar">Probar todo</a>
@@ -185,6 +197,41 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
       </div>
     </div>
     <p class="muted">El probador usa Web MIDI: funciona en Chrome o Edge. Si este visor no lo permite, abre <span class="mono">docs/10_MANUAL_MINILAB.html</span> del repo con doble clic en Chrome. En Windows cierra TouchDesigner antes: el puerto MIDI no se comparte entre programas.</p>
+  </section>
+
+  <section id="learn">
+    <span class="eyebrow">Una sola vez · 5 minutos</span>
+    <h2>Learn guiado</h2>
+    <p>Deja tu MiniLab igual al dibujo sin abrir TouchDesigner. Conecta el probador, pulsa <b>Empezar</b> y haz lo que pide cada paso: gira la perilla o toca el pad que quieras para esa función. Al final te da el archivo <span class="mono">midi_map.json</span> listo.</p>
+    <div class="tester wiz">
+      <div class="row">
+        <button class="btn" id="wizStart" type="button">Empezar</button>
+        <button class="btn ghost" id="wizBack" type="button" disabled>Atrás</button>
+        <button class="btn ghost" id="wizSkip" type="button" disabled>Saltar este</button>
+        <span class="muted" id="wizCount"></span>
+      </div>
+      <div class="wiz-prog"><i id="wizBar"></i></div>
+      <div class="wiz-step" id="wizStep">
+        <div class="ask" id="wizAsk">Conecta el probador y pulsa Empezar</div>
+        <div class="where" id="wizWhere">El MiniLab tiene que estar en la memoria que usas en el show y con el banco de pads que pida cada paso.</div>
+      </div>
+      <div class="wiz-list" id="wizList"></div>
+      <div id="wizOut" hidden>
+        <h3>Listo: tu midi_map.json</h3>
+        <p class="muted" id="wizWarn"></p>
+        <textarea class="json" id="wizJson" readonly aria-label="Contenido de midi_map.json"></textarea>
+        <div class="row">
+          <button class="btn" id="wizCopy" type="button">Copiar</button>
+          <button class="btn ghost" id="wizSave" type="button" hidden>Guardar archivo</button>
+          <span class="muted" id="wizCopied"></span>
+        </div>
+        <ol class="steps">
+          <li>Crea o reemplaza el archivo <span class="mono">td/config/midi_map.json</span> con este contenido (pega y guarda).</li>
+          <li>En TouchDesigner: <span class="mono">/project1</span> → MIDI Mapping → <b>Cargar Mapeo</b> (o Reconstruir Todo).</li>
+          <li>Prueba con el probador de arriba que todo coincide.</li>
+        </ol>
+      </div>
+    </div>
   </section>
 
   <section id="perillas19">
@@ -588,8 +635,9 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   function onMessage(ev) {
     const [st, d1, d2] = ev.data;
     const type = st & 0xF0, ch = (st & 0x0F) + 1;
+    if (type === 0xB0) trackMode(d1, d2);
+    if (typeof wizCapture === 'function' && wizCapture(ev.data)) return;
     if (type === 0xB0) {
-      trackMode(d1, d2);
       const id = ch === 1 ? CC_MAP[d1] : undefined;
       if (d1 === 1 && id) { report(id, 'Tira mod · CC 1 · canal ' + ch, d2 / 127, d2); return; }
       report(id, 'CC ' + d1 + ' · canal ' + ch, d2 / 127, d2);
@@ -707,8 +755,110 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   $('resetChecks').addEventListener('click', () => { done = {}; try { localStorage.removeItem(KEY); } catch (e) {} renderChecks(); });
   renderChecks();
 
+  // ---------- Learn guiado ----------
+  // Tiene que coincidir con vjcore.config.MIDI_SLOTS (lo chequea
+  // td/tools/test_manual_sync.py). El json sale COMPLETO: lo que no se
+  // aprende queda vacio, asi no quedan canales viejos repetidos.
+  const MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition', 'Audioamount', 'Bassamount', 'Midamount', 'Highamount', 'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6', 'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset', 'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert', 'Mirror', 'Zoom', 'Posterize', 'Trails', 'Layermix', 'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap', 'Lookamount', 'Palettelock', 'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic', 'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock', 'Mediascrub', 'Textvisible', 'Fontnext', 'Energy', 'Autopilot', 'Retro', 'Trailszoom'];
+  const MIDI_LAYOUT = 'v2';
+  const WIZ = [].concat(
+    knobs.map(k => ({slot:k.id, fn:k.name, where:'Gira la perilla ' + k.n, kind:'knob'})),
+    [{slot:'Layermix', fn:'Mezcla 2 capas', where:'Mantén Shift y gira la perilla 1', kind:'knob'},
+     {slot:'Transition', fn:'Transición', where:'Mantén Shift y gira la perilla 9', kind:'knob'},
+     {slot:'Trailszoom', fn:'Zoom estela', where:'Desliza la tira de pitch', kind:'strip'},
+     {slot:'Mediascrub', fn:'Imagen', where:'Desliza la tira de mod', kind:'strip'}],
+    padsA.map(p => ({slot:p.id, fn:p.name, where:'Banco A (botón Pad 1-8 / 9-16 apagado): toca el pad ' + p.n, kind:'pad'})),
+    padsB.map(p => ({slot:p.id, fn:p.name, where:'Banco B (botón Pad 1-8 / 9-16 encendido): toca el pad ' + p.n, kind:'pad'}))
+  );
+  const WKEY = 'tdai-learn-v1';
+  let wiz = {on:false, i:0, map:{}, lastChan:null, lastAt:0};
+  try { const saved = JSON.parse(localStorage.getItem(WKEY) || 'null'); if (saved && saved.map) { wiz.map = saved.map; wiz.i = Math.min(saved.i || 0, WIZ.length); } } catch (e) { /* sin almacenamiento */ }
+  const wizSave = () => { try { localStorage.setItem(WKEY, JSON.stringify({map:wiz.map, i:wiz.i})); } catch (e) { /* ok */ } };
+
+  function chanName(bytes) {
+    const [st, d1, d2] = bytes;
+    const type = st & 0xF0, ch = (st & 0x0F) + 1;
+    if (type === 0xB0) return {name:'ch' + ch + 'ctrl' + d1, cc:d1};
+    if (type === 0x90 && d2 > 0) return {name:'ch' + ch + 'n' + d1};
+    if (type === 0xE0) return {name:'ch' + ch + 'pitch'};
+    return null;
+  }
+  function wizRender() {
+    const step = WIZ[wiz.i];
+    $('wizCount').textContent = Math.min(wiz.i, WIZ.length) + ' de ' + WIZ.length;
+    $('wizBar').style.width = Math.round(Math.min(wiz.i, WIZ.length) / WIZ.length * 100) + '%';
+    $('wizBack').disabled = !wiz.on || wiz.i === 0;
+    $('wizSkip').disabled = !wiz.on || !step;
+    if (wiz.on && step) {
+      $('wizAsk').innerHTML = '<span style="color:' + C[(all[step.slot] || {item:{g:'show'}}).item.g] + '">' + step.fn + '</span>';
+      $('wizWhere').textContent = step.where + '.';
+      if (all[step.slot]) show(step.slot);
+    }
+    $('wizList').innerHTML = WIZ.map((st, j) => {
+      const v = wiz.map[st.slot];
+      const cc = v && /ctrl(\d+)$/.exec(v);
+      const rel = cc && ccMode[+cc[1]] === 'rel';
+      return '<span class="' + (j === wiz.i && wiz.on ? 'cur' : '') + (rel ? ' rel' : '') + '">' + st.fn +
+        '<b class="mono">' + (v === undefined ? '·' : v === '' ? 'saltado' : v + (rel ? ' ⚠' : '')) + '</b></span>';
+    }).join('');
+    if (wiz.i >= WIZ.length) wizFinish();
+  }
+  function wizAdvance() { wiz.i++; wizSave(); wizRender(); }
+  function wizCapture(bytes) {
+    if (!wiz.on || wiz.i >= WIZ.length) return false;
+    const c = chanName(bytes); if (!c) return false;
+    const step = WIZ[wiz.i];
+    const now = performance.now();
+    // Sigue llegando la perilla del paso anterior (o el mismo pad al
+    // soltarlo): se ignora hasta que toques otro control.
+    if (c.name === wiz.lastChan && now - wiz.lastAt < 1500) { wiz.lastAt = now; return true; }
+    if (step.kind === 'pad' && bytes[2] === 0) return true;
+    // Un canal = una funcion: si ya estaba en otra, se la quita.
+    for (const k in wiz.map) if (wiz.map[k] === c.name) wiz.map[k] = '';
+    wiz.map[step.slot] = c.name;
+    wiz.lastChan = c.name; wiz.lastAt = now;
+    liveFlash(step.slot);
+    wizAdvance();
+    return true;
+  }
+  function wizFinish() {
+    wiz.on = false;
+    $('wizAsk').textContent = 'Terminado';
+    $('wizWhere').textContent = 'Copia el archivo de abajo. Puedes volver a Empezar para rehacerlo.';
+    const out = {};
+    MIDI_SLOTS.forEach(sl => { out[sl] = wiz.map[sl] || ''; });
+    out._layout = MIDI_LAYOUT;
+    $('wizJson').value = JSON.stringify(out, null, 2);
+    const rels = WIZ.filter(st => { const m = /ctrl(\d+)$/.exec(wiz.map[st.slot] || ''); return m && ccMode[+m[1]] === 'rel'; });
+    $('wizWarn').textContent = rels.length
+      ? '⚠ En modo relativo: ' + rels.map(r => r.fn).join(', ') + '. Pásalas a Absolute (ver "Perillas 1 y 9") o no van a funcionar bien en el rig.'
+      : 'Las funciones que saltaste quedan vacías; las demás que no están en el dibujo (Pánico, Reset…) siguen en el dashboard.';
+    $('wizOut').hidden = false;
+    $('wizSave').hidden = window.self !== window.top;
+  }
+  $('wizStart').addEventListener('click', () => {
+    if (!access) { $('wizAsk').textContent = 'Primero conecta el probador (arriba)'; return; }
+    wiz = {on:true, i:0, map:{}, lastChan:null, lastAt:0};
+    $('wizOut').hidden = true; wizSave(); wizRender();
+  });
+  $('wizBack').addEventListener('click', () => { if (wiz.i > 0) { wiz.i--; delete wiz.map[WIZ[wiz.i].slot]; wiz.lastChan = null; wizSave(); wizRender(); } });
+  $('wizSkip').addEventListener('click', () => { wiz.map[WIZ[wiz.i].slot] = ''; wizAdvance(); });
+  $('wizCopy').addEventListener('click', () => {
+    const t = $('wizJson');
+    const done = () => { $('wizCopied').textContent = 'Copiado'; };
+    try { navigator.clipboard.writeText(t.value).then(done, () => { t.select(); $('wizCopied').textContent = 'Selecciónalo y copia con Ctrl+C'; }); }
+    catch (e) { t.select(); $('wizCopied').textContent = 'Selecciónalo y copia con Ctrl+C'; }
+  });
+  $('wizSave').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([$('wizJson').value], {type:'application/json'}));
+    a.download = 'midi_map.json'; document.body.appendChild(a); a.click(); a.remove();
+  });
+  wizRender();
+
   // Para pruebas automaticas: inyecta un mensaje MIDI como si llegara del equipo.
   window.__tdaiSim = bytes => onMessage({data: bytes});
+  window.__tdaiWizStart = () => { access = access || {fake:true}; $('wizStart').click(); };
 
   setBank('A', true);
   show('Energy');
