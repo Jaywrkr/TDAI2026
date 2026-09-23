@@ -501,6 +501,20 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # midiMap() se queda con el ultimo de esta lista.
               'Energy', 'Autopilot', 'Retro', 'Trailszoom']
 
+# ---------------------------------------------------------------
+# COLORES DE LOS PADS (MiniLab mkII, SysEx de Arturia)
+# ---------------------------------------------------------------
+# F0 00 20 6B 7F 42 02 00 10 <pad> <color> F7, pad = 0x70..0x7F (pads 1-16,
+# el 9-16 es el banco B). Documentado por la comunidad (github mhugo/sysex,
+# Ardour); en el foro de Arturia hay reportes de unidades que no responden,
+# por eso Padleds arranca apagado y hay un pulso para probar.
+PAD_COLOR = {
+    'off': 0x00, 'red': 0x01, 'green': 0x04, 'yellow': 0x05,
+    'blue': 0x10, 'purple': 0x11, 'cyan': 0x14, 'white': 0x7F,
+}
+PAD_SYSEX_HEAD = (0x00, 0x20, 0x6B, 0x7F, 0x42, 0x02, 0x00, 0x10)
+PAD_ID_FIRST = 0x70
+
 # Migracion del mapeo guardado (td/config/midi_map.json) al layout v2 --
 # se aplica UNA vez al cargar un json que no tenga '_layout': 'v2', y
 # despues se guarda con esa marca (un Learn posterior ya no se pisa).

@@ -452,6 +452,14 @@ def update():
         lines.append('>> (+{} lineas mas, panel lleno)'.format(hidden))
 
     status.text = '\n'.join(lines)
+
+    # Colores de los pads: mismo ritmo que el status (no por frame), y
+    # control_script solo manda los pads cuyo color cambio.
+    if ctrl:
+        try:
+            ctrl.module.refreshPadLeds()
+        except Exception as e:
+            print('refreshPadLeds (diagnostics):', e)
     try:
         p.par.Systemready = (overall == 'OK')
     except Exception:
