@@ -83,9 +83,27 @@ float ridge(float n, float sharp) {{
     return pow(clamp(1.0 - abs(n * 2.0 - 1.0), 0.0, 1.0), sharp);
 }}
 
+// hsv2rgb BALANCEADO. Mismo mapeo de hue que el HSV clasico (0 = rojo,
+// 1/3 = verde, 2/3 = azul), con dos arreglos para que girar el knob Hue
+// se vea parejo en las 45 escenas:
+//  1. Rampas suavizadas (cubica): el HSV clasico tiene "quiebres" en los
+//     primarios/secundarios -- al girar, el color se frenaba en verde y
+//     azul y pegaba un salto en amarillo, cyan y magenta (bandas finas y
+//     brillantes). Ahora el giro avanza a velocidad pareja.
+//  2. Brillo percibido balanceado: en HSV puro el amarillo tiene ~8x la
+//     luminancia del azul, asi que la MISMA escena revienta en amarillo y
+//     se hunde en azul. Ahora: los tonos calientes bajan un poco (tope
+//     x0.86) y los oscuros se levantan un poco hacia blanco, sin perder
+//     el tono. Rango de luminancia 7.8x -> 3.1x.
+// Con s = 0 (gris) no cambia nada.
 vec3 hsv2rgb(vec3 c) {{
-    vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
-    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+    const float HUE_TARGET_L = 0.5;
+    vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    rgb = rgb * rgb * (3.0 - 2.0 * rgb);
+    float l = dot(rgb, vec3(0.299, 0.587, 0.114));
+    rgb *= mix(1.0, clamp(HUE_TARGET_L / max(l, 1e-3), 0.72, 1.0), 0.5);
+    rgb = mix(rgb, vec3(1.0), clamp((HUE_TARGET_L - l) / (1.0 - l + 1e-6), 0.0, 1.0) * 0.35);
+    return c.z * mix(vec3(1.0), rgb, c.y);
 }}
 
 // uv centrado y con aspecto corregido: x en [-a,a], y en [-1,1]
