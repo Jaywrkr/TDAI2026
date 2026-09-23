@@ -60,6 +60,10 @@ def _parameters(proj):
     o = proj.appendCustomPage('Output')
     add_int(o, 'Outputwidth', 'Output Width', c.DEFAULT_OUTPUT_W, 320, c.MAX_OUTPUT)
     add_int(o, 'Outputheight', 'Output Height', c.DEFAULT_OUTPUT_H, 240, c.MAX_OUTPUT)
+    # Fraccion de la salida a la que se calculan las escenas (ver
+    # config.DEFAULT_RENDER_SCALE). Ajuste del equipo, no de show.
+    add_float(o, 'Renderscale', 'Escala de render (escenas)',
+              c.DEFAULT_RENDER_SCALE, 0.4, 1.0)
 
     a = proj.appendCustomPage('Audio')
     add_float(a, 'Mastergain', 'Master Gain', 4.0, 0.1, 40)

@@ -443,6 +443,9 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     connect(blend, sw_b, 1)
     connect(blend, ctrl_tex, 2)
     safe_set_first(blend, ['format', 'pixelformat'], 'rgba16float')
+    # Las escenas llegan a Renderscale (ver config.DEFAULT_RENDER_SCALE):
+    # este nodo las reescala a la salida, con filtro lineal explicito.
+    safe_set_first(blend, ['inputfiltertype', 'inputfilter'], 'linear')
 
     pick = proj.create(switchTOP, 'program_pick')
     pick.nodeX, pick.nodeY = 1120, 370
@@ -568,6 +571,9 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     connect(cross, sw_a, 0)
     connect(cross, sw_b, 1)
     safe_expr(cross, 'cross', "op('/project1/xfade')['Xfadetarget']")
+    # Primer nodo a resolucion de salida: reescala las escenas (que se
+    # calculan a Renderscale) con filtro lineal explicito.
+    safe_set_first(cross, ['inputfiltertype', 'inputfilter'], 'linear')
 
     # --- MASTER FX: dos capas + estela ---
     # Solo si el llamador paso la textura de control (siempre, en el build

@@ -84,7 +84,7 @@ def full_project(**overrides):
         Blackout=False, Autopilot=True, Energyactive=True,
         Medialock=True, Cuemode=True, Duallayer=False,
         Activeindex=17, Targetindex=17, Previewindex=5,
-        Outputwidth=1280, Outputheight=720,
+        Outputwidth=1280, Outputheight=720, Renderscale=0.75,
         Failsafelevel=0, Usepresets=False, Transitionseconds=0.45,
         Look=0, Palettehue=0.55, Palettespread=0.3, Activelayer=0,
         Mediafolder='', Mediaindex=0, Mediagen=0, Mediamode=0,
@@ -227,6 +227,8 @@ def main():
     check('reset devuelve la resolucion original',
           [p.par.Outputwidth.val, p.par.Outputheight.val], [1280, 720])
     check('reset pone el nivel en 0', p.par.Failsafelevel.val, 0)
+    check('reset devuelve la escala de render original',
+          p.par.Renderscale.val, 0.75)
 
     print('\n--- FAILSAFE: sigue entero si se agrega un escalon ---')
     # Este es el bug exacto que tenia: con el tope en 3 escrito a mano,

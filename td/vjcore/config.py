@@ -99,6 +99,24 @@ DEFAULT_OUTPUT_W = 1280
 DEFAULT_OUTPUT_H = 720
 MAX_OUTPUT = 1280
 
+# ESCALA DE RENDER DE LAS ESCENAS. Las escenas (los .frag, que es donde
+# esta casi todo el costo de GPU: fbm de 4-7 octavas por pixel) se
+# calculan a esta fraccion de la resolucion de salida; el resto del
+# programa (crossfade, Master FX, bloom, texto, dither) sigue a resolucion
+# completa y reescala con filtro lineal. 0.75 = 44% menos pixeles por
+# escena -- y en un crossfade o en Dos Capas se calculan DOS escenas a la
+# vez, justo cuando un tiron mas se nota. En un equipo sin GPU dedicada es
+# la diferencia entre fluido y a saltos; el bloom y el dither a resolucion
+# completa disimulan el reescalado.
+# Se ajusta en /project1 > Output > 'Escala de render' (no es una perilla
+# de show: se deja fija para el equipo). uResW/uResH siguen valiendo la
+# resolucion de SALIDA, no la de render.
+DEFAULT_RENDER_SCALE = 0.75
+# Escenas de lineas muy finas (1-2 px): a menos resolucion se ablandan de
+# forma visible, asi que se calculan SIEMPRE a resolucion completa.
+# 23 web, 33 tormenta (rayos), 39 laseres, 41 red.
+FULLRES_SCENES = {23, 33, 39, 41}
+
 # Dashboard
 # Thumbnails achicados (208x117 -> 150x84, misma proporcion) al pasar de
 # 20 a 34 escenas -- si se mantenia el tamano viejo con 36 casilleros el

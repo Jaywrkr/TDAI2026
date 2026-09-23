@@ -785,6 +785,10 @@ def swapLayer():
 # recupera a mano con Failsafereset, cuando el VJ decide.
 
 _FAILSAFE_STEPS = [
+    # Primero la escala de render de las escenas: es lo que mas GPU libera
+    # y lo que menos se ve (bloom, texto y salida siguen a resolucion
+    # completa). failsafeReset() la devuelve a su valor.
+    ('escenas al 50%', 'Renderscale', 0.5),
     ('estela apagada', 'Trails', 0.0),
     ('dos capas apagadas', 'Duallayer', False),
 ]
@@ -811,6 +815,8 @@ def failsafeStep():
             label, par_name, val = _FAILSAFE_STEPS[level]
             par = getattr(p.par, par_name, None)
             if par is not None:
+                if par_name == 'Renderscale' and p.fetch('failsafe_scale', None) is None:
+                    p.store('failsafe_scale', float(par.eval()))
                 par.val = val
         else:
             # Ultimo escalon: bajar la resolucion de salida a 70%. Es lo
@@ -828,9 +834,10 @@ def failsafeStep():
 
 
 def failsafeReset():
-    """Vuelve la resolucion y el contador a como estaban. No vuelve a
-    prender estela ni dos capas a proposito: eso es una decision
-    artistica, no algo que un boton de recuperacion deba adivinar."""
+    """Vuelve la resolucion, la escala de render y el contador a como
+    estaban. No vuelve a prender estela ni dos capas a proposito: eso es
+    una decision artistica, no algo que un boton de recuperacion deba
+    adivinar."""
     p = _p()
     if not p:
         return
@@ -840,6 +847,10 @@ def failsafeReset():
             p.par.Outputwidth = int(res[0])
             p.par.Outputheight = int(res[1])
             p.store('failsafe_res', None)
+        scale = p.fetch('failsafe_scale', None)
+        if scale is not None:
+            p.par.Renderscale = float(scale)
+            p.store('failsafe_scale', None)
         p.par.Failsafelevel = 0
         p.store('failsafe_low_since', 0.0)
         print('FAILSAFE reseteado')
