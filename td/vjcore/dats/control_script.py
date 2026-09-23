@@ -1868,17 +1868,133 @@ def startMediaCycles():
 # no Python -- ver program.py._build_text_overlay.
 
 
+def _textQueue():
+    """Nombres de la cola (Textqueue), separados por ';' o salto de
+    linea, sin vacios."""
+    p = _p()
+    try:
+        raw = str(p.par.Textqueue.eval()) if p else ''
+    except Exception:
+        return []
+    return [s.strip() for s in raw.replace('\n', ';').split(';') if s.strip()]
+
+
+def _setPar(p, name, val):
+    par = getattr(p.par, name, None)
+    if par is not None:
+        try:
+            par.val = val
+        except Exception:
+            pass
+
+
+def _parVal(p, name, default=None):
+    par = getattr(p.par, name, None)
+    if par is None:
+        return default
+    try:
+        return par.eval()
+    except Exception:
+        return default
+
+
+def textPeek(offset=0):
+    """Nombre de la cola a 'offset' del proximo (0 = el que sale en el
+    proximo MOSTRAR). '' si la cola esta vacia. Para el status."""
+    p = _p()
+    q = _textQueue()
+    if not p or not q:
+        return ''
+    idx = int(_parVal(p, 'Textqueueindex', 0) or 0)
+    return q[(idx + offset) % len(q)]
+
+
 def toggleTextVisible():
-    """Prende/apaga el overlay de texto. Es EL control que de verdad
-    conviene tener en un pad: separa el momento de escribir del momento
-    de mostrar."""
+    """Pad TEXTO. Si el texto esta en pantalla, lo oculta. Si no, lo
+    muestra -- y que muestra:
+
+      - si escribiste algo NUEVO a mano en 'Texto' (distinto de lo que
+        puso la cola la ultima vez), eso: lo ultimo que escribiste gana;
+      - si no, y hay cola, el SIGUIENTE nombre de la cola (y avanza);
+      - si no hay cola, lo que haya en 'Texto'.
+
+    Mostrar tambien apaga 'Escribiendo': si ya lo estas mostrando, ya
+    terminaste de escribir, y los atajos de teclado vuelven solos.
+    """
     p = _p()
     if not p:
         return
     try:
-        p.par.Textvisible.val = not bool(p.par.Textvisible.eval())
+        visible = bool(p.par.Textvisible.eval())
     except Exception:
-        pass
+        return
+    if visible:
+        _setPar(p, 'Textvisible', False)
+        return
+    current = str(_parVal(p, 'Textcontent', '') or '')
+    last_auto = p.fetch('text_last_auto', None) if hasattr(p, 'fetch') else None
+    queue = _textQueue()
+    typed_new = current.strip() and current != last_auto
+    if queue and not typed_new:
+        idx = int(_parVal(p, 'Textqueueindex', 0) or 0) % len(queue)
+        name = queue[idx]
+        _setPar(p, 'Textcontent', name)
+        _setPar(p, 'Textqueueindex', (idx + 1) % len(queue))
+        if hasattr(p, 'store'):
+            p.store('text_last_auto', name)
+    elif hasattr(p, 'store'):
+        # Lo escrito a mano ya se mostro: la proxima vez vuelve a mandar
+        # la cola (salvo que escribas algo nuevo otra vez).
+        p.store('text_last_auto', current)
+    _setPar(p, 'Textediting', False)
+    _setPar(p, 'Textvisible', True)
+
+
+def _textStep(step):
+    """Pasa al nombre anterior/siguiente de la cola. Si el texto esta en
+    pantalla, hace fundido: oculta, cambia el nombre cuando termino de
+    apagarse, y lo vuelve a mostrar. Si esta oculto, solo lo deja listo
+    (lo vas a ver en el status como 'sigue')."""
+    p = _p()
+    queue = _textQueue()
+    if not p or not queue:
+        return
+    idx = int(_parVal(p, 'Textqueueindex', 0) or 0)
+    visible = bool(_parVal(p, 'Textvisible', False))
+    if not visible:
+        _setPar(p, 'Textqueueindex', (idx + step) % len(queue))
+        return
+    # En pantalla esta queue[idx-1] (idx es el PROXIMO). El destino:
+    shown = (idx - 1) % len(queue)
+    target = (shown + step) % len(queue)
+    _setPar(p, 'Textqueueindex', target)
+    if hasattr(p, 'store'):
+        p.store('text_last_auto', str(_parVal(p, 'Textcontent', '') or ''))
+    _setPar(p, 'Textvisible', False)
+    try:
+        import vjcore.config as _vjconfig
+        fade = float(_vjconfig.TEXT_FADE_SECONDS)
+    except Exception:
+        fade = 0.5
+    run("op('/project1/control_script').module.toggleTextVisible()",
+        delayMilliSeconds=int(fade * 1000) + 60)
+
+
+def textNext():
+    _textStep(1)
+
+
+def textPrev():
+    _textStep(-1)
+
+
+def toggleTextEditing():
+    """Boton ESCRIBIR del dashboard: pausa/reanuda los atajos del
+    teclado de la compu mientras escribes un nombre."""
+    p = _p()
+    if not p:
+        return
+    _setPar(p, 'Textediting', not bool(_parVal(p, 'Textediting', False)))
 
 
 def nextFont():

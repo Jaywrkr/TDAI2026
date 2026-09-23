@@ -16,6 +16,16 @@ def onOffToOn(channel, sampleIndex, val, prev):
         return
     m = ctrl.module
 
+    # Escribiendo un nombre (boton ESCRIBIR del dashboard): los atajos no
+    # hacen nada, asi "DJ 2" no salta a la escena 2 ni el espacio hace
+    # blackout.
+    p = op('/project1')
+    try:
+        if p is not None and bool(p.par.Textediting.eval()):
+            return
+    except Exception:
+        pass
+
     name = str(channel.name).lower()
     if name.startswith('key'):
         name = name[3:]

@@ -331,7 +331,42 @@ void main() {
     // de un color y el relleno de otro sin que se pisen.
     float outlineCov = clamp(ring - textCov, 0.0, 1.0);
 
-    vec3 col = mix(base, vec3(0.0), outlineCov * fade);
+    // TEXTO INTEGRADO AL VISUAL. Un halo ancho alrededor de las letras
+    // (por fuera del contorno negro, que se queda: es lo que garantiza
+    // que se lea sobre cualquier fondo) toma el COLOR DEL VISUAL que
+    // tiene detras -- promedio de la imagen en un anillo de ~40 px,
+    // llevado a brillo pleno -- y se enciende con el kick. Asi el nombre
+    // se ve parte del show y no un cartel pegado encima. Solo cuesta
+    // mientras el texto esta visible (el corte temprano de arriba).
+    // Dos anillos (10 y 22 px, el segundo girado para no alinear las
+    // muestras): halo pegado a la letra + aire alrededor. Con uno solo de
+    // 9 px quedaba escondido detras del contorno (simulado en CPU).
+    const int NH = 12;
+    float halo1 = 0.0;
+    float halo2 = 0.0;
+    for (int i = 0; i < NH; i++) {
+        float ang = (float(i) / float(NH)) * TAU;
+        halo1 += texture(sTD2DInputs[1], uv + vec2(cos(ang), sin(ang)) * texel * 10.0).a;
+        halo2 += texture(sTD2DInputs[1], uv + vec2(cos(ang + 0.26), sin(ang + 0.26)) * texel * 22.0).a;
+    }
+    float halo = (halo1 * 0.6 + halo2 * 0.4) / float(NH);
+    vec2 texel0 = uTD2DInfos[0].res.zw;
+    vec3 amb = vec3(0.0);
+    for (int i = 0; i < 8; i++) {
+        float ang = (float(i) / 8.0 + 0.0625) * TAU;
+        amb += texture(sTD2DInputs[0], uv + vec2(cos(ang), sin(ang)) * texel0 * 40.0).rgb;
+    }
+    amb /= 8.0;
+    float ambMax = max(max(amb.r, amb.g), amb.b);
+    // Fondo casi negro: el halo cae a un blanco frio tenue en vez de un
+    // color inventado.
+    vec3 glowCol = mix(vec3(0.75, 0.85, 1.0), amb / max(ambMax, 1e-3),
+                       smoothstep(0.02, 0.12, ambMax));
+    float kick = clamp(uKick, 0.0, 1.0);
+    float glow = halo * (1.0 - textCov) * (0.5 + 0.9 * kick) * 1.6;
+
+    vec3 col = base + glowCol * glow * fade;
+    col = mix(col, vec3(0.0), outlineCov * fade);
     col = mix(col, vec3(1.0), textCov * fade);
 
     fragColor = TDOutputSwizzle(vec4(ditherOut(col), 1.0));
@@ -339,7 +374,7 @@ void main() {
 """
 
 
-def _build_text_overlay(proj, base_top):
+def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
     """Nombre de artista tipeado en vivo, compositado sobre el programa.
 
     Fundido: Parametro (Textvisible, 0/1) -> Lag CHOP -> CHOP to TOP de
@@ -404,7 +439,12 @@ def _build_text_overlay(proj, base_top):
     # --- composite ---
     src = proj.create(textDAT, 'program_text_src')
     src.nodeX, src.nodeY = 1280, 780
-    src.text = _TEXT_FRAG
+    # Con textura de control (input 3), el halo del texto late con el
+    # kick. Sin ella el shader compila igual, con el halo quieto.
+    if ctrl_tex is not None and channels:
+        src.text = shader.ctrl_header(channels, 3) + _TEXT_FRAG
+    else:
+        src.text = '#define uKick 0.0\n' + _TEXT_FRAG
 
     glsl = proj.create(glslTOP, 'program_text')
     glsl.nodeX, glsl.nodeY = 1440, 780
@@ -412,6 +452,8 @@ def _build_text_overlay(proj, base_top):
     connect(glsl, base_top, 0)
     connect(glsl, text_y, 1)
     connect(glsl, fade_tex, 2)
+    if ctrl_tex is not None and channels:
+        connect(glsl, ctrl_tex, 3)
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
 
     log('OVERLAY DE TEXTO: Text TOP + fundido nativo + composite OK')
@@ -597,7 +639,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # el texto quede nitido, sin el glow difuminandolo) y ANTES del
     # master fade (que el blackout y el master brightness lo tapen a el
     # tambien: si el show se va a negro, el texto se va con el show).
-    text_fx = _build_text_overlay(proj, bloom)
+    text_fx = _build_text_overlay(proj, bloom, ctrl_tex, channels)
     post_text = text_fx['text_composite']
 
     # --- master fade / blackout (solo en SHOW OUT) ---

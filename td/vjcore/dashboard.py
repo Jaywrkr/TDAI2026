@@ -242,8 +242,27 @@ def build(proj, thumbs, program_clean):
         'PANICO', 'panic()',
         bg=(0.45, 0.08, 0.08), fg=(1.0, 0.88, 0.88))
 
-    build_master_fx_panel(dash, c.DASH_MARGIN, grid_bottom - FX_GAP - FX_H,
-                          grid_w - PREV_W - 16, FX_H)
+    # Fila de TEXTO debajo del panel de Master FX: escribir el nombre,
+    # recorrer la cola y mostrarlo sin ir a la pagina de parametros. El
+    # panel de FX se achica lo justo para dejarle lugar (sigue entrando
+    # su caso mas largo, lo chequea test_dashboard_layout).
+    fx_w = grid_w - PREV_W - 16
+    TXT_BTN_H = 30
+    TXT_GAP = 8
+    txt_btn_w = (fx_w - 3 * TXT_GAP) // 4
+    for k, (name, label, call) in enumerate((
+            ('btn_txt_edit', 'ESCRIBIR/LISTO', 'toggleTextEditing()'),
+            ('btn_txt_prev', '< ANTERIOR', 'textPrev()'),
+            ('btn_txt_show', 'MOSTRAR/OCULTAR', 'toggleTextVisible()'),
+            ('btn_txt_next', 'SIGUIENTE >', 'textNext()'))):
+        build_action_button(
+            dash, name, c.DASH_MARGIN + k * (txt_btn_w + TXT_GAP), c.DASH_MARGIN,
+            txt_btn_w, TXT_BTN_H, label, call,
+            bg=(0.10, 0.20, 0.30), fg=(0.85, 0.95, 1.0), fontsize=11)
+
+    fx_h = FX_H - TXT_BTN_H - TXT_GAP
+    build_master_fx_panel(dash, c.DASH_MARGIN, c.DASH_MARGIN + TXT_BTN_H + TXT_GAP,
+                          fx_w, fx_h)
 
     log('DASHBOARD: {} tiles + monitor + beat light + status + detail legend '
         '+ master fx'.format(len(thumbs)))
@@ -391,7 +410,8 @@ def build_preview_monitor(dash, x, y, w, h):
 
 
 def build_action_button(dash, name, x, y, w, h, label, call,
-                        bg=(0.16, 0.16, 0.18), fg=(0.95, 0.95, 0.95)):
+                        bg=(0.16, 0.16, 0.18), fg=(0.95, 0.95, 0.95),
+                        fontsize=16):
     """Boton clickable que llama a control_script.<call>.
 
     Mismo mecanismo que los tiles de escena (containerCOMP + Panel
@@ -413,7 +433,7 @@ def build_action_button(dash, name, x, y, w, h, label, call,
     safe_set_first(txt, ['wordwrap', 'wrapwords'], False)
     safe_set_first(txt, ['alignx', 'justifyx', 'textalignx'], 'center')
     safe_set_first(txt, ['aligny', 'justifyy', 'textaligny'], 'middle')
-    safe_set_first(txt, ['fontsizex', 'fontsize'], 16)
+    safe_set_first(txt, ['fontsizex', 'fontsize'], fontsize)
     safe_set_first(txt, ['font', 'fontname'], 'Courier New')
     for p, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'), fg):
         safe_set(txt, p, v)

@@ -20,7 +20,7 @@ except ImportError:
     pass
 
 
-from .tdutil import safe_set, safe_set_first, log
+from .tdutil import safe_set, safe_set_first, safe_expr_first, log
 
 
 KEYS = '0 1 2 3 4 5 6 7 8 9 leftarrow rightarrow left right space'
@@ -29,7 +29,11 @@ KEYS = '0 1 2 3 4 5 6 7 8 9 leftarrow rightarrow left right space'
 def build(proj):
     kb = proj.create(keyboardinCHOP, 'keyboard_in')
     kb.nodeX, kb.nodeY = -400, 1290
-    safe_set_first(kb, ['active'], 1)
+    # Con Textediting prendido (escribiendo un nombre) el CHOP se apaga
+    # del todo: ni siquiera ve las teclas. keyboard_logic lo chequea de
+    # nuevo por si esta build de TD no acepta la expresion.
+    if not safe_expr_first(kb, ['active'], "0 if op('/project1').par.Textediting else 1"):
+        safe_set_first(kb, ['active'], 1)
     safe_set_first(kb, ['keys'], KEYS)
 
     logic = proj.create(chopexecuteDAT, 'keyboard_logic')

@@ -177,6 +177,17 @@ def _parameters(proj):
     add_pulse(tx, 'Fontnext', 'Fuente siguiente')
     add_float(tx, 'Textsize', 'Tamano', 0.5, 0, 1)
     add_float(tx, 'Texty', 'Posicion vertical (0 abajo, 1 arriba)', 0.18, 0, 1)
+    # COLA DE NOMBRES: los proximos artistas escritos por adelantado,
+    # separados con ';'. El pad TEXTO muestra el siguiente cada vez que
+    # prende (ver control_script.toggleTextVisible). Lo ultimo que
+    # escribas en 'Texto' a mano gana sobre la cola.
+    add_string(tx, 'Textqueue', 'Cola de nombres (separa con ;)', '')
+    add_int(tx, 'Textqueueindex', 'Cola: proximo a mostrar (interno)', 0, 0, 999)
+    # Mientras esta prendido, los atajos del teclado de la compu (0-9,
+    # flechas, espacio) no hacen nada -- si no, escribir "DJ 2" saltaba a
+    # la escena 2 y un espacio hacia blackout. Lo prende el boton
+    # ESCRIBIR del dashboard y se apaga solo al mostrar el texto.
+    add_toggle(tx, 'Textediting', 'ESCRIBIENDO (pausa atajos de teclado)', False)
 
     # --- MASTER FX (Fase 4): estela + dos capas ---
     # Los dos viven en el program bus, DESPUES de las escenas y ANTES del
