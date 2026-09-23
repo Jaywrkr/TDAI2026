@@ -4,79 +4,64 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Un solo look a proposito: es un manual de cabina, se lee a oscuras.
-   Todos los colores estan definidos aca y el body pinta su fondo. */
+/* Un solo look a proposito: manual de cabina, se lee a oscuras. */
 :root {
   color-scheme: dark;
   --bg: #0f1115;
   --surface: #171a20;
   --surface-2: #1e2229;
-  --hw: #23262c;
-  --hw-edge: #33373f;
-  --key: #e7e4dc;
-  --key-black: #15171b;
   --text: #e9e7e2;
   --muted: #9097a3;
   --line: #2b3038;
-  --show: #4fd1d9;     /* perillas y pads del show */
-  --scene: #f2b544;    /* detalle de escena */
-  --look: #e46fa6;     /* audio, estela, look, paleta */
-  --fx: #a497ff;       /* efectos (banco B) */
-  --safe: #f0625a;     /* master, blackout */
-  --free: #5d636e;     /* libre / opcional */
+  --show: #4fd1d9;
+  --scene: #f2b544;
+  --look: #e46fa6;
+  --fx: #a497ff;
+  --safe: #f0625a;
+  --free: #7d838e;
+  --ok: #5fd08a;
   --font-d: "Chakra Petch", "Arial Narrow", system-ui, sans-serif;
   --font-b: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-m: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 * { box-sizing: border-box; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.55 var(--font-b);
-  padding-inline: 16px;
-  padding-block: 28px 64px;
-}
-.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 44px; }
+body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--font-b); padding-inline: 16px; padding-block: 28px 64px; }
+.wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 44px; }
 h1, h2, h3 { font-family: var(--font-d); text-wrap: balance; margin: 0; letter-spacing: .01em; }
 h1 { font-size: clamp(28px, 4.4vw, 42px); font-weight: 700; line-height: 1.05; }
 h2 { font-size: 22px; font-weight: 600; }
 h3 { font-size: 16px; font-weight: 600; }
-p { margin: 0; max-width: 68ch; }
+p { margin: 0; max-width: 70ch; }
 .eyebrow { font: 600 12px/1 var(--font-d); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .mono { font-family: var(--font-m); font-size: 12.5px; }
+.muted { color: var(--muted); }
 header { display: grid; gap: 12px; }
 header p { color: var(--muted); }
+nav.toc { display: flex; flex-wrap: wrap; gap: 8px; }
+nav.toc a { font: 600 12.5px/1 var(--font-d); letter-spacing: .06em; text-transform: uppercase; color: var(--text); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; }
+nav.toc a:hover, nav.toc a:focus-visible { border-color: var(--show); outline: none; }
+section { display: grid; gap: 14px; scroll-margin-top: 16px; }
 
 /* ---- controlador ---- */
-.rig { display: grid; gap: 14px; }
 .rig-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-.bank { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.bank button {
-  font: 600 13px/1 var(--font-d); letter-spacing: .06em; text-transform: uppercase;
-  background: transparent; color: var(--muted); border: 0; padding: 10px 14px; cursor: pointer;
-}
-.bank button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
-.bank button:focus-visible, .ctl:focus-visible { outline: 2px solid var(--show); outline-offset: 2px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { font: 600 13px/1 var(--font-d); letter-spacing: .06em; text-transform: uppercase; background: transparent; color: var(--muted); border: 0; padding: 10px 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
+button:focus-visible, .ctl:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--show); outline-offset: 2px; }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.svgbox { overflow-x: auto; border-radius: 14px; }
-svg.minilab { display: block; width: 100%; min-width: 720px; height: auto; }
+.svgbox { overflow-x: auto; border-radius: 16px; }
+svg.minilab { display: block; width: 100%; min-width: 760px; height: auto; }
 .ctl { cursor: pointer; }
-.ctl .hit { fill: transparent; }
-.ctl:hover .ring, .ctl.sel .ring { stroke-width: 4; }
-.ctl.sel .cap { filter: brightness(1.35); }
-.info {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-  padding: 16px 18px; display: grid; gap: 6px; min-height: 96px;
-}
+.ctl .hl { opacity: 0; transition: opacity .15s; }
+.ctl.sel .hl, .ctl.live .hl { opacity: 1; }
+.info { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; display: grid; gap: 6px; min-height: 104px; }
 .info .tag { font: 600 12px/1 var(--font-d); letter-spacing: .12em; text-transform: uppercase; }
 .info h3 { font-size: 20px; }
-.info p { color: var(--text); }
 .info .mono { color: var(--muted); }
 
 /* ---- tablas ---- */
-section { display: grid; gap: 14px; }
 .grid2 { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; }
 .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -85,45 +70,75 @@ tr:last-child td { border-bottom: 0; }
 th { font: 600 11.5px/1.2 var(--font-d); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
 td.n { font-variant-numeric: tabular-nums; color: var(--muted); width: 3.2em; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
-.new { font: 600 10.5px/1 var(--font-d); letter-spacing: .08em; text-transform: uppercase;
-  color: var(--bg); background: var(--show); padding: 3px 6px; border-radius: 4px; margin-left: 6px; }
-.muted { color: var(--muted); }
+.new { font: 600 10.5px/1 var(--font-d); letter-spacing: .08em; text-transform: uppercase; color: var(--bg); background: var(--show); padding: 3px 6px; border-radius: 4px; margin-left: 6px; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; border: 1px solid rgba(255,255,255,.25); }
 
-/* ---- avisos ---- */
-.warn { border: 1px solid color-mix(in srgb, var(--safe) 55%, transparent);
-  background: color-mix(in srgb, var(--safe) 10%, var(--surface)); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; }
+.warn { border: 1px solid color-mix(in srgb, var(--safe) 55%, transparent); background: color-mix(in srgb, var(--safe) 10%, var(--surface)); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; }
 .warn strong { font-family: var(--font-d); color: var(--safe); letter-spacing: .04em; }
 
-/* ---- energia ---- */
-.energy { display: grid; gap: 10px; }
-.meter { position: relative; height: 12px; border-radius: 6px;
-  background: linear-gradient(90deg, #2c5c7a, var(--show) 45%, #f2b544 75%, var(--safe)); }
-.energy-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-.ecard { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
-.ecard .v { font-family: var(--font-m); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter { height: 12px; border-radius: 6px; background: linear-gradient(90deg, #2c5c7a, var(--show) 45%, #f2b544 75%, var(--safe)); }
+.cards3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; }
+.card .v { font-family: var(--font-m); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* ---- pasos ---- */
-ol.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; max-width: 72ch; }
+/* ---- probador ---- */
+.tester { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { font: 600 13px/1 var(--font-d); letter-spacing: .06em; text-transform: uppercase; background: var(--show); color: #06232a; border: 0; border-radius: 8px; padding: 11px 16px; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.pill { font: 600 12px/1 var(--font-d); letter-spacing: .08em; text-transform: uppercase; padding: 7px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 60%, transparent); }
+.pill.off { color: var(--safe); border-color: color-mix(in srgb, var(--safe) 60%, transparent); }
+.now { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: end; background: var(--surface-2); border-radius: 10px; padding: 14px 16px; }
+.now .fn { font: 700 24px/1.1 var(--font-d); }
+.now .src { font-family: var(--font-m); font-size: 12.5px; color: var(--muted); }
+.now .val { font: 600 26px/1 var(--font-m); font-variant-numeric: tabular-nums; }
+.bar { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--show); transition: width .06s linear; }
+.log { font-family: var(--font-m); font-size: 12.5px; color: var(--muted); display: grid; gap: 2px; max-height: 176px; overflow: auto; }
+.log .unk { color: var(--scene); }
+.padtest { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+.padtest .p { display: grid; gap: 6px; justify-items: center; }
+.padtest .face { width: 100%; aspect-ratio: 1; max-width: 72px; border-radius: 8px; background: #2a2d33; border: 3px solid #444; display: grid; place-items: center; font: 600 11px/1 var(--font-d); color: var(--muted); }
+.padtest select { width: 100%; max-width: 72px; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; font: 12px var(--font-b); padding: 4px 2px; }
+@media (max-width: 560px) { .padtest { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* ---- checklist ---- */
+.checks { display: grid; gap: 10px; }
+.chk { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.chk input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--ok); grid-row: span 3; }
+.chk label { font-family: var(--font-d); font-weight: 600; font-size: 15.5px; cursor: pointer; }
+.chk .how, .chk .fail { font-size: 14px; }
+.chk .fail { color: var(--muted); }
+.chk.done { border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.chk.done label { color: var(--ok); }
+.progress { font: 600 13px/1 var(--font-d); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+ol.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; max-width: 74ch; }
 ol.steps li::marker { font-family: var(--font-d); color: var(--show); font-weight: 600; }
 kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; }
-
-@media (prefers-reduced-motion: no-preference) {
-  .ctl .ring, .ctl .cap { transition: stroke-width .12s, filter .12s; }
-}
+@media (prefers-reduced-motion: reduce) { .ctl .hl, .bar i { transition: none; } }
 </style>
 
 <div class="wrap">
   <header>
     <span class="eyebrow">TDAI2026 · Arturia MiniLab mkII · layout v2</span>
     <h1>Qué hace cada control</h1>
-    <p>Toca cualquier perilla, pad o tira del dibujo para ver qué hace. El color te dice a qué grupo pertenece. Los pads tienen dos bancos: cámbialos con el selector (en el equipo, con el botón <kbd>Pad 1-8 / 9-16</kbd>).</p>
+    <p>Toca cualquier perilla, pad o tira del dibujo para ver qué hace. El color dice a qué grupo pertenece. Cada pad muestra sus dos funciones: arriba la del banco A, abajo la del B (en el equipo se cambia con el botón <kbd>Pad 1-8 / 9-16</kbd>).</p>
+    <nav class="toc" aria-label="Secciones">
+      <a href="#controlador">Controlador</a>
+      <a href="#probador">Probador MIDI</a>
+      <a href="#colores">Colores de pads</a>
+      <a href="#probar">Probar todo</a>
+      <a href="#referencia">Referencia</a>
+    </nav>
   </header>
 
-  <section class="rig" aria-label="Controlador">
+  <section id="controlador" aria-label="Controlador">
     <div class="rig-bar">
-      <div class="bank" role="group" aria-label="Banco de pads">
-        <button id="bankA" type="button" aria-pressed="true">Banco A · Show</button>
-        <button id="bankB" type="button" aria-pressed="false">Banco B · Efectos</button>
+      <div class="seg" role="group" aria-label="Banco de pads">
+        <button id="bankA" type="button" aria-pressed="true">Resaltar banco A</button>
+        <button id="bankB" type="button" aria-pressed="false">Resaltar banco B</button>
       </div>
       <div class="legend">
         <span><i style="background:var(--show)"></i>Show</span>
@@ -131,10 +146,10 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
         <span><i style="background:var(--look)"></i>Audio / look</span>
         <span><i style="background:var(--fx)"></i>Efectos</span>
         <span><i style="background:var(--safe)"></i>Seguridad</span>
-        <span><i style="background:var(--free)"></i>Hardware / libre</span>
+        <span><i style="background:var(--free)"></i>Hardware</span>
       </div>
     </div>
-    <div class="svgbox"><svg class="minilab" id="minilab" viewBox="0 0 1000 430" role="img" aria-label="Diagrama del MiniLab mkII con la función de cada control"></svg></div>
+    <div class="svgbox"><svg class="minilab" id="minilab" viewBox="0 0 1000 640" role="img" aria-label="Diagrama del MiniLab mkII con la función de cada control"></svg></div>
     <div class="info" id="info" aria-live="polite"></div>
   </section>
 
@@ -143,25 +158,76 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     <p>Con Shift apretado, tocar un pad carga otra memoria del MiniLab y todos los controles dejan de coincidir. El banco se cambia con <kbd>Pad 1-8 / 9-16</kbd>. Shift solo sirve con las perillas 1 y 9, que mandan un segundo control.</p>
   </div>
 
+  <section id="probador">
+    <span class="eyebrow">Sin abrir TouchDesigner</span>
+    <h2>Probador MIDI</h2>
+    <p>Conecta el MiniLab, pulsa <b>Conectar</b> y mueve cualquier control: el dibujo marca la función que le corresponde según el mapeo del rig. Si mueves la perilla física 3 y se marca otra, esa perilla está asignada distinto al dibujo: haz Learn o anótalo.</p>
+    <div class="tester">
+      <div class="row">
+        <button class="btn" id="connect" type="button">Conectar MiniLab</button>
+        <span class="pill" id="midiState">Sin conectar</span>
+        <span class="muted" id="ports"></span>
+      </div>
+      <p class="muted" id="midiHelp" hidden></p>
+      <div class="now" aria-live="polite">
+        <div><div class="fn" id="nowFn">—</div><div class="src" id="nowSrc">Mueve un control</div></div>
+        <div class="val" id="nowVal">&nbsp;</div>
+        <div class="bar"><i id="nowBar"></i></div>
+      </div>
+      <div>
+        <div class="eyebrow" style="margin-bottom:8px">Últimos mensajes</div>
+        <div class="log" id="log"><span>—</span></div>
+      </div>
+    </div>
+    <p class="muted">El probador usa Web MIDI: funciona en Chrome o Edge. Si este visor no lo permite, abre <span class="mono">docs/10_MANUAL_MINILAB.html</span> del repo con doble clic en Chrome. En Windows cierra TouchDesigner antes: el puerto MIDI no se comparte entre programas.</p>
+  </section>
+
+  <section id="colores">
+    <span class="eyebrow">Qué se puede hacer con las luces</span>
+    <h2>Colores de los pads</h2>
+    <p>El MiniLab acepta un mensaje SysEx por pad con 8 colores: apagado, rojo, amarillo, verde, cian, azul, violeta y blanco. No regula brillo. En el rig, cada pad muestra el <b>estado</b> de su función, así sabes qué está pasando mirando el controlador y no la compu.</p>
+    <div class="tbl"><table><thead><tr><th>Pad</th><th>Reposo</th><th>Activo</th></tr></thead><tbody id="tLeds"></tbody></table></div>
+    <div class="tester">
+      <div class="row">
+        <h3>Probar los colores en tu unidad</h3>
+        <button class="btn ghost" id="ledAll" type="button" disabled>Pintar los 16</button>
+        <button class="btn ghost" id="ledRig" type="button" disabled>Colores del rig</button>
+        <button class="btn ghost" id="ledOff" type="button" disabled>Apagar</button>
+      </div>
+      <p class="muted">Necesita el probador conectado y permiso de SysEx. Cambia el banco en el equipo para ver los pads 9-16. Si no se enciende nada, tu unidad no acepta este mensaje (hay reportes así): deja apagado <b>Colores de pads según estado</b> en el rig, no afecta nada más.</p>
+      <div class="padtest" id="padtest"></div>
+    </div>
+    <p class="muted">En TouchDesigner: <span class="mono">/project1/midi_out</span> → Device = el MiniLab → pestaña Bancos → <b>Probar colores de pads</b>. Si se pintan, prende <b>Colores de pads según estado</b>.</p>
+  </section>
+
   <section class="energy">
     <span class="eyebrow">La perilla principal</span>
     <h2>Energía: de la calma al pico</h2>
-    <p>Con Energía tocas el arco de la noche. Mueve varias cosas a la vez y además marca el ritmo de los cambios de escena. Si después tocas Speed, Density o Chaos, esa perilla manda hasta que vuelvas a mover Energía.</p>
+    <p>Mueve varias cosas a la vez y marca el ritmo de los cambios de escena. Si después tocas Speed, Density o Chaos, esa perilla manda hasta que vuelvas a mover Energía.</p>
     <div class="meter" role="presentation"></div>
-    <div class="energy-cols">
-      <div class="ecard"><h3>Calma (0)</h3><div class="v">Speed 0.25 · Density 0.35 · Chaos 0.08<br>Estela 0 · Fundido 2.2 s<br>Autopilot cada 40 s</div></div>
-      <div class="ecard"><h3>Medio (0.5)</h3><div class="v">Speed 0.58 · Density 0.58 · Chaos 0.50<br>Estela 0.28 · Fundido 1.25 s<br>Autopilot cada 24 s</div></div>
-      <div class="ecard"><h3>Pico (1)</h3><div class="v">Speed 0.90 · Density 0.80 · Chaos 0.92<br>Estela 0.55 · Fundido 0.3 s<br>Autopilot cada 8 s</div></div>
+    <div class="cards3">
+      <div class="card"><h3>Calma (0)</h3><div class="v">Speed 0.25 · Density 0.35 · Chaos 0.08<br>Estela 0 · Fundido 2.2 s<br>Autopilot cada 40 s</div></div>
+      <div class="card"><h3>Medio (0.5)</h3><div class="v">Speed 0.58 · Density 0.58 · Chaos 0.50<br>Estela 0.28 · Fundido 1.25 s<br>Autopilot cada 24 s</div></div>
+      <div class="card"><h3>Pico (1)</h3><div class="v">Speed 0.90 · Density 0.80 · Chaos 0.92<br>Estela 0.55 · Fundido 0.3 s<br>Autopilot cada 8 s</div></div>
     </div>
-    <p class="muted">Con el Autopilot prendido, el cambio de escena espera el siguiente golpe de bombo. Si en 3 s no hay bombo, cambia igual.</p>
+    <p class="muted">Con el Autopilot prendido, el cambio espera el siguiente golpe de bombo. Si en 3 s no hay bombo, cambia igual.</p>
   </section>
 
-  <section>
+  <section id="probar">
+    <span class="eyebrow">Esta noche</span>
+    <h2>Probar todo lo nuevo</h2>
+    <p>Todo está en una sola rama: <span class="mono">claude/elegant-cannon-z3clen</span>. Cárgala, dale <b>Reconstruir Todo</b> y recorre la lista. Tus marcas se guardan en este navegador. Si algo falla, anota lo que dice la columna "si falla" y mándamelo.</p>
+    <div class="progress" id="progress"></div>
+    <div class="checks" id="checks"></div>
+    <div class="row"><button class="btn ghost" id="resetChecks" type="button">Desmarcar todo</button></div>
+  </section>
+
+  <section id="referencia">
     <span class="eyebrow">Referencia</span>
     <h2>Perillas</h2>
     <div class="grid2">
-      <div class="tbl"><table><thead><tr><th>#</th><th>Fila de arriba · show</th><th>Con Shift</th></tr></thead><tbody id="tKnobsTop"></tbody></table></div>
-      <div class="tbl"><table><thead><tr><th>#</th><th>Fila de abajo · escena</th><th>Con Shift</th></tr></thead><tbody id="tKnobsBottom"></tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>#</th><th>Fila de arriba · show</th><th>Con Shift</th><th>Manda hoy</th></tr></thead><tbody id="tKnobsTop"></tbody></table></div>
+      <div class="tbl"><table><thead><tr><th>#</th><th>Fila de abajo · escena</th><th>Con Shift</th><th>Manda hoy</th></tr></thead><tbody id="tKnobsBottom"></tbody></table></div>
     </div>
   </section>
 
@@ -182,14 +248,13 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   <section>
     <span class="eyebrow">Una sola vez</span>
     <h2>Dejar el equipo como el dibujo</h2>
-    <p>Al arrancar, el rig migra solo tu mapeo guardado: todo funciona sin hacer nada, con las perillas donde las tenías. Si quieres que el equipo quede exactamente como el dibujo, haz Learn una vez de cada control (unos 15 minutos). Learn reasigna: si el control estaba en otra función, se la quita.</p>
+    <p>Al arrancar, el rig migra solo tu mapeo guardado: todo funciona sin hacer nada, con las perillas donde las tenías (la columna "manda hoy"). Si quieres que el equipo quede exactamente como el dibujo, haz Learn una vez de cada control. Learn reasigna: si el control estaba en otra función, se la quita. Usa el probador para ver qué manda cada perilla física.</p>
     <ol class="steps">
       <li>En TouchDesigner, <span class="mono">/project1</span> → pestaña <b>MIDI Mapping</b>.</li>
       <li>Pulsa <b>Learn Energy</b> y gira la perilla 1. Repite con cada perilla de la tabla, en orden.</li>
-      <li>Para las funciones con Shift: pulsa <b>Learn Layermix</b>, aprieta <kbd>Shift</kbd> y gira la perilla 1. Igual con <b>Learn Transition</b> y la perilla 9.</li>
-      <li>Tira de pitch: <b>Learn Trailszoom</b> y desliza. Tira de mod: <b>Learn Mediascrub</b>.</li>
+      <li>Con Shift: <b>Learn Layermix</b>, aprieta <kbd>Shift</kbd> y gira la perilla 1. Igual con <b>Learn Transition</b> y la perilla 9.</li>
+      <li>Tira de pitch: <b>Learn Trailszoom</b>. Tira de mod: <b>Learn Mediascrub</b>.</li>
       <li>Pads: ya vienen asignados. Si alguno no responde, Learn con el nombre de la tabla.</li>
-      <li>Todo se guarda solo en <span class="mono">td/config/midi_map.json</span>.</li>
     </ol>
   </section>
 
@@ -198,207 +263,393 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     <h2>Lo que quedó fuera del controlador</h2>
     <div class="tbl"><table><thead><tr><th>Función</th><th>Dónde está ahora</th></tr></thead><tbody>
       <tr><td>Pánico · Take</td><td>Botones grandes del dashboard</td></tr>
-      <tr><td>Snapshot · Reset</td><td><span class="mono">/project1</span> → pulsos, o Learn si liberas algo</td></tr>
+      <tr><td>Anterior / siguiente nombre · Escribir</td><td>Fila de TEXTO del dashboard</td></tr>
+      <tr><td>Snapshot · Reset</td><td><span class="mono">/project1</span> → pulsos</td></tr>
       <tr><td>Imagen anterior · imagen al azar</td><td><span class="mono">/project1</span> → Media</td></tr>
-      <tr><td>Fuente siguiente · tamaño y posición del texto</td><td><span class="mono">/project1</span> → Texto</td></tr>
-      <tr><td>Bass / Mid / High Amount</td><td><span class="mono">/project1</span> → Audio. Con Auto-gain no hace falta tocarlos en vivo</td></tr>
+      <tr><td>Fuente · tamaño y posición del texto · cola de nombres</td><td><span class="mono">/project1</span> → Texto</td></tr>
+      <tr><td>Bass / Mid / High Amount</td><td><span class="mono">/project1</span> → Audio (con Auto-gain no hace falta tocarlos)</td></tr>
       <tr><td>Modo cue · Layerswap · giro de la estela</td><td>Dashboard y <span class="mono">/project1</span> → Master FX</td></tr>
-      <tr><td>Saltar a escena 0–9 · Prev/Next · Blackout</td><td>Teclado de la compu: <kbd>0</kbd>–<kbd>9</kbd>, flechas, <kbd>espacio</kbd></td></tr>
+      <tr><td>Saltar a escena 0–9 · Prev/Next · Blackout</td><td>Teclado de la compu: <kbd>0</kbd>–<kbd>9</kbd>, flechas, <kbd>espacio</kbd> (en pausa mientras escribes)</td></tr>
     </tbody></table></div>
   </section>
 </div>
 
 <script>
 (function () {
-  const C = {show:'var(--show)', scene:'var(--scene)', look:'var(--look)', fx:'var(--fx)', safe:'var(--safe)', free:'var(--free)'};
+  const C = {show:'#4fd1d9', scene:'#f2b544', look:'#e46fa6', fx:'#a497ff', safe:'#f0625a', free:'#7d838e'};
   const GROUP = {show:'Show', scene:'Escena', look:'Audio / look', fx:'Efecto', safe:'Seguridad', free:'Hardware'};
+  const LED = {off:0x00, red:0x01, yellow:0x05, green:0x04, cyan:0x14, blue:0x10, purple:0x11, white:0x7F};
+  const LEDCSS = {off:'#2a2d33', red:'#ff4b4b', yellow:'#ffd84b', green:'#4bff7a', cyan:'#4bf0ff', blue:'#4b7bff', purple:'#d24bff', white:'#ffffff'};
+  const LEDNAME = {off:'apagado', red:'rojo', yellow:'amarillo', green:'verde', cyan:'cian', blue:'azul', purple:'violeta', white:'blanco'};
 
+  // id = clave de la funcion; now = lo que manda HOY segun el mapeo del rig
   const knobs = [
-    {n:1, name:'ENERGÍA', g:'show', d:'La perilla principal. De calma a pico: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset.', shift:'Mezcla Dos Capas', shiftD:'Con Shift: cuánto entra la capa B en modo Dos Capas.', slot:'Energy · Shift: Layermix', isNew:true},
-    {n:2, name:'HUE', g:'show', d:'Gira la paleta de color de la escena. El giro es parejo en todos los tonos.', slot:'Hue'},
-    {n:3, name:'SPEED', g:'show', d:'Velocidad de la animación. Pisa lo que puso Energía hasta que vuelvas a moverla.', slot:'Speed'},
-    {n:4, name:'DENSITY', g:'show', d:'Cantidad de detalle y cobertura.', slot:'Density'},
-    {n:5, name:'CHAOS', g:'show', d:'Turbulencia y distorsión.', slot:'Chaos'},
-    {n:6, name:'AUDIO', g:'look', d:'Cuánto reaccionan los visuales al sonido. En 0 nada reacciona. Con Auto-gain el nivel de la sala ya se compensa solo.', slot:'Audioamount'},
-    {n:7, name:'ESTELA', g:'look', d:'Rastro de los cuadros anteriores (feedback). En 0 está apagada y no consume.', slot:'Trails', isNew:true},
-    {n:8, name:'MASTER', g:'safe', d:'Brillo general de la salida. Es la seguridad del show: Energía nunca lo toca.', slot:'Brightness'},
-    {n:9, name:'DETAIL 1', g:'scene', d:'Significa algo distinto en cada escena. La leyenda del dashboard te dice qué.', shift:'Transición', shiftD:'Con Shift: duración del fundido a mano (pisa a Energía).', slot:'Detail1 · Shift: Transition'},
-    {n:10, name:'DETAIL 2', g:'scene', d:'Perilla de detalle propia de cada escena.', slot:'Detail2'},
-    {n:11, name:'DETAIL 3', g:'scene', d:'Perilla de detalle propia de cada escena.', slot:'Detail3'},
-    {n:12, name:'DETAIL 4', g:'scene', d:'Perilla de detalle propia de cada escena.', slot:'Detail4'},
-    {n:13, name:'DETAIL 5', g:'scene', d:'Perilla de detalle propia de cada escena.', slot:'Detail5'},
-    {n:14, name:'DETAIL 6', g:'scene', d:'Perilla de detalle propia de cada escena. Antes estaba en la tira de pitch, que vuelve sola al centro.', slot:'Detail6'},
-    {n:15, name:'LOOK', g:'look', d:'Cuánto se aplica el look del show (Neón frío, Ámbar fílmico, Mono contraste). El look se elige en el dashboard.', slot:'Lookamount', isNew:true},
-    {n:16, name:'PALETA', g:'look', d:'Fuerza las 45 escenas a una misma paleta de dos tonos. En 0 cada escena usa sus colores.', slot:'Palettelock', isNew:true},
+    {id:'Energy', n:1, name:'ENERGÍA', g:'show', d:'La perilla principal. De calma a pico: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset.', shift:'Mezcla 2 capas', shiftId:'Layermix', shiftD:'Con Shift: cuánto entra la capa B en modo Dos Capas.', now:'CC 74', isNew:true},
+    {id:'Hue', n:2, name:'HUE', g:'show', d:'Gira la paleta de color. El giro es parejo en todos los tonos.', now:'CC 77'},
+    {id:'Speed', n:3, name:'SPEED', g:'show', d:'Velocidad de la animación. Pisa a Energía hasta que vuelvas a moverla.', now:'CC 75'},
+    {id:'Density', n:4, name:'DENSITY', g:'show', d:'Cantidad de detalle y cobertura.', now:'CC 72'},
+    {id:'Chaos', n:5, name:'CHAOS', g:'show', d:'Turbulencia y distorsión.', now:'CC 78'},
+    {id:'Audioamount', n:6, name:'AUDIO', g:'look', d:'Cuánto reaccionan los visuales al sonido. En 0 nada reacciona. Con Auto-gain el nivel de la sala se compensa solo.', now:'CC 76'},
+    {id:'Trails', n:7, name:'ESTELA', g:'look', d:'Rastro de los cuadros anteriores. En 0 está apagada y no consume.', now:'CC 19', isNew:true},
+    {id:'Brightness', n:8, name:'MASTER', g:'safe', d:'Brillo general de la salida. Energía nunca lo toca.', now:'CC 94'},
+    {id:'Detail1', n:9, name:'DETAIL 1', g:'scene', d:'Significa algo distinto en cada escena: la leyenda del dashboard te dice qué.', shift:'Transición', shiftId:'Transition', shiftD:'Con Shift: duración del fundido a mano (pisa a Energía).', now:'CC 18'},
+    {id:'Detail2', n:10, name:'DETAIL 2', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 92'},
+    {id:'Detail3', n:11, name:'DETAIL 3', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 80'},
+    {id:'Detail4', n:12, name:'DETAIL 4', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 73'},
+    {id:'Detail5', n:13, name:'DETAIL 5', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 2'},
+    {id:'Detail6', n:14, name:'DETAIL 6', g:'scene', d:'Perilla de detalle propia de cada escena. Hoy está en la tira de pitch, que vuelve sola al centro: en el dibujo pasa a esta perilla.', now:'Pitch'},
+    {id:'Lookamount', n:15, name:'LOOK', g:'look', d:'Cuánto se aplica el look del show (Neón frío, Ámbar fílmico, Mono contraste). El look se elige en el dashboard.', now:'CC 20', isNew:true},
+    {id:'Palettelock', n:16, name:'PALETA', g:'look', d:'Fuerza las 45 escenas a una misma paleta de dos tonos. En 0 cada escena usa sus colores.', now:'CC 17', isNew:true},
   ];
   const padsA = [
-    {n:1, name:'NEXT', g:'show', d:'Siguiente escena.', cc:'ch1ctrl30'},
-    {n:2, name:'PREV', g:'show', d:'Escena anterior.', cc:'ch1ctrl29'},
-    {n:3, name:'BLACKOUT', g:'safe', d:'Negro total, on/off.', cc:'ch1ctrl28'},
-    {n:4, name:'AUTOPILOT', g:'show', d:'El rig cambia de escena solo, a tiempo con el bombo. El ritmo lo marca Energía.', cc:'ch1ctrl27', isNew:true},
-    {n:5, name:'IMAGEN →', g:'show', d:'Siguiente imagen en las 7 escenas de imagen.', cc:'ch1ctrl24', pos:6},
-    {n:6, name:'TEXTO', g:'show', d:'Muestra u oculta el nombre del artista, con fundido. El texto se escribe antes en la pestaña Texto.', cc:'ch1ctrl26', isNew:true, pos:5},
-    {n:7, name:'DOS CAPAS', g:'show', d:'Dos escenas a la vez, mezcladas. La mezcla va en Shift + perilla 1 y el modo en el pad 16.', cc:'ch1ctrl23', isNew:true},
-    {n:8, name:'IMAGEN FIJA', g:'show', d:'Congela la imagen actual: el avance automático se detiene.', cc:'ch1ctrl25'},
+    {id:'Next', n:1, name:'NEXT', g:'show', d:'Siguiente escena.', cc:'CC 30', led:['cyan','white'], ledD:'Late blanco con el beat mientras el autopilot anda'},
+    {id:'Prev', n:2, name:'PREV', g:'show', d:'Escena anterior.', cc:'CC 29', led:['cyan','cyan'], ledD:'—'},
+    {id:'Blackout', n:3, name:'BLACKOUT', g:'safe', d:'Negro total, on/off.', cc:'CC 28', led:['red','white'], ledD:'Blanco = en negro'},
+    {id:'Autopilot', n:4, name:'AUTOPILOT', g:'show', d:'El rig cambia de escena solo, a tiempo con el bombo. El ritmo lo marca Energía.', cc:'CC 27', isNew:true, led:['off','green'], ledD:'Verde = andando'},
+    {id:'Textvisible', n:5, name:'TEXTO', g:'show', d:'Muestra el siguiente nombre de la cola, con fundido. Otro toque lo oculta. Lo último que escribas a mano en Texto sale primero.', cc:'CC 26', isNew:true, led:['blue','white'], ledD:'Azul = hay un nombre listo · blanco = en pantalla'},
+    {id:'Medianext', n:6, name:'IMAGEN →', g:'show', d:'Siguiente imagen en las 7 escenas de imagen.', cc:'CC 24', led:['yellow','yellow'], ledD:'—'},
+    {id:'Duallayer', n:7, name:'DOS CAPAS', g:'show', d:'Dos escenas a la vez, mezcladas. La mezcla va en Shift + perilla 1 y el modo en el pad 16.', cc:'CC 23', isNew:true, led:['off','purple'], ledD:'Violeta = activo'},
+    {id:'Medialock', n:8, name:'IMAGEN FIJA', g:'show', d:'Congela la imagen actual: el avance automático se detiene.', cc:'CC 25', led:['off','blue'], ledD:'Azul = congelada'},
   ];
-  // posicion fisica real de cada pad (el pad 5 manda ch1ctrl26 y el 6 manda ch1ctrl24)
-  padsA.sort((a, b) => (a.pos || a.n) - (b.pos || b.n));
-  padsA.forEach((p, i) => { p.n = i + 1; });
   const padsB = [
-    {n:9, name:'RETRO', g:'fx', d:'Grano + posterizado juntos: look de pantalla vieja en un golpe.', cc:'ch10n37', isNew:true},
-    {n:10, name:'GLITCH', g:'fx', d:'Canales de color corridos y bandas corruptas.', cc:'ch10n38'},
-    {n:11, name:'PIXELATE', g:'fx', d:'Bloques grandes de píxel.', cc:'ch10n39'},
-    {n:12, name:'STROBE', g:'fx', d:'Destellos fuertes, máximo 3 por segundo.', cc:'ch10n40'},
-    {n:13, name:'INVERT', g:'fx', d:'Invierte los colores.', cc:'ch10n41'},
-    {n:14, name:'MIRROR', g:'fx', d:'Espejo horizontal.', cc:'ch10n50'},
-    {n:15, name:'ZOOM', g:'fx', d:'Empujón de zoom hacia el centro.', cc:'ch10n51'},
-    {n:16, name:'MODO MEZCLA', g:'show', d:'Cicla el modo de Dos Capas: Mix, Add, Screen, Multiply, Difference, Lighten.', cc:'ch10n52', isNew:true},
+    {id:'Retro', n:9, name:'RETRO', g:'fx', d:'Grano + posterizado juntos: look de pantalla vieja en un golpe.', cc:'nota 37 · canal 10', isNew:true, led:['yellow','white'], ledD:'Blanco mientras pega'},
+    {id:'Glitch', n:10, name:'GLITCH', g:'fx', d:'Canales de color corridos y bandas corruptas.', cc:'nota 38 · canal 10', led:['cyan','white'], ledD:'Blanco mientras pega'},
+    {id:'Pixelate', n:11, name:'PIXELATE', g:'fx', d:'Bloques grandes de píxel.', cc:'nota 39 · canal 10', led:['green','white'], ledD:'Blanco mientras pega'},
+    {id:'Strobe', n:12, name:'STROBE', g:'fx', d:'Destellos fuertes, máximo 3 por segundo.', cc:'nota 40 · canal 10', led:['red','white'], ledD:'Blanco mientras pega'},
+    {id:'Invert', n:13, name:'INVERT', g:'fx', d:'Invierte los colores.', cc:'nota 41 · canal 10', led:['white','purple'], ledD:'Violeta mientras pega'},
+    {id:'Mirror', n:14, name:'MIRROR', g:'fx', d:'Espejo horizontal.', cc:'nota 50 · canal 10', led:['blue','white'], ledD:'Blanco mientras pega'},
+    {id:'Zoom', n:15, name:'ZOOM', g:'fx', d:'Empujón de zoom hacia el centro.', cc:'nota 51 · canal 10', led:['purple','white'], ledD:'Blanco mientras pega'},
+    {id:'Blendnext', n:16, name:'MODO MEZCLA', g:'show', d:'Cicla el modo de Dos Capas: Mix, Add, Screen, Multiply, Difference, Lighten.', cc:'nota 52 · canal 10', isNew:true, led:['off','green'], ledD:'Verde = Dos Capas activo'},
   ];
   const strips = [
-    {id:'pitch', short:'ZOOM', name:'ZOOM ESTELA', g:'look', d:'Tira de pitch: acerca o aleja la estela. Al soltarla vuelve sola al centro, que es "sin zoom".', how:'Vuelve al centro al soltar', slot:'Trailszoom'},
-    {id:'mod', short:'IMAGEN', name:'IMAGEN', g:'look', d:'Tira de mod: recorre la carpeta de imágenes con el dedo, de la primera a la última.', how:'Se queda donde la dejas', slot:'Mediascrub'},
+    {id:'Trailszoom', key:'pitch', short:'ZOOM', name:'ZOOM ESTELA', g:'look', d:'Tira de pitch: acerca o aleja la estela. Al soltarla vuelve sola al centro, que es "sin zoom". Hoy la tira de pitch manda Detail 6: para esto, Learn Trailszoom.', how:'Vuelve al centro al soltar'},
+    {id:'Mediascrub', key:'mod', short:'IMAGEN', name:'IMAGEN', g:'look', d:'Tira de mod: recorre la carpeta de imágenes con el dedo, de la primera a la última.', how:'Se queda donde la dejas'},
   ];
   const hw = {
-    shift:{name:'SHIFT', g:'free', d:'Con las perillas 1 y 9 manda su segunda función. Con los pads cambia de memoria: no lo uses con los pads.'},
-    bank:{name:'PAD 1-8 / 9-16', g:'free', d:'Cambia los pads entre el banco A (show) y el banco B (efectos).'},
-    oct:{name:'OCT − / +', g:'free', d:'Corren el teclado de octava. Si los tocas, recalibra el rango del piano (Learn Piano) para que grave y agudo sigan bien.'},
-    keys:{name:'TECLADO', g:'scene', d:'Cada escena tiene su complemento de piano: la tecla elige dónde pasa y la fuerza elige cuánto. Suma un anillo de luz en todas.'},
+    Shift:{name:'SHIFT', g:'free', d:'Con las perillas 1 y 9 manda su segunda función. Con los pads cambia de MEMORIA: no lo uses con los pads.'},
+    Bank:{name:'PAD 1-8 / 9-16', g:'free', d:'Cambia los pads entre el banco A (show) y el banco B (efectos).'},
+    Oct:{name:'OCT − / +', g:'free', d:'Corren el teclado de octava. Si los tocas, recalibra el rango del piano (Learn Piano) para que grave y agudo sigan bien.'},
+    Keys:{name:'TECLADO', g:'scene', d:'Cada escena tiene su complemento de piano: la tecla elige dónde pasa y la fuerza elige cuánto. Además suma un anillo de luz en todas.'},
   };
+
+  // Lo que manda cada control HOY (mapeo del rig tras la migracion v2)
+  const CC_MAP = {74:'Energy', 77:'Hue', 75:'Speed', 72:'Density', 78:'Chaos', 76:'Audioamount', 19:'Trails', 94:'Brightness',
+    18:'Detail1', 92:'Detail2', 80:'Detail3', 73:'Detail4', 2:'Detail5', 20:'Lookamount', 17:'Palettelock', 1:'Mediascrub',
+    30:'Next', 29:'Prev', 28:'Blackout', 27:'Autopilot', 26:'Textvisible', 24:'Medianext', 23:'Duallayer', 25:'Medialock'};
+  const NOTE_MAP = {37:'Retro', 38:'Glitch', 39:'Pixelate', 40:'Strobe', 41:'Invert', 50:'Mirror', 51:'Zoom', 52:'Blendnext'};
+
+  const all = {};
+  knobs.forEach(k => { all[k.id] = {item:k, kind:'Perilla ' + k.n}; if (k.shiftId) all[k.shiftId] = {item:{name:k.shift, g:k.g, d:k.shiftD}, kind:'Shift + perilla ' + k.n, el:k.id}; });
+  padsA.forEach(p => all[p.id] = {item:p, kind:'Pad ' + p.n, bank:'A'});
+  padsB.forEach(p => all[p.id] = {item:p, kind:'Pad ' + p.n, bank:'B'});
+  strips.forEach(s => all[s.id] = {item:s, kind:'Tira ' + s.key});
 
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.getElementById('minilab');
   const info = document.getElementById('info');
+  const nodes = {};
   let bank = 'A';
-  const el = (tag, attrs, parent) => {
-    const e = document.createElementNS(NS, tag);
-    for (const k in attrs) e.setAttribute(k, attrs[k]);
-    (parent || svg).appendChild(e);
-    return e;
-  };
-  const text = (x, y, s, attrs, parent) => {
-    const t = el('text', Object.assign({x, y, 'text-anchor':'middle', 'font-family':'Chakra Petch, Arial Narrow, sans-serif', 'font-weight':'600', 'font-size':'11', fill:'#e9e7e2', 'letter-spacing':'.04em'}, attrs || {}), parent);
-    t.textContent = s;
-    return t;
-  };
+  const knobValue = {};
+  const padLed = {};
 
-  function select(g, item, kind) {
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); (parent || svg).appendChild(e); return e; };
+  const text = (x, y, s, attrs, parent) => { const t = el('text', Object.assign({x, y, 'text-anchor':'middle', 'font-family':'Chakra Petch, Arial Narrow, sans-serif', 'font-weight':'600', 'font-size':'11', fill:'#1d2026', 'letter-spacing':'.04em'}, attrs || {}), parent); t.textContent = s; return t; };
+
+  function show(id) {
+    const e = all[id]; if (!e) return;
+    const it = e.item;
     svg.querySelectorAll('.ctl.sel').forEach(n => n.classList.remove('sel'));
-    if (g) g.classList.add('sel');
-    const color = C[item.g];
-    let extra = '';
-    if (item.shift) extra = '<p><b>' + item.shiftD + '</b></p>';
-    const code = item.cc ? 'manda ' + item.cc : (item.slot ? 'slot ' + item.slot : '');
-    info.innerHTML =
-      '<span class="tag" style="color:' + color + '">' + kind + ' · ' + GROUP[item.g] + (item.isNew ? ' · nuevo' : '') + '</span>' +
-      '<h3>' + item.name + '</h3><p>' + item.d + '</p>' + extra +
-      (code ? '<span class="mono">' + code + '</span>' : '');
+    const g = nodes[e.el || id]; if (g) g.classList.add('sel');
+    info.innerHTML = '<span class="tag" style="color:' + C[it.g] + '">' + e.kind + ' · ' + GROUP[it.g] + (it.isNew ? ' · nuevo' : '') + '</span>' +
+      '<h3>' + it.name + '</h3><p>' + it.d + '</p>' +
+      (it.shift ? '<p><b>' + it.shiftD + '</b></p>' : '') +
+      (it.now ? '<span class="mono">manda hoy: ' + it.now + '</span>' : it.cc ? '<span class="mono">manda: ' + it.cc + '</span>' : '');
   }
-  function ctl(item, kind, draw) {
-    const g = el('g', {class:'ctl', tabindex:'0', role:'button', 'aria-label': kind + ' ' + item.name});
+  function ctl(id, label, draw) {
+    const g = el('g', {class:'ctl', tabindex:'0', role:'button', 'aria-label': label});
     draw(g);
-    g.addEventListener('click', () => select(g, item, kind));
-    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(g, item, kind); } });
+    g.addEventListener('click', () => show(id));
+    g.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(id); } });
+    nodes[id] = g;
     return g;
   }
+  function hwCtl(key, draw) {
+    const it = hw[key];
+    all['hw_' + key] = {item:it, kind:'Botón'};
+    return ctl('hw_' + key, it.name, draw);
+  }
 
+  const KX = i => 262 + i * 96;
   function draw() {
     svg.textContent = '';
-    // chasis
-    el('rect', {x:8, y:8, width:984, height:414, rx:22, fill:'#23262c', stroke:'#33373f', 'stroke-width':2});
-    el('rect', {x:8, y:8, width:984, height:6, rx:3, fill:'#2c3038'});
-    text(90, 44, 'MiniLab', {'font-size':'19', 'font-weight':'700', fill:'#cfd3da'});
-    text(90, 60, 'mkII', {'font-size':'11', fill:'#8b919c'});
+    for (const k in nodes) delete nodes[k];
+    const defs = el('defs', {});
+    const gl = el('filter', {id:'glow', x:'-50%', y:'-50%', width:'200%', height:'200%'}, defs);
+    el('feGaussianBlur', {stdDeviation:'4'}, gl);
 
-    // botones izquierda
-    const btn = (x, y, w, label, item) => ctl(item, 'Botón', g => {
-      el('rect', {class:'cap', x, y, width:w, height:26, rx:5, fill:'#2f333b', stroke:C[item.g], 'stroke-width':1.5}, g);
-      text(x + w / 2, y + 17, label, {'font-size':'10', fill:'#c9cdd4'}, g);
+    // chasis blanco, como el equipo real
+    el('rect', {x:6, y:6, width:988, height:628, rx:18, fill:'#ecebe7', stroke:'#cfcdc7', 'stroke-width':2});
+    el('rect', {x:6, y:6, width:988, height:12, rx:6, fill:'#f6f5f2'});
+
+    // botones arriba a la izquierda
+    const btn = (key, x, y, w, label, hi) => hwCtl(key, g => {
+      el('rect', {class:'hl', x:x - 5, y:y - 5, width:w + 10, height:44, rx:9, fill:'none', stroke:'#4fd1d9', 'stroke-width':3}, g);
+      el('rect', {x, y, width:w, height:34, rx:5, fill:'#d6d5d1', stroke: hi ? '#2e8fd6' : '#b9b8b3', 'stroke-width': hi ? 2.5 : 1.5}, g);
+      text(x + w / 2, y + 22, label, {'font-size':'10.5', fill:'#3b3e44'}, g);
     });
-    btn(34, 82, 112, 'SHIFT', hw.shift);
-    btn(34, 116, 112, 'PAD 1-8/9-16', hw.bank);
-    btn(34, 150, 54, 'OCT −', hw.oct);
-    btn(92, 150, 54, 'OCT +', hw.oct);
+    text(66, 40, 'USB / iOS', {'font-size':'8', fill:'#6d7078'});
+    text(146, 40, 'System', {'font-size':'8', fill:'#6d7078'});
+    btn('Shift', 36, 48, 62, 'SHIFT', true);
+    btn('Bank', 116, 48, 62, 'PAD 1-8 / 9-16');
+    btn('Oct', 36, 100, 62, 'OCT −');
+    btn('Oct', 116, 100, 62, 'OCT +');
 
     // tiras
     strips.forEach((s, i) => {
-      const x = 40 + i * 58;
-      ctl(s, 'Tira', g => {
-        el('rect', {class:'cap ring', x, y:200, width:40, height:180, rx:8, fill:'#1a1d22', stroke:C[s.g], 'stroke-width':2}, g);
-        el('line', {x1:x + 20, y1:212, x2:x + 20, y2:368, stroke:'#3a3f48', 'stroke-width':2, 'stroke-dasharray':'3 5'}, g);
-        text(x + 20, 396, s.id === 'pitch' ? 'PITCH' : 'MOD', {'font-size':'9.5', fill:'#8b919c'}, g);
-        text(x + 20, 412, s.short, {'font-size':'9', fill:C[s.g]}, g);
+      const x = 44 + i * 80;
+      ctl(s.id, 'Tira ' + s.key + ' ' + s.name, g => {
+        el('rect', {class:'hl', x:x - 6, y:162, width:60, height:212, rx:10, fill:'none', stroke:'#4fd1d9', 'stroke-width':3}, g);
+        el('rect', {x, y:168, width:48, height:200, rx:6, fill:'#f8f8f6', stroke:C[s.g], 'stroke-width':2.5}, g);
+        el('line', {x1:x + 24, y1:182, x2:x + 24, y2:354, stroke:'#c8c6c0', 'stroke-width':2, 'stroke-dasharray':'3 6'}, g);
+        if (s.key === 'pitch') el('line', {x1:x + 14, y1:268, x2:x + 34, y2:268, stroke:'#9a9892', 'stroke-width':2}, g);
+        el('rect', {x:x - 6, y:376, width:60, height:18, rx:4, fill:'#1d2026'}, g);
+        text(x + 24, 389, s.short, {'font-size':'9.5', fill:C[s.g]}, g);
+        text(x + 24, 158, s.key.toUpperCase(), {'font-size':'9', fill:'#6d7078'}, g);
       });
     });
 
-    // perillas: 2 filas x 8
+    // perillas: 2 filas de 8
     knobs.forEach((k, i) => {
-      const row = i < 8 ? 0 : 1;
-      const col = i % 8;
-      const cx = 205 + col * 62;
-      const cy = 62 + row * 88;
-      ctl(k, 'Perilla ' + k.n, g => {
-        el('circle', {class:'ring', cx, cy, r:22, fill:'none', stroke:C[k.g], 'stroke-width':2.5}, g);
-        el('circle', {class:'cap', cx, cy, r:16, fill:(k.n === 1 || k.n === 9) ? '#3a3f48' : '#2c3038'}, g);
-        el('line', {x1:cx, y1:cy - 4, x2:cx, y2:cy - 14, stroke:'#e9e7e2', 'stroke-width':2, 'stroke-linecap':'round'}, g);
-        text(cx, cy + 4, String(k.n), {'font-size':'8.5', fill:'#8b919c'}, g);
-        text(cx, cy + 38, k.name, {'font-size':'9.5', fill:C[k.g]}, g);
-        if (k.shift) text(cx, cy + 50, '⇧ ' + k.shift, {'font-size':'8', fill:'#8b919c'}, g);
-        el('circle', {class:'hit', cx, cy:cy + 10, r:30}, g);
+      const row = i < 8 ? 0 : 1, col = i % 8;
+      const cx = KX(col), cy = 66 + row * 104;
+      const big = k.n === 1 || k.n === 9;
+      ctl(k.id, 'Perilla ' + k.n + ' ' + k.name, g => {
+        el('circle', {class:'hl', cx, cy, r:big ? 38 : 33, fill:'none', stroke:'#4fd1d9', 'stroke-width':4, filter:'url(#glow)'}, g);
+        if (big) el('circle', {cx, cy, r:31, fill:'none', stroke:'#3b3e44', 'stroke-width':1.5}, g);
+        el('circle', {cx, cy, r:big ? 25 : 22, fill:'#26282d'}, g);
+        el('circle', {cx, cy, r:big ? 20 : 17, fill:'#34373d'}, g);
+        const v = knobValue[k.id];
+        const ang = (v === undefined ? -135 : -135 + v * 270) * Math.PI / 180;
+        el('line', {x1:cx, y1:cy, x2:cx + Math.sin(ang) * 15, y2:cy - Math.cos(ang) * 15, stroke:'#f2f2ee', 'stroke-width':2.5, 'stroke-linecap':'round'}, g);
+        el('rect', {x:cx - 45, y:cy + 30, width:90, height:18, rx:4, fill:'#1d2026'}, g);
+        text(cx, cy + 43, k.name, {'font-size':'10', fill:C[k.g]}, g);
+        text(cx - 36, cy + 27, String(k.n), {'font-size':'9', fill:'#6d7078'}, g);
+        if (k.shift) text(cx, cy + 61, '⇧ ' + k.shift, {'font-size':'9', fill:'#4a4d53'}, g);
+        el('circle', {cx, cy:cy + 12, r:44, fill:'transparent'}, g);
       });
     });
 
-    // pads 2 x 4
-    const pads = bank === 'A' ? padsA : padsB;
-    text(832, 30, bank === 'A' ? 'BANCO A · SHOW' : 'BANCO B · EFECTOS', {'font-size':'10', fill:'#8b919c', 'letter-spacing':'.12em'});
-    pads.forEach((p, i) => {
-      const x = 700 + (i % 4) * 68;
-      const y = 40 + Math.floor(i / 4) * 78;
-      ctl(p, 'Pad ' + p.n, g => {
-        el('rect', {class:'cap ring', x, y, width:58, height:58, rx:7, fill:'#2c3038', stroke:C[p.g], 'stroke-width':2.5}, g);
-        el('rect', {x:x + 4, y:y + 4, width:50, height:50, rx:5, fill:C[p.g], opacity:.12}, g);
-        text(x + 29, y + 15, String(p.n), {'font-size':'8.5', fill:'#8b919c'}, g);
-        const words = p.name.split(' ');
-        words.forEach((w, j) => text(x + 29, y + 33 + (j - (words.length - 1) / 2) * 11, w, {'font-size': w.length >= 8 ? '7.6' : '9.5', fill:C[p.g]}, g));
+    // pads: UNA fila de 8 debajo de las perillas (como el equipo). Cada pad
+    // muestra sus DOS funciones, como el "1/9" impreso en el equipo: arriba
+    // el banco A, abajo el banco B. El boton Pad 1-8/9-16 del MiniLab no
+    // manda MIDI, asi que la pagina resalta el banco del ultimo pad tocado.
+    padsA.forEach((A, i) => {
+      const B = padsB[i];
+      const x = KX(i) - 40, y = 258, w = 80, h = 100;
+      const ledA = padLed[A.n], ledB = padLed[B.n];
+      const led = bank === 'A' ? ledA : ledB;
+      const lit = led && led !== 'off';
+      el('rect', {x, y, width:w, height:h, rx:9, fill:'#2b2e34', stroke: lit ? LEDCSS[led] : '#1d2026', 'stroke-width': lit ? 5 : 2});
+      el('line', {x1:x + 8, y1:y + h / 2, x2:x + w - 8, y2:y + h / 2, stroke:'#474b53', 'stroke-width':1, 'stroke-dasharray':'3 3'});
+      [[A, 0, bank === 'A'], [B, 1, bank === 'B']].forEach(([p, half, active]) => {
+        ctl(p.id, 'Pad ' + p.n + ' ' + p.name, g => {
+          const hy = y + half * (h / 2);
+          el('rect', {class:'hl', x:x - 5, y:hy - (half ? 0 : 5), width:w + 10, height:h / 2 + 5, rx:10, fill:'none', stroke:'#4fd1d9', 'stroke-width':4, filter:'url(#glow)'}, g);
+          const words = p.name.split(' ');
+          const cy = hy + h / 4 + 3;
+          words.forEach((wd, j) => text(x + w / 2, cy + (j - (words.length - 1) / 2) * 12, wd,
+            {'font-size': wd.length >= 8 ? '9' : '10.5', fill:C[p.g], opacity: active ? 1 : 0.38}, g));
+          el('rect', {x, y:hy, width:w, height:h / 2, fill:'transparent'}, g);
+        });
       });
+      text(x + w / 2, y + h + 13, A.n + ' / ' + B.n, {'font-size':'9', fill:'#6d7078'});
     });
+    text(KX(0) - 40, 392, 'ARRIBA BANCO A · ABAJO BANCO B · RESALTADO: ' + (bank === 'A' ? 'A (SHOW)' : 'B (EFECTOS)'),
+      {'font-size':'10', fill:'#6d7078', 'text-anchor':'start', 'letter-spacing':'.1em'});
+    text(66, 424, 'MINILAB', {'font-size':'22', 'font-weight':'700', fill:'#26282d'});
+    text(915, 424, 'ARTURIA', {'font-size':'20', 'font-weight':'700', fill:'#26282d'});
 
-    // teclado: 15 blancas, 10 negras
-    const kx = 170, ky = 232, kw = 52, kh = 172;
-    ctl(hw.keys, 'Teclado', g => {
-      for (let i = 0; i < 15; i++) {
-        el('rect', {class:'cap', x:kx + i * kw, y:ky, width:kw - 2, height:kh, rx:3, fill:'#e7e4dc'}, g);
-      }
-      const blacks = [0, 1, 3, 4, 5, 7, 8, 10, 11, 12];
-      blacks.forEach(b => el('rect', {x:kx + b * kw + kw * 0.66, y:ky, width:kw * 0.62, height:kh * 0.6, rx:2, fill:'#15171b'}, g));
-      text(kx + 7.5 * kw, ky + kh - 14, 'TECLA = DÓNDE · FUERZA = CUÁNTO', {'font-size':'11', fill:'#5b6069', 'letter-spacing':'.14em'}, g);
+    // teclado: 25 teclas (15 blancas), todo el ancho
+    hwCtl('Keys', g => {
+      const kx = 30, ky = 440, kw = 62.6, kh = 186;
+      for (let i = 0; i < 15; i++) el('rect', {x:kx + i * kw, y:ky, width:kw - 2, height:kh, rx:3, fill:'#fbfbf9', stroke:'#cfcdc7'}, g);
+      [0, 1, 3, 4, 5, 7, 8, 10, 11, 12].forEach(b => el('rect', {x:kx + b * kw + kw * 0.66, y:ky, width:kw * 0.62, height:kh * 0.6, rx:2, fill:'#1b1c1f'}, g));
+      text(500, ky + kh - 16, 'TECLA = DÓNDE · FUERZA = CUÁNTO', {'font-size':'12', fill:'#9a9892', 'letter-spacing':'.14em'}, g);
     });
   }
 
-  function setBank(b) {
+  function setBank(b, keepInfo) {
     bank = b;
     document.getElementById('bankA').setAttribute('aria-pressed', String(b === 'A'));
     document.getElementById('bankB').setAttribute('aria-pressed', String(b === 'B'));
     draw();
-    const first = (b === 'A' ? padsA : padsB)[0];
-    select(null, first, 'Pad ' + first.n);
+    if (!keepInfo) show((b === 'A' ? padsA : padsB)[0].id);
   }
   document.getElementById('bankA').addEventListener('click', () => setBank('A'));
   document.getElementById('bankB').addEventListener('click', () => setBank('B'));
 
-  // tablas
-  const row = (cells) => '<tr>' + cells.map(c => '<td' + (c.cls ? ' class="' + c.cls + '"' : '') + '>' + c.v + '</td>').join('') + '</tr>';
-  const nm = (it) => '<span class="dot" style="background:' + C[it.g] + '"></span>' + it.name + (it.isNew ? '<span class="new">nuevo</span>' : '');
-  document.getElementById('tKnobsTop').innerHTML = knobs.slice(0, 8).map(k => row([{v:k.n, cls:'n'}, {v:nm(k)}, {v:k.shift ? k.shift : '<span class="muted">—</span>'}])).join('');
-  document.getElementById('tKnobsBottom').innerHTML = knobs.slice(8).map(k => row([{v:k.n, cls:'n'}, {v:nm(k)}, {v:k.shift ? k.shift : '<span class="muted">—</span>'}])).join('');
-  document.getElementById('tPadsA').innerHTML = padsA.map(p => row([{v:p.n, cls:'n'}, {v:nm(p)}, {v:'<span class="mono">' + p.cc + '</span>'}])).join('');
-  document.getElementById('tPadsB').innerHTML = padsB.map(p => row([{v:p.n, cls:'n'}, {v:nm(p)}, {v:'<span class="mono">' + p.cc + '</span>'}])).join('');
-  document.getElementById('tStrips').innerHTML =
-    strips.map(s => row([{v:nm(s)}, {v:s.d}, {v:s.how}])).join('') +
-    row([{v:nm(hw.keys)}, {v:hw.keys.d}, {v:'Golpe que se apaga solo en ~0.35 s'}]);
+  // ---------- tablas ----------
+  const row = cells => '<tr>' + cells.map(c => '<td' + (c.cls ? ' class="' + c.cls + '"' : '') + '>' + c.v + '</td>').join('') + '</tr>';
+  const nm = it => '<span class="dot" style="background:' + C[it.g] + '"></span>' + it.name + (it.isNew ? '<span class="new">nuevo</span>' : '');
+  const mono = s => '<span class="mono">' + s + '</span>';
+  document.getElementById('tKnobsTop').innerHTML = knobs.slice(0, 8).map(k => row([{v:k.n, cls:'n'}, {v:nm(k)}, {v:k.shift || '<span class="muted">—</span>'}, {v:mono(k.now)}])).join('');
+  document.getElementById('tKnobsBottom').innerHTML = knobs.slice(8).map(k => row([{v:k.n, cls:'n'}, {v:nm(k)}, {v:k.shift || '<span class="muted">—</span>'}, {v:mono(k.now)}])).join('');
+  document.getElementById('tPadsA').innerHTML = padsA.map(p => row([{v:p.n, cls:'n'}, {v:nm(p)}, {v:mono(p.cc)}])).join('');
+  document.getElementById('tPadsB').innerHTML = padsB.map(p => row([{v:p.n, cls:'n'}, {v:nm(p)}, {v:mono(p.cc)}])).join('');
+  document.getElementById('tStrips').innerHTML = strips.map(s => row([{v:nm(s)}, {v:s.d}, {v:s.how}])).join('') + row([{v:nm(hw.Keys)}, {v:hw.Keys.d}, {v:'Golpe que se apaga solo en ~0.35 s'}]);
+  const sw = c => '<span class="sw" style="background:' + LEDCSS[c] + '"></span>' + LEDNAME[c];
+  document.getElementById('tLeds').innerHTML = padsA.concat(padsB).map(p => row([{v:p.n + ' ' + p.name}, {v:sw(p.led[0])}, {v:p.ledD === '—' ? '<span class="muted">—</span>' : sw(p.led[1]) + ' <span class="muted">· ' + p.ledD + '</span>'}])).join('');
 
-  setBank('A');
-  select(null, knobs[0], 'Perilla 1');
-  svg.querySelector('.ctl').classList.add('sel');
+  // ---------- probador MIDI ----------
+  let access = null, output = null;
+  const $ = id => document.getElementById(id);
+  const logLines = [];
+  function log(line, unk) {
+    logLines.unshift({line, unk});
+    logLines.length = Math.min(logLines.length, 12);
+    $('log').innerHTML = logLines.map(l => '<span' + (l.unk ? ' class="unk"' : '') + '>' + l.line + '</span>').join('');
+  }
+  function liveFlash(id) {
+    const e = all[id]; if (!e) return;
+    const target = e.el || id;
+    if (e.bank && e.bank !== bank) setBank(e.bank, true);
+    const g = nodes[target]; if (!g) return;
+    g.classList.add('live');
+    clearTimeout(g._t); g._t = setTimeout(() => g.classList.remove('live'), 450);
+  }
+  function report(id, src, value01, raw) {
+    const e = all[id];
+    $('nowFn').textContent = e ? e.item.name : 'Sin asignar';
+    $('nowFn').style.color = e ? C[e.item.g] : 'var(--scene)';
+    $('nowSrc').textContent = src + (e ? ' · ' + e.kind : ' · no está en el mapeo del rig');
+    $('nowVal').textContent = raw;
+    $('nowBar').style.width = Math.round(value01 * 100) + '%';
+    log(src + '  →  ' + (e ? e.item.name : 'sin asignar') + '  (' + raw + ')', !e);
+    if (e) {
+      if (knobs.some(k => k.id === (e.el || id)) && !e.el) { knobValue[id] = value01; const b = bank; setBank(b, true); }
+      liveFlash(id);
+      show(id);
+    }
+  }
+  function onMessage(ev) {
+    const [st, d1, d2] = ev.data;
+    const type = st & 0xF0, ch = (st & 0x0F) + 1;
+    if (type === 0xB0) {
+      const id = ch === 1 ? CC_MAP[d1] : undefined;
+      if (d1 === 1 && id) { report(id, 'Tira mod · CC 1 · canal ' + ch, d2 / 127, d2); return; }
+      report(id, 'CC ' + d1 + ' · canal ' + ch, d2 / 127, d2);
+    } else if (type === 0x90 && d2 > 0) {
+      const id = ch === 10 ? NOTE_MAP[d1] : undefined;
+      if (id) report(id, 'Nota ' + d1 + ' · canal ' + ch, d2 / 127, 'vel ' + d2);
+      else if (ch === 10) {
+        // Un pad (canal 10) que manda una nota que el rig no conoce: casi
+        // seguro otra memoria del MiniLab, o un pad reprogramado.
+        report(undefined, 'Pad · nota ' + d1 + ' · canal 10', d2 / 127, 'vel ' + d2);
+      } else {
+        // teclas del piano
+        all['hw_Keys'] && liveFlash('hw_Keys');
+        $('nowFn').textContent = 'TECLADO'; $('nowFn').style.color = C.scene;
+        $('nowSrc').textContent = 'Nota ' + d1 + ' · canal ' + ch + ' · la tecla elige dónde, la fuerza cuánto';
+        $('nowVal').textContent = 'vel ' + d2; $('nowBar').style.width = Math.round(d2 / 127 * 100) + '%';
+        log('Nota ' + d1 + ' · canal ' + ch + '  →  teclado  (vel ' + d2 + ')');
+      }
+    } else if (type === 0xE0) {
+      const v = ((d2 << 7) | d1) / 16383;
+      report('Detail6', 'Tira pitch · canal ' + ch, v, v.toFixed(2));
+    }
+  }
+  function refreshPorts() {
+    const ins = [], outs = [];
+    access.inputs.forEach(i => { ins.push(i.name); i.onmidimessage = onMessage; });
+    output = null;
+    access.outputs.forEach(o => { outs.push(o.name); if (!output || /minilab/i.test(o.name)) output = o; });
+    $('ports').textContent = ins.length ? 'Entradas: ' + ins.join(', ') : 'No hay entradas MIDI. ¿Está enchufado?';
+    const can = !!(output && access.sysexEnabled);
+    ['ledAll', 'ledRig', 'ledOff'].forEach(b => $(b).disabled = !can);
+    document.querySelectorAll('#padtest select').forEach(s => s.disabled = !can);
+  }
+  function help(msg) { $('midiHelp').hidden = false; $('midiHelp').textContent = msg; }
+  $('connect').addEventListener('click', async () => {
+    if (!navigator.requestMIDIAccess) {
+      $('midiState').textContent = 'No disponible'; $('midiState').className = 'pill off';
+      help('Este navegador o este visor no tiene Web MIDI. Abre docs/10_MANUAL_MINILAB.html del repo con doble clic en Chrome o Edge.');
+      return;
+    }
+    try {
+      try { access = await navigator.requestMIDIAccess({sysex:true}); }
+      catch (e) { access = await navigator.requestMIDIAccess(); help('Conectado sin permiso de SysEx: el probador de colores no va a funcionar.'); }
+      access.onstatechange = refreshPorts;
+      refreshPorts();
+      $('midiState').textContent = 'Conectado'; $('midiState').className = 'pill on';
+    } catch (e) {
+      $('midiState').textContent = 'Bloqueado'; $('midiState').className = 'pill off';
+      help('El navegador no dio permiso de MIDI (' + (e && e.name ? e.name : 'error') + '). Abre docs/10_MANUAL_MINILAB.html del repo con doble clic en Chrome o Edge y acepta el permiso. En Windows, cierra TouchDesigner antes.');
+    }
+  });
+
+  // ---------- colores de pads ----------
+  function sendLed(padNumber, color) {
+    padLed[padNumber] = color;
+    const face = document.getElementById('face' + padNumber);
+    if (face) face.style.borderColor = color === 'off' ? '#444' : LEDCSS[color];
+    if (output && access && access.sysexEnabled) {
+      try { output.send([0xF0, 0x00, 0x20, 0x6B, 0x7F, 0x42, 0x02, 0x00, 0x10, 0x70 + padNumber - 1, LED[color], 0xF7]); }
+      catch (e) { log('No se pudo enviar SysEx: ' + e.message, true); }
+    }
+  }
+  const pt = $('padtest');
+  padsA.concat(padsB).forEach(p => {
+    const d = document.createElement('div'); d.className = 'p';
+    d.innerHTML = '<div class="face" id="face' + p.n + '">' + p.n + '</div>';
+    const s = document.createElement('select'); s.id = 'led' + p.n; s.disabled = true;
+    s.setAttribute('aria-label', 'Color del pad ' + p.n);
+    Object.keys(LED).forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = LEDNAME[c]; s.appendChild(o); });
+    s.addEventListener('change', () => { sendLed(p.n, s.value); if (p.n <= 8 ? bank === 'A' : bank === 'B') draw(); });
+    d.appendChild(s); pt.appendChild(d);
+  });
+  const setAll = fn => { for (let n = 1; n <= 16; n++) { const c = fn(n); sendLed(n, c); $('led' + n).value = c; } draw(); };
+  const rainbow = ['red', 'yellow', 'green', 'cyan', 'blue', 'purple', 'white', 'red'];
+  $('ledAll').addEventListener('click', () => setAll(n => rainbow[(n - 1) % 8]));
+  $('ledRig').addEventListener('click', () => setAll(n => padsA.concat(padsB)[n - 1].led[0]));
+  $('ledOff').addEventListener('click', () => setAll(() => 'off'));
+
+  // ---------- checklist ----------
+  const tests = [
+    {t:'Cargar y reconstruir', how:'Rama claude/elegant-cannon-z3clen → /project1 → System → Reconstruir Todo. En el Textport debe aparecer "MIDI map migrado al layout v2".', fail:'Copia el reporte del Textport completo.'},
+    {t:'Probador MIDI', how:'En esta página, Conectar y mover las 16 perillas, las 2 tiras y los 16 pads. Cada uno debe marcar su función.', fail:'Anota qué control físico marca algo distinto (o "sin asignar").'},
+    {t:'Energía de punta a punta', how:'Gira Energía despacio de 0 a 1: el visual pasa de calma a pico y el status dice ENERGIA con la barra moviéndose.', fail:'¿Qué parámetro no se movió?'},
+    {t:'Autopilot a tiempo', how:'Pad 4 con música con bombo. Con Energía alta, los cambios caen justo en el golpe.', fail:'¿Cambia fuera de tiempo, o no cambia nunca?'},
+    {t:'Auto-gain', how:'Con música, espera 5 s y baja o sube mucho el volumen. Los visuales siguen reaccionando parecido; en /project1/ctrl, bass se mueve en todo su rango.', fail:'¿Se queda clavado arriba, o casi quieto? ¿Se mueve en silencio?'},
+    {t:'Escala de render', how:'Haz un crossfade entre dos escenas pesadas. El FPS debería caer menos que antes.', fail:'Anota el FPS antes y después, y la escena.'},
+    {t:'Bloom', how:'Si el Textport muestra "AVISO BLOOM: sin filtro mipmap", pon program_bloom → Common → Input Smoothness = Mipmap Pixels. El glow debe verse ancho y suave, sin puntas.', fail:'Captura de una escena con el glow.'},
+    {t:'Hue parejo', how:'Gira Hue de punta a punta en 2-3 escenas: el brillo se mantiene parejo, sin saltos en amarillo ni azules hundidos.', fail:'¿En qué escena y en qué color salta?'},
+    {t:'Piano por escena', how:'Recorre las 17 escenas nuevas (cáustica, corona, venas, filamentos, tokens, modular, archipiélago, tótem, sonar, térmico, web, cubos, costas, gusanitos, ecualizador circular, red, mosaico) tocando teclas suaves y fuertes.', fail:'Cuál se queda corta o se pasa.'},
+    {t:'Strobe', how:'Pad 12: destella fuerte, nunca más de 3 veces por segundo.', fail:'—'},
+    {t:'Cola de nombres', how:'Texto → Cola: "A; B; C". Pad 5 varias veces: sale A, se oculta, sale B... El status dice TEXTO y quién sigue.', fail:'¿Qué nombre salió fuera de orden?'},
+    {t:'Escribir sin atajos', how:'Botón ESCRIBIR del dashboard, luego tipea "DJ 2 " en el campo Texto: no cambia la escena ni hace blackout. Al mostrar, los atajos vuelven.', fail:'¿Qué tecla disparó algo?'},
+    {t:'Halo del texto', how:'Muestra un nombre sobre una escena con bombo: detrás de las letras hay un halo del color de la escena que late con el kick.', fail:'Captura.'},
+    {t:'Colores de pads', how:'/project1/midi_out → Device = MiniLab → Bancos → Probar colores de pads. Si se pintan, prende "Colores de pads según estado" y mira el pad 4 al prender el autopilot.', fail:'¿No se pinta nada, o se pinta y vuelve solo a otro color?'},
+  ];
+  const KEY = 'tdai-checks-v2';
+  let done = {};
+  try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
+  function renderChecks() {
+    $('checks').innerHTML = tests.map((t, i) =>
+      '<div class="chk' + (done[i] ? ' done' : '') + '"><input type="checkbox" id="chk' + i + '"' + (done[i] ? ' checked' : '') + '>' +
+      '<label for="chk' + i + '">' + t.t + '</label><div class="how">' + t.how + '</div><div class="fail">Si falla: ' + t.fail + '</div></div>').join('');
+    const n = Object.values(done).filter(Boolean).length;
+    $('progress').textContent = n + ' de ' + tests.length + ' probados';
+    tests.forEach((t, i) => $('chk' + i).addEventListener('change', e => {
+      done[i] = e.target.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (err) { /* sin almacenamiento: igual funciona */ }
+      renderChecks();
+    }));
+  }
+  $('resetChecks').addEventListener('click', () => { done = {}; try { localStorage.removeItem(KEY); } catch (e) {} renderChecks(); });
+  renderChecks();
+
+  setBank('A', true);
+  show('Energy');
 })();
 </script>
 </body></html>
