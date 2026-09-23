@@ -408,16 +408,23 @@ DEFAULT_MIDI = {
     'Hue':        'ch1ctrl77',
     'Chaos':      'ch1ctrl78',
     'Brightness': 'ch1ctrl94',
-    'Transition': 'ch1ctrl74',
+    # LAYOUT v2 (ver MIDI_LAYOUT_V2 abajo): la perilla que era Transition
+    # es ENERGIA (el macro ya maneja la duracion del fundido), y las tres
+    # de bandas de audio pasan a Estela / Look / Paleta -- con Auto-gain
+    # las bandas ya no se corrigen en vivo (quedan en la pagina Audio).
+    'Energy':     'ch1ctrl74',
     'Next':       'ch1ctrl30',
     'Prev':       'ch1ctrl29',
     'Blackout':   'ch1ctrl28',
-    'Snapshot':   'ch1ctrl27',
-    'Reset':      'ch1ctrl26',
+    'Autopilot':  'ch1ctrl27',     # antes Snapshot (queda en el dashboard)
+    'Textvisible': 'ch1ctrl26',    # antes Reset (queda en el dashboard)
     'Audioamount': 'ch1ctrl76',
-    'Bassamount': 'ch1ctrl19',
-    'Midamount': 'ch1ctrl20',
-    'Highamount': 'ch1ctrl17',
+    'Trails':     'ch1ctrl19',     # antes Bass Amount
+    'Lookamount': 'ch1ctrl20',     # antes Mid Amount
+    'Palettelock': 'ch1ctrl17',    # antes High Amount
+    # Tira de modulacion (CC1 de fabrica): se queda donde la dejas, asi que
+    # sirve de perilla -- recorre la carpeta de imagenes con el dedo.
+    'Mediascrub': 'ch1ctrl1',
     'Detail1': 'ch1ctrl18',
     'Detail2': 'ch1ctrl92',
     'Detail3': 'ch1ctrl80',
@@ -430,18 +437,21 @@ DEFAULT_MIDI = {
     # Mirror/Zoom/Posterize se quedaron en 50-52. Ya vienen con default
     # -- no hace falta Learn para que funcionen desde el primer arranque
     # (igual que los knobs).
-    'Grain':     'ch10n37',
+    # Pad 9: RETRO = Grain + Posterize juntos (ver midi_logic.EFFECT_COMBOS).
+    'Retro':     'ch10n37',
     'Glitch':    'ch10n38',
     'Pixelate':  'ch10n39',
     'Strobe':    'ch10n40',
     'Invert':    'ch10n41',
     'Mirror':    'ch10n50',
     'Zoom':      'ch10n51',
-    'Posterize': 'ch10n52',
+    # Pad 16: antes Posterize (ahora dentro de RETRO) -> modo de mezcla de
+    # Dos Capas.
+    'Blendnext': 'ch10n52',
     # Carpeta comun de media -- tambien confirmados en la misma captura,
     # antes sin default.
     'Medianext': 'ch1ctrl24',
-    'Mediaprev': 'ch1ctrl23',
+    'Duallayer': 'ch1ctrl23',      # antes Mediaprev (queda en parametros)
     'Medialock': 'ch1ctrl25',
 }
 
@@ -485,7 +495,31 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # Overlay de texto. 'Textvisible' es el que de verdad pide
               # un pad: separa "ya lo tipee" de "que aparezca ahora",
               # justo cuando entra el artista.
-              'Textvisible', 'Fontnext']
+              'Textvisible', 'Fontnext',
+              # LAYOUT v2 (ver MIDI_LAYOUT_V2). Van al FINAL a proposito:
+              # si un midi_map.json viejo deja el mismo canal en dos slots,
+              # midiMap() se queda con el ultimo de esta lista.
+              'Energy', 'Autopilot', 'Retro', 'Trailszoom']
+
+# Migracion del mapeo guardado (td/config/midi_map.json) al layout v2 --
+# se aplica UNA vez al cargar un json que no tenga '_layout': 'v2', y
+# despues se guarda con esa marca (un Learn posterior ya no se pisa).
+# Cada entrada: el slot se queda con ese canal y cualquier OTRO slot que
+# tuviera el mismo canal queda vacio (antes Transition, Bass/Mid/High
+# Amount, Snapshot, Reset, Mediaprev, Grain y Posterize).
+MIDI_LAYOUT = 'v2'
+MIDI_LAYOUT_V2 = {
+    'Energy': 'ch1ctrl74',
+    'Trails': 'ch1ctrl19',
+    'Lookamount': 'ch1ctrl20',
+    'Palettelock': 'ch1ctrl17',
+    'Mediascrub': 'ch1ctrl1',
+    'Autopilot': 'ch1ctrl27',
+    'Textvisible': 'ch1ctrl26',
+    'Duallayer': 'ch1ctrl23',
+    'Retro': 'ch10n37',
+    'Blendnext': 'ch10n52',
+}
 
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',

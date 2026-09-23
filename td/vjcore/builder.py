@@ -266,7 +266,9 @@ def _parameters(proj):
     # drama (gana lo ultimo que tocaste), que es como se espera que se
     # comporte un macro en vivo.
     add_float(bk, 'Energy', 'MACRO ENERGIA (calma <-> pico)', 0.5, 0, 1)
-    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', False)
+    # Prendido por defecto (layout v2): Energia es la perilla principal.
+    # Tocar la perilla via MIDI tambien la vuelve a prender.
+    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', True)
 
     # --- LEDs DE LOS PADS (sin verificar) ---
     # Default APAGADO a proposito: el protocolo de color del MiniLab mkII

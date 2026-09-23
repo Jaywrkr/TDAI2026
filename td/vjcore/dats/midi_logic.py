@@ -200,6 +200,14 @@ CONTINUOUS = {
     'Layermix': ('Layermix', 0.0, 1.0),
     'Lookamount': ('Lookamount', 0.0, 1.0),
     'Palettelock': ('Palettelock', 0.0, 1.0),
+    # MACRO ENERGIA (layout v2): la perilla principal del show. Ademas de
+    # escribir Energy, la PRENDE (Energyactive) -- asi despues de un Reset
+    # (que la apaga, ver control_script.resetControls) basta con tocarla
+    # para que vuelva a mandar. Ver control_script.applyEnergy.
+    'Energy': ('Energy', 0.0, 1.0),
+    # Zoom de la estela, centrado en 0.5 = neutro: ideal para la tira de
+    # pitch (vuelve sola al centro al soltarla).
+    'Trailszoom': ('Trailszoom', 0.0, 1.0),
     # Carpeta comun de media: perilla continua, recorre TODA la carpeta
     # por posicion (0..1 = primera..ultima imagen). El trabajo de mapear
     # esa posicion a un indice de imagen NO pasa por aca -- lo hace
@@ -236,6 +244,16 @@ TRIGGERS = {
     # (pad) es todo el punto -- ver control_script.toggleTextVisible.
     'Textvisible': 'toggleTextVisible',
     'Fontnext': 'nextFont',
+    # Layout v2: autopilot en un pad (con Energia manejando su ritmo).
+    'Autopilot': 'toggleAutopilot',
+}
+
+# Pads que disparan VARIOS efectos juntos (layout v2): con 16 pads y 8
+# efectos + la navegacion, dos efectos que se llevan bien comparten pad
+# para liberar uno. RETRO = pocos colores + grano, el look de pantalla
+# vieja completo en un solo golpe.
+EFFECT_COMBOS = {
+    'Retro': ('Grain', 'Posterize'),
 }
 
 # 8 efectos en los 8 pads del banco B del MiniLab mkII (canal 10, ver
@@ -315,7 +333,19 @@ def _handle(channel, val, is_trigger):
         par = getattr(p.par, par_name, None)
         if par is not None:
             _assertRange(par, lo, hi)
+            if slot == 'Energy':
+                ea = getattr(p.par, 'Energyactive', None)
+                if ea is not None and not bool(ea.eval()):
+                    ea.val = True
             par.val = lo + (hi - lo) * _norm01(name, val)
+    elif is_trigger and slot in EFFECT_COMBOS:
+        for fx in EFFECT_COMBOS[slot]:
+            par = getattr(p.par, fx, None)
+            if par is not None:
+                _assertRange(par, 0.0, 1.0)
+                par.val = 1.0
+            run("op('/project1/midi_logic').module._resetEffect('{}')".format(fx), delayFrames=2)
+        _refreshLeds()
     elif is_trigger and slot in TRIGGERS:
         getattr(m, TRIGGERS[slot])()
     elif is_trigger and slot in EFFECT_TRIGGERS:

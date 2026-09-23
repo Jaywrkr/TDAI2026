@@ -16,8 +16,11 @@ def onOffToOn(channel, sampleIndex, val, prev):
     if not p or not ctrl:
         return
     try:
-        if bool(p.par.Autopilot.eval()):
-            ctrl.module.nextScene()
+        # Solo cambia si el ciclo por tiempo dejo un cambio ARMADO (ver
+        # control_script._autopilotTick): el reloj decide CUANDO toca, el
+        # bombo decide el instante exacto. Antes cada golpe cambiaba de
+        # escena, lo que con musica con bombo era un corte por beat.
+        ctrl.module.autopilotBeat()
     except Exception as e:
         print('autopilot_logic ERROR:', e)
     return
