@@ -40,8 +40,9 @@
 //   Bass     brillo de lo ya claro (audioLift) -- las celdas vacias
 //            (negras) no se ven afectadas, por construccion
 //   Mid      tinte adicional (audioHue)
-//   Kick     flash de toda la pared, ademas de encender la COLUMNA que
-//            elige uKeypos con cada tecla (ver PIANO)
+//   Kick     flash de toda la pared
+//   Piano    "zapping": la columna que elige uKeypos cambia de canal
+//            (ver PIANO)
 //   High     vibracion micro de la posicion interna de cada patron
 //            (excepcion del contrato)
 //
@@ -84,13 +85,28 @@ vec4 render(vec2 uv)
     cellUV += uHigh * 0.006 * vec2(sin(t * 11.0 + id.x), cos(t * 9.0 + id.y));
     vec2 cellC = cellUV - 0.5;
 
+    // PIANO: "zapping". La tecla le cambia el CANAL a la columna de
+    // pantallitas que elige uKeypos (y a sus vecinas si viene fuerte):
+    // esas celdas saltan a otro programa (otro tipo, otro color) al
+    // instante, con una barra de refresco tipo CRT que baja por la celda,
+    // y vuelven a su programa cuando se apaga el pulso. Cada tecla es un
+    // canal distinto (uKeypos elige la semilla).
+    float zap = 0.0;
+    float gsz = gs;
+    if (uKeypulse > 0.0015) {
+        float targetCol = floor(mix(0.0, uAspect * cols - 1.0, uKeypos) + 0.5);
+        float spreadC = 0.6 + uKeyvel * 1.6;
+        zap = (1.0 - smoothstep(spreadC - 0.5, spreadC + 0.1, abs(id.x - targetCol))) * uKeypulse;
+        gsz = gs + step(0.3, zap) * (37.0 + floor(uKeypos * 25.0) * 3.0);
+    }
+
     float h0 = audioHue(uHue, uMid * 0.10);
-    float seedBase = dot(id, vec2(17.0, 31.0)) + gs * 53.0;
+    float seedBase = dot(id, vec2(17.0, 31.0)) + gsz * 53.0;
 
     // --- ELECCION DE PATRON ---
     // D1: fraccion de celdas vacias.
     float emptyProb = mix(0.12, 0.62, uD1);
-    float typeH = hash21(id + gs * 11.0 + 1.0);
+    float typeH = hash21(id + gsz * 11.0 + 1.0);
     // Panel real, no vacio: las celdas apagadas quedan con un gris de
     // chasis muy oscuro en vez de negro puro -- se leen como pantallitas
     // apagadas dentro de un panel fisico, no como huecos.
@@ -99,11 +115,11 @@ vec4 render(vec2 uv)
     if (typeH >= emptyProb) {
         // D2: sesga la mezcla hacia patrones simples (indice bajo) o
         // complejos (indice alto).
-        float sub = hash21(id + gs * 7.0 + 60.0);
+        float sub = hash21(id + gsz * 7.0 + 60.0);
         float biased = pow(sub, mix(2.0, 0.4, uD2));
         int   ptype = 1 + int(floor(biased * 5.999));
 
-        int   colorIdx = int(mod(hash21(id + gs * 3.0 + 2.0) * 7.0, 7.0));
+        int   colorIdx = int(mod(hash21(id + gsz * 3.0 + 2.0) * 7.0, 7.0));
         float hue = audioHue(paletteHue(colorIdx), 0.0) + h0;
         // D3: saturacion de la paleta.
         float sat = mix(0.35, 0.95, uD3);
@@ -118,9 +134,9 @@ vec4 render(vec2 uv)
 
         } else if (ptype == 2) {
             // DEGRADADO en un angulo al azar por celda.
-            float ang = hash21(id + gs * 13.0 + 4.0) * TAU;
+            float ang = hash21(id + gsz * 13.0 + 4.0) * TAU;
             float proj = clamp(dot(cellC, vec2(cos(ang), sin(ang))) + 0.5, 0.0, 1.0);
-            int   colorIdx2 = int(mod(hash21(id + gs * 3.0 + 5.0) * 7.0, 7.0));
+            int   colorIdx2 = int(mod(hash21(id + gsz * 3.0 + 5.0) * 7.0, 7.0));
             vec3  baseCol2 = hsv2rgb(vec3(fract(audioHue(paletteHue(colorIdx2), 0.0) + h0), sat, 1.0));
             col = mix(baseCol, baseCol2, proj);
 
@@ -132,7 +148,7 @@ vec4 render(vec2 uv)
             float lineD = min(edgeDist.x, edgeDist.y);
             float aa = max(fwidth(lineD), 1e-5);
             float lineMask = 1.0 - smoothstep(0.0, aa * 1.5, lineD);
-            float bgOn = step(0.5, hash21(id + gs * 9.0 + 6.0));
+            float bgOn = step(0.5, hash21(id + gsz * 9.0 + 6.0));
             vec3  bg = baseCol * 0.12 * bgOn;
             col = mix(bg, baseCol, lineMask);
 
@@ -144,8 +160,8 @@ vec4 render(vec2 uv)
             // Chaos: jitter de la posicion de cada punto dentro de su
             // sub-celda -- prolijo en 0, desparramado en 1.
             sf -= (hash22(sid + id * 3.0) - 0.5) * uChaos * 0.5;
-            float dotProb = mix(0.15, 0.75, hash21(id + gs * 5.0 + 7.0));
-            float has = step(hash21(sid + id * 13.0 + gs * 4.0), dotProb);
+            float dotProb = mix(0.15, 0.75, hash21(id + gsz * 5.0 + 7.0));
+            float has = step(hash21(sid + id * 13.0 + gsz * 4.0), dotProb);
             float dDot = length(sf) - 0.30;
             float aaDot = max(fwidth(dDot), 1e-4);
             float dotMask = (1.0 - smoothstep(0.0, aaDot * 1.5, dDot)) * has;
@@ -157,7 +173,7 @@ vec4 render(vec2 uv)
             // nube "de pixeles", no una nube suave).
             float pxStep = 1.0 / detail;
             vec2  pq = (floor(cellUV / pxStep) + 0.5) * pxStep;
-            float n = fbm(pq * 3.0 + id * 9.0 + gs * 4.0, 3, 0.5 + uChaos * 0.25);
+            float n = fbm(pq * 3.0 + id * 9.0 + gsz * 4.0, 3, 0.5 + uChaos * 0.25);
             float cov = step(0.5, n);
             col = baseCol * cov;
 
@@ -165,11 +181,11 @@ vec4 render(vec2 uv)
             // MANCHA ORGANICA -- mitad de las veces mancha de color
             // sobre negro, mitad agujero negro sobre color (las dos
             // variantes salen en el video de referencia).
-            float n = fbm(cellUV * 3.0 + id * 9.0 + gs * 4.0, 4, 0.5 + uChaos * 0.2);
+            float n = fbm(cellUV * 3.0 + id * 9.0 + gsz * 4.0, 4, 0.5 + uChaos * 0.2);
             float blobSize = mix(0.30, 0.68, uD5);
             float aaBlob = max(fwidth(n), 1e-4) * 2.0;
             float cov = smoothstep(blobSize - aaBlob, blobSize + aaBlob, n);
-            float invert = step(0.5, hash21(id + gs * 15.0 + 8.0));
+            float invert = step(0.5, hash21(id + gsz * 15.0 + 8.0));
             col = baseCol * mix(cov, 1.0 - cov, invert);
         }
 
@@ -177,22 +193,10 @@ vec4 render(vec2 uv)
         col *= 0.55 + uD6 * 0.65;
     }
 
-    // PIANO: cada tecla enciende la COLUMNA completa que elige uKeypos
-    // (como un secuenciador modular disparando una columna de pasos) --
-    // geometria de COLOR encima, no reordena nada, y uKeypulse decae
-    // solo.
-    if (uKeypulse > 0.0015) {
-        // id.x sale de floor(uv.x*uAspect*cols) -- su rango real es
-        // [0, uAspect*cols), no [0, cols). Con el rango viejo la
-        // columna que se encendia nunca llegaba a la mitad derecha de
-        // la pantalla en una salida ancha (uAspect>1): quedaba siempre
-        // del lado izquierdo.
-        float targetCol = floor(mix(0.0, uAspect * cols - 1.0, uKeypos) + 0.5);
-        float onCol = 1.0 - smoothstep(0.0, 0.6, abs(id.x - targetCol));
-        col += vec3(1.0) * onCol * uKeypulse * (0.35 + uKeyvel * 0.5);
-    }
-
     // Kick: flash de toda la pared.
+    // PIANO (2/2): barra de refresco que baja por las celdas zapeadas.
+    col += vec3(0.9, 0.95, 1.0) * exp(-pow((cellUV.y - uKeypulse) * 14.0, 2.0)) * zap * (0.5 + uKeyvel * 0.6);
+
     col += col * uKick * 0.4;
 
     // Bajos: brillo de lo ya claro. Las celdas "apagadas" (chasis casi

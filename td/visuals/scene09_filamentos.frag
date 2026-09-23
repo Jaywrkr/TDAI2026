@@ -105,6 +105,9 @@ vec4 render(vec2 uv)
 
     // D3: separacion de fase de los acompañantes respecto al nucleo.
     float sep = 0.16 + uD3 * 0.34;
+    // PIANO (1/2): desdoble -- el acompañante salta lejos del nucleo con
+    // cada tecla y vuelve solo. Ver la cuenta de luz mas abajo.
+    sep += uKeypulse * (0.08 + uKeyvel * 0.18);
 
     float h0 = audioHue(uHue, uMid * 0.16);
     vec3 coreCol = hsv2rgb(vec3(fract(h0 + 0.66), 0.75, 1.0));   // indigo/violeta
@@ -130,13 +133,16 @@ vec4 render(vec2 uv)
     float glow = exp(-coreD * coreD / (glowW * glowW));
     col += coreCol * glow * (0.12 + uD6 * 0.28);
 
-    // PIANO: un destello extra, mucho mas brillante, nace en la posicion
-    // que elige uKeypos y se apaga solo (uKeypulse decae).
+    // PIANO: "cuenta de luz". Cada tecla suelta una cuenta brillante que
+    // corre A LO LARGO de las hebras (de izquierda a derecha, arrancando
+    // en la X que elige uKeypos) -- ilumina solo el nucleo y su
+    // acompañante, no el fondo. Junto con el desdoble de 'sep' de mas
+    // arriba, se lee como una descarga que recorre el filamento.
     if (uKeypulse > 0.0015) {
-        vec2 guestPos = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
-        float dG = length(p - guestPos);
-        float burst = exp(-dG * dG * 5.0) * uKeypulse * (0.6 + uKeyvel * 0.9);
-        col += hsv2rgb(vec3(fract(h0 + 0.5), 0.7, 1.0)) * burst;
+        float beadX = mix(-uAspect, uAspect, uKeypos) + (1.0 - uKeypulse) * (0.8 + uKeyvel * 1.4);
+        float bead = exp(-pow((p.x - beadX) * 3.0, 2.0)) * uKeypulse * (1.2 + uKeyvel * 1.6);
+        col += vec3(1.0) * core * bead;
+        col += colA * lineA * bead * 0.8;
     }
 
     // Kick: flash breve.

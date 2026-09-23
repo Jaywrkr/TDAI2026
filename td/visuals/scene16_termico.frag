@@ -48,7 +48,11 @@
 vec3 thermalRamp(float v) {
     float hues[6];
     hues[0] = 0.68; hues[1] = 0.55; hues[2] = 0.42;
-    hues[3] = 0.15; hues[4] = 0.05; hues[5] = 0.90;
+    // -0.10 y no 0.90: el ultimo tramo va de rojo a magenta por el camino
+    // CORTO. Con 0.90 el mix(0.05, 0.90) daba la vuelta entera por verde,
+    // cyan y azul, y lo mas caliente salia arcoiris (se corrige con
+    // fract() al usarlo).
+    hues[3] = 0.15; hues[4] = 0.05; hues[5] = -0.10;
     float seg = clamp(v, 0.0, 0.999) * 5.0;
     int   i0 = int(floor(seg));
     int   i1 = i0 + 1;
@@ -89,6 +93,19 @@ vec4 render(vec2 uv)
     float field = fbm(wp * 0.8 + t * flowSpeed * 0.5, 6, 0.5);
 
     // D5: contraste de las bandas de la paleta.
+    // PIANO: "cuerpo caliente". La tecla mete CALOR real en el campo, no
+    // un brillo encima: una silueta tibia (ovalo vertical con borde de
+    // ruido) entra en la posicion que elige uKeypos y pasa por la MISMA
+    // rampa termica -- se ve roja/blanca como cualquier cosa caliente en
+    // camara -- y se enfria sola con uKeypulse. Usa pTorn: se desgarra con
+    // las bandas igual que el resto. Velocity = mas temperatura.
+    if (uKeypulse > 0.0015) {
+        vec2  gp = centered(vec2(mix(0.1, 0.9, uKeypos), 0.5));
+        vec2  dq = (pTorn - gp) * vec2(1.6, 0.8);
+        float body = exp(-dot(dq, dq) * 5.0) * (0.75 + 0.5 * fbm(pTorn * 4.0 + 3.0, 3));
+        field = clamp(field + body * uKeypulse * (0.35 + uKeyvel * 0.5), 0.0, 1.0);
+    }
+
     float gamma = mix(1.0, 2.4, uD5);
     field = pow(clamp(field, 0.0, 1.0), gamma);
 
@@ -99,15 +116,6 @@ vec4 render(vec2 uv)
     // excepcion del contrato, amplitud pequena.
     float grain = hash21(uv * uResW * 0.5 + fract(uRTime) * 15.0) - 0.5;
     col += grain * (uD4 * 0.18 + uHigh * 0.04);
-
-    // PIANO: un punto "caliente" nuevo aparece en la posicion que
-    // elige uKeypos y se apaga solo (uKeypulse decae).
-    if (uKeypulse > 0.0015) {
-        vec2  guestPos = centered(vec2(mix(0.1, 0.9, uKeypos), 0.5));
-        float dG2 = dot(p - guestPos, p - guestPos);
-        float spark = exp(-dG2 * 10.0) * uKeypulse * (0.8 + uKeyvel * 0.8);
-        col += hsv2rgb(vec3(fract(0.90 + h0), 0.85, 1.0)) * spark * 1.5;
-    }
 
     // Kick: flash breve, ademas del desgarro de arriba.
     col += col * uKick * 0.25;

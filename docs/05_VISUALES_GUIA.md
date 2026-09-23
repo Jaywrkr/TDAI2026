@@ -492,8 +492,65 @@ Un visual muy minimalista y abstracto. Pocas formas, mucho espacio. Efecto medit
 2. Aparece un anillo de luz que marca tu posición en la pantalla
 3. La **posición** del anillo (izquierda-derecha) depende de cuál tecla tocas
 4. La **intensidad** del anillo depende de la **velocidad** (fuerza) con que toqués
-5. Mientras sostienes, el anillo se mantiene
-6. Suelta y se desvanece
+5. Cada tecla es un golpe: se dispara al tocar y se apaga solo (~0.35 s)
+
+### Qué hace el piano en cada visual
+
+Además del anillo, **cada visual tiene su propio complemento** de teclado.
+En todos: la **tecla** (grave → agudo) elige *dónde* pasa, y la **fuerza**
+elige *cuánto* (más alcance, más tamaño, más brillo).
+
+| # | Visual | Qué hace la tecla |
+|---|---|---|
+| 00 | biolluvia | Cae una gota invitada, más grande y brillante, en su columna |
+| 01 | cáustica | **Piedra en la pileta**: un anillo de onda dobla la trama de luz y la enciende a su paso |
+| 02 | mediaecho | Golpe de zoom: una copia extra muy metida hacia el centro |
+| 03 | mediaglitch | Onda de choque de agua que deforma la imagen |
+| 04 | radar | El brazo salta al ángulo de la tecla + aparece un contacto nuevo |
+| 05 | corona | **Protuberancia**: un arco de plasma sale del borde del sol (el teclado da la vuelta al sol) |
+| 06 | venas | **Hinchazón**: las venas cerca del punto se engrosan y viran a tono caliente |
+| 07 | kaleido | Rota el mandala a un ángulo propio y le suma espejos |
+| 08 | halftone | Gira la trama de impresión y agranda los puntos |
+| 09 | filamentos | **Cuenta de luz** que corre por las hebras + la hebra acompañante se desdobla |
+| 10 | tokens | **Salto de fichas**: un anillo recorre el tablero; cada ficha que toca salta, gira y cambia de color |
+| 11 | modular | **Zapping**: la columna de pantallitas cambia de canal, con barra de refresco CRT |
+| 12 | archipiélago | **Marejada**: una ola circular inunda la costa a su paso |
+| 13 | tótem | **Negativo**: la franja horizontal de la tecla invierte su patrón y el ojo se abre |
+| 14 | sonar | **Pulso activo**: un frente de sonar revela la grilla y hace aparecer ecos |
+| 15 | cultivo | Aparece una colonia invitada que se fusiona con las demás |
+| 16 | térmico | **Cuerpo caliente**: una silueta tibia entra en cámara y se enfría |
+| 17 | veins | Una vena nueva y gruesa atraviesa la pantalla |
+| 18 | neural | Una neurona (y sus vecinas) se enciende entera |
+| 19 | ink | Cae una gota de tinta que se fusiona con la mancha |
+| 20 | metaball | Entra una bola invitada que empuja a las demás |
+| 21 | caustics | Salpicadura que deforma todo el patrón |
+| 22 | flow | Onda de choque que aparta las corrientes + corriente nueva |
+| 23 | web | **Arco**: un arco eléctrico horizontal cruza la pantalla a la altura de la tecla |
+| 24 | aurora | Viento que aparta las cortinas + cortina nueva |
+| 25 | lines | Pulsada de guitarra: un bump viaja por todas las líneas |
+| 26 | contour | Se levanta un pico nuevo en el mapa de curvas de nivel |
+| 27 | ripple | Nace una fuente de onda extra con sus ecos |
+| 28 | orbit | Un cometa cruza y sacude las órbitas |
+| 29 | dots | Estrella fugaz que activa los puntos a su paso |
+| 30 | crackedglass | Impacto extra que agrieta el vidrio |
+| 31 | bokeh | Ráfaga de viento que empuja y agranda las luces |
+| 32 | nebula | Explosión (nova) que dispersa la nube |
+| 33 | tormenta | Cae un rayo extra (vertical) en la X de la tecla |
+| 34 | ferrofluido | Un dedo toca el líquido y levanta un pico |
+| 35 | cubos | **Dominó**: la barra de la tecla salta y una ola inclina a las demás hacia los lados |
+| 36 | costas | **Nudo**: las líneas se pellizcan hacia la altura de la tecla mientras un nudo cruza la pantalla |
+| 37 | gusanitos | **Susto**: los gusanos cerca del golpe dan un respingo y se iluminan |
+| 38 | ecucircular | **Ola que gira**: el estirón da la vuelta al círculo barra por barra |
+| 39 | láseres | Aparece un haz extra en el ángulo de la tecla |
+| 40 | anillosneon | Nace un anillo de acento del color de la tecla |
+| 41 | red | **Mensaje**: la luz viaja por los cables y nodos de la red, no por el aire |
+| 42 | imgfuego | Aparece una copia grande y brillante de la imagen |
+| 43 | mosaico | **Volteo**: las baldosas dan media vuelta como cartas y muestran el reverso |
+| 44 | persianas | Una lama se abre del todo un instante |
+
+En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
+
+![piano](img/piano_complementos.jpg)
 
 ### Usar Efectos Especiales
 1. Toca las teclas bajas C1 a E1

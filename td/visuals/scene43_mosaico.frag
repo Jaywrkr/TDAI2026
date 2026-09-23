@@ -51,7 +51,25 @@ vec4 render(vec2 uv)
     int   rot = int(mod(hash21(gi + shuffleStep * 3.1 + 1.0) * 4.0, 4.0));
     float mirrorX = step(hash21(gi + shuffleStep * 5.3 + 2.0), mix(0.0, 0.5, uD5));
 
-    vec2  tuv = gf;
+    // PIANO: "volteo". Desde la columna que elige uKeypos, una ola corre
+    // hacia los costados y cada baldosa que toca da una vuelta completa
+    // sobre su eje vertical, como una carta: se afina hasta ser una linea,
+    // muestra el REVERSO (imagen espejada y teñida del color opuesto) y
+    // vuelve. Velocity = ola que llega mas lejos.
+    float flipC = 1.0;
+    if (uKeypulse > 0.0015) {
+        float targetCol = floor(mix(0.5, uAspect * cols - 0.5, uKeypos));
+        float front = (1.0 - uKeypulse) * (1.5 + uKeyvel * 5.0);
+        float flipW = exp(-pow(abs(gi.x - targetCol) - front, 2.0) * 1.5) * uKeypulse;
+        flipC = cos(flipW * TAU * 0.5);
+    }
+    vec2  gfFlip = vec2((gf.x - 0.5) / max(abs(flipC), 0.04) + 0.5, gf.y);
+    // Cobertura antialiasada de la baldosa afinada (1 px = cols/uResH).
+    float flipCov = clamp(min(gfFlip.x, 1.0 - gfFlip.x) * abs(flipC) / (cols / uResH) + 0.5, 0.0, 1.0);
+    gfFlip.x = clamp(gfFlip.x, 0.0, 1.0);
+    if (flipC < 0.0) gfFlip.x = 1.0 - gfFlip.x;   // reverso = espejo
+
+    vec2  tuv = gfFlip;
     if (mirrorX > 0.5) tuv.x = 1.0 - tuv.x;
     if (rot == 1) tuv = vec2(tuv.y, 1.0 - tuv.x);
     else if (rot == 2) tuv = vec2(1.0 - tuv.x, 1.0 - tuv.y);
@@ -73,6 +91,9 @@ vec4 render(vec2 uv)
     vec3  tint = hsv2rgb(vec3(h, 0.7, 1.0));
     float lum = dot(src, vec3(0.299, 0.587, 0.114));
     vec3  col = mix(src, tint * lum, uD4);
+    // Reverso de la carta (media vuelta pasada): espejo + tinte opuesto.
+    col = mix(col, hsv2rgb(vec3(fract(h + 0.5), 0.6, 1.0)) * (0.3 + lum), step(flipC, 0.0));
+    col *= flipCov;
 
     // Junta entre baldosas.
     vec2  edgeDist = min(gf, 1.0 - gf);
@@ -89,14 +110,6 @@ vec4 render(vec2 uv)
     col *= 1.0 + uHigh * 0.03 * sin(t * 10.0 + hash21(gi) * TAU);
 
     col *= 0.6 + uD6 * 0.7;
-
-    // PIANO: la columna de baldosas mas cercana a uKeypos destella
-    // blanco.
-    if (uKeypulse > 0.0015) {
-        float targetCol = floor(mix(0.5, uAspect * cols - 0.5, uKeypos));
-        float onGuest = 1.0 - smoothstep(0.0, 0.6, abs(gi.x - targetCol));
-        col += vec3(1.0) * onGuest * uKeypulse * (0.5 + uKeyvel * 0.6);
-    }
 
     col += col * uKick * 0.3;
     col = audioLift(col, uBass * 2.2);

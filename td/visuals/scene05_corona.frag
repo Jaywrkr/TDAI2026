@@ -49,9 +49,9 @@ vec4 render(vec2 uv)
     // D4: tamano del disco. Bass lo agranda un poco (geometria real,
     // mismo criterio que ya tenia esta escena de diafragma).
     float diskR = mix(0.12, 0.34, uD4) + uBass * 0.03;
-    // PIANO: el disco crece un instante con cada tecla -- decae solo
-    // con uKeypulse, uKeyvel escala cuanto.
-    diskR += uKeypulse * (0.05 + uKeyvel * 0.08);
+    // PIANO (1/2): el disco late un poco con cada tecla. Lo principal es
+    // la protuberancia, mas abajo.
+    diskR += uKeypulse * (0.02 + uKeyvel * 0.03);
 
     // Bajado (0.05/0.35 -> 0.015/0.10): idle case casi quieto -- el
     // movimiento real ahora lo trae el bajo (bassFlow), pedido
@@ -84,6 +84,25 @@ vec4 render(vec2 uv)
     col += vec3(1.0, 0.9, 0.7) * ring * uKick * 0.8;
 
     // Disco oscuro solido -- nada de corona adentro.
+    // PIANO (2/2): "protuberancia". Cada tecla hace erupcionar un arco
+    // de plasma desde el borde del disco, en el angulo que elige uKeypos
+    // (el teclado da la vuelta al sol): un lazo que sube, con la textura
+    // de la misma turbulencia de la corona, y se desvanece con
+    // uKeypulse. Velocity = arco mas alto y mas ancho.
+    if (uKeypulse > 0.0015) {
+        float a0 = uKeypos * TAU - PI;
+        float da = mod(ang - a0 + PI, TAU) - PI;
+        float halfA = 0.25 + uKeyvel * 0.25;
+        float rise = sin(min((1.0 - uKeypulse) * 3.0 + 0.4, 1.0) * PI * 0.5);
+        float loopH = (0.18 + uKeyvel * 0.35) * rise;
+        float u = clamp(da / halfA, -1.0, 1.0);
+        float rLoop = diskR + loopH * sqrt(max(1.0 - u * u, 0.0));
+        float dLoop = abs(r - rLoop) + max(abs(da) - halfA, 0.0) * r;
+        float arc = exp(-dLoop * dLoop / 0.0005) + exp(-dLoop * dLoop / 0.006) * 0.35;
+        col += mix(hotCol, vec3(1.0, 0.95, 0.85), 0.4) * arc * (0.6 + turb * 0.9)
+             * uKeypulse * (1.8 + uKeyvel * 2.0);
+    }
+
     col *= smoothstep(diskR * 0.7, diskR, r);
 
     col += col * uKick * 0.35;

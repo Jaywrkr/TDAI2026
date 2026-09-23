@@ -49,6 +49,20 @@ vec4 render(vec2 uv)
     float field = fbm(wp, 6, 0.45 + uD2 * 0.2);
 
     float sharp = mix(2.0, 14.0, uD1);
+
+    // PIANO: "hinchazon". La tecla bombea sangre a la red cerca del punto
+    // que elige uKeypos: ahi las venas se ENSANCHAN (baja la nitidez del
+    // ridge -> trazo mas grueso) y viran a un tono mas caliente, en una
+    // zona que crece desde el punto y se desinfla sola con uKeypulse.
+    // Velocity = mas sangre: zona mas grande y venas mas gordas.
+    float swell = 0.0;
+    if (uKeypulse > 0.0015) {
+        vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
+        float dg = length(p - gp);
+        float reach = (0.25 + uKeyvel * 0.55) * (1.3 - uKeypulse * 0.3);
+        swell = (1.0 - smoothstep(reach * 0.5, reach, dg)) * uKeypulse;
+        sharp = mix(sharp, sharp * 0.35, swell * (0.6 + uKeyvel * 0.4));
+    }
     float veins = ridge(field, sharp);
     float veinLine = smoothstep(0.55, 0.98, veins);
 
@@ -61,6 +75,7 @@ vec4 render(vec2 uv)
 
     vec3  col = hsv2rgb(vec3(fract(h + 0.5), 0.4, 0.02));
     vec3  veinCol = hsv2rgb(vec3(h, 0.65, 1.0));
+    veinCol = mix(veinCol, hsv2rgb(vec3(fract(h - 0.12), 0.8, 1.0)) * 1.6, swell);
     col += veinCol * veinLine * (0.7 + uD6 * 0.5);
     col += vec3(0.6, 1.0, 0.9) * pulse * (1.0 + uKick * 1.8);
     // Bloom ancho: la vena "sangra" un halo tenue, como luz real bajo
@@ -75,17 +90,6 @@ vec4 render(vec2 uv)
     float isNode = step(0.85, nodeHash) * veinLine;
     float nodePulse = 0.5 + 0.5 * sin(t * 2.0 + nodeHash * 20.0);
     col += veinCol * isNode * nodePulse * (0.4 + uD5 * 1.6);
-
-    // PIANO: sobrecarga real -- un nodo nuevo y brillante aparece cerca
-    // de la posicion que elige uKeypos, como un latido extra fuerte que
-    // se propaga por la vena mas cercana. uKeypulse decae solo.
-    if (uKeypulse > 0.0015) {
-        vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
-        float dg2 = dot(p - gp, p - gp);
-        float surge = exp(-dg2 * 8.0) * uKeypulse * (0.7 + uKeyvel * 1.0);
-        col += hsv2rgb(vec3(fract(h + 0.5), 0.6, 1.0)) * surge * veinLine * 2.0;
-        col += hsv2rgb(vec3(fract(h + 0.5), 0.4, 1.0)) * surge * 0.3;
-    }
 
     col += col * uKick * 0.3;
     col *= 0.6 + uD6 * 0.6;

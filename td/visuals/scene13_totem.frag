@@ -163,7 +163,15 @@ vec4 render(vec2 uv)
             mixV = step(0.5, fbm(nq * 3.0 + cellId, 3));
         }
 
+        // PIANO: "negativo". La franja HORIZONTAL del totem que elige
+        // uKeypos (grave abajo, agudo arriba) invierte su patron -- los
+        // cuadros/rayas se dan vuelta como un negativo de foto -- y el ojo
+        // central se abre (ver eyeSize). Velocity = franja mas alta.
+        float keyRow = (1.0 - smoothstep(0.06 + uKeyvel * 0.12, 0.09 + uKeyvel * 0.16,
+                                          abs(py - uKeypos))) * uKeypulse;
+        mixV = mix(mixV, 1.0 - mixV, step(0.35, keyRow));
         col = mix(colA, colB, mixV);
+        col += mix(colA, vec3(1.0), 0.4) * keyRow * 0.6;
 
         // Relieve tallado: cada celda se ilumina un poco cerca de su
         // centro y se oscurece hacia sus bordes -- el bisel que separa
@@ -182,7 +190,7 @@ vec4 render(vec2 uv)
     col = mix(col, vec3(0.03, 0.03, 0.10), onFrameEdge * nearFrame);
 
     // --- OJO CENTRAL (rectangulos anidados, SIEMPRE en el mismo lugar) ---
-    float eyeSize = mix(0.05, 0.16, uD5) * panelScale;
+    float eyeSize = mix(0.05, 0.16, uD5) * panelScale * (1.0 + uKeypulse * (0.3 + uKeyvel * 0.7));
     vec2  eyeC = p / max(eyeSize, 1e-4);
     float eyeD = max(abs(eyeC.x) * 1.7, abs(eyeC.y));
     if (eyeD < 1.15) {
@@ -195,15 +203,6 @@ vec4 render(vec2 uv)
     // su alrededor, como si tuviera luz propia -- la identidad visual
     // del totem se nota incluso fuera de su propio marco.
     col += hsv2rgb(vec3(fract(h0 + 0.98), sat, 1.0)) * exp(-eyeD * eyeD * 2.0) * 0.10;
-
-    // PIANO: la celda de columna mas cercana a uKeypos destella blanco
-    // -- color encima, no reordena nada.
-    if (uKeypulse > 0.0015) {
-        float guestX = mix(-panelHalf.x, panelHalf.x, uKeypos);
-        float dGuest = abs(p.x - guestX);
-        float onGuest = (1.0 - smoothstep(0.0, 0.08, dGuest)) * step(abs(p.y), panelHalf.y);
-        col += vec3(1.0) * onGuest * uKeypulse * (0.5 + uKeyvel * 0.6);
-    }
 
     // Kick: flash breve, ademas del adelanto de reseed de arriba.
     col += col * uKick * 0.3;
