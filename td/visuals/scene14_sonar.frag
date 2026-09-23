@@ -100,7 +100,24 @@ vec4 render(vec2 uv)
 
     // Kick: un puñado de pings extra aparecen de golpe -- decae solo
     // porque uKick ya trae su propia envolvente.
-    float pingProb = mix(0.0, 0.9, uD3 * coastBand) + uKick * 0.5 * coastBand;
+    // PIANO: "pulso activo". La tecla emite un pulso de sonar desde el
+    // punto que elige uKeypos: un frente fino se expande por el mapa y,
+    // donde pasa sobre tierra, la grilla se revela y aparecen ECOS (pings
+    // nuevos) aunque no esten en la costa. Detras del frente los ecos se
+    // apagan solos. Velocity = pulso de mas alcance.
+    float sonarBand = 0.0;
+    float sonarLine = 0.0;
+    if (uKeypulse > 0.0015) {
+        vec2  gp = centered(vec2(mix(0.1, 0.9, uKeypos), 0.5));
+        float dG = length(p - gp);
+        float front = (1.0 - uKeypulse) * (0.7 + uKeyvel * 1.3);
+        sonarBand = exp(-pow((dG - front) * 7.0, 2.0)) * uKeypulse;
+        sonarLine = edgeLine(dG - front, 1.5) * uKeypulse;
+    }
+    col += landCol * gridLine * sonarBand * 1.6 * (1.0 - isCave);
+
+    float pingProb = mix(0.0, 0.9, uD3 * coastBand) + uKick * 0.5 * coastBand
+                   + sonarBand * landMask * 0.8;
     float hasPing = step(hash21(pid + 40.0), pingProb);
 
     vec2  pq = pf;
@@ -117,16 +134,8 @@ vec4 render(vec2 uv)
     vec3  pingCol = mix(hsv2rgb(vec3(fract(0.60 + h0), 0.75, 1.0)),
                          hsv2rgb(vec3(fract(0.14 + h0), 0.80, 1.0)), isYellow);
 
-    col += pingCol * pingShape * pingTwinkle;
-
-    // PIANO: un anillo de pings extra destella alrededor de la
-    // posicion que elige uKeypos -- color encima, no toca la tierra.
-    if (uKeypulse > 0.0015) {
-        vec2  guestPos = centered(vec2(mix(0.1, 0.9, uKeypos), 0.5));
-        float dG = length(p - guestPos);
-        float ring = exp(-pow(dG - 0.15, 2.0) * 60.0) * uKeypulse * (0.7 + uKeyvel * 0.8);
-        col += hsv2rgb(vec3(fract(h0 + 0.14), 0.8, 1.0)) * ring * 1.4;
-    }
+    col += pingCol * pingShape * max(pingTwinkle, sonarBand * 1.5);
+    col += hsv2rgb(vec3(fract(h0 + 0.14), 0.5, 1.0)) * sonarLine * 0.7;
 
     // Kick: flash breve, ademas de los pings extra de arriba.
     col += col * uKick * 0.3;

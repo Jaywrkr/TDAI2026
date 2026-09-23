@@ -96,7 +96,9 @@ def postfx_sources(channels=None):
     que los arma program.py (mismo header de control, mismos inputs)."""
     head = shader.ctrl_header(channels or config.CTRL_CHANNELS, 2)
     return [
-        ('bloom', _td_prologue_post(1) + program._BLOOM_FRAG),
+        ('bloom_prefilter', _td_prologue_post(1) + program._BLOOM_PREFILTER_FRAG),
+        # 2 inputs: imagen original + prefiltro (del que lee los mipmaps).
+        ('bloom', _td_prologue_post(2) + program._BLOOM_FRAG),
         ('program_blend', _td_prologue_post(3) + head + program._BLEND_FRAG),
         ('program_trails', _td_prologue_post(3) + head + program._TRAILS_FRAG),
         # Overlay de texto: 3 inputs (base, Text TOP, fundido 1x1), sin

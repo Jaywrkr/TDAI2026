@@ -111,6 +111,20 @@ vec4 render(vec2 uv)
         float growsWithBass = step(0.85, hash21(gi + 8.0));
         float sizeBase = mix(0.26, 0.42, hash21(gi + 4.0));
         float size = sizeBase * (0.55 + uD3 * 0.9) * (1.0 + growsWithBass * uBass * 0.7);
+
+        // PIANO: "salto de fichas". Un anillo sale de la celda que elige
+        // uKeypos (fila del medio) y viaja celda por celda: cada ficha que
+        // toca SALTA (crece), gira 45 grados si es cuadrada y vira al color
+        // complementario, y vuelve sola. Velocity = anillo que llega mas
+        // lejos y fichas que saltan mas alto.
+        float keyHop = 0.0;
+        if (uKeypulse > 0.0015) {
+            vec2  keyCell = vec2(floor(mix(0.0, uAspect * cols - 1.0, uKeypos) + 0.5),
+                                 floor(cols * 0.5));
+            float front = (1.0 - uKeypulse) * (2.0 + uKeyvel * 5.0);
+            keyHop = exp(-pow(length(gi - keyCell) - front, 2.0) * 1.2) * uKeypulse;
+            size *= 1.0 + keyHop * (0.5 + uKeyvel * 0.7);
+        }
         // D4: mezcla relleno/contorno.
         float isFilled = step(hash21(gi + 3.0), uD4);
         float strokeW = size * 0.22;
@@ -119,7 +133,7 @@ vec4 render(vec2 uv)
         // contrato, amplitud pequena, ya suavizado.
         vec2 jitter = uHigh * 0.01 * vec2(sin(t * 12.0 + gi.x * 3.0),
                                           cos(t * 10.0 + gi.y * 3.0));
-        vec2 q = cellF + jitter;
+        vec2 q = rot2(keyHop * isSquare * PI * 0.25) * (cellF + jitter);
 
         float dCircle = length(q) - size * 0.5;
         float dSquare = max(abs(q.x), abs(q.y)) - size * 0.5;
@@ -155,6 +169,7 @@ vec4 render(vec2 uv)
         // el tablero se vea menos colorido en general.
         float sat = mix(0.30, 0.55, isFilled);
         vec3  tokenCol = hsv2rgb(vec3(h, sat, 1.0));
+        tokenCol = mix(tokenCol, hsv2rgb(vec3(fract(h + 0.5), 0.7, 1.0)) * 1.4, keyHop);
 
         col += tokenCol * coverage;
         // Bloom ancho: la ficha "sangra" un halo tenue sobre el fieltro,
@@ -168,33 +183,6 @@ vec4 render(vec2 uv)
                               + uBass * 0.25 * gridLine * (1.0 - coverage));
     } else {
         col = audioLift(col, uBass * 0.25);
-    }
-
-    // PIANO: una ficha invitada, mucho mas grande y brillante, aparece
-    // en la celda mas cercana a la posicion que elige uKeypos y se
-    // apaga sola (uKeypulse decae) -- mismo tratamiento que el blob de
-    // invitado en otras escenas, integrada a la grilla real en vez de
-    // ser un circulo suelto encima.
-    if (uKeypulse > 0.0015) {
-        // Blob en coordenadas continuas de grilla (no atado a "la celda
-        // actual"), asi sale UN circulo puntual centrado en la fila del
-        // medio en la columna que elige uKeypos -- no una franja vertical
-        // repetida en cada fila (eso pasaba con un intento anterior que
-        // comparaba contra cellF.y, local a la fila de CADA pixel).
-        // La grilla real vive en g = (uv.x*uAspect, uv.y) * cols -- el
-        // ancho visible en X es uAspect*cols, no cols. Con el rango
-        // viejo (0.5..cols-0.5) la ficha invitada nunca llegaba a la
-        // mitad derecha de la pantalla en una salida ancha (16:9,
-        // uAspect>1): quedaba siempre corrida a la izquierda. La fila
-        // del medio tampoco era cols*0.5 -- estaba dividida por
-        // uAspect sin motivo, corrida hacia arriba o abajo del centro
-        // real segun el aspecto.
-        vec2  guestCell = vec2(mix(0.5, uAspect * cols - 0.5, uKeypos), cols * 0.5);
-        float dGuest = length(g - guestCell) - (0.55 + uKeyvel * 0.45);
-        float aaGuest = max(fwidth(dGuest), 1e-4);
-        float guestCov = (1.0 - smoothstep(0.0, aaGuest * 1.5, dGuest)) * uKeypulse;
-        vec3  guestCol = hsv2rgb(vec3(fract(uHue + 0.5), 0.8, 1.0));
-        col += guestCol * guestCov * (0.7 + uKeyvel * 0.9);
     }
 
     // Kick: flash breve.

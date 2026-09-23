@@ -83,9 +83,27 @@ float ridge(float n, float sharp) {{
     return pow(clamp(1.0 - abs(n * 2.0 - 1.0), 0.0, 1.0), sharp);
 }}
 
+// hsv2rgb BALANCEADO. Mismo mapeo de hue que el HSV clasico (0 = rojo,
+// 1/3 = verde, 2/3 = azul), con dos arreglos para que girar el knob Hue
+// se vea parejo en las 45 escenas:
+//  1. Rampas suavizadas (cubica): el HSV clasico tiene "quiebres" en los
+//     primarios/secundarios -- al girar, el color se frenaba en verde y
+//     azul y pegaba un salto en amarillo, cyan y magenta (bandas finas y
+//     brillantes). Ahora el giro avanza a velocidad pareja.
+//  2. Brillo percibido balanceado: en HSV puro el amarillo tiene ~8x la
+//     luminancia del azul, asi que la MISMA escena revienta en amarillo y
+//     se hunde en azul. Ahora: los tonos calientes bajan un poco (tope
+//     x0.86) y los oscuros se levantan un poco hacia blanco, sin perder
+//     el tono. Rango de luminancia 7.8x -> 3.1x.
+// Con s = 0 (gris) no cambia nada.
 vec3 hsv2rgb(vec3 c) {{
-    vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
-    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+    const float HUE_TARGET_L = 0.5;
+    vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+    rgb = rgb * rgb * (3.0 - 2.0 * rgb);
+    float l = dot(rgb, vec3(0.299, 0.587, 0.114));
+    rgb *= mix(1.0, clamp(HUE_TARGET_L / max(l, 1e-3), 0.72, 1.0), 0.5);
+    rgb = mix(rgb, vec3(1.0), clamp((HUE_TARGET_L - l) / (1.0 - l + 1e-6), 0.0, 1.0) * 0.35);
+    return c.z * mix(vec3(1.0), rgb, c.y);
 }}
 
 // uv centrado y con aspecto corregido: x en [-a,a], y en [-1,1]
@@ -211,11 +229,20 @@ void main() {
     // Mirror, Zoom, Posterize -- ver dats/midi_logic.py EFFECT_TRIGGERS) ----
 
     // Grain: añade ruido fino al color. Ganancia subida (0.3 -> 0.55):
-    // pedido explicito de que se note mas.
+    // pedido explicito de que se note mas. Semilla desde gl_FragCoord
+    // (un valor por PIXEL real) y no desde vUV*100, que daba una grilla
+    // de 100x100 bloques -- eso se leia como pixelado, no como grano.
+    // Cambia 24 veces por segundo (cadencia de pelicula), no cada frame.
+    // Pesado por luminancia: el grano de pelicula vive en los medios
+    // tonos; sobre negro puro queda un piso bajo para no ensuciar el
+    // fondo que define esta estetica.
     if (uGrain > 0.0015) {
-        float grain = hash21(vUV.st * 100.0 + uRTime * 20.0);
-        grain = (grain - 0.5) * 2.0 * uGrain;
-        c.rgb += grain * 0.55;
+        vec2 gseed = gl_FragCoord.xy + floor(uRTime * 24.0) * vec2(17.3, 41.9);
+        float grain = hash21(gseed) + hash21(gseed + vec2(5.7, 3.1)) - 1.0;
+        float glum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        float gweight = 0.3 + 0.7 * smoothstep(0.0, 0.5, glum);
+        c.rgb += grain * uGrain * 0.55 * gweight;
+        c.rgb = max(c.rgb, vec3(0.0));
     }
 
     // Glitch: desplaza canales RGB independientemente (chromatic
@@ -240,8 +267,12 @@ void main() {
     // blanqueo real en el pico (no solo mas brillo del mismo color) --
     // asi se lee como un flash de luz real, no un simple aumento de
     // ganancia. Pedido explicito de que se note mas.
+    // Frecuencia: antes 8-28 Hz, el centro de la franja de riesgo de
+    // epilepsia fotosensible. Ahora el pad va de 1 Hz a STROBE_MAX_HZ
+    // (config.py, 3 Hz por defecto = limite de las guias). El flash es
+    // igual de fuerte; cambia la cadencia.
     if (uStrobe > 0.0015) {
-        float strobe_freq = 8.0 + uStrobe * 20.0;
+        float strobe_freq = mix(1.0, STROBE_MAX_HZ, uStrobe);
         float strobe = step(0.5, sin(uRTime * strobe_freq * TAU));
         float hit = strobe * uStrobe;
         c.rgb = mix(c.rgb, c.rgb * 3.4, hit * 0.9);
@@ -423,6 +454,11 @@ def ctrl_header(channels, input_index):
 
 def make_header(scene_index, channels):
     header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+    # Tope de frecuencia del pad Strobe (ver config.STROBE_MAX_HZ). Como
+    # #define y no uniform: es politica de seguridad del venue, no una
+    # perilla en vivo.
+    header += '#define STROBE_MAX_HZ {:.2f}\n'.format(
+        max(0.5, float(config.STROBE_MAX_HZ)))
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
     return header

@@ -54,6 +54,18 @@ vec4 render(vec2 uv)
 
     float maxConn = mix(0.5, 2.2, uD3);
 
+    // PIANO: "mensaje". La tecla manda un mensaje desde el punto que elige
+    // uKeypos: un frente se expande por la red y SOLO se ve sobre ella --
+    // las conexiones y nodos que alcanza se encienden a su paso (la luz
+    // viaja por los cables, no por el aire). Velocity = mensaje que llega
+    // mas lejos y mas brillante.
+    float netFront = 0.0;
+    if (uKeypulse > 0.0015) {
+        vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
+        float front = (1.0 - uKeypulse) * (0.6 + uKeyvel * 1.4);
+        netFront = exp(-pow((length(p - gp) - front) * 7.0, 2.0)) * min(uKeypulse * 1.5, 1.0);
+    }
+
     for (int dy = -1; dy <= 1; dy++) {
         for (int dx = -1; dx <= 1; dx++) {
             vec2  idA = gi + vec2(dx, dy);
@@ -77,12 +89,15 @@ vec4 render(vec2 uv)
                     float hh = clamp(dot(ap, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
                     float d = length(ap - ab * hh);
 
-                    float lineW = 0.003 + uD2 * 0.01;
+                    // Piso de 1.5 px: 0.003 era ~1 px a 720p y las
+                    // conexiones titilaban / se cortaban al moverse.
+                    float lineW = max(0.003 + uD2 * 0.01, 3.0 / uResH);
                     float lineCov = 1.0 - smoothstep(0.0, lineW, d);
                     float fadeEdge = 1.0 - smoothstep(maxConn * cell * 1.6, maxConn * cell * 2.2, distAB);
 
                     vec3  connCol = hsv2rgb(vec3(fract(h + 0.5), 0.55, 1.0));
-                    col += connCol * lineCov * fadeEdge * (0.5 + uBass * 1.3);
+                    col += connCol * lineCov * fadeEdge * (0.5 + uBass * 1.3)
+                         * (1.0 + netFront * (3.0 + uKeyvel * 3.0));
                 }
             }
         }
@@ -106,20 +121,11 @@ vec4 render(vec2 uv)
             float nodeGlow = exp(-d * d / (0.001 + uD4 * 0.01));
 
             vec3  nodeCol = hsv2rgb(vec3(h, 0.65, 1.0));
-            col += nodeCol * (nodeCov + nodeGlow * 0.5) * pulse;
+            col += nodeCol * (nodeCov + nodeGlow * 0.5) * pulse * (1.0 + netFront * 3.0);
         }
     }
 
     col *= 0.5 + uD6 * 0.8;
-
-    // PIANO: un nodo invitado, mucho mas brillante, aparece en la
-    // posicion que elige uKeypos.
-    if (uKeypulse > 0.0015) {
-        vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
-        float dG = length(p - gp);
-        float burst = exp(-dG * dG * 12.0) * uKeypulse * (0.7 + uKeyvel * 0.9);
-        col += hsv2rgb(vec3(fract(h + 0.5), 0.7, 1.0)) * burst;
-    }
 
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.4);

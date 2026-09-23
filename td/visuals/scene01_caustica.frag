@@ -55,6 +55,24 @@ vec4 render(vec2 uv)
     warp += uHigh * 0.015 * vec2(sin(t * 9.0), cos(t * 7.5));
     vec2  wp = p + warp * turb * 0.5;
 
+    // PIANO: "piedra en la pileta". Cada tecla tira una piedra en el punto
+    // que elige uKeypos: un frente de onda circular sale de ahi, DOBLA el
+    // agua a su paso (refraccion real: empuja wp, asi la trama de luz se
+    // tuerce siguiendo el anillo) y las bandas de caustica se encienden
+    // sobre el frente. Velocity = piedra mas grande: el anillo viaja mas
+    // lejos y dobla mas.
+    float keyFront = 0.0;
+    if (uKeypulse > 0.0015) {
+        vec2  gp = centered(vec2(mix(0.15, 0.85, uKeypos), 0.5));
+        vec2  dv = wp - gp;
+        float dg = length(dv);
+        float front = (1.0 - uKeypulse) * (0.5 + uKeyvel * 0.9);
+        float env = exp(-pow((dg - front) * 4.5, 2.0));
+        wp += dv / (dg + 1e-3) * sin((dg - front) * 28.0) * env
+              * uKeypulse * (0.05 + uKeyvel * 0.08);
+        keyFront = env * uKeypulse;
+    }
+
     float freq = mix(4.0, 16.0, uDensity);
     float breathe = t * (0.3 + uD4 * 1.4);
     float field = fbm(wp * 2.0 + breathe * 0.1, 5);
@@ -63,6 +81,7 @@ vec4 render(vec2 uv)
     // D1: contraste de las bandas.
     float contrast = mix(1.2, 5.0, uD1);
     float bands = pow(rings, contrast);
+    bands *= 1.0 + keyFront * (3.0 + uKeyvel * 3.0);
 
     // D5: separacion de color nucleo/borde.
     vec3  edgeCol = hsv2rgb(vec3(fract(h), 0.65, 1.0));
@@ -71,16 +90,6 @@ vec4 render(vec2 uv)
 
     // D3: brillo del nucleo central.
     col += coreCol * exp(-r * r * 3.0) * (0.3 + uD3 * 1.0);
-
-    // PIANO: una onda de choque nueva sale del punto que elige uKeypos
-    // y se apaga sola con uKeypulse -- geometria de color sobre el
-    // mismo campo, no un anillo aparte.
-    if (uKeypulse > 0.0015) {
-        vec2  gp = centered(vec2(mix(0.15, 0.85, uKeypos), 0.5));
-        float dg = length(p - gp);
-        float shock = exp(-dg * dg * 6.0) * uKeypulse * (0.7 + uKeyvel * 1.0);
-        col += hsv2rgb(vec3(fract(h + 0.5), 0.6, 1.0)) * shock;
-    }
 
     col += col * uKick * 0.3;
     col *= 0.6 + uD6 * 0.8;

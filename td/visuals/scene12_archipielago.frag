@@ -93,6 +93,19 @@ vec4 render(vec2 uv)
     // threshold alto = casi nada, exactamente al reves de lo
     // documentado).
     float threshold = mix(0.74, 0.52, uD1);
+
+    // PIANO: "marejada". Una ola circular sale del punto que elige
+    // uKeypos y SUBE el nivel del mar a su paso: la costa que toca queda
+    // inundada un instante (las islas se achican sobre el frente) y esa
+    // franja de costa se enciende. Velocity = ola mas alta y que llega
+    // mas lejos.
+    float tide = 0.0;
+    if (uKeypulse > 0.0015) {
+        vec2  gp = centered(vec2(mix(0.1, 0.9, uKeypos), 0.5));
+        float front = (1.0 - uKeypulse) * (0.6 + uKeyvel * 1.1);
+        tide = exp(-pow((length(p - gp) - front) * 5.0, 2.0)) * uKeypulse;
+        threshold += tide * (0.08 + uKeyvel * 0.10);
+    }
     float landMask = smoothstep(threshold - 0.015, threshold + 0.015, land);
 
     // --- INTERIOR ---
@@ -120,7 +133,10 @@ vec4 render(vec2 uv)
     float shimmerPhase = land * 40.0;
     float shimmer = 0.55 + 0.45 * sin(t * (1.0 + uSpeed * 4.5) + shimmerPhase);
     vec3  coastCol = hsv2rgb(vec3(fract(h0 + 0.38), 0.72, 1.0));
-    col += coastCol * coastGlow * shimmer;
+    col += coastCol * coastGlow * shimmer * (1.0 + tide * (3.0 + uKeyvel * 3.0));
+    // El frente de la ola tambien se ve sobre el agua, tenue.
+    col += coastCol * tide * (0.35 + uKeyvel * 0.3) * (1.0 - landMask);
+    col += landCol * tide * landMask * 1.2;
     // Bloom ancho: la costa "sangra" un halo mucho mas difuso sobre el
     // oceano, como luz real reflejando en el agua cerca de la orilla.
     float coastGlowWide = exp(-coastD * coastD / (glowW * glowW * 12.0));
@@ -167,16 +183,6 @@ vec4 render(vec2 uv)
     float starDist = length(sf);
     float starMask = (1.0 - smoothstep(0.0, 0.16, starDist)) * hasStar * twinkle;
     col += vec3(starMask) * (1.0 - landMask);
-
-    // PIANO: una chispa brillante aparece en la posicion que elige
-    // uKeypos y se apaga sola (uKeypulse decae) -- color encima, no
-    // toca la tierra ni las grietas.
-    if (uKeypulse > 0.0015) {
-        vec2  guestPos = centered(vec2(mix(0.1, 0.9, uKeypos), 0.5));
-        float dG2 = dot(p - guestPos, p - guestPos);
-        float spark = exp(-dG2 * 8.0) * uKeypulse * (0.8 + uKeyvel * 0.8);
-        col += hsv2rgb(vec3(fract(h0 + 0.5), 0.85, 1.0)) * spark * 1.6;
-    }
 
     // Kick: flash breve, ademas de las venas de arriba.
     col += col * uKick * 0.3;

@@ -77,6 +77,23 @@ vec4 render(vec2 uv)
 
         vec3  wormCol = hsv2rgb(vec3(fract(h0 + fw * 0.11), 0.65, 1.0));
 
+        // PIANO: "susto". La tecla golpea el vidrio en la X que elige
+        // uKeypos: cada gusano cerca del golpe da un respingo -- el cuerpo
+        // entero salta alejandose del punto y se ilumina -- y vuelve solo
+        // a su camino con uKeypulse. Los lejanos ni se enteran. Velocity
+        // = golpe mas fuerte, salto mas largo y de mas alcance.
+        vec2  pw = p;
+        float scare = 0.0;
+        if (uKeypulse > 0.0015) {
+            vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
+            vec2  head0 = wormPath(t * speed, seed, tw);
+            vec2  away = head0 - gp;
+            float dA = length(away);
+            scare = exp(-dA * dA / (0.45 + uKeyvel * 0.9)) * uKeypulse;
+            pw -= away / (dA + 1e-3) * scare * (0.25 + uKeyvel * 0.35);
+            wormCol = mix(wormCol, vec3(1.0), scare * 0.7);
+        }
+
         vec2  prev = wormPath(t * speed, seed, tw);
         float minD = 1e5;
         float bestFrac = 0.0;
@@ -84,7 +101,7 @@ vec4 render(vec2 uv)
             if (i > nSeg) break;
             float fi = float(i);
             vec2  cur = wormPath(t * speed - fi * segDelay, seed, tw);
-            float d = segDistW(p, prev, cur);
+            float d = segDistW(pw, prev, cur);
             if (d < minD) { minD = d; bestFrac = fi / float(nSeg); }
             prev = cur;
         }
@@ -95,7 +112,7 @@ vec4 render(vec2 uv)
         // punto tau=0 de la curva.
         vec2  headPos = wormPath(t * speed, seed, tw);
         float headR = mix(0.03, 0.09, uD4);
-        float dHead = length(p - headPos);
+        float dHead = length(pw - headPos);
 
         float bodyCov = 1.0 - smoothstep(width, width + 0.01, minD);
         float headCov = 1.0 - smoothstep(headR, headR + 0.01, dHead);
@@ -105,15 +122,6 @@ vec4 render(vec2 uv)
 
         col = mix(col, wormCol, cov);
         col += wormCol * glow * (1.0 - cov);
-    }
-
-    // PIANO: un gusano invitado aparece brevemente en la posicion que
-    // elige uKeypos.
-    if (uKeypulse > 0.0015) {
-        vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
-        float dG = length(p - gp);
-        float burst = exp(-dG * dG * 10.0) * uKeypulse * (0.6 + uKeyvel * 0.9);
-        col += hsv2rgb(vec3(fract(h0 + 0.5), 0.7, 1.0)) * burst;
     }
 
     col += col * uKick * 0.35;

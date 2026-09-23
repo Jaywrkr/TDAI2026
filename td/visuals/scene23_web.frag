@@ -225,37 +225,39 @@ vec4 render(vec2 uv)
         col += (vec3(1.0) * layersK.x + midCol * layersK.y + atmosCol * layersK.z) * uKick * 1.1;
     }
 
-    // PIANO: un rayo extra, apuntando a la X que elige uKeypos, cae con
-    // cada tecla -- reusa boltDist como el rayo del kick, pero con 4
-    // ramas (el doble del maximo normal de 2) para que se lea como un
-    // impacto mucho mas grande, mas un flash ambiental breve que ilumina
-    // TODA la escena un instante, como un relampago de verdad iluminando
-    // el cielo entero, no solo el trazo del rayo. uKeypulse decae solo,
-    // uKeyvel escala el brillo.
+    // PIANO: "arco". A diferencia de la tormenta (rayos verticales), la
+    // tecla dispara un arco electrico HORIZONTAL que cruza la pantalla de
+    // izquierda a derecha a la altura que elige uKeypos (grave abajo,
+    // agudo arriba), con ramas. Mismas funciones de rayo, en un espacio
+    // girado 90 grados. Se dibuja en ~0.07 s (crece de un lado) y se
+    // apaga con uKeypulse. Velocity = mas brillo y ramas mas largas.
     if (uKeypulse > 0.0015) {
-        vec2 seedP = vec2(11.0, 91.0);
-        float baseXP = (uKeypos - 0.5) * 2.6;
-        vec2 dbP = boltDist(p, seedP, 1.15, -1.15, 8, zigzagAmt, baseXP, 0.0);
+        vec2  pr = vec2(p.y, p.x);
+        float arcY = mix(-0.8, 0.8, uKeypos);
+        float spanX = uAspect * 1.05;
+        vec2  seedP = vec2(11.0 + floor(uKeypos * 25.0), 91.0);
+        vec2  dbP = boltDist(pr, seedP, -spanX, spanX, 10, zigzagAmt, arcY, 0.0);
         float dP = dbP.x;
         float wP = lineW * 0.95 * boltTaper(dbP.y);
-        for (int brP = 0; brP < 4; brP++) {
+        for (int brP = 0; brP < 3; brP++) {
             float fbrP = float(brP);
-            vec2 bseedP = seedP + fbrP * 31.0 + 100.0;
-            float branchFracP = 0.25 + hash21(bseedP + 20.0) * 0.4;
-            float branchTopYP = mix(1.15, -1.15, branchFracP);
-            float branchBaseXP = baseXP + hash21(bseedP + 3.0) * 0.6 - 0.3;
-            float branchEndDxP = (hash21(bseedP + 17.0) - 0.5) * 1.1;
-            vec2 dbBranchP = boltDist(p, bseedP, branchTopYP, branchTopYP - 0.7,
-                                      3, zigzagAmt * 0.8, branchBaseXP, branchEndDxP);
+            vec2  bseedP = seedP + fbrP * 31.0 + 100.0;
+            float branchFracP = 0.2 + hash21(bseedP + 20.0) * 0.6;
+            float branchTopYP = mix(-spanX, spanX, branchFracP);
+            float branchEndDxP = (hash21(bseedP + 17.0) - 0.5) * (0.5 + uKeyvel * 0.8);
+            vec2  dbBranchP = boltDist(pr, bseedP, branchTopYP, branchTopYP + 0.5,
+                                       3, zigzagAmt * 0.8, arcY, branchEndDxP);
             if (dbBranchP.x < dP) {
                 dP = dbBranchP.x;
                 wP = lineW * 0.5 * boltTaper(dbBranchP.y);
             }
         }
+        float grow = clamp((1.0 - uKeypulse) * 5.0, 0.0, 1.0);
+        float reveal = 1.0 - smoothstep(-0.05, 0.05, p.x - mix(-spanX, spanX, grow));
         vec3 layersP = boltLayers(dP, wP, glowAmt * 1.2);
         col += (vec3(1.0) * layersP.x + midCol * layersP.y + atmosCol * layersP.z)
-             * uKeypulse * (0.6 + uKeyvel * 1.2);
-        col += vec3(1.0) * uKeypulse * (0.15 + uKeyvel * 0.20);
+             * reveal * uKeypulse * (0.6 + uKeyvel * 1.2);
+        col += atmosCol * uKeypulse * (0.04 + uKeyvel * 0.06);
     }
 
     // Bajos: brillo de lo ya claro. Nunca geometria.

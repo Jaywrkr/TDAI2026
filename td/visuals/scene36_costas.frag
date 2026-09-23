@@ -66,26 +66,32 @@ vec4 render(vec2 uv)
                      + sin(p.x * freq * 1.9 - phase * 0.7) * 0.4;
         float y = rowY + wobble * amp * (0.4 + uChaos * 1.2);
 
+        // PIANO: "nudo". Cada tecla ata un nudo que cruza la pantalla de
+        // izquierda a derecha: las lineas cercanas a la altura que elige
+        // uKeypos se juntan hacia esa altura donde pasa el nudo (se
+        // pellizcan) y brillan mas, y se sueltan detras. Velocity = nudo
+        // que agarra mas lineas.
+        float pinch = 0.0;
+        if (uKeypulse > 0.0015) {
+            float gy = mix(-0.85, 0.85, uKeypos) * spread;
+            float xFront = mix(-uAspect * 1.1, uAspect * 1.1, 1.0 - uKeypulse);
+            float wx = exp(-pow((p.x - xFront) * 2.2, 2.0));
+            float wy = exp(-pow((rowY - gy) / (0.2 + uKeyvel * 0.5), 2.0));
+            pinch = wx * wy * min(uKeypulse * 2.0, 1.0) * (0.6 + uKeyvel * 0.4);
+            y = mix(y, gy, pinch);
+        }
+
         float d = p.y - y;
         float core = edgeLine(d, lineW);
         float glow = exp(-d * d / (0.001 + uD5 * 0.02));
 
         vec3  lineCol = hsv2rgb(vec3(fract(h + fi * 0.05), 0.6, 1.0));
         // Bass: brillo real de la linea, ademas del audioLift general.
-        float shine = 1.0 + uBass * 1.2;
+        float shine = (1.0 + uBass * 1.2) * (1.0 + pinch * 2.0);
         col += lineCol * (core + glow * 0.5) * shine;
     }
 
     col *= 0.5 + uD6 * 0.8;
-
-    // PIANO: una costa invitada, brillante, cruza toda la pantalla a
-    // la altura que elige uKeypos.
-    if (uKeypulse > 0.0015) {
-        float gy = mix(-0.85, 0.85, uKeypos) * spread;
-        float d = p.y - gy;
-        float glow = exp(-d * d / 0.002);
-        col += vec3(1.0) * glow * uKeypulse * (0.6 + uKeyvel * 1.0);
-    }
 
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.5);

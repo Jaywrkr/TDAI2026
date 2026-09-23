@@ -135,7 +135,10 @@ vec4 render(vec2 uv)
         // uno del otro), y eso -- sumado al flash -- se leia como un
         // bulto borroso en vez de un rayo quebrado legible.
         float jag = 0.035 + uChaos * 0.16;
-        float lineW = 0.005 + uD1 * 0.013;
+        // Piso de 1.5 px (centered(): 2/uResH por pixel): con D1 en 0 el
+        // trazo medía 0.005 = ~1.8 px con el borde suave incluido, y el
+        // rayo se cortaba en puntos sueltos al moverse (aliasing).
+        float lineW = max(0.005 + uD1 * 0.013, 3.0 / uResH);
         float glowW = 0.0018 + uD2 * 0.016;
         // uHigh: vibracion micro del trazo -- unica excepcion del contrato.
         float highJit = uHigh * 0.01;

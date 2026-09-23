@@ -53,28 +53,45 @@ vec4 render(vec2 uv)
     float barLen = baseLen * (0.6 + wave * 0.4) * (1.0 + uBass * uD1 * 1.6 * reactivity);
     barLen += uHigh * 0.015 * sin(t * 14.0 + idx);
 
+    // PIANO: "ola que gira". La barra que elige uKeypos (el angulo) se
+    // estira y el estiron da la vuelta al circulo en los dos sentidos,
+    // barra por barra, hasta apagarse. Velocity = ola que llega mas lejos
+    // y barras mas largas.
+    float keyWave = 0.0;
+    if (uKeypulse > 0.0015) {
+        float targetIdx = floor(uKeypos * nBars);
+        float dI = abs(mod(idx - targetIdx + nBars * 0.5, nBars) - nBars * 0.5);
+        float front = (1.0 - uKeypulse) * nBars * (0.2 + uKeyvel * 0.3);
+        keyWave = exp(-pow(dI - front, 2.0) * 0.6) * uKeypulse;
+        barLen *= 1.0 + keyWave * (0.6 + uKeyvel * 1.0);
+    }
+
     float halfW = mix(seg * 0.15, seg * 0.48, uD4);
-    bool  inBar = abs(within) < halfW && r > coreR && r < coreR + barLen;
+    // Cobertura antialiasada en vez de un bool: los cuatro bordes de la
+    // barra (dos laterales, base y punta) eran cortes duros, y los
+    // laterales -- diagonales en casi todo el circulo -- se veian en
+    // escalera. Distancia a cada borde en pixeles (centered(): 2/uResH
+    // por pixel); el lateral se pasa de fraccion de segmento a arco.
+    float px = 2.0 / uResH;
+    float sideD = (halfW - abs(within)) * seg * r / px;
+    float baseD = (r - coreR) / px;
+    float tipEdge = (coreR + barLen - r) / px;
+    float sideCov = clamp(sideD + 0.5, 0.0, 1.0);
+    float barCov = min(sideCov, clamp(min(baseD, tipEdge) + 0.5, 0.0, 1.0));
 
     float h = audioHue(uHue, uMid * 0.10);
     vec3  barCol = hsv2rgb(vec3(fract(h + hash21(seed + 5.0) * 0.05), 0.7, 1.0));
+    barCol = mix(barCol, vec3(1.0), keyWave * 0.5);
 
     vec3  col = vec3(0.0);
-    if (inBar) col = barCol;
+    col = barCol * barCov;
 
     float tipD = abs(r - (coreR + barLen));
-    float tipGlow = exp(-tipD * tipD / (0.0006 + uD6 * 0.01)) * step(abs(within), halfW);
+    float tipGlow = exp(-tipD * tipD / (0.0006 + uD6 * 0.01)) * sideCov;
     col += barCol * tipGlow * (0.3 + uD6 * 0.7);
 
     vec3  coreCol = hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0));
     col += coreCol * exp(-r * r * 5.0 / max(coreR * coreR, 0.001)) * (0.3 + uD5 * 0.9);
-
-    // PIANO: la barra mas cercana a uKeypos brilla blanco.
-    if (uKeypulse > 0.0015) {
-        float targetIdx = floor(uKeypos * nBars);
-        float onBar = 1.0 - smoothstep(0.0, 1.2, abs(idx - targetIdx));
-        if (inBar) col += vec3(1.0) * onBar * uKeypulse * (0.5 + uKeyvel * 1.0);
-    }
 
     col += col * uKick * 0.4;
     col = audioLift(col, uBass * 0.5);

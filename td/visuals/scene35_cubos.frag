@@ -83,6 +83,21 @@ vec4 render(vec2 uv)
     if (group < 0.5) {
         tilt += sin(t * (1.1 + uSpeed * 0.6) + phaseOff * 1.7) * uMid * 0.45;
     }
+    // PIANO: "domino". La barra que elige uKeypos salta y, desde ahi, una
+    // ola de empujones corre hacia los dos lados: cada barra que toca se
+    // INCLINA alejandose del origen (pivotea en el piso, como una ficha
+    // de domino) y se endereza sola. Velocity = ola mas larga y
+    // empujones mas fuertes.
+    float keyPush = 0.0;
+    float keyOrigin = 0.0;
+    if (uKeypulse > 0.0015) {
+        float targetBar = floor(mix(0.0, nBars - 1.0, uKeypos) + 0.5);
+        float dCol = colI - targetBar;
+        float front = (1.0 - uKeypulse) * (2.0 + uKeyvel * 8.0);
+        keyPush = exp(-pow(abs(dCol) - front, 2.0) * 0.8) * uKeypulse;
+        tilt += sign(dCol) * keyPush * (0.35 + uKeyvel * 0.35);
+        keyOrigin = (1.0 - min(abs(dCol), 1.0)) * uKeypulse;
+    }
     localP = rot2(-tilt) * localP;
 
     float waveSpeed = 0.5 + uSpeed * 2.2;
@@ -91,6 +106,7 @@ vec4 render(vec2 uv)
     float heightJitter = mix(1.0, 0.3 + hash21(seed + 2.0) * 1.4, uChaos);
     float baseH = mix(0.15, 1.5, uD2) * heightJitter;
     float barH = baseH * (0.6 + wave * 0.4);
+    barH *= 1.0 + keyOrigin * (0.4 + uKeyvel * 1.0);
 
     if (group < 1.5 && group >= 0.5) {
         // Grupo 1 ya baila por el angulo -- altura solo con su baile
@@ -111,6 +127,7 @@ vec4 render(vec2 uv)
 
     float h = audioHue(uHue, uMid * 0.10);
     vec3  frontCol = hsv2rgb(vec3(fract(h + hash21(seed + 6.0) * 0.06), 0.7, 1.0));
+    frontCol *= 1.0 + (keyPush + keyOrigin) * 0.7;
 
     vec3  col = vec3(0.0);
     float halfW = barW * 0.5;
@@ -130,14 +147,6 @@ vec4 render(vec2 uv)
 
     float floorLine = edgeLine(p.y - floorY, 2.0);
     col += vec3(0.2, 0.22, 0.28) * floorLine * 0.4;
-
-    // PIANO: la barra mas cercana a uKeypos brilla blanco -- uKeypulse
-    // decae solo, uKeyvel escala el brillo.
-    if (uKeypulse > 0.0015) {
-        float targetBar = floor(mix(0.0, nBars - 1.0, uKeypos) + 0.5);
-        float onBar = 1.0 - smoothstep(0.0, 0.6, abs(colI - targetBar));
-        if (inBar) col += vec3(1.0) * onBar * uKeypulse * (0.5 + uKeyvel * 1.0);
-    }
 
     col += col * uKick * 0.4;
     col = audioLift(col, uBass * 0.5);
