@@ -57,8 +57,11 @@ def layout():
     prev_y = grid_bottom - FX_GAP - PREV_H
     take_y = prev_y - 8 - BTN_H
     panic_y = take_y - 8 - BTN_H
-    fx_y = grid_bottom - FX_GAP - FX_H
     fx_w = grid_w - PREV_W - 16
+    TXT_BTN_H, TXT_GAP = 30, 8
+    txt_btn_w = (fx_w - 3 * TXT_GAP) // 4
+    FX_H = FX_H - TXT_BTN_H - TXT_GAP
+    fx_y = c.DASH_MARGIN + TXT_BTN_H + TXT_GAP
 
     panels = [
         # (nombre, x, y, w, h)
@@ -71,6 +74,9 @@ def layout():
         ('boton take', prev_x, take_y, PREV_W, BTN_H),
         ('boton panico', prev_x, panic_y, PREV_W, BTN_H),
     ]
+    panels += [('boton texto {}'.format(k + 1),
+                c.DASH_MARGIN + k * (txt_btn_w + TXT_GAP), c.DASH_MARGIN,
+                txt_btn_w, TXT_BTN_H) for k in range(4)]
     return dash_w, dash_h, panels, status_h, STATUS_MAX_LINES, FX_H
 
 
@@ -137,6 +143,8 @@ def main():
     print('\n--- constantes en sync con dashboard.py ---')
     src = open(os.path.join(TD, 'vjcore', 'dashboard.py')).read()
     for needle in ('STATUS_MAX_LINES = c.STATUS_MAX_LINES', 'FX_H = avail_h',
+                   'TXT_BTN_H = 30', 'TXT_GAP = 8',
+                   'fx_h = FX_H - TXT_BTN_H - TXT_GAP',
                    'PREV_W = 300', 'BTN_H = 36', 'legend_h = c.LEGEND_H',
                    'fontsize=12, fontcolor=(0.75, 0.85, 1.0)'):
         check('dashboard.py contiene "{}"'.format(needle), needle in src)

@@ -368,8 +368,30 @@ def update():
     if bool(_par_val('Energyactive')):
         e = _par_val('Energy', 0.5)
         lines.append('')
-        lines.append('>> ENERGIA {} {:.2f}  (escribe Speed/Density/Chaos/Trails)'
+        lines.append('>> ENERGIA {} {:.2f}  (look + ritmo: fundido y autopilot)'
                      .format(_bar(e, 10), e))
+
+    # Texto: solo cuando hay algo que decir (escribiendo, en pantalla, o
+    # con cola cargada). Nombres recortados: Text TOP no hace word-wrap.
+    if bool(_par_val('Textediting')):
+        lines.append('')
+        lines.append('>> ESCRIBIENDO  atajos de teclado en pausa (LISTO para volver)')
+    text_on = bool(_par_val('Textvisible'))
+    nxt = ''
+    if ctrl:
+        try:
+            nxt = ctrl.module.textPeek(0)
+        except Exception:
+            nxt = ''
+    if text_on or nxt:
+        try:
+            shown = str(p.par.Textcontent.eval()) if text_on else ''
+        except Exception:
+            shown = ''
+        lines.append('')
+        lines.append('>> TEXTO  {}{}'.format(
+            'EN PANTALLA: "{}"'.format(shown[:24]) if text_on else 'oculto',
+            '   sigue: "{}"'.format(nxt[:24]) if nxt else ''))
 
     # Estado de la carpeta comun de media. Solo aparece cuando la escena
     # activa la usa (19 glitch / 34 caleidoscopio / 35 trama): en las
@@ -409,7 +431,7 @@ def update():
         except Exception:
             secs = 0.0
         lines.append('')
-        lines.append('>> AUTOPILOT ON  (cada {:.0f}s + por beat)'.format(secs))
+        lines.append('>> AUTOPILOT ON  (cada {:.0f}s, cae en el golpe)'.format(secs))
 
     # Red de seguridad: nada de lo de arriba impide que varios avisos
     # opcionales esten prendidos a la vez (grabando + en cue + con
@@ -430,6 +452,14 @@ def update():
         lines.append('>> (+{} lineas mas, panel lleno)'.format(hidden))
 
     status.text = '\n'.join(lines)
+
+    # Colores de los pads: mismo ritmo que el status (no por frame), y
+    # control_script solo manda los pads cuyo color cambio.
+    if ctrl:
+        try:
+            ctrl.module.refreshPadLeds()
+        except Exception as e:
+            print('refreshPadLeds (diagnostics):', e)
     try:
         p.par.Systemready = (overall == 'OK')
     except Exception:

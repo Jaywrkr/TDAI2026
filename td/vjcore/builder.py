@@ -177,6 +177,17 @@ def _parameters(proj):
     add_pulse(tx, 'Fontnext', 'Fuente siguiente')
     add_float(tx, 'Textsize', 'Tamano', 0.5, 0, 1)
     add_float(tx, 'Texty', 'Posicion vertical (0 abajo, 1 arriba)', 0.18, 0, 1)
+    # COLA DE NOMBRES: los proximos artistas escritos por adelantado,
+    # separados con ';'. El pad TEXTO muestra el siguiente cada vez que
+    # prende (ver control_script.toggleTextVisible). Lo ultimo que
+    # escribas en 'Texto' a mano gana sobre la cola.
+    add_string(tx, 'Textqueue', 'Cola de nombres (separa con ;)', '')
+    add_int(tx, 'Textqueueindex', 'Cola: proximo a mostrar (interno)', 0, 0, 999)
+    # Mientras esta prendido, los atajos del teclado de la compu (0-9,
+    # flechas, espacio) no hacen nada -- si no, escribir "DJ 2" saltaba a
+    # la escena 2 y un espacio hacia blackout. Lo prende el boton
+    # ESCRIBIR del dashboard y se apaga solo al mostrar el texto.
+    add_toggle(tx, 'Textediting', 'ESCRIBIENDO (pausa atajos de teclado)', False)
 
     # --- MASTER FX (Fase 4): estela + dos capas ---
     # Los dos viven en el program bus, DESPUES de las escenas y ANTES del
@@ -270,16 +281,15 @@ def _parameters(proj):
     # Tocar la perilla via MIDI tambien la vuelve a prender.
     add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', True)
 
-    # --- LEDs DE LOS PADS (sin verificar) ---
-    # Default APAGADO a proposito: el protocolo de color del MiniLab mkII
-    # es SysEx propietario de Arturia y no se pudo verificar contra la
-    # unidad real. Lo que hay implementado es el envio de note-on al pad
-    # (el metodo que funciona en varios controladores), listo para
-    # probar; si tu unidad no responde asi, hay que cambiar sendPadLed()
-    # en control_script.py por el SysEx correcto. Ver docs/02.
-    add_toggle(bk, 'Padleds', 'LEDs de pads (SIN VERIFICAR)', False)
-    add_int(bk, 'Padledchannel', 'LEDs: canal MIDI de los pads', 10, 1, 16)
-    add_int(bk, 'Padlednote', 'LEDs: nota del primer pad', 45, 0, 127)
+    # --- COLORES DE LOS PADS (SysEx del MiniLab mkII) ---
+    # Cada pad se pinta segun el estado de su funcion (autopilot prendido,
+    # texto en pantalla, efecto activo...) -- ver control_script
+    # .refreshPadLeds y config.PAD_COLOR. Apagado por defecto hasta
+    # confirmar que tu unidad responde: primero 'Probar colores de pads'
+    # (o el probador web del manual), y si se encienden, prender esto.
+    # Hace falta elegir el Device en /project1/midi_out (el mismo que midi1).
+    add_toggle(bk, 'Padleds', 'Colores de pads segun estado', False)
+    add_pulse(bk, 'Padledtest', 'Probar colores de pads')
 
     m = proj.appendCustomPage('MIDI Mapping')
     for slot in c.MIDI_SLOTS:
@@ -399,6 +409,8 @@ def onPulse(par):
         m.failsafeReset()
     elif n == 'Panic':
         m.panic()
+    elif n == 'Padledtest':
+        m.testPadLeds()
     elif n == 'Banknext':
         m.nextBank()
     elif n == 'Bankprev':

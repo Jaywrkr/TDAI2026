@@ -76,6 +76,35 @@ Nada se pierde:
 | Cue (modo, siguiente, anterior), Layerswap, Trails on/off | Dashboard / `/project1` |
 | Zoom de estela | slot `Trailszoom` listo para Learn (ideal en la tira de pitch) |
 
+### Colores de los pads
+
+Cada pad puede mostrar el **estado** de su función (apagado por defecto
+hasta confirmar que tu unidad responde):
+
+| Pad | Reposo | Activo |
+|---|---|---|
+| 1 NEXT | cian | **late blanco con el beat** mientras el autopilot anda |
+| 2 PREV | cian | — |
+| 3 BLACKOUT | rojo | blanco = en negro |
+| 4 AUTOPILOT | apagado | verde |
+| 5 TEXTO | azul = hay un nombre listo · apagado = nada que mostrar | blanco = en pantalla |
+| 6 IMAGEN → | amarillo | — |
+| 7 DOS CAPAS | apagado | violeta |
+| 8 IMAGEN FIJA | apagado | azul |
+| 9–15 efectos | un color por efecto | blanco mientras pega |
+| 16 MODO MEZCLA | apagado | verde (solo con Dos Capas) |
+
+**Cómo activarlo:** `/project1/midi_out` → **Device** = el MiniLab (igual que
+`midi1`) → pestaña **Bancos** → pulsa **Probar colores de pads**. Si los
+16 pads se pintan de colores durante 3 s, prende **Colores de pads según
+estado**. Si no se encienden, la unidad no acepta el mensaje (hay reportes
+así en el foro de Arturia): déjalo apagado, no afecta nada más.
+
+Mensaje usado: `F0 00 20 6B 7F 42 02 00 10 <70+pad> <color> F7`, colores
+`00` apagado · `01` rojo · `04` verde · `05` amarillo · `10` azul ·
+`11` violeta · `14` cian · `7F` blanco. Se manda solo cuando un color
+cambia, unas 5 veces por segundo como mucho: no carga la PC.
+
 ### Cómo se aplica
 
 **Automático:** al arrancar, si tu `td/config/midi_map.json` es del layout

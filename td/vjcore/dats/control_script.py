@@ -590,65 +590,163 @@ def prevBank():
 
 
 # ---------------------------------------------------------------
-# LEDs DE LOS PADS  (SIN VERIFICAR CONTRA LA UNIDAD REAL)
+# COLORES DE LOS PADS (MiniLab mkII, SysEx)
 # ---------------------------------------------------------------
-# Encender el pad del efecto que esta activo hace que el controlador se
-# sienta un instrumento y no un teclado generico enchufado.
+# Cada pad muestra el ESTADO de su funcion con un color (config.PAD_COLOR):
+# de un vistazo al controlador se sabe si el autopilot esta andando, si el
+# texto esta en pantalla o que efecto esta pegando, sin mirar la compu.
 #
-# LO QUE FALTA CONFIRMAR: el MiniLab mkII setea el color de sus pads por
-# SysEx propietario de Arturia (algo de la forma
-# F0 00 20 6B 7F 42 02 00 10 <pad> <color> F7), y esos bytes NO se
-# pudieron verificar contra la unidad. Lo de aca abajo manda un note-on
-# al pad, que es el metodo que funciona en varios controladores y es
-# inofensivo si este no lo entiende (simplemente no pasa nada).
+# Mensaje: F0 00 20 6B 7F 42 02 00 10 <pad 70..7F> <color> F7. No esta
+# confirmado si el MIDI Out CHOP de TD agrega F0/F7 solo en
+# sendExclusive(), asi que se mandan las DOS formas: la que sobra le llega
+# al MiniLab como basura sin encabezado valido y la ignora.
 #
-# Por eso Padleds arranca en OFF: mientras nadie lo prenda, este codigo
-# no manda un solo byte. Si al probarlo los pads no responden, hay que
-# cambiar SOLO sendPadLed() por la version SysEx -- ninguna otra parte
-# del rig depende de esto.
+# refreshPadLeds() lo llama diagnostics.update() (~5 veces por segundo,
+# nada por frame) y los pads de efecto al dispararse. Solo se manda un pad
+# cuando su color CAMBIA -- en reposo no sale ni un byte.
 
-def sendPadLed(slot_index, on):
-    """Prende/apaga el LED del pad numero 'slot_index' (0-based)."""
+# Layout v2, en orden fisico (pads 1-8 banco A, 9-16 banco B). Cada
+# entrada: (color en reposo, color activo, parametro que lo prende).
+_PAD_LED_LAYOUT = [
+    ('cyan',   'white',  None),          # 1 NEXT (blanco en el beat con autopilot)
+    ('cyan',   'cyan',   None),          # 2 PREV
+    ('red',    'white',  'Blackout'),    # 3 BLACKOUT
+    ('off',    'green',  'Autopilot'),   # 4 AUTOPILOT
+    ('blue',   'white',  'Textvisible'), # 5 TEXTO (azul = hay nombre listo)
+    ('yellow', 'yellow', None),          # 6 IMAGEN ->
+    ('off',    'purple', 'Duallayer'),   # 7 DOS CAPAS
+    ('off',    'blue',   'Medialock'),   # 8 IMAGEN FIJA
+    ('yellow', 'white',  ('Grain', 'Posterize')),  # 9 RETRO
+    ('cyan',   'white',  'Glitch'),      # 10
+    ('green',  'white',  'Pixelate'),    # 11
+    ('red',    'white',  'Strobe'),      # 12
+    ('white',  'purple', 'Invert'),      # 13
+    ('blue',   'white',  'Mirror'),      # 14
+    ('purple', 'white',  'Zoom'),        # 15
+    ('off',    'green',  'Duallayer'),   # 16 MODO MEZCLA (solo con Dos Capas)
+]
+
+
+def _padSysex(pad_index, color_value):
+    """Bytes del mensaje, SIN F0/F7."""
+    try:
+        import vjcore.config as _vjconfig
+        head = tuple(_vjconfig.PAD_SYSEX_HEAD)
+        first = int(_vjconfig.PAD_ID_FIRST)
+    except Exception:
+        head, first = (0x00, 0x20, 0x6B, 0x7F, 0x42, 0x02, 0x00, 0x10), 0x70
+    return list(head) + [first + int(pad_index), int(color_value) & 0x7F]
+
+
+def _padColorValue(name):
+    try:
+        import vjcore.config as _vjconfig
+        return int(_vjconfig.PAD_COLOR.get(name, 0))
+    except Exception:
+        return {'off': 0, 'red': 1, 'green': 4, 'yellow': 5, 'blue': 16,
+                'purple': 17, 'cyan': 20, 'white': 127}.get(name, 0)
+
+
+def sendPadColor(pad_index, color_name, force=False):
+    """Pinta el pad 'pad_index' (0..15) de 'color_name' (config.PAD_COLOR).
+    Solo manda si cambio respecto de lo ultimo enviado (o con force)."""
     p = _p()
     mo = op('/project1/midi_out')
     if not p or not mo:
-        return
+        return False
+    cache = p.fetch('pad_led_cache', {}) or {}
+    if not force and cache.get(pad_index) == color_name:
+        return True
+    body = _padSysex(pad_index, _padColorValue(color_name))
     try:
-        if not bool(p.par.Padleds.eval()):
-            return
-        chan = int(p.par.Padledchannel.eval())
-        note = int(p.par.Padlednote.eval()) + int(slot_index)
-        # sendNote(canal, nota, velocidad). Velocidad 0 = apagado en la
-        # mayoria de los controladores con pads iluminados.
-        mo.sendNote(chan, note, 127 if on else 0)
+        mo.sendExclusive(*body)
+        mo.sendExclusive(*([0xF0] + body + [0xF7]))
     except Exception as e:
-        print('sendPadLed ERROR:', e)
+        print('sendPadColor ERROR (midi_out sin Device o sin sendExclusive?):', e)
+        return False
+    cache[pad_index] = color_name
+    p.store('pad_led_cache', cache)
+    return True
 
 
-def refreshPadLeds():
-    """Refleja en los pads que efectos estan activos ahora mismo.
+def padLedColors():
+    """Color que le toca a cada uno de los 16 pads ahora mismo. Separado de
+    refreshPadLeds() para poder probarlo sin MIDI."""
+    p = _p()
+    if not p:
+        return []
 
-    El orden es el de los 8 efectos en config.DEFAULT_MIDI (pads 9-16 del
-    banco B), que es el orden en que estan fisicamente en el controlador.
-    """
+    def on(names):
+        if names is None:
+            return False
+        if isinstance(names, str):
+            names = (names,)
+        for n in names:
+            par = getattr(p.par, n, None)
+            try:
+                if par is not None and float(par.eval()) > 0.005:
+                    return True
+            except Exception:
+                pass
+        return False
+
+    out = []
+    for i, (idle, active, names) in enumerate(_PAD_LED_LAYOUT):
+        out.append(active if on(names) else idle)
+    # NEXT late blanco con el beat mientras el autopilot anda: se ve en el
+    # controlador cuando va a caer el proximo cambio.
+    if on('Autopilot'):
+        beat = 0.0
+        ctrl_chop = op('/project1/ctrl')
+        try:
+            beat = float(ctrl_chop['beat'].eval()) if ctrl_chop else 0.0
+        except Exception:
+            beat = 0.0
+        out[0] = 'white' if beat > 0.5 else 'cyan'
+    # TEXTO: azul solo si hay algo para mostrar; si no, apagado.
+    if out[4] == 'blue':
+        has_text = bool(textPeek(0)) or bool(str(_parVal(p, 'Textcontent', '') or '').strip())
+        if not has_text:
+            out[4] = 'off'
+    return out
+
+
+def refreshPadLeds(force=False):
     p = _p()
     if not p:
         return
     try:
         if not bool(p.par.Padleds.eval()):
             return
-        # Layout v2: pad 9 = RETRO (Grain + Posterize), pad 16 = modo de
-        # mezcla de Dos Capas (encendido mientras Dos Capas esta activo).
-        def _on(n):
-            par = getattr(p.par, n, None)
-            return par is not None and float(par.eval()) > 0.005
-        states = [_on('Grain') or _on('Posterize'), _on('Glitch'),
-                  _on('Pixelate'), _on('Strobe'), _on('Invert'),
-                  _on('Mirror'), _on('Zoom'), _on('Duallayer')]
-        for i, on in enumerate(states):
-            sendPadLed(i, on)
+        for i, color in enumerate(padLedColors()):
+            sendPadColor(i, color, force)
     except Exception as e:
         print('refreshPadLeds ERROR:', e)
+
+
+def testPadLeds():
+    """Pulso 'Probar colores de pads': pinta los 16 pads con los 8 colores
+    (dos vueltas, banco A y B) y a los 3 s vuelve al estado normal (o apaga
+    todo si Padleds esta en OFF). Si no se encienden, tu unidad no acepta
+    este SysEx o midi_out no tiene el Device elegido."""
+    names = ['red', 'yellow', 'green', 'cyan', 'blue', 'purple', 'white', 'red']
+    ok = True
+    for i in range(16):
+        ok = sendPadColor(i, names[i % 8], force=True) and ok
+    print('PAD LEDS: prueba enviada' if ok else
+          'PAD LEDS: no se pudo enviar -- elige el Device en /project1/midi_out')
+    run("op('/project1/control_script').module._endPadLedTest()", delayMilliSeconds=3000)
+
+
+def _endPadLedTest():
+    p = _p()
+    if not p:
+        return
+    if bool(_parVal(p, 'Padleds', False)):
+        refreshPadLeds(force=True)
+    else:
+        for i in range(16):
+            sendPadColor(i, 'off', force=True)
 
 
 # ---------------------------------------------------------------
@@ -1868,17 +1966,133 @@ def startMediaCycles():
 # no Python -- ver program.py._build_text_overlay.
 
 
+def _textQueue():
+    """Nombres de la cola (Textqueue), separados por ';' o salto de
+    linea, sin vacios."""
+    p = _p()
+    try:
+        raw = str(p.par.Textqueue.eval()) if p else ''
+    except Exception:
+        return []
+    return [s.strip() for s in raw.replace('\n', ';').split(';') if s.strip()]
+
+
+def _setPar(p, name, val):
+    par = getattr(p.par, name, None)
+    if par is not None:
+        try:
+            par.val = val
+        except Exception:
+            pass
+
+
+def _parVal(p, name, default=None):
+    par = getattr(p.par, name, None)
+    if par is None:
+        return default
+    try:
+        return par.eval()
+    except Exception:
+        return default
+
+
+def textPeek(offset=0):
+    """Nombre de la cola a 'offset' del proximo (0 = el que sale en el
+    proximo MOSTRAR). '' si la cola esta vacia. Para el status."""
+    p = _p()
+    q = _textQueue()
+    if not p or not q:
+        return ''
+    idx = int(_parVal(p, 'Textqueueindex', 0) or 0)
+    return q[(idx + offset) % len(q)]
+
+
 def toggleTextVisible():
-    """Prende/apaga el overlay de texto. Es EL control que de verdad
-    conviene tener en un pad: separa el momento de escribir del momento
-    de mostrar."""
+    """Pad TEXTO. Si el texto esta en pantalla, lo oculta. Si no, lo
+    muestra -- y que muestra:
+
+      - si escribiste algo NUEVO a mano en 'Texto' (distinto de lo que
+        puso la cola la ultima vez), eso: lo ultimo que escribiste gana;
+      - si no, y hay cola, el SIGUIENTE nombre de la cola (y avanza);
+      - si no hay cola, lo que haya en 'Texto'.
+
+    Mostrar tambien apaga 'Escribiendo': si ya lo estas mostrando, ya
+    terminaste de escribir, y los atajos de teclado vuelven solos.
+    """
     p = _p()
     if not p:
         return
     try:
-        p.par.Textvisible.val = not bool(p.par.Textvisible.eval())
+        visible = bool(p.par.Textvisible.eval())
     except Exception:
-        pass
+        return
+    if visible:
+        _setPar(p, 'Textvisible', False)
+        return
+    current = str(_parVal(p, 'Textcontent', '') or '')
+    last_auto = p.fetch('text_last_auto', None) if hasattr(p, 'fetch') else None
+    queue = _textQueue()
+    typed_new = current.strip() and current != last_auto
+    if queue and not typed_new:
+        idx = int(_parVal(p, 'Textqueueindex', 0) or 0) % len(queue)
+        name = queue[idx]
+        _setPar(p, 'Textcontent', name)
+        _setPar(p, 'Textqueueindex', (idx + 1) % len(queue))
+        if hasattr(p, 'store'):
+            p.store('text_last_auto', name)
+    elif hasattr(p, 'store'):
+        # Lo escrito a mano ya se mostro: la proxima vez vuelve a mandar
+        # la cola (salvo que escribas algo nuevo otra vez).
+        p.store('text_last_auto', current)
+    _setPar(p, 'Textediting', False)
+    _setPar(p, 'Textvisible', True)
+
+
+def _textStep(step):
+    """Pasa al nombre anterior/siguiente de la cola. Si el texto esta en
+    pantalla, hace fundido: oculta, cambia el nombre cuando termino de
+    apagarse, y lo vuelve a mostrar. Si esta oculto, solo lo deja listo
+    (lo vas a ver en el status como 'sigue')."""
+    p = _p()
+    queue = _textQueue()
+    if not p or not queue:
+        return
+    idx = int(_parVal(p, 'Textqueueindex', 0) or 0)
+    visible = bool(_parVal(p, 'Textvisible', False))
+    if not visible:
+        _setPar(p, 'Textqueueindex', (idx + step) % len(queue))
+        return
+    # En pantalla esta queue[idx-1] (idx es el PROXIMO). El destino:
+    shown = (idx - 1) % len(queue)
+    target = (shown + step) % len(queue)
+    _setPar(p, 'Textqueueindex', target)
+    if hasattr(p, 'store'):
+        p.store('text_last_auto', str(_parVal(p, 'Textcontent', '') or ''))
+    _setPar(p, 'Textvisible', False)
+    try:
+        import vjcore.config as _vjconfig
+        fade = float(_vjconfig.TEXT_FADE_SECONDS)
+    except Exception:
+        fade = 0.5
+    run("op('/project1/control_script').module.toggleTextVisible()",
+        delayMilliSeconds=int(fade * 1000) + 60)
+
+
+def textNext():
+    _textStep(1)
+
+
+def textPrev():
+    _textStep(-1)
+
+
+def toggleTextEditing():
+    """Boton ESCRIBIR del dashboard: pausa/reanuda los atajos del
+    teclado de la compu mientras escribes un nombre."""
+    p = _p()
+    if not p:
+        return
+    _setPar(p, 'Textediting', not bool(_parVal(p, 'Textediting', False)))
 
 
 def nextFont():
