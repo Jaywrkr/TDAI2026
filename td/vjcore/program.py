@@ -83,6 +83,18 @@ void main() {
     glow /= max(wsum, 1e-5);
 
     vec3 col = base + glow * AMOUNT;
+
+    // Tonemap de hombro suave. El footer de las escenas ya comprime lo
+    // que pasa de 1.0, pero el glow se suma DESPUES de eso y nadie lo
+    // frenaba: donde el bloom caia sobre algo ya brillante, el pixel
+    // volvia a pasar de 1.0 y la salida de 8 bits lo recortaba a blanco
+    // plano. Por debajo de KNEE esto no toca nada (el set se ve igual en
+    // medios tonos y sombras); por encima, curva asintotica hacia 1.0,
+    // asi el pico conserva forma en vez de ser una mancha.
+    const float KNEE = 0.8;
+    vec3 over = max(col - KNEE, 0.0);
+    col = col - over + over / (1.0 + over / (1.0 - KNEE));
+
     fragColor = TDOutputSwizzle(vec4(col, 1.0));
 }
 """
@@ -215,6 +227,23 @@ void main() {
 _TEXT_FRAG = """
 out vec4 fragColor;
 
+// DITHER DE SALIDA. Este es el ultimo GLSL del program bus antes del
+// master fade, asi que es el lugar para romper el banding: todo el rig
+// trabaja en 16 bits float, pero al proyector salen 8, y en esta
+// estetica (halos suaves y degradados sobre negro) eso se ve como
+// escalones concentricos. Ruido triangular de +-1 LSB por pixel
+// (dos hashes restados): invisible como ruido, pero convierte el
+// escalon en un degradado continuo. Fijo en el tiempo a proposito --
+// animado titila en zonas planas oscuras.
+float ditherHash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+vec3 ditherOut(vec3 col) {
+    vec2 fc = gl_FragCoord.xy;
+    float tpdf = ditherHash(fc) + ditherHash(fc + vec2(37.1, 91.7)) - 1.0;
+    return max(col + tpdf / 255.0, 0.0);
+}
+
 void main() {
     vec2 uv = vUV.st;
     vec3 base = texture(sTD2DInputs[0], uv).rgb;
@@ -223,7 +252,7 @@ void main() {
     // muestras enterito, que es lo unico caro de este shader.
     float fade = texelFetch(sTD2DInputs[2], ivec2(0, 0), 0).r;
     if (fade < 0.001) {
-        fragColor = TDOutputSwizzle(vec4(base, 1.0));
+        fragColor = TDOutputSwizzle(vec4(ditherOut(base), 1.0));
         return;
     }
 
@@ -246,7 +275,7 @@ void main() {
     vec3 col = mix(base, vec3(0.0), outlineCov * fade);
     col = mix(col, vec3(1.0), textCov * fade);
 
-    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+    fragColor = TDOutputSwizzle(vec4(ditherOut(col), 1.0));
 }
 """
 

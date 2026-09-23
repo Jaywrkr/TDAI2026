@@ -211,11 +211,20 @@ void main() {
     // Mirror, Zoom, Posterize -- ver dats/midi_logic.py EFFECT_TRIGGERS) ----
 
     // Grain: añade ruido fino al color. Ganancia subida (0.3 -> 0.55):
-    // pedido explicito de que se note mas.
+    // pedido explicito de que se note mas. Semilla desde gl_FragCoord
+    // (un valor por PIXEL real) y no desde vUV*100, que daba una grilla
+    // de 100x100 bloques -- eso se leia como pixelado, no como grano.
+    // Cambia 24 veces por segundo (cadencia de pelicula), no cada frame.
+    // Pesado por luminancia: el grano de pelicula vive en los medios
+    // tonos; sobre negro puro queda un piso bajo para no ensuciar el
+    // fondo que define esta estetica.
     if (uGrain > 0.0015) {
-        float grain = hash21(vUV.st * 100.0 + uRTime * 20.0);
-        grain = (grain - 0.5) * 2.0 * uGrain;
-        c.rgb += grain * 0.55;
+        vec2 gseed = gl_FragCoord.xy + floor(uRTime * 24.0) * vec2(17.3, 41.9);
+        float grain = hash21(gseed) + hash21(gseed + vec2(5.7, 3.1)) - 1.0;
+        float glum = dot(c.rgb, vec3(0.299, 0.587, 0.114));
+        float gweight = 0.3 + 0.7 * smoothstep(0.0, 0.5, glum);
+        c.rgb += grain * uGrain * 0.55 * gweight;
+        c.rgb = max(c.rgb, vec3(0.0));
     }
 
     // Glitch: desplaza canales RGB independientemente (chromatic
