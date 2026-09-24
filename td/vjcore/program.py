@@ -70,14 +70,23 @@ void main() {
     // KNEE: la entrada al glow es una curva cuadratica de ancho 2*KNEE
     // alrededor del umbral, no un escalon -- sin esto, un brillo que
     // oscila justo en el umbral (audioLift) hace titilar el halo.
+    //
+    // KICK: pedido explicito ("que la intensidad se prenda y se apague y
+    // se note, sobre todo el brillo"). En escenas negras con solo filos
+    // finos (esos filos SON la iluminacion de la sala), un kick baja el
+    // umbral -- mas del filo entra al glow en el golpe -- y program_bloom
+    // (input 2, textura de control) multiplica el resultado. uKick ya es
+    // un transitorio que decae solo (ver audio.py): sube y baja el mismo,
+    // no hace falta ninguna logica de encendido/apagado aca.
     const float THRESH = 0.35;
     const float KNEE = 0.2;
+    float thresh = THRESH - clamp(uKick, 0.0, 1.0) * 0.16;
 
     vec3 c = texture(sTD2DInputs[0], vUV.st).rgb;
     float l = luminance(c);
-    float soft = clamp(l - THRESH + KNEE, 0.0, 2.0 * KNEE);
+    float soft = clamp(l - thresh + KNEE, 0.0, 2.0 * KNEE);
     soft = soft * soft / (4.0 * KNEE);
-    float contrib = max(soft, l - THRESH) / max(l, 1e-4);
+    float contrib = max(soft, l - thresh) / max(l, 1e-4);
 
     fragColor = TDOutputSwizzle(vec4(c * contrib, 1.0));
 }
@@ -92,12 +101,19 @@ void main() {
     // LEVELS: cuantos niveles de mip (el ultimo, 6, cubre ~64 px).
     const float AMOUNT = 1.6;
     const int LEVELS = 6;
+    // Kick: mismo motivo que en el prefiltro. KICK_GLOW empuja el glow,
+    // KICK_BASE da un empujon chico a la imagen de base tambien -- entre
+    // los dos, el golpe SE VE (no solo un halo mas ancho) sin lavar el
+    // negro de fondo ni recortar a blanco (el tonemap de abajo lo cuida).
+    const float KICK_GLOW = 1.1;
+    const float KICK_BASE = 0.22;
+    float kick = clamp(uKick, 0.0, 1.0);
 
     vec2 uv = vUV.st;
     // Input 0: imagen original. Input 1: prefiltro (solo brillos).
     // textureLod 0 explicito: la entrada tiene filtro mipmap y no hace
     // falta que el GPU adivine el nivel por derivadas.
-    vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb;
+    vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb * (1.0 + kick * KICK_BASE);
     vec2 texel = uTD2DInfos[1].res.zw;
 
     vec3 glow = vec3(0.0);
@@ -123,7 +139,7 @@ void main() {
     }
     glow /= wsum;
 
-    vec3 col = base + glow * AMOUNT;
+    vec3 col = base + glow * AMOUNT * (1.0 + kick * KICK_GLOW);
 
     // Tonemap de hombro suave. El footer de las escenas ya comprime lo
     // que pasa de 1.0, pero el glow se suma DESPUES de eso y nadie lo
@@ -141,26 +157,39 @@ void main() {
 """
 
 
-def _build_bloom(proj, src_top):
+def _build_bloom(proj, src_top, ctrl_tex=None, channels=None):
+    # uKick (input 2, textura de control) empuja el glow con cada golpe de
+    # bomba -- ver la nota en _BLOOM_PREFILTER_FRAG/_BLOOM_FRAG. Sin
+    # ctrl_tex (build() suelto, sin audio) cae a 0.0: mismo bloom fijo de
+    # siempre, sin uKick indefinido.
+    if ctrl_tex is not None and channels:
+        head = shader.ctrl_header(channels, 2)
+    else:
+        head = '#define uKick 0.0\n'
+
     pre_src = proj.create(textDAT, 'bloom_prefilter_src')
     pre_src.nodeX, pre_src.nodeY = 1000, 160
-    pre_src.text = _BLOOM_PREFILTER_FRAG
+    pre_src.text = head + _BLOOM_PREFILTER_FRAG
 
     pre = proj.create(glslTOP, 'bloom_prefilter')
     pre.nodeX, pre.nodeY = 1000, 380
     safe_set_first(pre, ['pixeldat', 'pixelshader'], pre_src.path)
     connect(pre, src_top, 0)
+    if ctrl_tex is not None and channels:
+        connect(pre, ctrl_tex, 2)
     safe_set_first(pre, ['format', 'pixelformat'], 'rgba16float')
 
     src = proj.create(textDAT, 'bloom_src')
     src.nodeX, src.nodeY = 1160, 160
-    src.text = _BLOOM_FRAG
+    src.text = head + _BLOOM_FRAG
 
     glsl = proj.create(glslTOP, 'program_bloom')
     glsl.nodeX, glsl.nodeY = 1160, 380
     safe_set_first(glsl, ['pixeldat', 'pixelshader'], src.path)
     connect(glsl, src_top, 0)
     connect(glsl, pre, 1)
+    if ctrl_tex is not None and channels:
+        connect(glsl, ctrl_tex, 2)
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
     # Filtro de entrada en mipmap: es lo que hace que TD genere los mips
     # del prefiltro para que textureLod los lea. 'Input Smoothness' en la
@@ -632,7 +661,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
         connect(clean, cross)
         post = clean
 
-    bloom_fx = _build_bloom(proj, post)
+    bloom_fx = _build_bloom(proj, post, ctrl_tex, channels)
     bloom = bloom_fx['bloom']
 
     # --- overlay de texto (nombre de artista) -- DESPUES del bloom (que
