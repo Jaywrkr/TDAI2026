@@ -547,8 +547,17 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 42 | imgfuego | Aparece una copia grande y brillante de la imagen |
 | 43 | mosaico | **Volteo**: las baldosas dan media vuelta como cartas y muestran el reverso |
 | 44 | persianas | Una lama se abre del todo un instante |
+| 45 | orbe agua | **Gota**: cae una gota sobre la esfera y abre un anillo de luz en las cáusticas |
+| 46 | orbe plasma | **Tocar el vidrio**: un filamento salta del núcleo al borde, hacia la tecla (el teclado da la vuelta al globo) |
+| 47 | orbe orbital | **Salto de nivel**: una banda de color cruza el orbe a la altura de la tecla |
+| 48 | orbe tormenta | **Rayo**: cae un relámpago sobre la esfera en la X de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
+Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
+`td/visuals/LICENSE_ORBKIT.md`): a la izquierda el original, después el
+adaptado sin tecla y en tres momentos del piano.
+
+![orbes](img/orbes.jpg)
 
 ![piano](img/piano_complementos.jpg)
 

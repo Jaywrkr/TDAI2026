@@ -250,6 +250,24 @@ def run_jobs(jobs):
           'dashboard.')
 
 
+def next_free_index():
+    """Proximo indice libre, leido del DISCO y no del modulo importado.
+
+    BUG real: al agregar varias escenas seguidas (un script que llama a
+    este comando una vez por archivo), la segunda y siguientes podian
+    recibir un indice ya ocupado. config.N_SCENES venia del .pyc en cache:
+    si config.py cambio dentro del mismo segundo y con el mismo tamano
+    ('46' -> '47'), Python no lo recompila. Ahora se toma el mayor entre
+    N_SCENES leido del texto de config.py y la ultima sceneNN_*.frag + 1.
+    """
+    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+        m = re.search(r'^N_SCENES = (\d+)', f.read(), re.MULTILINE)
+    n = int(m.group(1)) if m else config.N_SCENES
+    used = [int(x.group(1)) for x in (re.match(r'scene(\d+)_.*\.frag$', fn)
+                                       for fn in os.listdir(VISUALS)) if x]
+    return max([n] + [u + 1 for u in used])
+
+
 def main():
     opts = parse_args(sys.argv[1:])
 
@@ -257,7 +275,7 @@ def main():
         if opts['slug'] or opts['path']:
             print('--dir no se combina con --slug ni con un archivo suelto.')
             sys.exit(1)
-        start = opts['index'] if opts['index'] is not None else config.N_SCENES
+        start = opts['index'] if opts['index'] is not None else next_free_index()
         jobs = collect_dir_jobs(opts['dir'], start)
         run_jobs(jobs)
         return
@@ -271,7 +289,7 @@ def main():
         print('El contenido esta vacio.')
         sys.exit(1)
 
-    index = opts['index'] if opts['index'] is not None else config.N_SCENES
+    index = opts['index'] if opts['index'] is not None else next_free_index()
     slug = sanitize_slug(opts['slug'])
     origin = opts['path'] or '(stdin)'
     run_jobs([(index, slug, body, origin)])
