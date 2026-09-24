@@ -400,63 +400,54 @@ PIANO_HI_NOTE = 73
 # pasar por Learn. Learn sigue disponible para remapear o para otro
 # controlador.
 DEFAULT_MIDI = {
-    # Actualizado con el mapeo REAL confirmado via MIDI Learn en la pagina
-    # MIDI Mapping del usuario (todos los knobs/perillas ya aprendidos,
-    # no solo los 6 originales) -- ver captura de la sesion. Detail5/6
-    # antes se dejaban sin default ("ya no tengo perillas libres"), pero
-    # el usuario libero/reuso dos controles mas: ch1ctrl2 (un CC que no
-    # estaba en uso) y ch1pitch (la rueda de pitch bend, reusada como
-    # perilla continua).
-    'Speed':      'ch1ctrl75',
-    'Density':    'ch1ctrl72',
-    'Hue':        'ch1ctrl77',
-    'Chaos':      'ch1ctrl78',
-    'Brightness': 'ch1ctrl94',
-    # LAYOUT v2 (ver MIDI_LAYOUT_V2 abajo): la perilla que era Transition
-    # es ENERGIA (el macro ya maneja la duracion del fundido), y las tres
-    # de bandas de audio pasan a Estela / Look / Paleta -- con Auto-gain
-    # las bandas ya no se corrigen en vivo (quedan en la pagina Audio).
-    'Energy':     'ch1ctrl74',
-    'Next':       'ch1ctrl30',
-    'Prev':       'ch1ctrl29',
-    'Blackout':   'ch1ctrl28',
-    'Autopilot':  'ch1ctrl27',     # antes Snapshot (queda en el dashboard)
-    'Textvisible': 'ch1ctrl26',    # antes Reset (queda en el dashboard)
-    'Audioamount': 'ch1ctrl76',
-    'Trails':     'ch1ctrl19',     # antes Bass Amount
-    'Lookamount': 'ch1ctrl20',     # antes Mid Amount
-    'Palettelock': 'ch1ctrl17',    # antes High Amount
-    # Tira de modulacion (CC1 de fabrica): se queda donde la dejas, asi que
-    # sirve de perilla -- recorre la carpeta de imagenes con el dedo.
-    'Mediascrub': 'ch1ctrl1',
-    'Detail1': 'ch1ctrl18',
-    'Detail2': 'ch1ctrl92',
-    'Detail3': 'ch1ctrl80',
-    'Detail4': 'ch1ctrl73',
-    'Detail5': 'ch1ctrl2',
-    'Detail6': 'ch1pitch',
-    # 8 efectos en los 8 pads del banco B del MiniLab mkII (pads 9-16).
-    # Los primeros 5 (Grain-Invert) se remapearon de las notas 45-49 a
-    # 37-41 -- confirmado por el usuario en la pagina MIDI Mapping.
-    # Mirror/Zoom/Posterize se quedaron en 50-52. Ya vienen con default
-    # -- no hace falta Learn para que funcionen desde el primer arranque
-    # (igual que los knobs).
-    # Pad 9: RETRO = Grain + Posterize juntos (ver midi_logic.EFFECT_COMBOS).
-    'Retro':     'ch10n37',
-    'Glitch':    'ch10n38',
-    'Pixelate':  'ch10n39',
-    'Strobe':    'ch10n40',
-    'Invert':    'ch10n41',
-    'Mirror':    'ch10n50',
-    'Zoom':      'ch10n51',
-    # Pad 16: antes Posterize (ahora dentro de RETRO) -> modo de mezcla de
-    # Dos Capas.
-    'Blendnext': 'ch10n52',
-    # Carpeta comun de media -- tambien confirmados en la misma captura,
-    # antes sin default.
-    'Medianext': 'ch1ctrl24',
-    'Duallayer': 'ch1ctrl23',      # antes Mediaprev (queda en parametros)
-    'Medialock': 'ch1ctrl25',
+    # Mapeo REAL leido directo de /project1 > MIDI Mapping (capturas del
+    # usuario, panel ya reordenado a Layout v2 -- ver MIDI_PANEL_SLOTS):
+    # cada control fisico ya aprendido queda de una vez como default, asi
+    # que un build nuevo no necesita repetir el Learn de las 32 filas que
+    # ya funcionan. Las perillas 1 y 9 (Energy/Detail1) mandan CC 113/115
+    # -- fuera de la banda angosta 58..70 de _relativePosition
+    # (dats/midi_logic.py), asi que se confirman ABSOLUTAS de una: ya no
+    # necesitan la red de seguridad de modo relativo.
+    #
+    # Tres controles del panel siguen SIN default a proposito porque las
+    # capturas los mostraban vacios (no aprendidos todavia): Retro (pad
+    # 9), Glitch (pad 10) y Trailszoom (tira de pitch). Quedan listos
+    # para Learn el dia que se les asigne un control.
+    'Energy':      'ch1ctrl113',
+    'Hue':         'ch1ctrl75',
+    'Speed':       'ch1ctrl72',
+    'Density':     'ch1ctrl77',
+    'Chaos':       'ch1ctrl78',
+    'Audioamount': 'ch1ctrl94',
+    'Trails':      'ch1ctrl74',
+    'Brightness':  'ch1ctrl76',
+    'Detail1':     'ch1ctrl115',
+    'Detail2':     'ch1ctrl19',
+    'Detail3':     'ch1ctrl20',
+    'Detail4':     'ch1ctrl17',
+    'Detail5':     'ch1ctrl18',
+    'Detail6':     'ch1ctrl92',
+    'Lookamount':  'ch1ctrl80',
+    'Palettelock': 'ch1ctrl73',
+    'Layermix':    'ch1ctrl23',     # Shift + perilla 1
+    'Transition':  'ch1ctrl24',     # Shift + perilla 9
+    'Mediascrub':  'ch1ctrl1',      # tira de modulacion
+    # Pads banco A (el show): notas de canal 10, no CC.
+    'Next':        'ch10n38',
+    'Prev':        'ch10n37',
+    'Blackout':    'ch10n39',
+    'Autopilot':   'ch10n40',
+    'Textvisible': 'ch10n41',
+    'Medianext':   'ch10n42',
+    'Duallayer':   'ch10n43',
+    'Medialock':   'ch10n44',
+    # Pads banco B (efectos): estos 6 quedaron en CC de canal 1, no notas.
+    'Pixelate':  'ch1ctrl25',
+    'Strobe':    'ch1ctrl26',
+    'Invert':    'ch1ctrl27',
+    'Mirror':    'ch1ctrl28',
+    'Zoom':      'ch1ctrl29',
+    'Blendnext': 'ch1ctrl30',
 }
 
 # Orden en que aparecen en la pagina MIDI Mapping. Esto es lo unico que
