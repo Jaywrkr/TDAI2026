@@ -5,6 +5,32 @@
 >
 > Ver también: [`catalogo.html`](./catalogo.html) — versión navegable con preview por tarjeta y detalle al click.
 
+## 0. Nota de la segunda pasada de verificación (WebSearch)
+
+La ronda anterior de esta investigación no pudo acceder directamente a `shadertoy.com` (proxy de red bloqueado)
+y armó el catálogo a partir de snippets de búsqueda web, sin confirmar cada shader uno por uno. En esta pasada
+se volvió a verificar **cada una de las 35 entradas de Shadertoy** con una búsqueda dedicada por ID
+(`shadertoy.com/view/<ID>`), en un entorno donde `WebFetch`/`curl` a shadertoy.com también están bloqueados
+pero `WebSearch` sí funciona.
+
+**Resultado: 35 de 35 shaders de Shadertoy quedaron confirmados** — el ID existe, el título coincide (o se
+corrigió si difería) y, cuando la búsqueda lo permitió, se reemplazó "ver perfil en Shadertoy" por el nombre de
+usuario real del autor. Ninguno quedó sin confirmar en esta ronda; no se necesitó usar el estado
+"⚠ sin confirmar" que el catálogo HTML igual soporta para una futura revisión. Los 3 shaders `.tox` (#36-38)
+se verificaron por separado contra el repo [`exsstas/Shadertoy-TD-ports`](https://github.com/exsstas/Shadertoy-TD-ports),
+que también se confirmó real y con la lista de `.tox` (Goo, Aya_Tunnel, Branching_paths_basic) coincidiendo con
+lo documentado.
+
+Autores corregidos/agregados en esta pasada (antes figuraban como "ver perfil en Shadertoy" o eran genéricos):
+**#1 Curling Smoke → leon**, **#6 More Simple Metaballs → Efim**, **#12 Plasma Waves → scarletshark** (con
+licencia CC BY-NC-SA 3.0 confirmada explícitamente por el autor), **#15 Nebulous Tunnel → Shane**,
+**#16 Infinite repetition → Inigo Quilez (iq)**, **#23 Interactive Neon Grid Background → amirali**,
+**#24 Cyber Punk → jianinz**, **#26 Life-Like Cellular Automata → KaWiz**,
+**#33 60FPS Volumetric Clouds on iGPU → sdfgeoff**. El resto de los autores ya documentados en la primera
+pasada (dugufly, Infantus, Inigo Quilez, michael0884, Dave_Hoskins, ESpitz, jarble) se confirmaron sin cambios.
+Donde la búsqueda no devolvió un nombre de autor, se mantuvo "ver perfil en Shadertoy" — nunca se inventó un
+nombre.
+
 ## 1. Resumen
 
 - **38 shaders candidatos** catalogados (rango pedido: 30–40), cubriendo: fluidos, tinta/acuarela, humo,
@@ -18,6 +44,8 @@
 - **3 shaders identificados como YA PORTADOS a TouchDesigner** (con `.tox` funcional en GitHub), útiles
   como referencia de arquitectura de port, no para copiar tal cual (su arquitectura de parámetros no coincide
   con el contrato `render(uv)` de este rig).
+- **35 de 35 shaders de Shadertoy verificados por WebSearch en una segunda pasada** (ver sección 0) — ninguno
+  quedó marcado como "sin confirmar".
 - **Ningún archivo de código con licencia permisiva confirmada fue descargado** a `refs/` — ver sección 6.
   La gran mayoría de shaders de Shadertoy usan la licencia por defecto de la plataforma
   (CC BY-NC-SA 3.0 salvo que el autor indique otra explícitamente en la página), que **no** es "código abierto
@@ -67,7 +95,7 @@ Leyenda — GPU: BAJO/MEDIO/ALTO · Port: dificultad de adaptación BAJO/MEDIO/A
 
 | # | Nombre | Fuente | GPU | Port | Compat TD | Notas clave |
 |---|---|---|---|---|---|---|
-| 1 | Curling Smoke | [Shadertoy `cl23Wt`](https://www.shadertoy.com/view/cl23Wt) | MEDIO | MEDIO | Alta | Curl noise single-pass, sin buffers |
+| 1 | Curling Smoke | [Shadertoy `cl23Wt`](https://www.shadertoy.com/view/cl23Wt) (leon) | MEDIO | MEDIO | Alta | Curl noise single-pass, sin buffers |
 | 2 | Fluid smoke/fog shader | [Shadertoy `wfB3DG`](https://www.shadertoy.com/view/wfB3DG) | MEDIO | MEDIO | Alta | fbm + domain warp |
 | 3 | Ink in Water | [Shadertoy `MddcDS`](https://www.shadertoy.com/view/MddcDS) | ALTO | ALTO | Media | Probable multipass, advección real |
 | 4 | watercolor propagation | [Shadertoy `mdlXW2`](https://www.shadertoy.com/view/mdlXW2) | MEDIO | MEDIO | Alta | Post-proceso tipo acuarela sobre noise |
@@ -77,13 +105,13 @@ Leyenda — GPU: BAJO/MEDIO/ALTO · Port: dificultad de adaptación BAJO/MEDIO/A
 
 | # | Nombre | Fuente | GPU | Port | Compat TD | Notas clave |
 |---|---|---|---|---|---|---|
-| 6 | More Simple Metaballs | [Shadertoy `csVcWd`](https://www.shadertoy.com/view/csVcWd) | BAJO | BAJO | Muy alta | Suma de campos circulares, directo |
+| 6 | More Simple Metaballs | [Shadertoy `csVcWd`](https://www.shadertoy.com/view/csVcWd) (Efim) | BAJO | BAJO | Muy alta | Suma de campos circulares, directo |
 | 7 | Interactive liquid metal blob | [Shadertoy `3tGXz3`](https://www.shadertoy.com/view/3tGXz3) | MEDIO | MEDIO | Alta | Raymarching de 1 blob + shading metálico |
 | 8 | Iridescent Liquid Wave | [Shadertoy `NXlXWM`](https://www.shadertoy.com/view/NXlXWM) | MEDIO | BAJO | Muy alta | Ondas + paleta coseno, muy barato |
 | 9 | Black, Iridescent, Liquid | [Shadertoy `3sl3DH`](https://www.shadertoy.com/view/3sl3DH) | MEDIO | MEDIO | Alta | Domain warp + iridiscencia sobre fondo oscuro |
 | 10 | An Iridescent material | [Shadertoy `wX2yRm`](https://www.shadertoy.com/view/wX2yRm) | BAJO | BAJO | Muy alta | Fresnel + paleta, "fórmula" de referencia |
 | 11 | Plasma Waves of Interference | [Shadertoy `3cjyD1`](https://www.shadertoy.com/view/3cjyD1) | BAJO | BAJO | Muy alta | Plasma clásico, interferencia de senos |
-| 12 | Plasma Waves | [Shadertoy `ltXczj`](https://www.shadertoy.com/view/ltXczj) | BAJO | BAJO | Muy alta | Variante del anterior |
+| 12 | Plasma Waves | [Shadertoy `ltXczj`](https://www.shadertoy.com/view/ltXczj) (scarletshark) | BAJO | BAJO | Muy alta | Variante del anterior; licencia CC BY-NC-SA 3.0 confirmada explícita por el autor |
 
 ### 4.3 Túneles / Kaleidoscopios / Fractales / Raymarching abstracto
 
@@ -91,8 +119,8 @@ Leyenda — GPU: BAJO/MEDIO/ALTO · Port: dificultad de adaptación BAJO/MEDIO/A
 |---|---|---|---|---|---|---|
 | 13 | Infinite Tunnel Kaleidoscope | [Shadertoy `NflSDS`](https://www.shadertoy.com/view/NflSDS) (dugufly) | MEDIO | MEDIO | Alta | Túnel raymarched con simetría radial |
 | 14 | SDF Tunnel | [Shadertoy `s323Rm`](https://www.shadertoy.com/view/s323Rm) (Infantus) | MEDIO/ALTO | MEDIO | Alta | Voxel raymarching |
-| 15 | Nebulous Tunnel | [Shadertoy `ltfBzM`](https://www.shadertoy.com/view/ltfBzM) | MEDIO | MEDIO | Alta | Túnel volumétrico con noise |
-| 16 | Infinite repetition | [Shadertoy `4dXGRN`](https://www.shadertoy.com/view/4dXGRN) | MEDIO | BAJO | Alta | Domain repetition (mod), clásico iq |
+| 15 | Nebulous Tunnel | [Shadertoy `ltfBzM`](https://www.shadertoy.com/view/ltfBzM) (Shane) | MEDIO | MEDIO | Alta | Túnel volumétrico con noise |
+| 16 | Infinite repetition | [Shadertoy `4dXGRN`](https://www.shadertoy.com/view/4dXGRN) (Inigo Quilez / iq, 2013-03-19) | MEDIO | BAJO | Alta | Domain repetition (mod), clásico iq |
 | 17 | Raymarching - Primitives | [Shadertoy `Xds3zN`](https://www.shadertoy.com/view/Xds3zN) (Inigo Quilez) | MEDIO/ALTO | MEDIO | Alta (recortando primitivas) | Demo educativa de SDFs — usar como referencia, no copiar completa |
 
 ### 4.4 Espacio / Nebulosas / Galaxias / Agujeros negros
@@ -109,8 +137,8 @@ Leyenda — GPU: BAJO/MEDIO/ALTO · Port: dificultad de adaptación BAJO/MEDIO/A
 | # | Nombre | Fuente | GPU | Port | Compat TD | Notas clave |
 |---|---|---|---|---|---|---|
 | 22 | Electric Lightning | [Shadertoy `Dsd3Dj`](https://www.shadertoy.com/view/Dsd3Dj) | BAJO/MEDIO | BAJO | Muy alta | fbm jitter + glow exponencial sobre curva |
-| 23 | Interactive Neon Grid Background | [Shadertoy `4XBGWV`](https://www.shadertoy.com/view/4XBGWV) | BAJO | BAJO | Muy alta | Grid con perspectiva, fract/mod, muy barato |
-| 24 | Cyber Punk | [Shadertoy `7lVSDw`](https://www.shadertoy.com/view/7lVSDw) | BAJO | BAJO | Alta | Scanlines + glitch + paleta neón |
+| 23 | Interactive Neon Grid Background | [Shadertoy `4XBGWV`](https://www.shadertoy.com/view/4XBGWV) (amirali) | BAJO | BAJO | Muy alta | Grid con perspectiva, fract/mod, muy barato |
+| 24 | Cyber Punk | [Shadertoy `7lVSDw`](https://www.shadertoy.com/view/7lVSDw) (jianinz) | BAJO | BAJO | Alta | Scanlines + glitch + paleta neón |
 | 35 | Glitchy Glitch | [Shadertoy `wld3WN`](https://www.shadertoy.com/view/wld3WN) | BAJO/MEDIO | BAJO | Muy alta | Block displacement + RGB split; comparar con `scene03_mediaglitch` |
 
 ### 4.6 Células / Voronoi / Autómatas / Partículas / Noise orgánico
@@ -118,7 +146,7 @@ Leyenda — GPU: BAJO/MEDIO/ALTO · Port: dificultad de adaptación BAJO/MEDIO/A
 | # | Nombre | Fuente | GPU | Port | Compat TD | Notas clave |
 |---|---|---|---|---|---|---|
 | 25 | Voronoi - basic | [Shadertoy `MslGD8`](https://www.shadertoy.com/view/MslGD8) | BAJO | BAJO | Muy alta | Worley/Voronoi clásico, base reutilizable |
-| 26 | Life-Like Cellular Automata | [Shadertoy `tljcWy`](https://www.shadertoy.com/view/tljcWy) | ALTO | ALTO | Media | Requiere Feedback TOP (estado persistente) |
+| 26 | Life-Like Cellular Automata | [Shadertoy `tljcWy`](https://www.shadertoy.com/view/tljcWy) (KaWiz) | ALTO | ALTO | Media | Requiere Feedback TOP (estado persistente) |
 | 27 | chaotic particle swarm 2 | [Shadertoy `WtK3zt`](https://www.shadertoy.com/view/WtK3zt) (michael0884) | ALTO | ALTO | Media/Baja | Voronoi particle tracking con buffer; aproximar sin estado real |
 | 28 | Flow fields | [Shadertoy `ssV3Dw`](https://www.shadertoy.com/view/ssV3Dw) | MEDIO | MEDIO | Alta (sin trails persistentes) | Curl noise arrastrando color |
 | 29 | field, flow and particles | [Shadertoy `DttSRB`](https://www.shadertoy.com/view/DttSRB) | MEDIO | MEDIO | Alta (variante sin memoria) | Similar a #28 |
@@ -130,7 +158,7 @@ Leyenda — GPU: BAJO/MEDIO/ALTO · Port: dificultad de adaptación BAJO/MEDIO/A
 | 30 | Mountains | [Shadertoy `4slGD4`](https://www.shadertoy.com/view/4slGD4) (Dave_Hoskins) | MEDIO/ALTO | MEDIO | Alta | Heightfield fbm raymarched, +58k vistas, muy citado |
 | 31 | Fog Mountains | [Shadertoy `XdsGD7`](https://www.shadertoy.com/view/XdsGD7) (ESpitz) | MEDIO/ALTO | MEDIO | Alta | Variante atmosférica de #30 |
 | 32 | Eroded mountain terrain (v2) | [Shadertoy `stS3zD`](https://www.shadertoy.com/view/stS3zD) (jarble) | ALTO | MEDIO | Media/Alta | fbm con derivadas de erosión, más caro |
-| 33 | **60FPS Volumetric Clouds on iGPU** | [Shadertoy `DtBGR1`](https://www.shadertoy.com/view/DtBGR1) | MEDIO | MEDIO | **Muy alta — validado para el hardware objetivo** | Diseñado y probado explícitamente para 60 FPS en GPU integrada |
+| 33 | **60FPS Volumetric Clouds on iGPU** | [Shadertoy `DtBGR1`](https://www.shadertoy.com/view/DtBGR1) (sdfgeoff) | MEDIO | MEDIO | **Muy alta — validado para el hardware objetivo** | Diseñado y probado explícitamente para 60 FPS en GPU integrada |
 | 34 | Cloud raymarching | [Shadertoy `WslGWl`](https://www.shadertoy.com/view/WslGWl) | ALTO | MEDIO | Media | Sample "de libro de texto", más caro que #33 |
 
 ### 4.8 Ya portados a TouchDesigner (referencia de arquitectura)

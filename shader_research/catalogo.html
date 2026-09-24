@@ -69,7 +69,24 @@
   .tag.gpu-BAJO{ color:var(--low); border-color:#1f3a2a; }
   .tag.gpu-MEDIO{ color:var(--med); border-color:#3a341f; }
   .tag.gpu-ALTO{ color:var(--high); border-color:#3a1f1f; }
+  .tag.license{ color:var(--accent); border-color:#1f3345; cursor:help; }
+  .tag.unverified{ color:#1a1508; background:#facc15; border-color:#facc15; font-weight:700; }
   .src{ font-size:.72rem; color:var(--text-dim); margin-top:2px; }
+
+  /* fallback siempre visible cuando la imagen de preview no carga (o no hay) */
+  .thumb .fallback{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; padding:10px; gap:4px; width:100%; height:100%;
+  }
+  .thumb .fallback .fb-num{ font-size:.7rem; color:var(--text-dim); }
+  .thumb .fallback .fb-name{ font-size:.82rem; font-weight:600; color:var(--text); line-height:1.2; }
+  .thumb .fallback .fb-cat{ font-size:.68rem; color:var(--accent2); }
+  .thumb .fallback .fb-lic{ font-size:.64rem; color:var(--text-dim); }
+  .thumb .fallback .fb-link{
+    margin-top:4px; font-size:.68rem; color:var(--accent); text-decoration:none; border:1px solid var(--border);
+    padding:2px 8px; border-radius:20px;
+  }
+  .thumb .fallback .fb-link:hover{ text-decoration:underline; border-color:var(--accent); }
 
   /* modal */
   .overlay{
@@ -143,7 +160,7 @@ const DATA = [
 {
   n:1, name:"Curling Smoke", cat:"Humo / Fluidos", gpu:"MEDIO", port:"MEDIO",
   compat:"Alta — solo afecta brillo/densidad, geometría implícita en el noise curl",
-  source:"Shadertoy", url:"https://www.shadertoy.com/view/cl23Wt", author:"comunidad Shadertoy (ver perfil en la fuente)",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/cl23Wt", author:"leon",
   license:"Shadertoy default (CC BY-NC-SA 3.0 salvo que el autor indique otra)",
   tech:"GLSL / Shadertoy (single-pass, curl noise)",
   preview:"https://www.shadertoy.com/media/shaders/cl23Wt.jpg",
@@ -201,7 +218,7 @@ const DATA = [
 },
 {
   n:6, name:"More Simple Metaballs", cat:"Metaballs / Goo", gpu:"BAJO", port:"BAJO",
-  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/csVcWd", author:"ver perfil en Shadertoy",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/csVcWd", author:"Efim",
   license:"Shadertoy default", tech:"GLSL / Shadertoy single-pass (suma de campos de distancia circular)",
   preview:"https://www.shadertoy.com/media/shaders/csVcWd.jpg",
   adapt:"Directo — sin iChannel, sin buffers. Solo reemplazar iTime/iResolution.",
@@ -266,8 +283,8 @@ const DATA = [
 },
 {
   n:12, name:"Plasma Waves", cat:"Plasma", gpu:"BAJO", port:"BAJO",
-  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/ltXczj", author:"ver perfil en Shadertoy",
-  license:"Shadertoy default", tech:"GLSL / Shadertoy, plasma clásico",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/ltXczj", author:"scarletshark",
+  license:"CC BY-NC-SA 3.0 (confirmada explícitamente por el autor)", tech:"GLSL / Shadertoy, plasma clásico",
   preview:"https://www.shadertoy.com/media/shaders/ltXczj.jpg",
   adapt:"Directo.", perf:"MUY BAJO.",
   params:"Igual que #11.", midi:"uKick como pulso de amplitud global.",
@@ -297,7 +314,7 @@ const DATA = [
 },
 {
   n:15, name:"Nebulous Tunnel", cat:"Túneles / Nebulosa", gpu:"MEDIO", port:"MEDIO",
-  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/ltfBzM", author:"ver perfil en Shadertoy",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/ltfBzM", author:"Shane",
   license:"Shadertoy default", tech:"GLSL / Shadertoy, túnel volumétrico simple con noise",
   preview:"https://www.shadertoy.com/media/shaders/ltfBzM.jpg",
   adapt:"Volumetric raymarching ligero (pocas capas); directo de portar.",
@@ -307,7 +324,7 @@ const DATA = [
 },
 {
   n:16, name:"Infinite repetition", cat:"Fractales / Raymarching", gpu:"MEDIO", port:"BAJO",
-  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4dXGRN", author:"ver perfil en Shadertoy (shader clásico, 2013)",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4dXGRN", author:"Inigo Quilez (iq)",
   license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching con domain repetition (mod espacial)",
   preview:"https://www.shadertoy.com/media/shaders/4dXGRN.jpg",
   adapt:"Técnica de 'infinite repetition' vía operador mod() en el espacio — clásico de iq, bien documentado, fácil de adaptar.",
@@ -385,7 +402,7 @@ const DATA = [
 },
 {
   n:23, name:"Interactive Neon Grid Background", cat:"Grids / Neón", gpu:"BAJO", port:"BAJO",
-  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4XBGWV", author:"ver perfil en Shadertoy",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4XBGWV", author:"amirali",
   license:"Shadertoy default", tech:"GLSL / Shadertoy, grid procedural con perspectiva + glow de líneas",
   preview:"https://www.shadertoy.com/media/shaders/4XBGWV.jpg",
   adapt:"Directo — grid con fract()/mod(), muy barato.",
@@ -396,7 +413,7 @@ const DATA = [
 },
 {
   n:24, name:"Cyber Punk", cat:"Neón / Glitch", gpu:"BAJO", port:"BAJO",
-  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/7lVSDw", author:"ver perfil en Shadertoy",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/7lVSDw", author:"jianinz",
   license:"Shadertoy default", tech:"GLSL / Shadertoy, combinación de líneas de scan + glitch + paleta neón",
   preview:"https://www.shadertoy.com/media/shaders/7lVSDw.jpg",
   adapt:"Directo, sin buffers.", perf:"BAJO.",
@@ -417,7 +434,7 @@ const DATA = [
 {
   n:26, name:"Life-Like Cellular Automata", cat:"Autómata celular / Orgánico", gpu:"ALTO", port:"ALTO",
   compat:"Media — requiere estado persistente entre frames (Feedback TOP en TD en vez del Buffer A de Shadertoy)",
-  source:"Shadertoy", url:"https://www.shadertoy.com/view/tljcWy", author:"ver perfil en Shadertoy",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/tljcWy", author:"KaWiz",
   license:"Shadertoy default", tech:"GLSL / Shadertoy multipass (Buffer A con el estado del autómata, iChannel0 se lee a sí mismo)",
   preview:"https://www.shadertoy.com/media/shaders/tljcWy.jpg",
   adapt:"Necesita un Feedback TOP dedicado (textura de estado que se lee y escribe cada frame) — no cabe en el contrato de una sola función render(uv) sin agregar ese TOP extra al patch.",
@@ -493,7 +510,7 @@ const DATA = [
 {
   n:33, name:"60FPS Volumetric Clouds on iGPU", cat:"Nubes volumétricas", gpu:"MEDIO", port:"MEDIO",
   compat:"Muy alta — literalmente diseñado y probado para 60 FPS en GPU integrada",
-  source:"Shadertoy", url:"https://www.shadertoy.com/view/DtBGR1", author:"ver perfil en Shadertoy",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/DtBGR1", author:"sdfgeoff",
   license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching volumétrico optimizado (pocos steps, noise barato)",
   preview:"https://www.shadertoy.com/media/shaders/DtBGR1.jpg",
   adapt:"Directo — el propio shader ya está optimizado para el caso de uso exacto del rig (GPU integrada, 60 FPS).",
@@ -568,6 +585,37 @@ CATS.forEach(c=>{
 
 function gpuColor(g){ return g==='BAJO'?'low':g==='MEDIO'?'med':'high'; }
 
+// Extrae una etiqueta corta de licencia a partir del texto largo del campo `license`.
+function shortLicense(d){
+  const l = (d.license||'').toLowerCase();
+  if(l.includes('cc by-nc-sa')) return 'CC BY-NC-SA';
+  if(l.includes('cc0')) return 'CC0';
+  if(l.includes('mit')) return 'MIT';
+  if(l.includes('gpl-3.0') || l.includes('gpl 3')) return 'GPL-3.0';
+  if(l.includes('gpl')) return 'GPL';
+  if(l.includes('apache')) return 'Apache';
+  if(l.includes('shadertoy default')) return 'CC BY-NC-SA (default)';
+  return (d.license||'Sin licencia especificada').slice(0,18);
+}
+
+// Un shader se considera "confirmado" salvo que se marque explícitamente d.verified === false
+// (segunda pasada de verificación vía WebSearch, ver SHADERS_RESEARCH.md sección 2).
+function isVerified(d){ return d.verified !== false; }
+
+function escapeAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
+
+function fallbackHTML(d){
+  return `
+    <div class="fallback" id="fallback-${d.n}">
+      <span class="fb-num">#${String(d.n).padStart(2,'0')}</span>
+      <span class="fb-name">${d.name}</span>
+      <span class="fb-cat">${d.cat}</span>
+      <span class="fb-lic">${shortLicense(d)}</span>
+      <a class="fb-link" href="${d.url}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ver original ↗</a>
+    </div>
+  `;
+}
+
 function card(d){
   const div = document.createElement('div');
   div.className = 'card';
@@ -576,8 +624,8 @@ function card(d){
     <div class="thumb" id="thumb-${d.n}">
       <span class="num">#${String(d.n).padStart(2,'0')}</span>
       <span class="badge tag gpu-${d.gpu}" style="background:rgba(0,0,0,.55)">${d.gpu}</span>
-      <span class="ph" id="ph-${d.n}" style="${d.preview?'display:none':''}">${d.cat}<br>(sin preview — ver fuente)</span>
-      ${d.preview?`<img src="${d.preview}" alt="" style="display:none" onload="this.parentElement.style.backgroundImage='url(\\''+this.src+'\\')';this.remove();" onerror="this.remove();document.getElementById('ph-${d.n}').style.display='flex'">`:''}
+      <span id="fb-${d.n}" style="${d.preview?'display:none':''}">${fallbackHTML(d)}</span>
+      ${d.preview?`<img src="${d.preview}" alt="" style="display:none" onload="this.parentElement.style.backgroundImage='url(\\''+this.src+'\\')';this.remove();" onerror="this.remove();document.getElementById('fb-${d.n}').style.display='flex'">`:''}
     </div>
     <div class="body">
       <div class="name">${d.name}</div>
@@ -585,6 +633,8 @@ function card(d){
       <div class="meta">
         <span class="tag gpu-${d.gpu}">GPU: ${d.gpu}</span>
         <span class="tag">Port: ${d.port}</span>
+        <span class="tag license" title="${escapeAttr(d.license)}">${shortLicense(d)}</span>
+        ${!isVerified(d)?'<span class="tag unverified" title="No se pudo confirmar la existencia/datos de este shader vía WebSearch — verificar manualmente antes de portar">⚠ sin confirmar</span>':''}
       </div>
       <div class="src">${d.source}</div>
     </div>
@@ -628,6 +678,8 @@ function openModal(d){
       <div class="row">
         <span class="tag gpu-${d.gpu}">Costo GPU: ${d.gpu}</span>
         <span class="tag">Dificultad de port: ${d.port}</span>
+        <span class="tag license" title="${escapeAttr(d.license)}">${shortLicense(d)}</span>
+        ${!isVerified(d)?'<span class="tag unverified">⚠ sin confirmar</span>':''}
       </div>
       <dl class="spec">
         <dt>Fuente</dt><dd><a class="link" href="${d.url}" target="_blank" rel="noopener">${d.source} ↗</a></dd>
