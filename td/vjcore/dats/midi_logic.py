@@ -274,6 +274,65 @@ EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
                     'Mirror', 'Zoom', 'Posterize']
 
 
+# --- MODO RELATIVO (perillas 1 y 9 de fabrica, ver docs/02) --------------
+# Las perillas CLICABLES (1 y 9) del MiniLab mkII vienen en modo RELATIVO
+# de fabrica (pensado para navegar presets): en vez de mandar la posicion
+# real 0..127 como el resto de las perillas, mandan siempre un numero
+# pegado a 64 en cada paso (Arturia 'Relative #2' / 2's complement: 65 =
+# +1 paso, 63 = -1, nunca los extremos). _handle() asumia SIEMPRE que
+# 'val' era la posicion absoluta -- en una perilla relativa eso se lee
+# como "salta cerca de la mitad y se queda ahi", que es justo el sintoma
+# reportado (Energia/Detail1 "no responden bien").
+#
+# La solucion de fondo (docs/02_MIDI_MINILAB_MKII.md) es poner esas 2
+# perillas en modo Absolute desde Arturia MIDI Control Center -- pero
+# mientras eso no este hecho (o con otro controlador que tambien mande
+# relativo), esto detecta el patron solo y acumula en vez de quedarse
+# mudo. Deteccion CONSERVADORA: se asume relativo solo si TODO lo que
+# llego de ese canal cayo siempre en la banda angosta de abajo. En cuanto
+# llega un solo valor fuera de la banda, se confirma ABSOLUTO para
+# siempre y esto deja de intervenir -- asi una perilla que ya manda
+# absoluto (todas las demas) nunca cambia de comportamiento.
+_REL_BAND_LO = 58
+_REL_BAND_HI = 70
+_REL_STEP = 1.0 / 127.0  # un "tic" relativo mueve lo mismo que 1 unidad MIDI
+
+
+def _relativePosition(p, name, val):
+    """None si el canal ya esta confirmado absoluto (comportamiento de
+    siempre); si no, la posicion 0..1 acumulada a partir de los pasos
+    relativos vistos hasta ahora."""
+    try:
+        v = int(round(float(val)))
+    except (TypeError, ValueError):
+        return None
+    key_mode = 'relmode_' + name
+    key_pos = 'relpos_' + name
+    mode = p.fetch(key_mode, None)
+
+    if mode is None:
+        # Primera lectura de este canal: si ya viene fuera de la banda
+        # angosta, es absoluto (un valor relativo real NUNCA pega en los
+        # extremos ni lejos de 64).
+        mode = 'relative' if _REL_BAND_LO <= v <= _REL_BAND_HI else 'absolute'
+        p.store(key_mode, mode)
+        if mode == 'relative':
+            p.store(key_pos, 0.5)
+
+    if mode == 'absolute':
+        return None
+
+    if not (_REL_BAND_LO <= v <= _REL_BAND_HI):
+        # Un valor fuera de la banda desmiente la hipotesis "relativo":
+        # confirma absoluto para siempre.
+        p.store(key_mode, 'absolute')
+        return None
+
+    pos = max(0.0, min(1.0, float(p.fetch(key_pos, 0.5)) + (v - 64) * _REL_STEP))
+    p.store(key_pos, pos)
+    return pos
+
+
 def _ctx():
     return op('/project1'), op('/project1/control_script')
 
@@ -337,7 +396,12 @@ def _handle(channel, val, is_trigger):
                 ea = getattr(p.par, 'Energyactive', None)
                 if ea is not None and not bool(ea.eval()):
                     ea.val = True
-            par.val = lo + (hi - lo) * _norm01(name, val)
+            pos01 = None
+            if not _PITCH_RE.match(name):
+                pos01 = _relativePosition(p, name, val)
+            if pos01 is None:
+                pos01 = _norm01(name, val)
+            par.val = lo + (hi - lo) * pos01
     elif is_trigger and slot in EFFECT_COMBOS:
         for fx in EFFECT_COMBOS[slot]:
             par = getattr(p.par, fx, None)

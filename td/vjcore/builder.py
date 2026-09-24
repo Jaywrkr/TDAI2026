@@ -291,10 +291,18 @@ def _parameters(proj):
     add_toggle(bk, 'Padleds', 'Colores de pads segun estado', False)
     add_pulse(bk, 'Padledtest', 'Probar colores de pads')
 
+    # Orden y nombres = la web (docs/10_MANUAL_MINILAB.html): solo los
+    # controles que tienen un lugar fisico en el MiniLab (Layout v2), en
+    # el mismo orden fisico (perillas 1->16, tiras, pads banco A, pads
+    # banco B) -- ver config.MIDI_PANEL_SLOTS/MIDI_SLOT_LABEL_ES. El resto
+    # de MIDI_SLOTS (Snapshot, Reset, Grain suelto, Bass/Mid/High Amount,
+    # etc.) no tiene pad/perilla asignado hoy: vive en el dashboard o en
+    # su propia pagina de parametros, no aca.
     m = proj.appendCustomPage('MIDI Mapping')
-    for slot in c.MIDI_SLOTS:
-        add_string(m, 'Midi' + slot.lower(), slot, c.DEFAULT_MIDI.get(slot, ''))
-        add_pulse(m, 'Learn' + slot.lower(), 'Learn ' + slot)
+    for slot in c.MIDI_PANEL_SLOTS:
+        label = c.MIDI_SLOT_LABEL_ES.get(slot, slot)
+        add_string(m, 'Midi' + slot.lower(), label, c.DEFAULT_MIDI.get(slot, ''))
+        add_pulse(m, 'Learn' + slot.lower(), 'Learn ' + label)
     add_pulse(m, 'Cancellearn', 'Cancelar Learn')
     add_pulse(m, 'Savemidi', 'Guardar Mapeo')
     add_pulse(m, 'Loadmidi', 'Cargar Mapeo')

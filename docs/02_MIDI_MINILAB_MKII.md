@@ -10,6 +10,15 @@ Extras: `Shift` + perilla 1 o 9 manda un CC alternativo (2 perillas más).
 > (y con eso todos los CC). El banco se cambia con el botón
 > **`Pad 1-8 / 9-16`**.
 
+**`/project1` → `MIDI Mapping`** muestra ahora exactamente los 36 controles
+de abajo (16 perillas, Shift+1, Shift+9, las 2 tiras y los 16 pads), en el
+MISMO orden físico y con el MISMO nombre en español que esta página y el
+manual (`docs/10_MANUAL_MINILAB.html`) — por ejemplo la fila de `Trails` en
+esa página dice **"Estela"**, no "Trails". Lo que no tiene pad ni perilla
+asignado hoy (Snapshot, Reset, Grain suelto, Bass/Mid/High Amount, etc.) no
+aparece ahí: sigue en el dashboard o en su propia página de parámetros — ver
+"Lo que salió del controlador" más abajo.
+
 ### Perillas
 
 Se indica **qué perilla física es** por lo que hacía antes — así no hay que
@@ -37,15 +46,17 @@ Las bandas Bass/Mid/High Amount salen del controlador porque con
 **Auto-gain** ya no hace falta corregirlas en vivo: quedan en la pestaña
 **Audio**.
 
-### Perillas 1 y 9: tienen que estar en modo Absolute
+### Perillas 1 y 9: mejor en modo Absolute (y el rig ya se defiende solo)
 
 Las perillas 1 y 9 son especiales: se pueden apretar, con `Shift` mandan un
 segundo control, y en la memoria de fábrica vienen en **modo relativo**
-(para navegar presets). En relativo la perilla manda el mismo número una y
-otra vez ("un paso más"), y el MIDI In CHOP de TouchDesigner solo reacciona
-cuando el valor **cambia**: una perilla relativa se lee como un solo paso.
-Por eso el rig no intenta decodificar relativo: la solución es ponerlas en
-absoluto una vez.
+(para navegar presets). En relativo la perilla NO manda su posición: manda
+siempre un número pegado a 64 en cada paso (65 = "un paso arriba", 63 = "un
+paso abajo", nunca los extremos 0/127). Si el rig lo leyera como posición
+absoluta, se ve exactamente como lo reportado: la perilla salta cerca de la
+mitad y se queda ahí sin responder más.
+
+**Arreglo de fondo (recomendado):**
 
 1. Cierra TouchDesigner y abre **Arturia MIDI Control Center**.
 2. En la memoria que usas: perilla 1 → **Mode: Absolute**, Min 0, Max 127,
@@ -56,6 +67,16 @@ absoluto una vez.
 
 Pista: tu mapeo aprendido tiene 14 perillas con CC normales, más `ctrl2` y
 la tira de pitch. De 16 faltan dos, y muy probablemente son la 1 y la 9.
+
+**Red de seguridad en software (ya aplicada, sin tocar el MiniLab):**
+`dats/midi_logic.py` detecta solas las perillas que SIEMPRE mandan un valor
+pegado a 64 (nunca un extremo) y las trata como relativas: acumula un paso
+por mensaje en vez de saltar a un valor fijo. En cuanto ese canal manda un
+valor bien afuera de esa banda angosta (ya la pasaste a Absolute, o nunca
+fue relativa), se confirma absoluta para siempre y deja de intervenir — así
+ninguna de las otras 14 perillas cambia de comportamiento. No reemplaza el
+arreglo de arriba (en Absolute la perilla responde 1:1, sin el paso extra de
+"acumular"), pero Energía y Detail 1 ya no se quedan mudas mientras tanto.
 
 ### Pads — banco A (`Pad 1-8`): el show
 

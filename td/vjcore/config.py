@@ -539,6 +539,62 @@ MIDI_LAYOUT_V2 = {
     'Blendnext': 'ch10n52',
 }
 
+# ---------------------------------------------------------------
+# PAGINA "MIDI MAPPING" DE /project1: orden y nombres = la web
+# ---------------------------------------------------------------
+# Pedido explicito: la pagina de TouchDesigner tiene que mostrarse en el
+# MISMO orden fisico que la web del manual (docs/10_MANUAL_MINILAB.html,
+# arrays 'knobs'/'padsA'/'padsB'/'strips') y con el MISMO nombre en
+# español -- si la web dice "Estela", el panel no puede decir "Trails".
+# Y solo los controles que de verdad tienen un lugar fisico en el
+# MiniLab (Layout v2): nada de Snapshot/Reset/Grain/Bass Amount/etc que
+# ya viven en el dashboard o en otras paginas de parametros.
+#
+# MIDI_SLOTS (arriba) NO se toca: sigue siendo la lista completa que usan
+# el guardado/carga/migracion del mapeo (control_script._midi_slots) y el
+# resto del sistema. Esta es solo el orden/subconjunto que arma la
+# pagina MIDI Mapping -- builder.py itera sobre ESTA, no sobre MIDI_SLOTS.
+MIDI_PANEL_SLOTS = [
+    # 16 perillas, en orden fisico (perilla 1 -> perilla 16).
+    'Energy', 'Hue', 'Speed', 'Density', 'Chaos', 'Audioamount',
+    'Trails', 'Brightness',
+    'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
+    'Lookamount', 'Palettelock',
+    # Shift + perilla 1 / Shift + perilla 9, justo despues de su perilla.
+    'Layermix', 'Transition',
+    # Las 2 tiras (pitch, mod).
+    'Trailszoom', 'Mediascrub',
+    # Pads banco A (el show), pad 1 -> pad 8.
+    'Next', 'Prev', 'Blackout', 'Autopilot', 'Textvisible',
+    'Medianext', 'Duallayer', 'Medialock',
+    # Pads banco B (efectos), pad 9 -> pad 16.
+    'Retro', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
+    'Mirror', 'Zoom', 'Blendnext',
+]
+
+# Mismo nombre que ve el usuario en la web (arrays de arriba), pasado a
+# Titulo/Español para que calce con el resto de las paginas de
+# parametros. Si un slot no esta aca, el panel cae al nombre del slot tal
+# cual (no deberia pasar para nada de MIDI_PANEL_SLOTS).
+MIDI_SLOT_LABEL_ES = {
+    'Energy': 'Energia', 'Hue': 'Hue', 'Speed': 'Speed', 'Density': 'Density',
+    'Chaos': 'Chaos', 'Audioamount': 'Audio', 'Trails': 'Estela',
+    'Brightness': 'Master',
+    'Detail1': 'Detail 1', 'Detail2': 'Detail 2', 'Detail3': 'Detail 3',
+    'Detail4': 'Detail 4', 'Detail5': 'Detail 5', 'Detail6': 'Detail 6',
+    'Lookamount': 'Look', 'Palettelock': 'Paleta',
+    'Layermix': 'Shift+1: Mezcla 2 Capas', 'Transition': 'Shift+9: Transicion',
+    'Trailszoom': 'Tira Pitch: Zoom Estela', 'Mediascrub': 'Tira Mod: Imagen',
+    'Next': 'Pad 1: Next', 'Prev': 'Pad 2: Prev', 'Blackout': 'Pad 3: Blackout',
+    'Autopilot': 'Pad 4: Autopilot', 'Textvisible': 'Pad 5: Texto',
+    'Medianext': 'Pad 6: Imagen ->', 'Duallayer': 'Pad 7: Dos Capas',
+    'Medialock': 'Pad 8: Imagen Fija',
+    'Retro': 'Pad 9: Retro', 'Glitch': 'Pad 10: Glitch',
+    'Pixelate': 'Pad 11: Pixelate', 'Strobe': 'Pad 12: Strobe',
+    'Invert': 'Pad 13: Invert', 'Mirror': 'Pad 14: Mirror',
+    'Zoom': 'Pad 15: Zoom', 'Blendnext': 'Pad 16: Modo Mezcla',
+}
+
 # Parametros que se guardan/recuperan por escena (presets).
 PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',
                'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6']
