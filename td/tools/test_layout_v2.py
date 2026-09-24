@@ -166,6 +166,22 @@ def main():
     chans = [v for v in config.DEFAULT_MIDI.values()]
     check('DEFAULT_MIDI sin canales repetidos', len(chans), len(set(chans)))
 
+    print('\n--- config: pagina MIDI Mapping = orden fisico de la web ---')
+    check('MIDI_PANEL_SLOTS sin repetidos',
+          len(config.MIDI_PANEL_SLOTS), len(set(config.MIDI_PANEL_SLOTS)))
+    check('todo slot del panel existe en MIDI_SLOTS',
+          all(s in config.MIDI_SLOTS for s in config.MIDI_PANEL_SLOTS), True)
+    check('16 perillas + 2 shift + 2 tiras + 16 pads = 36',
+          len(config.MIDI_PANEL_SLOTS), 36)
+    check('cada slot del panel tiene su nombre en español',
+          all(s in config.MIDI_SLOT_LABEL_ES for s in config.MIDI_PANEL_SLOTS), True)
+    check('Trails se muestra como Estela (no "Trails")',
+          config.MIDI_SLOT_LABEL_ES['Trails'], 'Estela')
+    check('Energy es la primera (perilla 1)', config.MIDI_PANEL_SLOTS[0], 'Energy')
+    check('Palettelock es la ultima perilla (16)',
+          config.MIDI_PANEL_SLOTS[15], 'Palettelock')
+    check('Blendnext cierra el panel (pad 16)', config.MIDI_PANEL_SLOTS[-1], 'Blendnext')
+
     print()
     if fails:
         print('FALLARON {}: {}'.format(len(fails), fails))
