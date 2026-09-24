@@ -25,6 +25,10 @@
   --font-m: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 * { box-sizing: border-box; }
+/* La copia local (doble clic) no trae el reset del visor: sin esto, lo
+   oculto con 'hidden' que tiene display propio (el modo escenario) tapa
+   la pagina. */
+[hidden] { display: none !important; }
 body { background: var(--bg); color: var(--text); font: 15px/1.55 var(--font-b); padding-inline: 16px; padding-block: 28px 64px; }
 .wrap { max-width: 1100px; margin: 0 auto; display: grid; gap: 44px; }
 h1, h2, h3 { font-family: var(--font-d); text-wrap: balance; margin: 0; letter-spacing: .01em; }
@@ -129,6 +133,29 @@ textarea.json { width: 100%; min-height: 180px; background: var(--bg); color: va
 .scn-detail .dl dd { margin: 0; }
 .tagm { font: 600 11px/1 var(--font-d); letter-spacing: .08em; text-transform: uppercase; color: var(--bg); background: var(--look); border-radius: 4px; padding: 3px 6px; }
 @media (max-width: 680px) { .scn-detail { grid-template-columns: 1fr; } }
+/* ---- modo escenario ---- */
+.stage-btn { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 5; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+#stage { position: fixed; inset: 0; z-index: 10; background: #07080a; color: var(--text); display: grid; grid-template-rows: auto 1fr; gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px calc(10px + env(safe-area-inset-bottom, 0px)); overflow: auto; }
+.st-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.st-top .scn { font: 700 clamp(16px, 2.6vw, 24px)/1.1 var(--font-d); flex: 1 1 200px; }
+.st-top .scn small { display: block; font: 600 11px/1.2 var(--font-d); letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+.st-top button { font: 700 18px/1 var(--font-d); background: #16181d; color: var(--text); border: 1px solid #2a2e36; border-radius: 10px; min-width: 48px; min-height: 44px; padding: 0 12px; cursor: pointer; }
+.st-grid { display: grid; grid-template-rows: repeat(3, auto); gap: 10px; align-content: start; }
+.st-row { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+.st-cell { min-width: 0; overflow: hidden; background: #111317; border: 1px solid #22262d; border-radius: 10px; padding: 8px 8px 10px; display: grid; gap: 6px; min-height: 76px; align-content: space-between; }
+.st-cell .n { font: 600 10px/1 var(--font-m); color: #6b717b; }
+.st-cell .l { font: 700 clamp(12px, 1.9vw, 19px)/1.15 var(--font-d); letter-spacing: .02em; overflow-wrap: break-word; hyphens: auto; }
+.st-cell .l.d { font-size: clamp(10.5px, 1.3vw, 14px); font-weight: 600; letter-spacing: 0; }
+.st-cell .sh { font: 600 10.5px/1.2 var(--font-b); color: #8b919c; }
+.st-cell .v { height: 6px; border-radius: 3px; background: #22262d; overflow: hidden; }
+.st-cell .v i { display: block; height: 100%; width: 0; }
+.st-cell.live { border-color: #4fd1d9; }
+.st-pad { min-height: 88px; }
+.st-pad .a, .st-pad .b { font: 700 clamp(11px, 1.7vw, 17px)/1.1 var(--font-d); }
+.st-pad .b { opacity: .45; }
+.st-pad.bankB .a { opacity: .45; } .st-pad.bankB .b { opacity: 1; }
+@media (max-width: 620px) { .st-row { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .padtest { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
 .padtest .p { display: grid; gap: 6px; justify-items: center; }
 .padtest .face { width: 100%; aspect-ratio: 1; max-width: 72px; border-radius: 8px; background: #2a2d33; border: 3px solid #444; display: grid; place-items: center; font: 600 11px/1 var(--font-d); color: var(--muted); }
@@ -371,6 +398,22 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
       <tr><td>Saltar a escena 0–9 · Prev/Next · Blackout</td><td>Teclado de la compu: <kbd>0</kbd>–<kbd>9</kbd>, flechas, <kbd>espacio</kbd> (en pausa mientras escribes)</td></tr>
     </tbody></table></div>
   </section>
+</div>
+
+<button class="btn stage-btn" id="stageOpen" type="button">Modo escenario</button>
+<div id="stage" hidden role="dialog" aria-label="Modo escenario">
+  <div class="st-top">
+    <button id="stPrev" type="button" aria-label="Escena anterior">◀</button>
+    <div class="scn" id="stScene"><small>Escena</small>—</div>
+    <button id="stNext" type="button" aria-label="Escena siguiente">▶</button>
+    <button id="stFull" type="button" aria-label="Pantalla completa">⛶</button>
+    <button id="stClose" type="button" aria-label="Cerrar modo escenario">✕</button>
+  </div>
+  <div class="st-grid">
+    <div class="st-row" id="stKnobsTop"></div>
+    <div class="st-row" id="stKnobsBottom"></div>
+    <div class="st-row" id="stPads"></div>
+  </div>
 </div>
 
 <script>
@@ -626,6 +669,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     $('nowVal').textContent = raw;
     $('nowBar').style.width = Math.round(value01 * 100) + '%';
     log(src + '  →  ' + (e ? e.item.name : 'sin asignar') + '  (' + raw + ')', !e);
+    if (e && typeof stOnControl === 'function') stOnControl(e.el || id, value01, value01 > 0.5);
     if (e) {
       if (knobs.some(k => k.id === (e.el || id)) && !e.el) { knobValue[id] = value01; const b = bank; setBank(b, true); }
       liveFlash(id);
@@ -923,6 +967,64 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   }
   $('scnSearch').addEventListener('input', scnRender);
   scnRender();
+
+  // ---------- modo escenario ----------
+  // Vista para el celular o la tablet al lado del MiniLab: letras grandes,
+  // y la fila de abajo dice lo que hace cada Detail EN LA ESCENA ACTUAL.
+  // Sigue los pads NEXT/PREV si el probador esta conectado (el autopilot
+  // no manda MIDI: con autopilot, usa las flechas).
+  let stOn = false, stIdx = 0, wakeLock = null;
+  const shortD = t => { if (!t) return '—'; let x = t.split('(')[0].trim().replace(/[,;:-]+$/, '').replace(/\//g, '/\u200b'); return x.length > 34 ? x.slice(0, 33) + '…' : x; };
+  const stVal = {};
+  function stCell(id, n, label, sub, color, isD) {
+    const v = stVal[id];
+    return '<div class="st-cell" data-id="' + id + '"><span class="n">' + n + '</span><span class="l' + (isD ? ' d' : '') + '" lang="es" style="color:' + color + '">' + esc(label) + '</span>' +
+      (sub ? '<span class="sh">' + esc(sub) + '</span>' : '') + '<span class="v"><i style="background:' + color + ';width:' + Math.round((v || 0) * 100) + '%"></i></span></div>';
+  }
+  function stRender() {
+    if (!stOn) return;
+    const sc = SCENES[stIdx] || null;
+    $('stScene').innerHTML = '<small>Escena ' + String(stIdx).padStart(2, '0') + (sc && sc.media ? ' · usa tus imágenes' : '') + '</small>' + (sc ? esc(sc.title) : '—');
+    $('stKnobsTop').innerHTML = knobs.slice(0, 8).map(k => stCell(k.id, k.n, k.name, k.shift ? '⇧ ' + k.shift : '', C[k.g])).join('');
+    $('stKnobsBottom').innerHTML = knobs.slice(8).map((k, j) => {
+      const isD = /^Detail[1-6]$/.test(k.id);
+      const label = isD && sc ? shortD(sc.d[+k.id.slice(6) - 1]) : k.name;
+      const sub = isD ? 'D' + k.id.slice(6) + (k.shift ? ' · ⇧ ' + k.shift : '') : (k.shift ? '⇧ ' + k.shift : '');
+      return stCell(k.id, k.n, label, sub, C[k.g], isD && !!sc);
+    }).join('');
+    $('stPads').innerHTML = padsA.map((a, i) => { const b = padsB[i];
+      return '<div class="st-cell st-pad' + (bank === 'B' ? ' bankB' : '') + '" data-id="' + a.id + '"><span class="n">' + a.n + ' / ' + b.n + '</span>' +
+        '<span class="a" style="color:' + C[a.g] + '">' + esc(a.name) + '</span><span class="b" style="color:' + C[b.g] + '">' + esc(b.name) + '</span></div>'; }).join('');
+  }
+  function stGo(d) { stIdx = (stIdx + d + SCENES.length) % SCENES.length; stRender(); }
+  async function stOpen() {
+    stOn = true; stIdx = curScene ? curScene.i : stIdx; $('stage').hidden = false; stRender();
+    try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* opcional */ }
+  }
+  function stClose() {
+    stOn = false; $('stage').hidden = true;
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { /* ok */ }
+    try { if (wakeLock) wakeLock.release(); } catch (e) { /* ok */ } wakeLock = null;
+  }
+  // Lo llama report(): valor en vivo y seguimiento de NEXT/PREV.
+  function stOnControl(id, v01, pressed) {
+    if (!stOn) return;
+    if (id === 'Next' && pressed) stGo(1);
+    else if (id === 'Prev' && pressed) stGo(-1);
+    stVal[id] = v01;
+    const cell = document.querySelector('#stage [data-id="' + id + '"]');
+    if (cell) {
+      const bar = cell.querySelector('.v i'); if (bar) bar.style.width = Math.round(v01 * 100) + '%';
+      cell.classList.add('live'); clearTimeout(cell._t); cell._t = setTimeout(() => cell.classList.remove('live'), 400);
+    }
+    if (padsB.some(p => p.id === id) && bank !== 'B') stRender();
+  }
+  $('stageOpen').addEventListener('click', stOpen);
+  $('stClose').addEventListener('click', stClose);
+  $('stPrev').addEventListener('click', () => stGo(-1));
+  $('stNext').addEventListener('click', () => stGo(1));
+  $('stFull').addEventListener('click', () => { try { const el = $('stage'); (el.requestFullscreen ? el.requestFullscreen() : Promise.reject()).catch(() => {}); } catch (e) { /* opcional */ } });
+  document.addEventListener('keydown', e => { if (!stOn) return; if (e.key === 'Escape') stClose(); if (e.key === 'ArrowRight') stGo(1); if (e.key === 'ArrowLeft') stGo(-1); });
 
   // Para pruebas automaticas: inyecta un mensaje MIDI como si llegara del equipo.
   window.__tdaiSim = bytes => onMessage({data: bytes});
