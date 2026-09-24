@@ -38,7 +38,7 @@
 //   Kick     ademas del flash, las colonias crecen un instante
 //            (bounded, decae solo)
 //   High     vibracion micro de la posicion de cada colonia
-//            (excepcion del contrato)
+//            (excepcion del contrato) + destello en el borde rojo
 //
 // @D1: tamano base de las colonias
 // @D2: ancho de la banda roja del borde
@@ -100,6 +100,9 @@ vec4 render(vec2 uv)
     vec3 col = bgCol;
     col = mix(col, borderCol, isBorder);
     col = mix(col, blobCol, isBlob);
+    // uHigh: destello en el borde rojo de cada colonia -- reusa isBorder,
+    // se nota como un chispazo de aerosol con los agudos.
+    col += borderCol * isBorder * uHigh * 0.7;
 
     // D4: grano general, animado, en TODA la imagen.
     float grain = hash21(uv * uResW * 0.5 + fract(uRTime) * 13.0) - 0.5;

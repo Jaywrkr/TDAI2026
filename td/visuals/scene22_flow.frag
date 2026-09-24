@@ -25,7 +25,8 @@
 //            doblez (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro del doblez (excepcion del contrato)
+//   High     vibracion micro del doblez (excepcion del contrato) +
+//            destella la chispa que viaja por cada linea
 //
 // @D1: grosor de las lineas
 // @D2: frecuencia espacial del campo de flujo (corrientes anchas <->
@@ -127,6 +128,9 @@ vec4 render(vec2 uv)
                     * smoothstep(lineW * 1.3, 0.0, abs(sdfN));
 
         col += lineCol * (line + glow * 0.6 + spark * 0.9);
+        // uHigh: destella la chispa que viaja por la linea -- reusa
+        // 'spark', se nota como un brillo extra con los agudos.
+        col += vec3(1.0) * spark * uHigh * 0.5;
     }
 
     // PIANO: la corriente nueva en si -- MISMO tratamiento de bend (fbm

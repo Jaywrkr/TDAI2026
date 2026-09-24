@@ -20,7 +20,8 @@
 //   Bass     empuje real de longitud + brillo de lo ya claro
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en todo el anillo
-//   High     vibracion micro de la longitud (excepcion del contrato)
+//   High     vibracion micro de la longitud (excepcion del contrato) +
+//            destella la punta de cada barra
 //
 // @D1: cuanto reacciona cada barra al bajo
 // @D2: largo base de las barras
@@ -88,7 +89,7 @@ vec4 render(vec2 uv)
 
     float tipD = abs(r - (coreR + barLen));
     float tipGlow = exp(-tipD * tipD / (0.0006 + uD6 * 0.01)) * sideCov;
-    col += barCol * tipGlow * (0.3 + uD6 * 0.7);
+    col += barCol * tipGlow * (0.3 + uD6 * 0.7 + uHigh * 0.7);
 
     vec3  coreCol = hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0));
     col += coreCol * exp(-r * r * 5.0 / max(coreR * coreR, 0.001)) * (0.3 + uD5 * 0.9);

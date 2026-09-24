@@ -22,7 +22,7 @@
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
 //   Kick     ademas del flash, adelanta el barajado
-//   High     vibracion micro de cada baldosa (excepcion del contrato)
+//   High     titileo de brillo por baldosa, mas fuerte con los agudos
 //
 // @D1: grosor de la junta entre baldosas
 // @D2: cuanto se ve oscurecida la junta (apenas <-> bien marcada)
@@ -105,9 +105,10 @@ vec4 render(vec2 uv)
     float joint = 1.0 - smoothstep(0.0, jointW, lineD);
     col *= mix(1.0, 1.0 - uD2 * 0.85, joint);
 
-    // uHigh: vibracion micro de brillo por baldosa -- unica excepcion
-    // del contrato, amplitud pequena.
-    col *= 1.0 + uHigh * 0.03 * sin(t * 10.0 + hash21(gi) * TAU);
+    // uHigh: titileo de brillo por baldosa -- subido (0.03 -> 0.22) para
+    // que se note de verdad con los agudos, siempre solo brillo, nunca
+    // geometria de la baldosa.
+    col *= 1.0 + uHigh * 0.22 * sin(t * 10.0 + hash21(gi) * TAU);
 
     col *= 0.6 + uD6 * 0.7;
 

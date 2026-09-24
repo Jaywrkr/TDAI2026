@@ -37,7 +37,7 @@
 //   Kick     ademas del flash, un puñado de pings extra aparecen de
 //            golpe en toda la franja costera
 //   High     vibracion micro de la posicion de cada ping (excepcion
-//            del contrato)
+//            del contrato) + brillo extra en cada ping
 //
 // @D1: cuanta tierra hay (islas chicas y sueltas <-> casi todo
 //      continente)
@@ -135,6 +135,9 @@ vec4 render(vec2 uv)
                          hsv2rgb(vec3(fract(0.14 + h0), 0.80, 1.0)), isYellow);
 
     col += pingCol * pingShape * max(pingTwinkle, sonarBand * 1.5);
+    // uHigh: brillo extra en cada ping -- reusa pingShape, se nota como
+    // un destello en toda la franja costera con los agudos.
+    col += pingCol * pingShape * uHigh * 0.6;
     col += hsv2rgb(vec3(fract(h0 + 0.14), 0.5, 1.0)) * sonarLine * 0.7;
 
     // Kick: flash breve, ademas de los pings extra de arriba.

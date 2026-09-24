@@ -43,7 +43,8 @@
 //   Mid      tinte adicional (audioHue), antes de construir el tinte
 //            por copia
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro de cada copia (excepcion del contrato)
+//   High     vibracion micro de cada copia (excepcion del contrato) +
+//            resalta el bloom central
 //
 // @D1: profundidad del zoom por copia (tunel apenas insinuado <-> se
 //      mete bien adentro de la imagen)
@@ -148,6 +149,10 @@ vec4 render(vec2 uv)
     // a fondo -- mismo problema documentado arriba para el brillo
     // general, mismo criterio de solucion.
     col += bloom * uBass * 0.07;
+    // uHigh: los agudos resaltan el bloom central -- mismo termino que el
+    // empujon de bajo de arriba, reusando 'bloom' en vez de calcular algo
+    // nuevo.
+    col += bloom * uHigh * 0.10;
 
     // PIANO: un "golpe" de zoom -- una copia extra, mucho mas metida
     // hacia el centro que cualquier eco normal, se suma brillante con

@@ -47,9 +47,9 @@
 //   Mid      tinte adicional (audioHue)
 //   Kick     ademas del flash, las grietas se iluminan como venas con
 //            energia -- geometria de COLOR encima, no mueve nada
-//   High     no usado directo (reservado) -- la escena es
-//            deliberadamente ESTABLE, meter temblor aca rompe la
-//            lectura de "mapa"
+//   High     destello extra en el resplandor de costa (solo brillo -- la
+//            escena sigue deliberadamente ESTABLE, sin temblor de
+//            geometria, que rompe la lectura de "mapa")
 //
 // @D1: cuanta tierra hay (islas chicas y sueltas <-> casi todo
 //      continente)
@@ -141,6 +141,9 @@ vec4 render(vec2 uv)
     // oceano, como luz real reflejando en el agua cerca de la orilla.
     float coastGlowWide = exp(-coastD * coastD / (glowW * glowW * 12.0));
     col += coastCol * coastGlowWide * shimmer * 0.15;
+    // uHigh: destello extra sobre el resplandor de costa -- reusa
+    // coastGlow, solo brillo, no mueve la linea de costa.
+    col += coastCol * coastGlow * uHigh * 0.6;
 
     // --- GRIETAS (Worley F2-F1, solo dentro de la tierra) ---
     float crackFreq = mix(3.5, 15.0, uD3);

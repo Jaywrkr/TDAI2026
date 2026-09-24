@@ -32,7 +32,8 @@
 //            orbita (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro de la posicion (excepcion del contrato)
+//   High     vibracion micro de la posicion (excepcion del contrato) +
+//            destella el rim light del borde
 //
 // @D1: grosor del contorno
 // @D2: umbral de fusion -- mas D2 = gotas mas chicas y separadas, menos
@@ -183,7 +184,7 @@ vec4 render(vec2 uv)
              * smoothstep(threshold + 2.2, threshold + 0.6, field);
     // Piso subido (0.12 -> 0.22): "que se note" -- el rim casi no se
     // veia sin kick.
-    col += vec3(1.0) * rim * (0.22 + uD6 * 0.7 + uKick * 0.9);
+    col += vec3(1.0) * rim * (0.22 + uD6 * 0.7 + uKick * 0.9 + uHigh * 0.6);
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

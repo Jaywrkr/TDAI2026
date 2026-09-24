@@ -46,7 +46,7 @@
 //            el avance del contador de color) -- geometria de color, no
 //            de forma/posicion/cantidad, sigue dentro del contrato
 //   High     vibracion micro del borde de cada ficha (excepcion del
-//            contrato)
+//            contrato) + brillo extra en cada ficha
 //
 // @D1: probabilidad de que una celda tenga ficha (tablero casi vacio
 //      <-> casi lleno)
@@ -172,6 +172,9 @@ vec4 render(vec2 uv)
         tokenCol = mix(tokenCol, hsv2rgb(vec3(fract(h + 0.5), 0.7, 1.0)) * 1.4, keyHop);
 
         col += tokenCol * coverage;
+        // uHigh: brillo extra en cada ficha -- reusa 'coverage', se nota
+        // como un destello parejo en todo el tablero con los agudos.
+        col += tokenCol * coverage * uHigh * 0.5;
         // Bloom ancho: la ficha "sangra" un halo tenue sobre el fieltro,
         // como una pieza real con brillo propio en vez de un color plano.
         col += tokenCol * exp(-d * d * 10.0) * 0.18;

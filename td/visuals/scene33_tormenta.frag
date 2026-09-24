@@ -30,6 +30,7 @@
 //   Mid      tinte adicional de la nube (audioHue)
 //   Kick     empuja el brillo del flash actual, mas fuerte
 //   High     vibracion micro del trazo del rayo (excepcion del contrato)
+//            + destella el nucleo del rayo principal
 //
 // @D1: grosor del nucleo del rayo
 // @D2: cantidad de resplandor (glow) alrededor del rayo
@@ -177,7 +178,7 @@ vec4 render(vec2 uv)
         float boltShape = coreGlow(dMain, lineW, glowW)
                         + coreGlow(dBranch, lineW * 0.65, glowW * 0.7) * 0.7;
         vec3 boltCol = mix(vec3(1.0), hsv2rgb(vec3(fract(uHue + 0.55), 0.45, 1.0)), 0.15 + uD3 * 0.55);
-        col += boltCol * boltShape * envelope * (1.0 + uKick * 0.8);
+        col += boltCol * boltShape * envelope * (1.0 + uKick * 0.8 + uHigh * 0.5);
     }
 
     // PIANO: cada tecla dispara un rayo EXTRA, independiente del

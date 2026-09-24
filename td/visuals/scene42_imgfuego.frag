@@ -23,7 +23,8 @@
 //   Bass     brillo de lo ya claro (audioLift) + el fuego se agita mas
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en todas las copias
-//   High     vibracion micro adicional (excepcion del contrato)
+//   High     vibracion micro adicional (excepcion del contrato) +
+//            destella el resplandor del borde de cada copia
 //
 // @D1: tamano de cada copia
 // @D2: fuerza del efecto de fuego (quieta <-> temblando fuerte)
@@ -82,7 +83,7 @@ vec4 render(vec2 uv)
         // D5: resplandor alrededor del recorte, para que no se lea
         // como un cuadrado duro suelto en el vacio.
         float edgeD = max(abs(local.x), abs(local.y)) - half_;
-        col += tint * exp(-edgeD * edgeD * 300.0) * (0.15 + uD5 * 0.5);
+        col += tint * exp(-edgeD * edgeD * 300.0) * (0.15 + uD5 * 0.5 + uHigh * 0.5);
     }
 
     col *= 0.6 + uD6 * 0.7;

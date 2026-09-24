@@ -34,7 +34,7 @@
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
 //   High     vibracion micro del doblez de espacio (excepcion del
-//            contrato)
+//            contrato) + destello en el nucleo de la hebra
 //
 // @D1: nitidez/grosor del nucleo de la hebra (difuso y ancho <-> fino
 //      y nitido)
@@ -132,6 +132,9 @@ vec4 render(vec2 uv)
     float glowW = 0.05 + uD6 * 0.35;
     float glow = exp(-coreD * coreD / (glowW * glowW));
     col += coreCol * glow * (0.12 + uD6 * 0.28);
+    // uHigh: destello blanco en el nucleo -- reusa 'core', se nota como
+    // un chispazo sobre la hebra con los agudos.
+    col += vec3(1.0) * core * uHigh * 0.5;
 
     // PIANO: "cuenta de luz". Cada tecla suelta una cuenta brillante que
     // corre A LO LARGO de las hebras (de izquierda a derecha, arrancando

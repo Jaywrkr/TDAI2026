@@ -21,7 +21,8 @@
 //            "respiran" mas calido con el golpe (ya suavizado)
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en todo el enjambre
-//   High     vibracion micro de posicion (excepcion del contrato)
+//   High     vibracion micro de posicion (excepcion del contrato) +
+//            destella el fringing de cada circulo de bokeh
 //
 // @D1: tamano del circulo de confusion (bokeh chico <-> muy grande y
 //      difuso)
@@ -93,6 +94,9 @@ vec4 render(vec2 uv)
         // Fringing cromatico: anillo tenue en el borde del circulo -- D2.
         float ring = exp(-abs(d - size * 0.9) * abs(d - size * 0.9) / (size * size * 0.12));
         col += vec3(1.0, 0.55, 0.75) * ring * pulse * uD2 * 0.5;
+        // uHigh: destella el fringing de cada bokeh -- reusa 'ring', se
+        // nota como un brillo extra en los bordes con los agudos.
+        col += vec3(1.0) * ring * pulse * uHigh * 0.5;
     }
 
     // PIANO: ademas del empujon real de arriba, una luciernaga nueva y

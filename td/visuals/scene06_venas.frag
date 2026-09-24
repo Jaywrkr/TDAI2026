@@ -26,7 +26,7 @@
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      velocidad extra del pulso + tinte adicional
 //   Kick     los pulsos se disparan mas brillantes
-//   High     no usado directo (reservado)
+//   High     chispas en los nodos donde la vena late
 //
 // @D1: grosor de las venas
 // @D2: densidad de ramificacion (rugosidad del campo -- pocas ramas
@@ -90,6 +90,9 @@ vec4 render(vec2 uv)
     float isNode = step(0.85, nodeHash) * veinLine;
     float nodePulse = 0.5 + 0.5 * sin(t * 2.0 + nodeHash * 20.0);
     col += veinCol * isNode * nodePulse * (0.4 + uD5 * 1.6);
+    // uHigh: chispa blanca en los nodos -- reusa isNode*nodePulse, se
+    // nota como un destello de energia con los agudos.
+    col += vec3(1.0) * isNode * nodePulse * uHigh * 0.7;
 
     col += col * uKick * 0.3;
     col *= 0.6 + uD6 * 0.6;

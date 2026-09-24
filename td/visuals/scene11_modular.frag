@@ -44,7 +44,8 @@
 //   Piano    "zapping": la columna que elige uKeypos cambia de canal
 //            (ver PIANO)
 //   High     vibracion micro de la posicion interna de cada patron
-//            (excepcion del contrato)
+//            (excepcion del contrato) + brillo extra en las celdas con
+//            contenido
 //
 // @D1: fraccion de celdas vacias (pared casi llena <-> casi toda negra)
 // @D2: mezcla de complejidad (patrones simples: solido/degradado <->
@@ -191,6 +192,9 @@ vec4 render(vec2 uv)
 
         // D6: brillo/resplandor general de las celdas con contenido.
         col *= 0.55 + uD6 * 0.65;
+        // uHigh: brillo extra en las celdas con contenido -- se nota como
+        // un destello parejo en toda la pared con los agudos.
+        col += col * uHigh * 0.5;
     }
 
     // Kick: flash de toda la pared.

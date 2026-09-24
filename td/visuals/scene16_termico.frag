@@ -34,7 +34,7 @@
 //   Kick     ademas del flash, el desgarro se dispara mas fuerte un
 //            instante
 //   High     grano/estatica de sensor -- excepcion del contrato
-//            (amplitud pequena)
+//            (amplitud pequena) + destello en los puntos mas calientes
 //
 // @D1: cuantas bandas de desgarro hay (pocas y anchas <-> muchas y
 //      finas)
@@ -116,6 +116,9 @@ vec4 render(vec2 uv)
     // excepcion del contrato, amplitud pequena.
     float grain = hash21(uv * uResW * 0.5 + fract(uRTime) * 15.0) - 0.5;
     col += grain * (uD4 * 0.18 + uHigh * 0.04);
+    // uHigh: destello extra en los puntos mas calientes -- reusa 'field',
+    // se nota como un brillo de sensor sobre el nucleo mas caliente.
+    col += vec3(1.0, 0.9, 0.75) * smoothstep(0.82, 1.0, field) * uHigh * 0.5;
 
     // Kick: flash breve, ademas del desgarro de arriba.
     col += col * uKick * 0.25;

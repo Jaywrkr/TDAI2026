@@ -23,7 +23,8 @@
 //            un poco mas
 //   Mid      tinte adicional (audioHue)
 //   Kick     las lamas se abren de golpe un instante
-//   High     vibracion micro del angulo de cada lama (excepcion)
+//   High     vibracion micro del angulo de cada lama (excepcion) +
+//            destello en el canto metalico
 //
 // @D1: apertura base de las lamas (casi cerradas <-> bien abiertas)
 // @D2: grosor del canto oscuro de cada lama
@@ -72,7 +73,7 @@ vec4 render(vec2 uv)
     // Canto de la lama: oscuro, con un brillo metalico apenas (D5).
     float edgeW = max(mix(0.02, 0.35, uD2), pxF * 1.5);   // D2 hasta 0.35 (auditoria)
     float onEdge = 1.0 - smoothstep(0.0, edgeW, abs(slatF - (1.0 - open)));
-    vec3  edgeCol = vec3(0.05, 0.05, 0.06) + vec3(0.5, 0.55, 0.6) * (0.1 + uD5 * 0.4) * onEdge;
+    vec3  edgeCol = vec3(0.05, 0.05, 0.06) + vec3(0.5, 0.55, 0.6) * (0.1 + uD5 * 0.4 + uHigh * 0.5) * onEdge;
 
     vec3  col = mix(edgeCol, imgCol, visible);
 

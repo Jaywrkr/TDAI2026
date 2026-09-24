@@ -24,7 +24,7 @@
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en todos los gusanos
-//   High     vibracion micro de la posicion (excepcion del contrato)
+//   High     destello en la cabeza de cada gusano
 //
 // @D1: grosor del cuerpo
 // @D2: largo del gusano (cuantos segmentos entran)
@@ -122,6 +122,9 @@ vec4 render(vec2 uv)
 
         col = mix(col, wormCol, cov);
         col += wormCol * glow * (1.0 - cov);
+        // uHigh: destello en la cabeza -- reusa headCov, se nota como un
+        // chispazo con los agudos.
+        col += vec3(1.0) * headCov * uHigh * 0.5;
     }
 
     col += col * uKick * 0.35;

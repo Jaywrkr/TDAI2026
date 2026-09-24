@@ -24,7 +24,8 @@
 //            bastante mas fuerte con los graves que el resto
 //   Mid      RETUERCE la silueta de la nube (geometria real)
 //   Kick     destello breve en toda la nube + estrellas
-//   High     vibracion micro del warp (excepcion del contrato)
+//   High     vibracion micro del warp (excepcion del contrato) +
+//            titileo extra en las estrellas
 //
 // @D1: brillo/contraste general de la nube
 // @D2: cuantas estrellas se dejan ver (rejilla dispersa <-> casi todas)
@@ -97,7 +98,7 @@ vec4 render(vec2 uv)
     // Auditoria de Detail (render 0 vs 1): las estrellas (D2 cantidad, D4 tamano, D6
     // titileo) se perdian contra la nube: sumaban poco sobre un fondo ya
     // claro. Mas brillo, y apagan un poco la nube detras para leerse.
-    col = col * (1.0 - clamp(star, 0.0, 1.0) * 0.5) + vec3(1.0) * star * 2.2 * (1.0 + uKick * 1.0);
+    col = col * (1.0 - clamp(star, 0.0, 1.0) * 0.5) + vec3(1.0) * star * 2.2 * (1.0 + uKick * 1.0 + uHigh * 0.6);
 
     // PIANO: nucleo brillante de la explosion en si -- la dispersion
     // real de la nube ya paso arriba (empuja pw), esto solo marca el

@@ -30,8 +30,9 @@
 //   Density  cuanto brilla el halo alrededor del orbe
 //   Chaos    temblor de la silueta (micro, en brillo) -- sutil
 //   Bass     brillo de lo ya claro (audioLift)
-//   Mid      tinte que se mueve con la musica
+//   Mid      tinte que se mueve con la musica (girado bien notorio)
 //   Kick     destello breve
+//   High     destello en el borde del vidrio (rim light)
 //   Piano    una gota cae en el agua y abre un anillo de luz (ver PIANO)
 //
 // @D1: tamano del orbe
@@ -228,6 +229,10 @@ vec3 renderOrbAt(vec2 p, vec2 center, float scale, float phase, out float coverO
     float rOrb = uP_radius;
     float rd = length(gOrbUV);
     col += uC_sun * exp(-max(rd - rOrb, 0.0) * 5.0) * (1.0 - cover) * (0.04 + uDensity * 0.16);
+    // uHigh: destello justo en el borde del orbe -- reusa rd/rOrb ya
+    // calculados, se nota como un brillo de vidrio que titila con los
+    // agudos.
+    col += uC_sheen * exp(-abs(rd - rOrb) * 40.0) * uHigh * 0.6;
     coverOut = cover;
     return col;
 }
@@ -265,7 +270,9 @@ vec4 render(vec2 uv)
     // Chaos: un titilar fino de brillo sobre el orbe (no mueve la forma).
     col *= 1.0 + (noise21(p * 9.0 + vec2(uTime * 1.7, -uTime * 1.3)) - 0.5) * uChaos * 0.35 * cover;
 
-    col = hueRot(col, (uHue + uMid * 0.04) * TAU);
+    // Mid subido (0.04 -> 0.12): pedido explicito de que el tinte de
+    // medios se note de verdad, no solo un barrido casi imperceptible.
+    col = hueRot(col, (uHue + uMid * 0.12) * TAU);
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.7);
     return vec4(col, 1.0);
