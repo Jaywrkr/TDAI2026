@@ -42,8 +42,12 @@
 // @D6: potencia del sol
 // ===============================================================
 
-#define ORB_TIME (uTime * 0.5)
-#define ORB_CLOCK (uTime * 0.85)
+// gOrbPhase desfasa el reloj de cada copia del orbe (ver render(), varios
+// orbes en pantalla): 0.0 no cambia nada, asi que sigue siendo un no-op
+// para cualquier otro shader que copie este patron con un solo orbe.
+float gOrbPhase = 0.0;
+#define ORB_TIME ((uTime + gOrbPhase) * 0.5)
+#define ORB_CLOCK ((uTime + gOrbPhase) * 0.85)
 #define ORB_IN 0.6
 #define ORB_OUT 0.7
 #define uP_flow (0.9 * ORB_CLOCK)
@@ -207,10 +211,14 @@ void orbMain() {
 }
 // ---------------- fin del shader de Orbkit ----------------
 
-vec4 render(vec2 uv)
-{
-    vec2 p = centered(uv);
-    gOrbUV = p;
+// Varios orbes en pantalla (pedido explicito: "que se vea mas bonito, no
+// solo una"). Posiciones/escalas fijas, mismo shader repetido con una fase
+// de reloj distinta cada uno (gOrbPhase) para que no queden clonados. El
+// mas grande (offs[1]) queda al centro-derecha como protagonista; los
+// otros dos son satelites mas chicos.
+vec3 renderOrbAt(vec2 p, vec2 center, float scale, float phase, out float coverOut) {
+    gOrbPhase = phase;
+    gOrbUV = (p - center) / scale;
     gOrbOut = vec4(0.0);
     orbMain();
     vec3 col = gOrbOut.rgb;
@@ -218,15 +226,37 @@ vec4 render(vec2 uv)
 
     // Halo tenue alrededor (Density): el orbe no flota en negro absoluto.
     float rOrb = uP_radius;
-    float rd = length(p);
+    float rd = length(gOrbUV);
     col += uC_sun * exp(-max(rd - rOrb, 0.0) * 5.0) * (1.0 - cover) * (0.04 + uDensity * 0.16);
+    coverOut = cover;
+    return col;
+}
 
-    // PIANO: "gota". La tecla deja caer una gota sobre la esfera, en la
-    // X que elige uKeypos: un anillo de luz se abre desde ahi sobre la
-    // superficie (solo dentro del orbe). Velocity = gota mas grande.
+vec4 render(vec2 uv)
+{
+    vec2 p = centered(uv);
+
+    vec3 col = vec3(0.0);
+    float cover = 0.0;
+    vec2  centers[3];
+    float scales[3];
+    float phases[3];
+    centers[0] = vec2(-0.95,  0.28); scales[0] = 0.55; phases[0] = 0.0;
+    centers[1] = vec2( 0.55, -0.15); scales[1] = 1.00; phases[1] = 2.7;
+    centers[2] = vec2( 0.05,  0.80); scales[2] = 0.40; phases[2] = 5.4;
+    for (int i = 0; i < 3; i++) {
+        float oc;
+        vec3 oCol = renderOrbAt(p, centers[i], scales[i], phases[i], oc);
+        col = oCol + col * (1.0 - oc);
+        cover = oc + cover * (1.0 - oc);
+    }
+
+    // PIANO: "gota". La tecla deja caer una gota sobre TODA la escena, en
+    // la X que elige uKeypos: un anillo de luz cruza cualquier orbe que
+    // encuentre en el camino.
     if (uKeypulse > 0.0015) {
-        vec2  gp = vec2(mix(-0.6, 0.6, uKeypos) * rOrb, 0.15 * rOrb);
-        float front = (1.0 - uKeypulse) * rOrb * (0.5 + uKeyvel * 0.9);
+        vec2  gp = vec2(mix(-1.6, 1.6, uKeypos), 0.15);
+        float front = (1.0 - uKeypulse) * 1.8 * (0.5 + uKeyvel * 0.9);
         float ring = exp(-pow((length(p - gp) - front) * 18.0, 2.0));
         col += uC_sun * ring * cover * uKeypulse * (0.8 + uKeyvel * 1.2);
     }

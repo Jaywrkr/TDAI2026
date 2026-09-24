@@ -42,8 +42,12 @@
 // @D6: brillo
 // ===============================================================
 
-#define ORB_TIME (uTime * 0.5)
-#define ORB_CLOCK (uTime * 0.85)
+// gOrbPhase desfasa el reloj de cada copia del orbe (ver render(), varios
+// orbes en pantalla): 0.0 no cambia nada, asi que sigue siendo un no-op
+// para cualquier otro shader que copie este patron con un solo orbe.
+float gOrbPhase = 0.0;
+#define ORB_TIME ((uTime + gOrbPhase) * 0.5)
+#define ORB_CLOCK ((uTime + gOrbPhase) * 0.85)
 #define ORB_IN 0.6
 #define ORB_OUT 0.7
 #define uP_speed (0.9 * ORB_CLOCK)
@@ -208,10 +212,12 @@ void orbMain() {
 }
 // ---------------- fin del shader de Orbkit ----------------
 
-vec4 render(vec2 uv)
-{
-    vec2 p = centered(uv);
-    gOrbUV = p;
+// Varios orbes en pantalla (pedido explicito: "que se vea mas bonito, no
+// solo una"). Mismo shader repetido con offset/escala/fase distintos para
+// que no queden clonados. El mas grande queda de protagonista.
+vec3 renderOrbAt(vec2 p, vec2 center, float scale, float phase, out float coverOut, out vec2 localP) {
+    gOrbPhase = phase;
+    gOrbUV = (p - center) / scale;
     gOrbOut = vec4(0.0);
     orbMain();
     vec3 col = gOrbOut.rgb;
@@ -219,16 +225,42 @@ vec4 render(vec2 uv)
 
     // Halo tenue alrededor (Density): el orbe no flota en negro absoluto.
     float rOrb = uP_radius;
-    float rd = length(p);
+    float rd = length(gOrbUV);
     col += vec3(0.75, 0.8, 1.0) * exp(-max(rd - rOrb, 0.0) * 5.0) * (1.0 - cover) * (0.04 + uDensity * 0.16);
+    coverOut = cover;
+    localP = gOrbUV;
+    return col;
+}
 
-    // PIANO: "salto de nivel". Como un electron que cambia de orbita,
-    // una banda de color recorre el orbe a la altura que elige uKeypos
-    // (grave abajo, agudo arriba) y el color depende de la tecla.
-    // Velocity = banda mas ancha y brillante.
+vec4 render(vec2 uv)
+{
+    vec2 p = centered(uv);
+
+    vec3 col = vec3(0.0);
+    float cover = 0.0;
+    vec2  centers[3];
+    float scales[3];
+    float phases[3];
+    centers[0] = vec2(-0.95,  0.28); scales[0] = 0.55; phases[0] = 0.0;
+    centers[1] = vec2( 0.55, -0.15); scales[1] = 1.00; phases[1] = 2.7;
+    centers[2] = vec2( 0.05,  0.80); scales[2] = 0.40; phases[2] = 5.4;
+    vec2 pMain = p; // el orbe principal (el mas grande) recibe el piano
+    for (int i = 0; i < 3; i++) {
+        float oc; vec2 lp;
+        vec3 oCol = renderOrbAt(p, centers[i], scales[i], phases[i], oc, lp);
+        col = oCol + col * (1.0 - oc);
+        cover = oc + cover * (1.0 - oc);
+        if (i == 1) { pMain = lp; }
+    }
+
+    // PIANO: "salto de nivel", sobre el orbe principal. Como un electron
+    // que cambia de orbita, una banda de color recorre el orbe a la
+    // altura que elige uKeypos (grave abajo, agudo arriba) y el color
+    // depende de la tecla. Velocity = banda mas ancha y brillante.
     if (uKeypulse > 0.0015) {
+        float rOrb = uP_radius;
         float y0 = mix(-0.8, 0.8, uKeypos) * rOrb;
-        float band = exp(-pow((p.y - y0) / (0.04 + uKeyvel * 0.08), 2.0));
+        float band = exp(-pow((pMain.y - y0) / (0.04 + uKeyvel * 0.08), 2.0));
         col += hsv2rgb(vec3(uKeypos, 0.8, 1.0)) * band * cover * uKeypulse * (1.0 + uKeyvel * 1.2);
     }
 
