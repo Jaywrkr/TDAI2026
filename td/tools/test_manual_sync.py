@@ -12,6 +12,8 @@ archivo cargaria mal sin ningun error visible. Chequea:
      chNpitch (el formato de config.DEFAULT_MIDI).
   4. Un midi_map.json con el formato que genera la pagina se carga tal cual
      en control_script.loadMidiMap(), sin migrar.
+  5. La guia de escenas (D1-D6 y piano de cada escena) esta al dia con los
+     .frag. Si no: python3 td/tools/build_manual_scenes.py
 """
 import json
 import os
@@ -71,6 +73,18 @@ def main():
     check('Trailszoom en la tira de pitch', p.par.Miditrailszoom.val, 'ch1pitch')
     check('lo no aprendido queda vacio (no quedan canales viejos)', p.par.Midisnapshot.val, '')
     check('no migra encima (ya es layout v2)', len(saved), 0)
+
+    print('\n--- guia de escenas al dia con los .frag ---')
+    import build_manual_scenes as B
+    embedded = B.read_embedded(html) or []
+    check('la guia trae las {} escenas'.format(config.N_SCENES), len(embedded), config.N_SCENES)
+    fresh = {s['i']: s for s in B.scenes_data()}
+    stale = [s['file'] for s in embedded
+             if s['i'] in fresh and (s['d'] != fresh[s['i']]['d'] or s['piano'] != fresh[s['i']]['piano']
+                                     or s['file'] != fresh[s['i']]['file'])]
+    check('D1-D6 y piano de la guia == los .frag (si falla: python3 td/tools/build_manual_scenes.py)',
+          stale, [])
+    check('todas con miniatura', sum(1 for s in embedded if s.get('thumb')), config.N_SCENES)
 
     print()
     if fails:
