@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Catálogo de Shaders — Investigación VJ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --bg:#0b0d12; --bg2:#12151d; --card:#161a24; --card-hover:#1d2230;
+    --text:#e8ebf2; --text-dim:#8b93a7; --accent:#7dd3fc; --accent2:#c084fc;
+    --low:#4ade80; --med:#facc15; --high:#f87171; --border:#242938;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding:0 16px 60px;
+  }
+  header{
+    max-width:1200px; margin:0 auto; padding:32px 0 16px;
+  }
+  h1{font-size:1.6rem; margin:0 0 6px; letter-spacing:-0.02em;}
+  .sub{color:var(--text-dim); font-size:.92rem; max-width:760px; line-height:1.5;}
+  .toolbar{
+    max-width:1200px; margin:18px auto 8px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  }
+  input[type=text]{
+    background:var(--bg2); border:1px solid var(--border); color:var(--text);
+    padding:9px 12px; border-radius:8px; font-size:.9rem; min-width:220px; flex:1;
+  }
+  select{
+    background:var(--bg2); border:1px solid var(--border); color:var(--text);
+    padding:9px 10px; border-radius:8px; font-size:.85rem;
+  }
+  .count{color:var(--text-dim); font-size:.82rem; margin-left:auto;}
+  .grid{
+    max-width:1200px; margin:18px auto; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px;
+  }
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    overflow:hidden; cursor:pointer; transition:transform .12s, background .12s, border-color .12s;
+    display:flex; flex-direction:column;
+  }
+  .card:hover{ background:var(--card-hover); transform:translateY(-2px); border-color:#31384a; }
+  .thumb{
+    height:140px; width:100%; background-size:cover; background-position:center;
+    display:flex; align-items:center; justify-content:center; position:relative;
+    background-color:#1a1f2c;
+  }
+  .thumb .ph{ font-size:.75rem; color:var(--text-dim); text-align:center; padding:8px; }
+  .thumb .num{
+    position:absolute; top:8px; left:8px; background:rgba(0,0,0,.55); backdrop-filter:blur(2px);
+    padding:2px 7px; border-radius:6px; font-size:.72rem; color:var(--accent);
+    font-variant-numeric:tabular-nums;
+  }
+  .thumb .badge{
+    position:absolute; top:8px; right:8px; padding:2px 7px; border-radius:6px;
+    font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.03em;
+  }
+  .body{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:6px; flex:1; }
+  .name{ font-size:.98rem; font-weight:600; line-height:1.25; }
+  .cat{ font-size:.76rem; color:var(--accent2); }
+  .meta{ display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+  .tag{
+    font-size:.68rem; padding:2px 7px; border-radius:20px; border:1px solid var(--border);
+    color:var(--text-dim);
+  }
+  .tag.gpu-BAJO{ color:var(--low); border-color:#1f3a2a; }
+  .tag.gpu-MEDIO{ color:var(--med); border-color:#3a341f; }
+  .tag.gpu-ALTO{ color:var(--high); border-color:#3a1f1f; }
+  .src{ font-size:.72rem; color:var(--text-dim); margin-top:2px; }
+
+  /* modal */
+  .overlay{
+    position:fixed; inset:0; background:rgba(5,6,10,.72); backdrop-filter:blur(3px);
+    display:none; align-items:flex-start; justify-content:center; padding:40px 16px; z-index:50;
+    overflow-y:auto;
+  }
+  .overlay.open{ display:flex; }
+  .modal{
+    background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+    max-width:720px; width:100%; padding:0; overflow:hidden; margin-bottom:40px;
+  }
+  .modal .hero{
+    height:220px; background-size:cover; background-position:center; background-color:#1a1f2c;
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  .modal .hero .ph{ color:var(--text-dim); font-size:.85rem; }
+  .modal .content{ padding:22px 26px 28px; }
+  .modal h2{ margin:0 0 4px; font-size:1.3rem; }
+  .modal .catline{ color:var(--accent2); font-size:.85rem; margin-bottom:14px; }
+  .close{
+    position:absolute; top:10px; right:10px; background:rgba(0,0,0,.55); border:none; color:#fff;
+    width:30px; height:30px; border-radius:50%; font-size:1rem; cursor:pointer;
+  }
+  .row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  dl.spec{ display:grid; grid-template-columns:150px 1fr; gap:8px 14px; font-size:.87rem; margin:0 0 16px; }
+  dl.spec dt{ color:var(--text-dim); }
+  dl.spec dd{ margin:0; }
+  .sec-title{ font-size:.78rem; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim);
+    margin:18px 0 6px; }
+  .desc{ font-size:.92rem; line-height:1.55; color:#d5d9e3; }
+  a.link{ color:var(--accent); text-decoration:none; }
+  a.link:hover{ text-decoration:underline; }
+  ul.plain{ margin:4px 0; padding-left:18px; font-size:.88rem; line-height:1.6; color:#d5d9e3; }
+  footer{ max-width:1200px; margin:40px auto 0; color:var(--text-dim); font-size:.78rem; text-align:center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Catálogo de Shaders — Investigación para el rig VJ</h1>
+  <div class="sub">
+    38 candidatos investigados en Shadertoy, ISF, GitHub y colecciones GLSL. Documento de investigación pura —
+    ninguno de estos shaders fue implementado en <code>td/visuals/</code>. Diseñado para diversidad frente a
+    las 49 escenas ya existentes en el rig. Click en una tarjeta para el detalle.
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Buscar por nombre, categoría o técnica…">
+  <select id="filterCat"><option value="">Todas las categorías</option></select>
+  <select id="filterGpu">
+    <option value="">Costo GPU (todos)</option>
+    <option value="BAJO">BAJO</option>
+    <option value="MEDIO">MEDIO</option>
+    <option value="ALTO">ALTO</option>
+  </select>
+  <span class="count" id="count"></span>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<footer>Catálogo generado para revisión offline · sin conexión con el sistema TD activo · imágenes propiedad de sus autores originales (ver fuente en cada tarjeta)</footer>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+const DATA = [
+{
+  n:1, name:"Curling Smoke", cat:"Humo / Fluidos", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta — solo afecta brillo/densidad, geometría implícita en el noise curl",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/cl23Wt", author:"comunidad Shadertoy (ver perfil en la fuente)",
+  license:"Shadertoy default (CC BY-NC-SA 3.0 salvo que el autor indique otra)",
+  tech:"GLSL / Shadertoy (single-pass, curl noise)",
+  preview:"https://www.shadertoy.com/media/shaders/cl23Wt.jpg",
+  adapt:"Reemplazar iTime/iResolution por uTime/uResW,uResH del header TD; no usa iChannel ni multipass.",
+  perf:"Curl noise + varias octavas de fbm por pixel; a 1080p en iGPU puede rondar 45-60 FPS. Bajar octavas para 60 FPS estable.",
+  params:"Velocidad de curl → Speed global; escala de las volutas → D1; disipación → D2.",
+  midi:"uBass podría modular la escala del ruido en brillo (nunca en frecuencia geométrica), uHigh el brillo de bordes.",
+  obs:"Muy buen candidato: da un 'humo' que hoy no existe explícito en el catálogo (hay bioLluvia/aurora pero no humo curling)."
+},
+{
+  n:2, name:"Fluid smoke/fog shader", cat:"Humo / Fluidos", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/wfB3DG", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy (single-pass, fbm domain warp)",
+  preview:"https://www.shadertoy.com/media/shaders/wfB3DG.jpg",
+  adapt:"Sin buffers extra; ajustar constantes de octavas para performance en iGPU.",
+  perf:"fbm con domain warping, coste similar a Curling Smoke; MEDIO.",
+  params:"Densidad del fog → Density global; capas → D1/D2.",
+  midi:"uMid controlando la opacidad del fog en brillo.",
+  obs:"Alternativa a Curling Smoke con look más plano/niebla en vez de volutas."
+},
+{
+  n:3, name:"Ink in Water", cat:"Tinta / Fluidos", gpu:"ALTO", port:"ALTO",
+  compat:"Media — muchas versiones de 'ink in water' usan multipass/feedback (buffer A/B) para simular advección real",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/MddcDS", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, probable multipass (buffers de velocidad + densidad)",
+  preview:"https://www.shadertoy.com/media/shaders/MddcDS.jpg",
+  adapt:"Requiere 2+ TOPs GLSL en feedback loop (Feedback TOP) para buffers de velocidad/densidad en vez del single Buffer A/B de Shadertoy; no cabe en el contrato render(uv) de una sola pasada sin refactor del pipeline.",
+  perf:"Simulación tipo Navier-Stokes simplificada; ALTO costo, requiere resolución reducida para 60 FPS en iGPU.",
+  params:"Inyección de tinta → posición fija/reactiva a audio en brillo; viscosidad → D1.",
+  midi:"uKick como trigger de 'gota' nueva (brillo del punto de inyección, no la física).",
+  obs:"El look es espectacular pero el port es el más caro del catálogo — candidato para 'fase 2', no primera ronda."
+},
+{
+  n:4, name:"watercolor propagation", cat:"Tinta / Acuarela", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/mdlXW2", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, post-proceso tipo watercolor sobre noise",
+  preview:"https://www.shadertoy.com/media/shaders/mdlXW2.jpg",
+  adapt:"Revisar si usa iChannel0 con textura de ruido pre-generada; si es así, generar el noise in-shader con fbm ya disponible en el header TD.",
+  perf:"MEDIO — principalmente fbm + edge darkening, sin raymarching.",
+  params:"Textura de papel/grano → D3; propagación → Density.",
+  midi:"Ninguno esencial; uMid en saturación de color.",
+  obs:"Estética orgánica poco representada (nada 'acuarela' en las 49 escenas actuales)."
+},
+{
+  n:5, name:"Fluid simulation - Navier Stokes", cat:"Fluidos", gpu:"ALTO", port:"ALTO",
+  compat:"Baja/Media — simulación real de Navier-Stokes con multipass; necesita refactor de arquitectura",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/l3tfz4", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy multipass (varios Buffers: velocidad, presión, densidad)",
+  preview:"https://www.shadertoy.com/media/shaders/l3tfz4.jpg",
+  adapt:"Necesita 3-4 TOPs GLSL encadenados con feedback (uno por campo: velocidad, divergencia, presión, advección). No entra en el contrato de una sola función render(uv).",
+  perf:"ALTO — múltiples pasadas de resolución completa por frame; en iGPU probablemente no llega a 60 FPS sin bajar mucho la resolución de simulación.",
+  params:"Viscosidad, fuerza de inyección → D1-D3.",
+  midi:"uBass/uKick como fuerza de inyección de velocidad en un punto (brillo, no bloquea la regla de geometría si se limita a color del trazo).",
+  obs:"Referencia técnica útil aunque no se implemente igual — mejor usar como inspiración visual con approximation más barata (ej. curl noise) en vez de la sim real."
+},
+{
+  n:6, name:"More Simple Metaballs", cat:"Metaballs / Goo", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/csVcWd", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy single-pass (suma de campos de distancia circular)",
+  preview:"https://www.shadertoy.com/media/shaders/csVcWd.jpg",
+  adapt:"Directo — sin iChannel, sin buffers. Solo reemplazar iTime/iResolution.",
+  perf:"BAJO — pocas evaluaciones de campo por pixel (N blobs, N pequeño). 60 FPS fácil en iGPU.",
+  params:"Número de blobs → D1 (con cuidado de no romper la regla de 'audio solo afecta color': el número de blobs debe fijarse por Density, no por audio en vivo).",
+  midi:"uHigh en el brillo del borde de fusión entre blobs (efecto 'glow' al fusionarse).",
+  obs:"Ya existe scene20_metaball.frag y scene34_ferrofluido en el rig — este es más simple/limpio, útil como variante 'clean' de bajo costo si se quiere una versión ligera."
+},
+{
+  n:7, name:"Interactive liquid metal blob", cat:"Metaballs / Cromado", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/3tGXz3", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching simple de una esfera deformada + shading metálico",
+  preview:"https://www.shadertoy.com/media/shaders/3tGXz3.jpg",
+  adapt:"Raymarching de 1 objeto (blob), pocas iteraciones; reemplazar iMouse por un uniform fijo o D1/D2 si se quiere controlar la deformación.",
+  perf:"MEDIO — raymarching de una sola superficie con normales por diferencias finitas.",
+  params:"Deformación → D1-D2; especular/fresnel → D3.",
+  midi:"uMid en la velocidad de deformación (visual, no geometría nueva, solo animación existente).",
+  obs:"Buen candidato para dar un look 'líquido metálico' que no existe hoy (los orbes actuales son plasma/agua/tormenta, no metal líquido)."
+},
+{
+  n:8, name:"Iridescent Liquid Wave", cat:"Iridiscencia / Cromado", gpu:"MEDIO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/NXlXWM", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy single-pass (ondas sinusoidales + paleta coseno tipo iq)",
+  preview:"https://www.shadertoy.com/media/shaders/NXlXWM.jpg",
+  adapt:"Directo, sin buffers ni iChannel. Ideal candidato de bajo esfuerzo.",
+  perf:"BAJO/MEDIO — solo sumas de senos + una paleta coseno, muy barato.",
+  params:"Frecuencia de ondas → D1; capas → D2; paleta → Hue global.",
+  midi:"uHigh directamente en el brillo del sheen iridiscente (uso perfecto para 'solo color').",
+  obs:"Uno de los mejores costo/beneficio del catálogo — look iridiscente que no existe en las 49 escenas."
+},
+{
+  n:9, name:"Black, Iridescent, Liquid", cat:"Iridiscencia / Cromado", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/3sl3DH", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, domain warp + paleta iridiscente sobre fondo oscuro",
+  preview:"https://www.shadertoy.com/media/shaders/3sl3DH.jpg",
+  adapt:"Sin multipass; cuidar el número de octavas de fbm para 60 FPS.",
+  perf:"MEDIO por el domain warping (fbm anidado 2-3 veces).",
+  params:"Contraste oscuro → Brightness global; paleta → Hue.",
+  midi:"uBass en la amplitud del warp (visual, color/brillo).",
+  obs:"Encaja bien con el pedido de 'visuales oscuros/minimalistas' + iridiscencia a la vez."
+},
+{
+  n:10, name:"An Iridescent material", cat:"Iridiscencia / Cromado", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/wX2yRm", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, shading de material (fresnel + paleta) sobre una forma simple",
+  preview:"https://www.shadertoy.com/media/shaders/wX2yRm.jpg",
+  adapt:"Directo.", perf:"BAJO.",
+  params:"Ángulo de vista simulado → D1; paleta → Hue.",
+  midi:"uMid/uHigh en el barrido de color iridiscente.",
+  obs:"Como referencia de la 'fórmula' de iridiscencia — combinar con geometría propia del rig sería la mejor opción de implementación."
+},
+{
+  n:11, name:"Plasma Waves of Interference", cat:"Plasma", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/3cjyD1", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, interferencia de ondas sinusoidales clásicas",
+  preview:"https://www.shadertoy.com/media/shaders/3cjyD1.jpg",
+  adapt:"Directo, el clásico 'plasma effect' de demoscene.",
+  perf:"MUY BAJO — solo sumas de senos, corre sin problema a 60 FPS en cualquier GPU.",
+  params:"Número de fuentes de onda → D1-D3; frecuencia → Speed.",
+  midi:"uBass/uMid en amplitud de las ondas (brillo). Ideal para reactividad fuerte sin tocar geometría.",
+  obs:"Ya hay scene46_orbe_plasma; este es un plasma de pantalla completa (no orbe), diferente composición."
+},
+{
+  n:12, name:"Plasma Waves", cat:"Plasma", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/ltXczj", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, plasma clásico",
+  preview:"https://www.shadertoy.com/media/shaders/ltXczj.jpg",
+  adapt:"Directo.", perf:"MUY BAJO.",
+  params:"Igual que #11.", midi:"uKick como pulso de amplitud global.",
+  obs:"Variante alternativa de plasma con otra paleta/composición; cualquiera de las dos (#11 o #12) sirve como base."
+},
+{
+  n:13, name:"Infinite Tunnel Kaleidoscope", cat:"Túneles / Kaleidoscopio", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/NflSDS", author:"dugufly",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching de túnel con simetría radial",
+  preview:"https://www.shadertoy.com/media/shaders/NflSDS.jpg",
+  adapt:"Raymarching con pocas iteraciones (túnel es una SDF simple tipo cilindro repetido); ajustar MAX_STEPS para performance en iGPU.",
+  perf:"MEDIO — raymarching 1D de baja complejidad, pero cuidar steps para 60 FPS.",
+  params:"Simetría (n° de espejos) → D1; velocidad de avance → Speed; distorsión → D2.",
+  midi:"uHigh en el brillo de los bordes del patrón (nunca cambiar el n° de espejos con audio).",
+  obs:"Ya hay scene07_kaleido; este es específicamente un túnel infinito con perspectiva de avance, más '3D' que el kaleido plano actual."
+},
+{
+  n:14, name:"SDF Tunnel", cat:"Túneles / Raymarching", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/s323Rm", author:"Infantus",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching 'voxel' tunnel",
+  preview:"https://www.shadertoy.com/media/shaders/s323Rm.jpg",
+  adapt:"Raymarching con voxelización — revisar steps; podría ser más caro que un túnel SDF simple.",
+  perf:"MEDIO/ALTO según steps de voxel raymarching; probar y ajustar a 60 FPS.",
+  params:"Densidad de voxels → D1; avance → Speed.",
+  midi:"uMid en brillo de las paredes del túnel.",
+  obs:"Estética más 'retro/8-bit' que el kaleido, buena diversidad."
+},
+{
+  n:15, name:"Nebulous Tunnel", cat:"Túneles / Nebulosa", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/ltfBzM", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, túnel volumétrico simple con noise",
+  preview:"https://www.shadertoy.com/media/shaders/ltfBzM.jpg",
+  adapt:"Volumetric raymarching ligero (pocas capas); directo de portar.",
+  perf:"MEDIO.", params:"Densidad de niebla → D1; avance → Speed.",
+  midi:"uBass en el brillo del núcleo del túnel.",
+  obs:"Combina bien la categoría 'túnel' con 'espacio/nebulosa' en un solo shader."
+},
+{
+  n:16, name:"Infinite repetition", cat:"Fractales / Raymarching", gpu:"MEDIO", port:"BAJO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4dXGRN", author:"ver perfil en Shadertoy (shader clásico, 2013)",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching con domain repetition (mod espacial)",
+  preview:"https://www.shadertoy.com/media/shaders/4dXGRN.jpg",
+  adapt:"Técnica de 'infinite repetition' vía operador mod() en el espacio — clásico de iq, bien documentado, fácil de adaptar.",
+  perf:"MEDIO — pocas primitivas por celda repetida, steps moderados.",
+  params:"Tamaño de celda → D1 (fijo, no audio-reactivo); rotación de cámara → Speed.",
+  midi:"uHigh en brillo especular de las formas repetidas.",
+  obs:"Buen ejemplo didáctico de raymarching SDF con repetición infinita — geometría abstracta 3D no representada en el catálogo actual."
+},
+{
+  n:17, name:"Raymarching - Primitives", cat:"Raymarching / Geometría 3D", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta (como base de estudio, no para usar tal cual — es una demo educativa con muchas primitivas a la vez)",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/Xds3zN", author:"Inigo Quilez (iq)",
+  license:"Shadertoy default (iq: uso educativo ampliamente permitido, verificar términos exactos antes de redistribuir código)",
+  tech:"GLSL / Shadertoy, raymarching de múltiples SDF primitivas (esfera, caja, toro, cono, etc.) en una escena",
+  preview:"https://www.shadertoy.com/media/shaders/Xds3zN.jpg",
+  adapt:"Extraer 1-2 primitivas (ej. toro + esfera) en vez de la escena completa de ~20 objetos, para bajar el costo y adaptarlo a 'una pieza abstracta 3D' en vez de demo de catálogo SDF.",
+  perf:"MEDIO/ALTO tal cual (demo con muchos objetos); BAJO/MEDIO si se recorta a 1-3 primitivas.",
+  params:"Rotación de cámara → Speed; forma activa → D1 (selección discreta, no continua con audio).",
+  midi:"uHigh en especular/fresnel de la superficie.",
+  obs:"La referencia SDF más citada de la industria (iq); usar como base de aprendizaje/adaptación más que copiar la escena completa."
+},
+{
+  n:18, name:"Nebula in Space", cat:"Espacio / Nebulosa", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/33cSWX", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, noise procedural (fbm) coloreado + estrellas por hash",
+  preview:"https://www.shadertoy.com/media/shaders/33cSWX.jpg",
+  adapt:"Directo, fbm + starfield por hash, sin buffers.",
+  perf:"MEDIO por las octavas de fbm; el starfield es barato (hash puntual).",
+  params:"Densidad de estrellas → D1; capas de nebulosa → D2; paleta → Hue.",
+  midi:"uHigh en el centelleo (twinkle) de las estrellas (brillo puntual), uBass en el glow de la nebulosa.",
+  obs:"El rig ya tiene scene32_nebula — comparar de cerca antes de decidir si aporta algo distinto (esta versión es más 'starfield + nebulosa' que abstracta)."
+},
+{
+  n:19, name:"nebula flow", cat:"Espacio / Nebulosa", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/wdVXz3", author:"ver perfil en Shadertoy (proyecto Nodevember)",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, flow noise animado",
+  preview:"https://www.shadertoy.com/media/shaders/wdVXz3.jpg",
+  adapt:"Directo.", perf:"MEDIO.",
+  params:"Velocidad del flujo → Speed; turbulencia → D1.",
+  midi:"uMid en la turbulencia visible (brillo, no desplazamiento brusco).",
+  obs:"Más orgánico/fluido que 'Nebula in Space', con look de gas en movimiento."
+},
+{
+  n:20, name:"Interstellar wormhole", cat:"Espacio / Agujero de gusano", gpu:"ALTO", port:"ALTO",
+  compat:"Media — raymarching con integración de geodésicas es costoso",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/stByz1", author:"michael0884 (autor de la técnica base 'Ellis wormhole')",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, integrador tipo Hamiltoniano para geodésicas + raymarching volumétrico",
+  preview:"https://www.shadertoy.com/media/shaders/stByz1.jpg",
+  adapt:"Muy pesado computacionalmente (integración numérica por paso de rayo); simplificar drásticamente el modelo físico o usar solo como referencia visual para una versión 'fake' más barata (distorsión UV + fbm) en vez del cálculo real.",
+  perf:"ALTO — probablemente no llega a 60 FPS en iGPU sin recorte severo de resolución/steps.",
+  params:"—", midi:"—",
+  obs:"Visualmente espectacular pero de los más caros del catálogo; recomendarlo solo si se acepta una versión 'fake' simplificada."
+},
+{
+  n:21, name:"Simple 2D Black Hole", cat:"Espacio / Agujero negro", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/cdcBR8", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, distorsión UV 2D tipo lente gravitacional (sin raymarching real)",
+  preview:"https://www.shadertoy.com/media/shaders/cdcBR8.jpg",
+  adapt:"Directo — es un efecto de distorsión de UV sobre un fondo de estrellas/disco, no raymarching 3D real.",
+  perf:"BAJO — mucho más barato que la versión 'real' (#20), buena alternativa práctica.",
+  params:"Radio del horizonte de eventos → D1; velocidad de rotación del disco → Speed.",
+  midi:"uBass en el brillo del disco de acreción.",
+  obs:"Recomendado como sustituto barato del wormhole real (#20) manteniendo el género 'espacio/agujero negro'."
+},
+{
+  n:22, name:"Electric Lightning", cat:"Electricidad / Neón", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/Dsd3Dj", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, ruido fractal + función de 'arco' sobre una curva (glow exponencial)",
+  preview:"https://www.shadertoy.com/media/shaders/Dsd3Dj.jpg",
+  adapt:"Directo, sin buffers ni iChannel externo (usa noise procedural).",
+  perf:"BAJO/MEDIO — pocas octavas de fbm para el jitter del rayo.",
+  params:"Número de ramas → D1 (fijo por Density, no reactivo continuo); grosor/glow → D2.",
+  midi:"uKick como disparador de un nuevo 'rayo' (brillo del flash, no nueva geometría persistente — cuidado con la regla del rig).",
+  obs:"Look de electricidad/rayo no representado hoy (hay 'laseres' y 'red' pero no rayo eléctrico orgánico)."
+},
+{
+  n:23, name:"Interactive Neon Grid Background", cat:"Grids / Neón", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4XBGWV", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, grid procedural con perspectiva + glow de líneas",
+  preview:"https://www.shadertoy.com/media/shaders/4XBGWV.jpg",
+  adapt:"Directo — grid con fract()/mod(), muy barato.",
+  perf:"MUY BAJO — ideal para hardware modesto.",
+  params:"Tamaño de celda → D1; velocidad de scroll → Speed; grosor de línea → D2.",
+  midi:"uBass en el brillo de las líneas horizontales (efecto 'pulso' del grid, sin mover geometría).",
+  obs:"Estética retrowave/cyberpunk de grid con perspectiva, ausente en las 49 escenas (hay mosaico/persianas pero no grid con horizonte)."
+},
+{
+  n:24, name:"Cyber Punk", cat:"Neón / Glitch", gpu:"BAJO", port:"BAJO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/7lVSDw", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, combinación de líneas de scan + glitch + paleta neón",
+  preview:"https://www.shadertoy.com/media/shaders/7lVSDw.jpg",
+  adapt:"Directo, sin buffers.", perf:"BAJO.",
+  params:"Intensidad de glitch → D1; scanlines → D2.",
+  midi:"uHigh en la frecuencia de glitch (breve, en brillo/color, no en desplazamiento de contenido real).",
+  obs:"Complementa a #23 con un enfoque más 'glitch urbano' que 'grid limpio'."
+},
+{
+  n:25, name:"Voronoi - basic", cat:"Células / Voronoi", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/MslGD8", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, Voronoi/Worley noise clásico",
+  preview:"https://www.shadertoy.com/media/shaders/MslGD8.jpg",
+  adapt:"Directo — Voronoi es una técnica estándar, coste O(9 celdas vecinas) por pixel.",
+  perf:"BAJO.", params:"Escala de celdas → Density global; animación de puntos → Speed.",
+  midi:"uMid en el brillo de los bordes de celda (efecto 'red celular pulsante').",
+  obs:"Base técnica reutilizable para variantes: células orgánicas, mosaicos, grietas — buena inversión de tiempo de implementación."
+},
+{
+  n:26, name:"Life-Like Cellular Automata", cat:"Autómata celular / Orgánico", gpu:"ALTO", port:"ALTO",
+  compat:"Media — requiere estado persistente entre frames (Feedback TOP en TD en vez del Buffer A de Shadertoy)",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/tljcWy", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy multipass (Buffer A con el estado del autómata, iChannel0 se lee a sí mismo)",
+  preview:"https://www.shadertoy.com/media/shaders/tljcWy.jpg",
+  adapt:"Necesita un Feedback TOP dedicado (textura de estado que se lee y escribe cada frame) — no cabe en el contrato de una sola función render(uv) sin agregar ese TOP extra al patch.",
+  perf:"ALTO en términos de arquitectura (aunque el cómputo por celda es barato, la resolución completa como grid de autómata es costosa si no se reduce).",
+  params:"Reglas del autómata → D1 (discreto); velocidad de simulación → Speed.",
+  midi:"uKick para 'sembrar' vida nueva en un punto (brillo/estado, evento puntual).",
+  obs:"Interesante pero es el tipo de shader que más se aleja del contrato actual (necesita persistencia de estado) — evaluar si vale la pena el cambio de arquitectura."
+},
+{
+  n:27, name:"chaotic particle swarm 2", cat:"Partículas", gpu:"ALTO", port:"ALTO",
+  compat:"Media/Baja — técnica de 'voronoi particle tracking' usa un buffer para trackear miles de partículas por frame",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/WtK3zt", author:"michael0884",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy multipass (buffer de estado de partículas codificado en textura)",
+  preview:"https://www.shadertoy.com/media/shaders/WtK3zt.jpg",
+  adapt:"Requiere Feedback TOP para el estado de las partículas; alternativa más simple: aproximar el look con un campo de puntos proceduales (hash) sin estado real, mucho más barato y compatible con el contrato de una sola pasada.",
+  perf:"ALTO tal cual; BAJO/MEDIO si se aproxima sin persistencia real.",
+  params:"—", midi:"—",
+  obs:"Técnicamente impresionante (referencia de michael0884, muy citado en la comunidad de shaders de partículas) pero de difícil port directo; mejor usarlo como inspiración visual."
+},
+{
+  n:28, name:"Flow fields", cat:"Partículas / Noise orgánico", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta si se aproxima sin trails persistentes (trails reales necesitan feedback)",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/ssV3Dw", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, muestreo de color arrastrado por un campo de flujo (curl noise)",
+  preview:"https://www.shadertoy.com/media/shaders/ssV3Dw.jpg",
+  adapt:"La versión con 'trails' reales usa buffer de feedback; una versión sin memoria (solo el campo de flujo visualizado con líneas/streamlines instantáneas) es un solo pase y barata.",
+  perf:"MEDIO en la versión sin feedback; ALTO si se agregan trails persistentes.",
+  params:"Escala del campo → D1; velocidad → Speed.",
+  midi:"uMid en el brillo de las líneas de flujo.",
+  obs:"Buen complemento visual a los shaders de humo/fluidos, con estética más gráfica/vectorial."
+},
+{
+  n:29, name:"field, flow and particles", cat:"Partículas / Campo de flujo", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta (variante sin memoria)", source:"Shadertoy", url:"https://www.shadertoy.com/view/DttSRB", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy",
+  preview:"https://www.shadertoy.com/media/shaders/DttSRB.jpg",
+  adapt:"Similar a #28; verificar si usa buffer antes de portar.",
+  perf:"MEDIO.", params:"Igual que #28.", midi:"uHigh en brillo de partículas.",
+  obs:"Alternativa a #28 con otra composición visual del mismo concepto."
+},
+{
+  n:30, name:"Mountains", cat:"Paisaje generativo", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/4slGD4", author:"Dave_Hoskins",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching de heightfield fbm con niebla atmosférica",
+  preview:"https://www.shadertoy.com/media/shaders/4slGD4.jpg",
+  adapt:"Raymarching de terreno; ajustar steps y distancia de niebla para 60 FPS en iGPU (uno de los shaders de terreno más citados/optimizados de Shadertoy, +58k vistas).",
+  perf:"MEDIO/ALTO según steps; el propio autor lo optimizó bastante en su momento para tiempo real.",
+  params:"Altura del terreno → D1; densidad de niebla → D2; posición de cámara → Speed (paneo, no salto).",
+  midi:"uBass en el brillo del horizonte/niebla.",
+  obs:"Landscape generativo ausente en las 49 escenas — buen candidato para un visual 'paisaje abstracto' de cierre de set."
+},
+{
+  n:31, name:"Fog Mountains", cat:"Paisaje generativo", gpu:"MEDIO", port:"MEDIO",
+  compat:"Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/XdsGD7", author:"ESpitz",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching 3D con SDF + fbm, técnicas basadas en trabajos de Inigo Quilez",
+  preview:"https://www.shadertoy.com/media/shaders/XdsGD7.jpg",
+  adapt:"Igual que #30, cuidar steps de raymarching.",
+  perf:"MEDIO/ALTO.", params:"Igual que #30 con más énfasis en niebla volumétrica.",
+  midi:"uMid en densidad de niebla visible.",
+  obs:"Variante más 'atmosférica/nublada' de #30, buena para transiciones lentas."
+},
+{
+  n:32, name:"Eroded mountain terrain (v2)", cat:"Paisaje generativo", gpu:"ALTO", port:"MEDIO",
+  compat:"Media/Alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/stS3zD", author:"jarble",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, fbm con simulación de erosión (derivadas acumuladas)",
+  preview:"https://www.shadertoy.com/media/shaders/stS3zD.jpg",
+  adapt:"Cálculo de derivadas de noise más pesado que fbm simple; revisar cantidad de octavas para 60 FPS.",
+  perf:"ALTO — erosión simulada es más cara que terreno fbm plano.",
+  params:"Erosión → D1; altura → D2.",
+  midi:"uBass en brillo del terreno.",
+  obs:"El más detallado visualmente de los 3 paisajes, pero también el más caro — usar como 'showcase' en máquinas con más GPU, o como referencia para simplificar."
+},
+{
+  n:33, name:"60FPS Volumetric Clouds on iGPU", cat:"Nubes volumétricas", gpu:"MEDIO", port:"MEDIO",
+  compat:"Muy alta — literalmente diseñado y probado para 60 FPS en GPU integrada",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/DtBGR1", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching volumétrico optimizado (pocos steps, noise barato)",
+  preview:"https://www.shadertoy.com/media/shaders/DtBGR1.jpg",
+  adapt:"Directo — el propio shader ya está optimizado para el caso de uso exacto del rig (GPU integrada, 60 FPS).",
+  perf:"MEDIO — validado por el autor como 60 FPS en iGPU, el candidato de más bajo riesgo de performance entre los volumétricos.",
+  params:"Densidad de nubes → Density global; velocidad de deriva → Speed; altura de la capa → D1.",
+  midi:"uHigh en el brillo de los bordes iluminados de las nubes (god-rays sutiles).",
+  obs:"PRIORIDAD ALTA: es el único shader volumétrico del catálogo explícitamente validado para el hardware objetivo del rig."
+},
+{
+  n:34, name:"Cloud raymarching", cat:"Nubes volumétricas", gpu:"ALTO", port:"MEDIO",
+  compat:"Media — más pesado que #33, útil como referencia o para PCs con GPU dedicada",
+  source:"Shadertoy", url:"https://www.shadertoy.com/view/WslGWl", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, raymarching volumétrico estándar (sample shader de referencia, 2019)",
+  preview:"https://www.shadertoy.com/media/shaders/WslGWl.jpg",
+  adapt:"Directo pero pesado; recortar steps o usar como base de estudio en vez de #33.",
+  perf:"ALTO — sample 'de libro de texto', no optimizado para hardware modesto.",
+  params:"Igual que #33.", midi:"Igual que #33.",
+  obs:"Preferir #33 para este rig; este se lista solo como referencia técnica alternativa."
+},
+{
+  n:35, name:"Glitchy Glitch", cat:"Glitch / Datamosh", gpu:"BAJO", port:"BAJO",
+  compat:"Muy alta", source:"Shadertoy", url:"https://www.shadertoy.com/view/wld3WN", author:"ver perfil en Shadertoy",
+  license:"Shadertoy default", tech:"GLSL / Shadertoy, desplazamiento de bloques por hash + corrimiento de canales RGB",
+  preview:"https://www.shadertoy.com/media/shaders/wld3WN.jpg",
+  adapt:"Directo — es post-proceso sobre coordenadas UV, sin buffers ni frame anterior (a diferencia del datamosh 'real' que necesita el frame previo).",
+  perf:"BAJO/MEDIO.", params:"Intensidad de glitch → D1; frecuencia de bloques → D2.",
+  midi:"uKick como disparador de un burst de glitch (brillo/desplazamiento de color, cuidando que no rompa la regla de geometría si se aplica solo como corrimiento de color por canal).",
+  obs:"El rig ya tiene scene03_mediaglitch — comparar de cerca antes de sumar otro glitch; esta versión es más 'block displacement + RGB split' clásico."
+},
+{
+  n:36, name:"Goo (port TD existente)", cat:"Metaballs / Goo — YA PORTADO A TD", gpu:"BAJO", port:"YA EXISTE (.tox)",
+  compat:"N/A — ya es un .tox de TouchDesigner, arquitectura propia (no el contrato render(uv) de este rig)",
+  source:"GitHub — exsstas/Shadertoy-TD-ports", url:"https://github.com/exsstas/Shadertoy-TD-ports", author:"exsstas (port); original de 'noby' en Shadertoy",
+  license:"GPL-3.0 (repo del port)", tech:"TouchDesigner .tox (GLSL TOP ya integrado)",
+  preview:"",
+  adapt:"No es un .frag suelto — es un .tox completo con su propia interfaz de parámetros. Adaptarlo a este rig significaría extraer solo el GLSL interno y reescribirlo contra el contrato render(uv) del header/footer de shader.py, descartando la UI del .tox original.",
+  perf:"BAJO según la descripción del repo ('slimy shiny wavy thing').",
+  params:"El .tox trae sus propios parámetros; habría que remapearlos a D1-D6.",
+  midi:"—",
+  obs:"Prueba de que la comunidad ya adapta shaders de Shadertoy a TD — útil como referencia de qué uniforms/estructura usar al portar, más que para copiar el .tox tal cual (arquitectura distinta a la de este rig)."
+},
+{
+  n:37, name:"Aya_Tunnel (port TD existente)", cat:"Túneles — YA PORTADO A TD", gpu:"MEDIO", port:"YA EXISTE (.tox)",
+  compat:"N/A — mismo caso que #36", source:"GitHub — exsstas/Shadertoy-TD-ports",
+  url:"https://github.com/exsstas/Shadertoy-TD-ports", author:"exsstas (port); original de 'BigWIngs' en Shadertoy",
+  license:"GPL-3.0 (repo del port)", tech:"TouchDesigner .tox",
+  preview:"",
+  adapt:"Extraer el GLSL interno y adaptarlo al contrato render(uv); el .tox trae su propio manejo de tiempo/parámetros que no coincide con los uniforms de este rig.",
+  perf:"MEDIO — 'generative raymarching tunnel'.",
+  params:"Remapear a D1-D6.", midi:"—",
+  obs:"Segunda confirmación de que existe comunidad activa portando Shadertoy → TD; complementa al candidato #13 (Infinite Tunnel Kaleidoscope) como referencia de implementación real en TD."
+},
+{
+  n:38, name:"Branching_Paths_basic (port TD existente)", cat:"Líneas / Trails — YA PORTADO A TD", gpu:"BAJO", port:"YA EXISTE (.tox)",
+  compat:"N/A — mismo caso que #36/#37", source:"GitHub — exsstas/Shadertoy-TD-ports",
+  url:"https://github.com/exsstas/Shadertoy-TD-ports", author:"exsstas (port); original de 'wyatt' en Shadertoy",
+  license:"GPL-3.0 (repo del port)", tech:"TouchDesigner .tox (incluye botón de Reset)",
+  preview:"",
+  adapt:"El botón de Reset sugiere que usa un Feedback TOP con estado persistente (trails acumulativos) — requeriría el mismo tipo de refactor de arquitectura que los shaders de partículas/autómatas de este catálogo (#26, #27).",
+  perf:"BAJO según la descripción ('colorful trails').",
+  params:"Remapear a D1-D6; el Reset podría mapearse a un botón MIDI dedicado.",
+  midi:"Botón físico dedicado para Reset (evento discreto, no continuo).",
+  obs:"Ejemplo de un shader con estado persistente ya resuelto en TD — útil como referencia técnica de cómo estructurar el Feedback TOP si se decide portar #26/#27/#3/#5 (los shaders con buffers de este catálogo)."
+}
+];
+
+const CATS = [...new Set(DATA.map(d=>d.cat))].sort();
+const catSel = document.getElementById('filterCat');
+CATS.forEach(c=>{
+  const o = document.createElement('option'); o.value=c; o.textContent=c; catSel.appendChild(o);
+});
+
+function gpuColor(g){ return g==='BAJO'?'low':g==='MEDIO'?'med':'high'; }
+
+function card(d){
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.onclick = ()=>openModal(d);
+  div.innerHTML = `
+    <div class="thumb" id="thumb-${d.n}">
+      <span class="num">#${String(d.n).padStart(2,'0')}</span>
+      <span class="badge tag gpu-${d.gpu}" style="background:rgba(0,0,0,.55)">${d.gpu}</span>
+      <span class="ph" id="ph-${d.n}" style="${d.preview?'display:none':''}">${d.cat}<br>(sin preview — ver fuente)</span>
+      ${d.preview?`<img src="${d.preview}" alt="" style="display:none" onload="this.parentElement.style.backgroundImage='url(\\''+this.src+'\\')';this.remove();" onerror="this.remove();document.getElementById('ph-${d.n}').style.display='flex'">`:''}
+    </div>
+    <div class="body">
+      <div class="name">${d.name}</div>
+      <div class="cat">${d.cat}</div>
+      <div class="meta">
+        <span class="tag gpu-${d.gpu}">GPU: ${d.gpu}</span>
+        <span class="tag">Port: ${d.port}</span>
+      </div>
+      <div class="src">${d.source}</div>
+    </div>
+  `;
+  return div;
+}
+
+function render(){
+  const q = document.getElementById('search').value.toLowerCase();
+  const fc = document.getElementById('filterCat').value;
+  const fg = document.getElementById('filterGpu').value;
+  const grid = document.getElementById('grid');
+  grid.innerHTML='';
+  let shown=0;
+  DATA.forEach(d=>{
+    const hay = `${d.name} ${d.cat} ${d.tech} ${d.desc||''}`.toLowerCase();
+    if(q && !hay.includes(q)) return;
+    if(fc && d.cat!==fc) return;
+    if(fg && d.gpu!==fg) return;
+    grid.appendChild(card(d));
+    shown++;
+  });
+  document.getElementById('count').textContent = `${shown} / ${DATA.length} shaders`;
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('filterCat').addEventListener('change', render);
+document.getElementById('filterGpu').addEventListener('change', render);
+
+function openModal(d){
+  const modal = document.getElementById('modal');
+  modal.innerHTML = `
+    <div class="hero" id="hero-modal">
+      <button class="close" onclick="closeModal()">✕</button>
+      <span class="ph" id="ph-modal" style="${d.preview?'display:none':''}">${d.cat} — sin preview disponible, ver enlace original</span>
+      ${d.preview?`<img src="${d.preview}" alt="" style="display:none" onload="this.parentElement.style.backgroundImage='url(\\''+this.src+'\\')';this.remove();" onerror="this.remove();document.getElementById('ph-modal').style.display='flex'">`:''}
+    </div>
+    <div class="content">
+      <h2>#${d.n} — ${d.name}</h2>
+      <div class="catline">${d.cat}</div>
+      <div class="row">
+        <span class="tag gpu-${d.gpu}">Costo GPU: ${d.gpu}</span>
+        <span class="tag">Dificultad de port: ${d.port}</span>
+      </div>
+      <dl class="spec">
+        <dt>Fuente</dt><dd><a class="link" href="${d.url}" target="_blank" rel="noopener">${d.source} ↗</a></dd>
+        <dt>Autor</dt><dd>${d.author}</dd>
+        <dt>Licencia</dt><dd>${d.license}</dd>
+        <dt>Tecnología</dt><dd>${d.tech}</dd>
+        <dt>Compatibilidad TD</dt><dd>${d.compat}</dd>
+      </dl>
+      <div class="sec-title">Qué adaptar para GLSL TOP en TD</div>
+      <div class="desc">${d.adapt}</div>
+      <div class="sec-title">Rendimiento estimado</div>
+      <div class="desc">${d.perf}</div>
+      <div class="sec-title">Parámetros interesantes (mapeo a Detail knobs)</div>
+      <div class="desc">${d.params}</div>
+      <div class="sec-title">Posibles controles MIDI / audio-reactividad</div>
+      <div class="desc">${d.midi}</div>
+      <div class="sec-title">Observaciones</div>
+      <div class="desc">${d.obs}</div>
+    </div>
+  `;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+document.getElementById('overlay').addEventListener('click', e=>{
+  if(e.target.id==='overlay') closeModal();
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+render();
+</script>
+</body>
+</html>
