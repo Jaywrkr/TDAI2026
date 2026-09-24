@@ -520,7 +520,13 @@ def parse_detail_legend(body):
     for line in body.split('\n'):
         m = _DETAIL_RE.match(line)
         if m:
-            found[int(m.group(1))] = m.group(2)
+            text = m.group(2).strip()
+            # La leyenda muestra UNA linea por perilla: si la descripcion
+            # sigue en la linea de abajo, la primera termina en un "(casi"
+            # colgando. Se corta antes del parentesis sin cerrar.
+            if text.count('(') > text.count(')'):
+                text = text[:text.rfind('(')].rstrip(' ,;:-')
+            found[int(m.group(1))] = text
     if not found:
         return ''
     return '\n'.join('D{}: {}'.format(i, found[i]) for i in sorted(found))

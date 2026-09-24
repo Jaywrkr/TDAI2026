@@ -154,7 +154,9 @@ vec4 render(vec2 uv)
 
         float size = mix(0.02, 0.05, uD4);
         float d2 = dot(p - fPos, p - fPos);
-        float glow = exp(-d2 / (size * size)) * (0.25 + lifeOwn * 0.35 + detected * 0.9);
+        // Auditoria de Detail (render 0 vs 1): D1 (ventana de deteccion) casi no se veia:
+        // el brillo por deteccion era chico al lado del brillo propio.
+        float glow = exp(-d2 / (size * size)) * (0.2 + lifeOwn * 0.3 + detected * 2.2);
         col += radarCol * glow * (1.0 + uKick * 1.0);
     }
 

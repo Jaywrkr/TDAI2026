@@ -145,7 +145,10 @@ vec4 render(vec2 uv)
     // volviendose un blob blanco solido donde se cruzaban las ondas en
     // vez de un brillo puntual y contenido.
     float interfLum = dot(col, vec3(0.299, 0.587, 0.114));
-    float sparkle = smoothstep(1.1, 2.2, interfLum) * (uD6 * 0.6 + uHigh * 0.5);
+    // Auditoria de Detail (render 0 vs 1): interfLum casi nunca llegaba a 1.1, asi
+    // que D6 no encendia nada sin agudos. D6 ahora tambien baja el umbral
+    // (0 = solo los cruces mas fuertes, 1 = destellos en toda interferencia).
+    float sparkle = smoothstep(mix(1.1, 0.45, uD6), mix(2.2, 1.1, uD6), interfLum) * (uD6 * 0.8 + uHigh * 0.5);
     col += vec3(1.0) * sparkle;
 
     // Kick: flash breve, ademas del empujon de radio de arriba.

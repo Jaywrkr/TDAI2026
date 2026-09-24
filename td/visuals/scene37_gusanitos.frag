@@ -111,7 +111,7 @@ vec4 render(vec2 uv)
         // D4: cabeza mas grande y redonda -- se dibuja aparte, en el
         // punto tau=0 de la curva.
         vec2  headPos = wormPath(t * speed, seed, tw);
-        float headR = mix(0.03, 0.09, uD4);
+        float headR = mix(0.025, 0.13, uD4);   // D4 rango ampliado (auditoria)
         float dHead = length(pw - headPos);
 
         float bodyCov = 1.0 - smoothstep(width, width + 0.01, minD);

@@ -35,7 +35,7 @@
 // @D4: relleno tenue entre curvas de nivel (solo lineas <-> mapa relleno)
 // @D5: cada cuantas curvas hay una "maestra" mas gruesa (seguido <->
 //      rara vez)
-// @D6: intensidad de la oclusion ambiental en zonas escarpadas
+// @D6: sombreado de relieve (mapa plano <-> terreno iluminado de costado)
 //
 // LEVANTAMIENTOS: ademas de la respiracion pareja de todo el campo
 // (hBreath de mas abajo), un SEGUNDO campo de ruido (mucho mas grande y
@@ -143,9 +143,16 @@ vec4 render(vec2 uv)
     // curvas de nivel apretadas en pocos pixeles) se oscurece un poco,
     // dando relieve real en vez de lineas planas. Se acentua en el
     // kick, como si la sombra "pesara" mas con el golpe.
-    float bandDensity = levels * length(vec2(dFdx(hBreath), dFdy(hBreath)));
-    float ao = smoothstep(0.4, 3.0, bandDensity) * (0.25 + uKick * 0.5);
-    col *= 1.0 - ao * (0.15 + uD6 * 0.55);
+    // Auditoria de Detail: la "oclusion ambiental" que habia aca no
+    // producia nada visible sobre un mapa de lineas finas (D6 muerta).
+    // Ahora D6 es SOMBREADO DE RELIEVE: la pendiente del terreno vista
+    // con una luz de costado -- las laderas que miran a la luz se
+    // aclaran y las opuestas se oscurecen, como un mapa en relieve.
+    vec2  slope = vec2(dFdx(hBreath), dFdy(hBreath)) * uResH * 0.35;
+    float lit = dot(slope, normalize(vec2(-1.0, 1.0)));
+    float shade = lit / (1.0 + abs(lit));
+    col *= 1.0 + shade * uD6 * (1.1 + uKick * 0.4);
+    col += hsv2rgb(vec3(hCol, 0.4, 1.0)) * max(shade, 0.0) * uD6 * 0.06;
 
     // Kick: flash breve.
     col += col * uKick * 0.5;

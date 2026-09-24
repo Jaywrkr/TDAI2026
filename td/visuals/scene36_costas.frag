@@ -44,7 +44,10 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.06);
     vec3  col = vec3(0.0);
 
-    float lineW = 0.006 + uD1 * 0.02;
+    // Auditoria de Detail (render 0 vs 1): edgeLine() mide el ancho en PIXELES; aca
+    // recibia 0.006-0.026 (unidades de pantalla) = menos de un pixel, asi
+    // que D1 no cambiaba nada y la linea la dibujaba solo el glow.
+    float lineW = mix(1.0, 6.0, uD1);
     float amp = 0.04 + uD2 * 0.22;
     float freqBase = 1.0 + uD3 * 3.5;
     // Mid/High empujan geometria real (angulo/frecuencia de la ola),

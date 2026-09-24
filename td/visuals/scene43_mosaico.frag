@@ -101,7 +101,7 @@ vec4 render(vec2 uv)
     // Piso de 1 px (en unidades de celda: cols/uResH). Con D1 bajo, 0.002
     // de una celda de 72-240 px es menos de medio pixel: la junta
     // aparecia y desaparecia a saltos en vez de ser una linea fina.
-    float jointW = max(mix(0.002, 0.03, uD1), cols / uResH);
+    float jointW = max(mix(0.002, 0.08, uD1), cols / uResH);   // D1 hasta 0.08 (auditoria: casi no cambiaba)
     float joint = 1.0 - smoothstep(0.0, jointW, lineD);
     col *= mix(1.0, 1.0 - uD2 * 0.85, joint);
 

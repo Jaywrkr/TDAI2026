@@ -76,7 +76,7 @@ vec4 render(vec2 uv)
 
     // D6: anillo de borde tipo "anillo de diamante" de un eclipse real.
     float ringD = abs(r - diskR);
-    float ring = exp(-ringD * ringD / 0.0006) * (0.5 + uD6 * 1.4);
+    float ring = exp(-ringD * ringD / 0.0006) * (0.15 + uD6 * 2.4);   // D6 rango ampliado (auditoria)
     col += vec3(1.0, 0.95, 0.85) * ring;
 
     // Kick: el anillo de borde destella mas fuerte un instante, ademas
