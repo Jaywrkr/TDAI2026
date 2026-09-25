@@ -191,6 +191,27 @@ void main() {
     // antes de muestrear, que es como se pixela de verdad.
     vec2 renderUV = vUV.st;
 
+    // ---- BAILE (perilla 1, uMove): movimiento y crecimiento con la musica ----
+    // Pedido explicito: el brillo con el bajo (perilla Brillo / uAudioamt)
+    // y cuanto se MUEVE el visual tienen que ser dos perillas distintas.
+    // Unica excepcion al contrato "el audio no toca geometria": aca la
+    // geometria la mueve el audio A PROPOSITO y con perilla propia (en 0 no
+    // se mueve nada, como antes). Sin musica uKick/uBeat/uBass/uMid valen 0
+    // por la compuerta de musica (audio.py), asi que tampoco baila en
+    // silencio. Es la imagen entera la que baila, igual en las 55 escenas:
+    //   - crece con cada bombo (zoom hacia adentro, hasta ~16%)
+    //   - se hincha un poco con los graves sostenidos
+    //   - se balancea (giro chico) con los medios
+    if (uMove > 0.0015) {
+        float mv = clamp(uMove, 0.0, 1.0);
+        float hit = pow(max(clamp(uBeat, 0.0, 1.0), clamp(uKick, 0.0, 1.0)), 1.5);
+        float grow = mv * (0.16 * hit + 0.05 * clamp(uBass, 0.0, 1.0));
+        vec2 q = (renderUV - 0.5) * vec2(uAspect, 1.0);
+        float sway = mv * 0.07 * clamp(uMid, 0.0, 1.0) * sin(uRTime * 1.3);
+        q = rot2(sway) * q * (1.0 - grow);
+        renderUV = q / vec2(uAspect, 1.0) + 0.5;
+    }
+
     if (uPixelate > 0.0015) {
         // Piso bajado otra vez (16 -> 10 -> 6): a fondo de pad, bloques
         // enormes -- pedido explicito de que TODOS los efectos de pad

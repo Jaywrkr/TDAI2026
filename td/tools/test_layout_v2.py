@@ -177,7 +177,7 @@ def main():
           all(s in config.MIDI_SLOT_LABEL_ES for s in config.MIDI_PANEL_SLOTS), True)
     check('Trails se muestra como Estela (no "Trails")',
           config.MIDI_SLOT_LABEL_ES['Trails'], 'Estela')
-    check('Energy es la primera (perilla 1)', config.MIDI_PANEL_SLOTS[0], 'Energy')
+    check('BAILE (Movement) es la primera (perilla 1)', config.MIDI_PANEL_SLOTS[0], 'Movement')
     check('Palettelock es la ultima perilla (16)',
           config.MIDI_PANEL_SLOTS[15], 'Palettelock')
     check('Blendnext cierra el panel (pad 16)', config.MIDI_PANEL_SLOTS[-1], 'Blendnext')

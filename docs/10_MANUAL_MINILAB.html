@@ -305,7 +305,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
       <li>Guarda en la memoria del equipo (<b>Store To</b> → la misma memoria).</li>
       <li>Vuelve al probador: las dos tienen que decir <b>✓ Modo absoluto</b>.</li>
     </ol>
-    <p class="muted">Pista: en tu mapeo aprendido hay 14 perillas con CC normales más <span class="mono">ctrl2</span> y la tira de pitch. De 16 faltan dos, que muy probablemente son la 1 y la 9. Cuando estén en absoluto, Energía y Detail 1 (con Mezcla 2 capas y Transición en Shift) quedan donde las muestra el dibujo.</p>
+    <p class="muted">Pista: en tu mapeo aprendido hay 14 perillas con CC normales más <span class="mono">ctrl2</span> y la tira de pitch. De 16 faltan dos, que muy probablemente son la 1 y la 9. Cuando estén en absoluto, Baile y Detail 1 (con Mezcla 2 capas y Transición en Shift) quedan donde las muestra el dibujo.</p>
   </section>
 
   <section id="colores">
@@ -327,14 +327,13 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   </section>
 
   <section class="energy">
-    <span class="eyebrow">La perilla principal</span>
-    <h2>Energía: de la calma al pico</h2>
-    <p>Mueve varias cosas a la vez y marca el ritmo de los cambios de escena. Si después tocas Speed, Density o Chaos, esa perilla manda hasta que vuelvas a mover Energía.</p>
-    <div class="meter" role="presentation"></div>
+    <span class="eyebrow">Las dos perillas de la música</span>
+    <h2>Brillo y Baile: dos cosas distintas</h2>
+    <p>Cuánto se <b>iluminan</b> los visuales y cuánto se <b>mueven</b> van en perillas separadas. Sin música, ninguna de las dos hace nada: la compuerta de música las deja en 0.</p>
     <div class="cards3">
-      <div class="card"><h3>Calma (0)</h3><div class="v">Speed 0.25 · Density 0.35 · Chaos 0.08<br>Estela 0 · Fundido 2.2 s<br>Autopilot cada 40 s</div></div>
-      <div class="card"><h3>Medio (0.5)</h3><div class="v">Speed 0.58 · Density 0.58 · Chaos 0.50<br>Estela 0.28 · Fundido 1.25 s<br>Autopilot cada 24 s</div></div>
-      <div class="card"><h3>Pico (1)</h3><div class="v">Speed 0.90 · Density 0.80 · Chaos 0.92<br>Estela 0.55 · Fundido 0.3 s<br>Autopilot cada 8 s</div></div>
+      <div class="card"><h3>BRILLO · perilla 6</h3><div class="v">Brillo con el bajo y los medios<br>El bombeo: baja entre golpes, pega en el bombo<br>En 0: no se iluminan con la música</div></div>
+      <div class="card"><h3>BAILE · perilla 1</h3><div class="v">Crece con cada bombo (hasta ~16%)<br>Se hincha con los graves, se balancea con los medios<br>En 0: no se mueve con la música</div></div>
+      <div class="card"><h3>Sin música</h3><div class="v">Nada reacciona<br>Status: "SIN MUSICA"<br>Audio → Calibrar compuerta (en silencio)</div></div>
     </div>
     <p class="muted">Con el Autopilot prendido, el cambio espera el siguiente golpe de bombo. Si en 3 s no hay bombo, cambia igual.</p>
   </section>
@@ -426,15 +425,15 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
 
   // id = clave de la funcion; now = lo que manda HOY segun el mapeo del rig
   const knobs = [
-    {id:'Energy', n:1, name:'ENERGÍA', g:'show', d:'La perilla principal. De calma a pico: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset.', shift:'Mezcla 2 capas', shiftId:'Layermix', shiftD:'Con Shift: cuánto entra la capa B en modo Dos Capas.', now:'CC 113', isNew:true},
+    {id:'Movement', n:1, name:'BAILE', g:'show', d:'Cuánto se MUEVEN los visuales con la música: la imagen crece con cada bombo, se hincha con los graves y se balancea con los medios. En 0 no se mueve nada. Sin música no baila nunca.', shift:'Mezcla 2 capas', shiftId:'Layermix', shiftD:'Con Shift: cuánto entra la capa B en modo Dos Capas.', now:'CC 113', isNew:true},
     {id:'Hue', n:2, name:'HUE', g:'show', d:'Gira la paleta de color. El giro es parejo en todos los tonos.', now:'CC 75'},
-    {id:'Speed', n:3, name:'SPEED', g:'show', d:'Velocidad de la animación. Pisa a Energía hasta que vuelvas a moverla.', now:'CC 72'},
+    {id:'Speed', n:3, name:'SPEED', g:'show', d:'Velocidad de la animación.', now:'CC 72'},
     {id:'Density', n:4, name:'DENSITY', g:'show', d:'Cantidad de detalle y cobertura.', now:'CC 77'},
     {id:'Chaos', n:5, name:'CHAOS', g:'show', d:'Turbulencia y distorsión.', now:'CC 78'},
-    {id:'Audioamount', n:6, name:'AUDIO', g:'look', d:'Cuánto reaccionan los visuales al sonido y cuánto BOMBEA la imagen con el bombo (baja entre golpes, pega arriba en cada golpe). En 0 nada reacciona. Con Auto-gain el nivel de la sala se compensa solo.', now:'CC 94'},
+    {id:'Audioamount', n:6, name:'BRILLO', g:'look', d:'Cuánto se ILUMINAN los visuales con la música y cuánto BOMBEA el brillo con el bombo (el movimiento va aparte, en la perilla 1 BAILE) (baja entre golpes, pega arriba en cada golpe). En 0 nada reacciona. Con Auto-gain el nivel de la sala se compensa solo.', now:'CC 94'},
     {id:'Trails', n:7, name:'ESTELA', g:'look', d:'Rastro de los cuadros anteriores. En 0 está apagada y no consume.', now:'CC 74', isNew:true},
-    {id:'Brightness', n:8, name:'MASTER', g:'safe', d:'Brillo general de la salida. Energía nunca lo toca.', now:'CC 76'},
-    {id:'Detail1', n:9, name:'DETAIL 1', g:'scene', d:'Significa algo distinto en cada escena: la leyenda del dashboard te dice qué.', shift:'Transición', shiftId:'Transition', shiftD:'Con Shift: duración del fundido a mano (pisa a Energía).', now:'CC 115'},
+    {id:'Brightness', n:8, name:'MASTER', g:'safe', d:'Brillo general de la salida.', now:'CC 76'},
+    {id:'Detail1', n:9, name:'DETAIL 1', g:'scene', d:'Significa algo distinto en cada escena: la leyenda del dashboard te dice qué.', shift:'Transición', shiftId:'Transition', shiftD:'Con Shift: duración del fundido a mano.', now:'CC 115'},
     {id:'Detail2', n:10, name:'DETAIL 2', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 19'},
     {id:'Detail3', n:11, name:'DETAIL 3', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 20'},
     {id:'Detail4', n:12, name:'DETAIL 4', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 17'},
@@ -447,7 +446,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     {id:'Next', n:1, name:'NEXT', g:'show', d:'Siguiente escena.', cc:'nota 38 · canal 10', led:['cyan','white'], ledD:'Late blanco con el beat mientras el autopilot anda'},
     {id:'Prev', n:2, name:'PREV', g:'show', d:'Escena anterior.', cc:'nota 37 · canal 10', led:['cyan','cyan'], ledD:'—'},
     {id:'Blackout', n:3, name:'BLACKOUT', g:'safe', d:'Negro total, on/off.', cc:'nota 39 · canal 10', led:['red','white'], ledD:'Blanco = en negro'},
-    {id:'Autopilot', n:4, name:'AUTOPILOT', g:'show', d:'El rig cambia de escena solo, a tiempo con el bombo. El ritmo lo marca Energía.', cc:'nota 40 · canal 10', isNew:true, led:['off','green'], ledD:'Verde = andando'},
+    {id:'Autopilot', n:4, name:'AUTOPILOT', g:'show', d:'El rig cambia de escena solo, a tiempo con el bombo. Cada cuánto: Autopilot → Autopilot Seconds.', cc:'nota 40 · canal 10', isNew:true, led:['off','green'], ledD:'Verde = andando'},
     {id:'Textvisible', n:5, name:'TEXTO', g:'show', d:'Muestra el siguiente nombre de la cola, con fundido. Otro toque lo oculta. Lo último que escribas a mano en Texto sale primero.', cc:'nota 41 · canal 10', isNew:true, led:['blue','white'], ledD:'Azul = hay un nombre listo · blanco = en pantalla'},
     {id:'Medianext', n:6, name:'IMAGEN →', g:'show', d:'Siguiente imagen en las 7 escenas de imagen.', cc:'nota 42 · canal 10', led:['yellow','yellow'], ledD:'—'},
     {id:'Duallayer', n:7, name:'DOS CAPAS', g:'show', d:'Dos escenas a la vez, mezcladas. La mezcla va en Shift + perilla 1 y el modo en el pad 16.', cc:'nota 43 · canal 10', isNew:true, led:['off','purple'], ledD:'Violeta = activo'},
@@ -475,7 +474,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   };
 
   // Lo que manda cada control HOY (mapeo del rig tras la migracion v2)
-  const CC_MAP = {113:'Energy', 75:'Hue', 72:'Speed', 77:'Density', 78:'Chaos', 94:'Audioamount', 74:'Trails', 76:'Brightness', 115:'Detail1', 19:'Detail2', 20:'Detail3', 17:'Detail4', 18:'Detail5', 92:'Detail6', 80:'Lookamount', 73:'Palettelock', 23:'Layermix', 24:'Transition', 1:'Mediascrub', 25:'Pixelate', 26:'Strobe', 27:'Invert', 28:'Mirror', 29:'Zoom', 30:'Blendnext'};
+  const CC_MAP = {113:'Movement', 75:'Hue', 72:'Speed', 77:'Density', 78:'Chaos', 94:'Audioamount', 74:'Trails', 76:'Brightness', 115:'Detail1', 19:'Detail2', 20:'Detail3', 17:'Detail4', 18:'Detail5', 92:'Detail6', 80:'Lookamount', 73:'Palettelock', 23:'Layermix', 24:'Transition', 1:'Mediascrub', 25:'Pixelate', 26:'Strobe', 27:'Invert', 28:'Mirror', 29:'Zoom', 30:'Blendnext'};
   const NOTE_MAP = {38:'Next', 37:'Prev', 39:'Blackout', 40:'Autopilot', 41:'Textvisible', 42:'Medianext', 43:'Duallayer', 44:'Medialock'};
 
   const all = {};
@@ -798,8 +797,8 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
     {t:'Cargar y reconstruir', how:'Rama claude/elegant-cannon-z3clen → /project1 → System → Reconstruir Todo. En el Textport debe aparecer "MIDI map migrado al layout v2".', fail:'Copia el reporte del Textport completo.'},
     {t:'Probador MIDI', how:'En esta página, Conectar y mover las 16 perillas, las 2 tiras y los 16 pads. Cada uno debe marcar su función.', fail:'Anota qué control físico marca algo distinto (o "sin asignar").'},
     {t:'Perillas 1 y 9 en absoluto', how:'En el probador, gira la perilla 1 y la 9 (y con Shift). Las dos deben decir "✓ Modo absoluto".', fail:'Si dice RELATIVO, sigue los pasos de "Perillas 1 y 9". Anota qué CC manda cada una.'},
-    {t:'Energía de punta a punta', how:'Gira Energía despacio de 0 a 1: el visual pasa de calma a pico y el status dice ENERGIA con la barra moviéndose.', fail:'¿Qué parámetro no se movió?'},
-    {t:'Autopilot a tiempo', how:'Pad 4 con música con bombo. Con Energía alta, los cambios caen justo en el golpe.', fail:'¿Cambia fuera de tiempo, o no cambia nunca?'},
+    {t:'Brillo y Baile', how:'Con música: gira la perilla 6 (Brillo) y el visual se ilumina más o menos con el bombo. Gira la perilla 1 (Baile) y la imagen crece más o menos en cada golpe. Sin música ninguna de las dos hace nada.', fail:'¿Cuál no hizo diferencia?'},
+    {t:'Autopilot a tiempo', how:'Pad 4 con música con bombo. Los cambios caen justo en el golpe.', fail:'¿Cambia fuera de tiempo, o no cambia nunca?'},
     {t:'Auto-gain', how:'Con música, espera 5 s y baja o sube mucho el volumen. Los visuales siguen reaccionando parecido; en /project1/ctrl, bass se mueve en todo su rango.', fail:'¿Se queda clavado arriba, o casi quieto? ¿Se mueve en silencio?'},
     {t:'Escala de render', how:'Haz un crossfade entre dos escenas pesadas. El FPS debería caer menos que antes.', fail:'Anota el FPS antes y después, y la escena.'},
     {t:'Bloom', how:'Si el Textport muestra "AVISO BLOOM: sin filtro mipmap", pon program_bloom → Common → Input Smoothness = Mipmap Pixels. El glow debe verse ancho y suave, sin puntas.', fail:'Captura de una escena con el glow.'},
@@ -833,7 +832,7 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   // Tiene que coincidir con vjcore.config.MIDI_SLOTS (lo chequea
   // td/tools/test_manual_sync.py). El json sale COMPLETO: lo que no se
   // aprende queda vacio, asi no quedan canales viejos repetidos.
-  const MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition', 'Audioamount', 'Bassamount', 'Midamount', 'Highamount', 'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6', 'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset', 'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert', 'Mirror', 'Zoom', 'Posterize', 'Trails', 'Layermix', 'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap', 'Lookamount', 'Palettelock', 'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic', 'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock', 'Mediascrub', 'Textvisible', 'Fontnext', 'Energy', 'Autopilot', 'Retro', 'Trailszoom'];
+  const MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition', 'Audioamount', 'Bassamount', 'Midamount', 'Highamount', 'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6', 'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset', 'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert', 'Mirror', 'Zoom', 'Posterize', 'Trails', 'Layermix', 'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap', 'Lookamount', 'Palettelock', 'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic', 'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock', 'Mediascrub', 'Textvisible', 'Fontnext', 'Energy', 'Autopilot', 'Retro', 'Trailszoom', 'Movement'];
   const MIDI_LAYOUT = 'v2';
   const WIZ = [].concat(
     knobs.map(k => ({slot:k.id, fn:k.name, where:'Gira la perilla ' + k.n, kind:'knob'})),
