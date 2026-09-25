@@ -260,6 +260,7 @@ CTRL_CHANNELS = [
     # PUMP (program.py, bloom): la imagen entera "bombea" con el bombo.
     'groove',   # 42 hay bombo sonando ahora (0..1, cae en ~0.8 s sin golpes)
     'audioamt', # 43 perilla Audio: profundidad del pump
+    'music',    # 44 hay musica (compuerta de audio.py); sin musica el resto del audio vale 0
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.

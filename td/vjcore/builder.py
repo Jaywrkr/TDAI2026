@@ -84,6 +84,13 @@ def _parameters(proj):
     add_toggle(a, 'Autogain', 'Auto-gain (normalizar audio)', True)
     add_float(a, 'Agcrelease', 'Auto-gain: memoria del pico (s)', 12.0, 2.0, 60.0)
     add_float(a, 'Agcfloor', 'Auto-gain: piso (no amplifica debajo)', 0.25, 0.02, 1.0)
+    # COMPUERTA DE MUSICA (ver audio.py): nivel crudo en dBFS debajo del
+    # cual NADA reacciona al audio. El auto-gain sin esto amplificaba el
+    # murmullo de la sala hasta parecer musica. Cada sala/microfono es
+    # distinto: el pulso de abajo lo mide solo (apretarlo en silencio).
+    add_float(a, 'Musicgate', 'Compuerta de musica (dB): debajo nada reacciona',
+              -26.0, -70.0, -5.0)
+    add_pulse(a, 'Musicgatecal', 'Calibrar compuerta (apretar SIN musica)')
     # Perillas de performance: cuanto deja pasar el audio hacia los visuales.
     # Default 1.0 = no cambia nada hasta que se toquen (sin sorpresas para
     # quien ya tenia el rig funcionando).
@@ -392,6 +399,8 @@ def onPulse(par):
 
     if n == 'Nextscene':
         m.nextScene()
+    elif n == 'Musicgatecal':
+        m.calibrateMusicGate()
     elif n == 'Prevscene':
         m.prevScene()
     elif n == 'Snapshot':

@@ -54,3 +54,25 @@ python3 sim_kick.py    # compara detectores
 python3 sim_final.py   # luz en pantalla antes / ahora
 python3 plot.py        # regenera docs/img/baile_antes_despues.png
 ```
+
+## Sin música no reacciona nada (compuerta de música)
+
+El auto-gain lleva cada banda a su pico reciente. Con música es lo que
+queremos; sin música **amplifica el ruido de la sala**. Medido
+(`td/tools/sim_baile/sim_silencio.py`): una sala con gente y sin música
+(−32 dBFS) llegaba a nivel 0.89, medios 0.78, agudos 0.79. Casi lo mismo que
+un tema, así que los visuales bailaban con el murmullo.
+
+Ahora hay una **compuerta** que mira el nivel crudo, antes del auto-gain.
+Debajo del umbral, todas las señales de audio valen 0: escenas, pump,
+autopilot, luz BEAT y colores de pads.
+
+- Se abre si el sonido se **sostiene** ~0.4 s. Un aplauso o una voz suelta no
+  la abren. Se cierra ~1.5 s después de que la música para, así que un corte
+  corto dentro del tema no la cierra.
+- **Audio → Calibrar compuerta**: apretarlo **en silencio** (sala abierta, sin
+  música). Mide la sala y deja el umbral 8 dB arriba. Con eso, en la
+  simulación todo queda en 0 sin música y abre en 0.4 s cuando entra el tema.
+- Default −26 dB, por si no se calibra.
+- Cuando está cerrada, el panel de status dice **">> SIN MUSICA"**, para
+  que no parezca que el audio se rompió.
