@@ -55,7 +55,8 @@
 //   Mid      tinte adicional (audioHue)
 //   Kick     un rayo extra, central y brillante, se dispara SIEMPRE en
 //            el golpe (ademas del flicker normal de los demas)
-//   High     vibracion micro del trazo (excepcion del contrato)
+//   High     vibracion micro del trazo (excepcion del contrato) +
+//            destella el nucleo de cada rayo
 //
 // @D1: grosor MAXIMO del trazo -- cerca del origen; se afina solo hacia
 //      la punta sin importar el valor de esta perilla
@@ -213,6 +214,9 @@ vec4 render(vec2 uv)
 
         vec3 layers = boltLayers(d, w, glowAmt) * buzz;
         col += coreCol * layers.x + midCol * layers.y + atmosCol * layers.z;
+        // uHigh: destella el nucleo del rayo -- reusa layers.x, se nota
+        // como chisporroteo de alta tension con los agudos.
+        col += vec3(1.0) * layers.x * uHigh * 0.5;
     }
 
     // Kick: un rayo extra, central y brillante, se dispara SIEMPRE en el

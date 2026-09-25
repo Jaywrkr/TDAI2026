@@ -96,9 +96,21 @@ def postfx_sources(channels=None):
     que los arma program.py (mismo header de control, mismos inputs)."""
     head = shader.ctrl_header(channels or config.CTRL_CHANNELS, 2)
     return [
-        ('bloom_prefilter', _td_prologue_post(1) + program._BLOOM_PREFILTER_FRAG),
-        # 2 inputs: imagen original + prefiltro (del que lee los mipmaps).
-        ('bloom', _td_prologue_post(2) + program._BLOOM_FRAG),
+        # bloom_prefilter: imagen (input 0) + textura de control (input 1
+        # -- solo tiene 1 input de imagen, asi que la de control es la
+        # siguiente). bloom: imagen + prefiltro (inputs 0-1) + control
+        # (input 2) -- mismos indices que _build_bloom() conecta en
+        # program.py, tienen que coincidir o uKick queda indefinido.
+        ('bloom_prefilter', _td_prologue_post(2)
+         + shader.ctrl_header(channels or config.CTRL_CHANNELS, 1)
+         + program._BLOOM_PREFILTER_FRAG),
+        ('bloom', _td_prologue_post(3) + head + program._BLOOM_FRAG),
+        # Fallback sin ctrl_tex (program.build() llamado suelto, ver
+        # _build_bloom): uKick fijo en 0, sin input 1/2 de control.
+        ('bloom_prefilter_noctrl', _td_prologue_post(1) + '#define uKick 0.0\n'
+         + program._BLOOM_PREFILTER_FRAG),
+        ('bloom_noctrl', _td_prologue_post(2) + '#define uKick 0.0\n'
+         + program._BLOOM_FRAG),
         ('program_blend', _td_prologue_post(3) + head + program._BLEND_FRAG),
         ('program_trails', _td_prologue_post(3) + head + program._TRAILS_FRAG),
         # Overlay de texto: 3 inputs (base, Text TOP, fundido 1x1), sin

@@ -23,7 +23,8 @@
 //            radio (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro del angulo (excepcion del contrato)
+//   High     vibracion micro del angulo (excepcion del contrato) +
+//            destello en el nodo de cada orbita
 //
 // @D1: visibilidad del trazo de la orbita (circulo guia)
 // @D2: tamano del nodo
@@ -113,6 +114,9 @@ vec4 render(vec2 uv)
         float dot = smoothstep(dotSize, dotSize * 0.25, d);
 
         col += orbitCol * dot * (1.0 + uKick * 1.5);
+        // uHigh: destello blanco en el nodo -- reusa 'dot', se nota como
+        // un chispazo con los agudos.
+        col += vec3(1.0) * dot * uHigh * 0.5;
 
         // Estela tipo cometa detras del nodo: varios puntos que se van
         // apagando hacia atras. D4 controla CUANTOS puntos entran (largo

@@ -21,7 +21,8 @@
 //   Bass     brillo de lo ya claro (audioLift) + resplandor extra
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en todos los haces
-//   High     vibracion micro del angulo (excepcion del contrato)
+//   High     vibracion micro del angulo (excepcion del contrato) +
+//            destella el nucleo de cada haz
 //
 // @D1: grosor del nucleo de cada haz
 // @D2: cantidad de resplandor (glow/humo) alrededor de cada haz
@@ -75,6 +76,9 @@ vec4 render(vec2 uv)
         vec3  beamCol = hsv2rgb(vec3(fract(h + float(colorGroup) * 0.22 * uD6), 0.55, 1.0));
 
         col += beamCol * (core * 1.4 + glow * 0.6);
+        // uHigh: destella el nucleo del haz -- reusa 'core', se nota como
+        // un chispazo con los agudos.
+        col += vec3(1.0) * core * uHigh * 0.4;
     }
 
     // D5: brillo donde dos haces se cruzan de verdad.

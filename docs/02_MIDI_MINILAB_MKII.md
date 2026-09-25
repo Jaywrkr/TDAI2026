@@ -21,88 +21,90 @@ aparece ahí: sigue en el dashboard o en su propia página de parámetros — ve
 
 ### Perillas
 
-Se indica **qué perilla física es** por lo que hacía antes — así no hay que
-adivinar la posición:
+CC leído directo de `/project1` → `MIDI Mapping` (capturas del usuario,
+panel ya en orden físico) — esto es lo que hoy manda cada perilla de
+verdad, ya cargado como default en `config.DEFAULT_MIDI`:
 
-| Perilla (hoy manda) | Qué hacía | **Qué hace ahora** |
+| Perilla | Manda | Función |
 |---|---|---|
-| `ch1ctrl74` | Transition | **ENERGÍA** — la principal: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset |
-| `ch1ctrl77` | Hue | Hue (igual) |
-| `ch1ctrl75` | Speed | Speed (igual — pisa a Energía hasta que muevas Energía) |
-| `ch1ctrl72` | Density | Density (igual) |
-| `ch1ctrl78` | Chaos | Chaos (igual) |
-| `ch1ctrl76` | Audio Amount | Reacción al audio (igual) |
-| `ch1ctrl94` | Brightness | Master (igual) |
-| `ch1ctrl19` | Bass Amount | **ESTELA** (Trails) |
-| `ch1ctrl20` | Mid Amount | **LOOK** (cuánto se aplica el look del show) |
-| `ch1ctrl17` | High Amount | **PALETA** (paleta del show) |
-| `ch1ctrl18` `92` `80` `73` `2` | Detail 1–5 | Detail 1–5 (igual) |
-| tira **pitch** | Detail 6 | Detail 6 (igual) — ojo: la tira vuelve sola al centro al soltarla |
-| tira **mod** (`ch1ctrl1`) | — | **IMAGEN (scrub)**: recorre la carpeta con el dedo |
-| `Shift` + perilla 1 | — | libre → sugerido `Learn Layermix` (mezcla de Dos Capas) |
-| `Shift` + perilla 9 | — | libre → sugerido `Learn Transition` (fundido a mano, pisa a Energía) |
+| 1 | `ch1ctrl113` | **ENERGÍA** — la principal: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset |
+| 2 | `ch1ctrl75` | Hue |
+| 3 | `ch1ctrl72` | Speed (pisa a Energía hasta que vuelvas a moverla) |
+| 4 | `ch1ctrl77` | Density |
+| 5 | `ch1ctrl78` | Chaos |
+| 6 | `ch1ctrl94` | Audio (reacción al sonido) |
+| 7 | `ch1ctrl74` | Estela (Trails) |
+| 8 | `ch1ctrl76` | Master (brillo general) |
+| 9 | `ch1ctrl115` | Detail 1 |
+| 10 | `ch1ctrl19` | Detail 2 |
+| 11 | `ch1ctrl20` | Detail 3 |
+| 12 | `ch1ctrl17` | Detail 4 |
+| 13 | `ch1ctrl18` | Detail 5 |
+| 14 | `ch1ctrl92` | Detail 6 |
+| 15 | `ch1ctrl80` | Look |
+| 16 | `ch1ctrl73` | Paleta |
+| `Shift` + 1 | `ch1ctrl23` | Mezcla 2 Capas |
+| `Shift` + 9 | `ch1ctrl24` | Transición (fundido a mano, pisa a Energía) |
+| tira **mod** | `ch1ctrl1` | Imagen (scrub, recorre la carpeta con el dedo) |
+| tira **pitch** | — | Zoom Estela — todavía sin aprender, ver "Lo que salió" |
 
 Las bandas Bass/Mid/High Amount salen del controlador porque con
 **Auto-gain** ya no hace falta corregirlas en vivo: quedan en la pestaña
 **Audio**.
 
-### Perillas 1 y 9: mejor en modo Absolute (y el rig ya se defiende solo)
+### Perillas 1 y 9: ya en modo Absolute
 
-Las perillas 1 y 9 son especiales: se pueden apretar, con `Shift` mandan un
-segundo control, y en la memoria de fábrica vienen en **modo relativo**
-(para navegar presets). En relativo la perilla NO manda su posición: manda
-siempre un número pegado a 64 en cada paso (65 = "un paso arriba", 63 = "un
-paso abajo", nunca los extremos 0/127). Si el rig lo leyera como posición
-absoluta, se ve exactamente como lo reportado: la perilla salta cerca de la
-mitad y se queda ahí sin responder más.
+Las perillas 1 y 9 son las clicables, y las que venían de fábrica en modo
+relativo (ver más abajo la nota de "red de seguridad"). Hoy mandan `CC 113`
+y `CC 115` — dos números lejos de la banda angosta donde cae una perilla
+relativa (58..70), lo que confirma que ya están en modo **Absolute**
+(seguramente reconfiguradas en Arturia MIDI Control Center): responden 1:1,
+sin el paso extra de "acumular". Si alguna vez vuelven a comportarse raro
+(saltan cerca de la mitad y se quedan mudas), repetí este chequeo:
 
-**Arreglo de fondo (recomendado):**
+1. Abre **Arturia MIDI Control Center**, memoria que usás: perilla 1 y 9 →
+   **Mode: Absolute**, Min 0, Max 127. **Store To** → la misma memoria.
+2. Verificá con el probador del manual (`docs/10_MANUAL_MINILAB.html`): al
+   girarlas tiene que decir **✓ Modo absoluto**.
 
-1. Cierra TouchDesigner y abre **Arturia MIDI Control Center**.
-2. En la memoria que usas: perilla 1 → **Mode: Absolute**, Min 0, Max 127,
-   canal 1. Lo mismo con la perilla 9.
-3. **Store To** → la misma memoria.
-4. Verifica con el probador del manual (`docs/10_MANUAL_MINILAB.html`):
-   al girarlas tiene que decir **✓ Modo absoluto**.
-
-Pista: tu mapeo aprendido tiene 14 perillas con CC normales, más `ctrl2` y
-la tira de pitch. De 16 faltan dos, y muy probablemente son la 1 y la 9.
-
-**Red de seguridad en software (ya aplicada, sin tocar el MiniLab):**
-`dats/midi_logic.py` detecta solas las perillas que SIEMPRE mandan un valor
-pegado a 64 (nunca un extremo) y las trata como relativas: acumula un paso
-por mensaje en vez de saltar a un valor fijo. En cuanto ese canal manda un
-valor bien afuera de esa banda angosta (ya la pasaste a Absolute, o nunca
-fue relativa), se confirma absoluta para siempre y deja de intervenir — así
-ninguna de las otras 14 perillas cambia de comportamiento. No reemplaza el
-arreglo de arriba (en Absolute la perilla responde 1:1, sin el paso extra de
-"acumular"), pero Energía y Detail 1 ya no se quedan mudas mientras tanto.
+**Red de seguridad en software (igual sigue activa):** `dats/midi_logic.py`
+detecta solo las perillas que SIEMPRE mandan un valor pegado a 64 (nunca un
+extremo) y las trata como relativas, acumulando en vez de quedarse mudas.
+Con las perillas 1 y 9 ya en `CC 113`/`115` (fuera de esa banda desde el
+primer mensaje) esto queda inactivo para ellas por diseño -- solo entraría
+a ayudar si algún día otra perilla (u otro controlador) vuelve a mandar en
+relativo.
 
 ### Pads — banco A (`Pad 1-8`): el show
 
-| Pad | Manda | Antes | **Ahora** |
-|---|---|---|---|
-| 1 | `ch1ctrl30` | Next | NEXT (igual) |
-| 2 | `ch1ctrl29` | Prev | PREV (igual) |
-| 3 | `ch1ctrl28` | Blackout | BLACKOUT (igual) |
-| 4 | `ch1ctrl27` | Snapshot | **AUTOPILOT** on/off |
-| 5 | `ch1ctrl26` | Reset | **TEXTO** mostrar/ocultar |
-| 6 | `ch1ctrl24` | Imagen → | IMAGEN → (igual) |
-| 7 | `ch1ctrl23` | Imagen ← | **DOS CAPAS** on/off |
-| 8 | `ch1ctrl25` | Imagen fija | IMAGEN FIJA (igual) |
+Estos 8 pads mandan **nota** de canal 10 (no CC):
+
+| Pad | Manda | Función |
+|---|---|---|
+| 1 | `ch10n38` | NEXT |
+| 2 | `ch10n37` | PREV |
+| 3 | `ch10n39` | BLACKOUT |
+| 4 | `ch10n40` | AUTOPILOT on/off |
+| 5 | `ch10n41` | TEXTO mostrar/ocultar |
+| 6 | `ch10n42` | IMAGEN → |
+| 7 | `ch10n43` | DOS CAPAS on/off |
+| 8 | `ch10n44` | IMAGEN FIJA |
 
 ### Pads — banco B (`Pad 9-16`): efectos (golpe, decaen solos)
 
-| Pad | Manda | Antes | **Ahora** |
-|---|---|---|---|
-| 9 | `ch10n37` | Grain | **RETRO** = Grain + Posterize juntos |
-| 10 | `ch10n38` | Glitch | Glitch (igual) |
-| 11 | `ch10n39` | Pixelate | Pixelate (igual) |
-| 12 | `ch10n40` | Strobe | Strobe (igual, tope 3 Hz) |
-| 13 | `ch10n41` | Invert | Invert (igual) |
-| 14 | `ch10n50` | Mirror | Mirror (igual) |
-| 15 | `ch10n51` | Zoom | Zoom (igual) |
-| 16 | `ch10n52` | Posterize | **MODO DE MEZCLA** de Dos Capas (cicla) |
+Estos 6 quedaron en **CC** de canal 1, no en nota; Retro y Glitch (pads 9 y
+10) todavía no están aprendidos -- ver "Lo que salió del controlador".
+
+| Pad | Manda | Función |
+|---|---|---|
+| 9 | — (sin aprender) | RETRO = Grain + Posterize juntos |
+| 10 | — (sin aprender) | Glitch |
+| 11 | `ch1ctrl25` | Pixelate |
+| 12 | `ch1ctrl26` | Strobe (tope 3 Hz) |
+| 13 | `ch1ctrl27` | Invert |
+| 14 | `ch1ctrl28` | Mirror |
+| 15 | `ch1ctrl29` | Zoom |
+| 16 | `ch1ctrl30` | Modo de Mezcla de Dos Capas (cicla) |
 
 ### Lo que salió del controlador (y dónde quedó)
 
@@ -116,6 +118,7 @@ Nada se pierde:
 | Bass/Mid/High Amount | `/project1` → Audio (con Auto-gain no hace falta tocarlos) |
 | Cue (modo, siguiente, anterior), Layerswap, Trails on/off | Dashboard / `/project1` |
 | Zoom de estela | slot `Trailszoom` listo para Learn (ideal en la tira de pitch) |
+| Retro (pad 9), Glitch (pad 10) | Todavía sin aprender -- `/project1` → MIDI Mapping → `Learn Pad 9: Retro` / `Learn Pad 10: Glitch` con el pad correspondiente |
 
 ### Colores de los pads
 
@@ -153,9 +156,9 @@ anterior, se **migra solo** una vez: cada control de la tabla pasa a su
 función nueva y el slot viejo queda vacío. Después se guarda marcado como
 `v2`, así que un `Learn` que hagas más tarde ya no se pisa.
 
-**A mano (solo lo nuevo):** `Shift`+perilla 1 y 9 si los quieres usar
-(`Learn Layermix`, `Learn Transition`). La tira mod viene como `ch1ctrl1`;
-si no responde, `Learn Mediascrub`.
+**A mano (lo que falta):** Retro (pad 9) y Glitch (pad 10) todavía no están
+aprendidos -- un `Learn` con el pad correspondiente alcanza. Zoom Estela
+(tira de pitch) también sigue libre si algún día lo querés usar.
 
 `Learn` ahora **reasigna**: si el control ya estaba en otro slot, se lo
 quita (antes quedaban los dos y ganaba uno al azar).

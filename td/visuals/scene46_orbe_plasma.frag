@@ -30,8 +30,9 @@
 //   Density  cuanto brilla el halo alrededor del orbe
 //   Chaos    temblor de la silueta (micro, en brillo) -- sutil
 //   Bass     brillo de lo ya claro (audioLift)
-//   Mid      tinte que se mueve con la musica
+//   Mid      tinte que se mueve con la musica (girado bien notorio)
 //   Kick     destello breve
+//   High     chisporroteo en el borde del globo (rim light)
 //   Piano    tocar el vidrio atrae un rayo hacia la tecla (ver PIANO)
 //
 // @D1: tamano del globo
@@ -42,8 +43,12 @@
 // @D6: exposicion general
 // ===============================================================
 
-#define ORB_TIME (uTime * 0.5)
-#define ORB_CLOCK (uTime * 0.85)
+// gOrbPhase desfasa el reloj de cada copia del orbe (ver render(), varios
+// orbes en pantalla): 0.0 no cambia nada, asi que sigue siendo un no-op
+// para cualquier otro shader que copie este patron con un solo orbe.
+float gOrbPhase = 0.0;
+#define ORB_TIME ((uTime + gOrbPhase) * 0.5)
+#define ORB_CLOCK ((uTime + gOrbPhase) * 0.85)
 #define ORB_IN 0.6
 #define ORB_OUT 0.7
 #define uP_speed (1.0 * ORB_CLOCK)
@@ -121,7 +126,10 @@ vec3 ionRender(vec2 fragCoord) {
   float t = uP_speed;      // integrated clock: filament crawl
   float spinAng = uP_spin; // integrated clock: array precession
 
-  vec2 uv = (2.0 * fragCoord - vec2(uResW, uResH)) / min(vec2(uResW, uResH).x, vec2(uResW, uResH).y);
+  // gOrbUV ya es exactamente esta misma formula (ver centered() en el
+  // header): usarla directo es lo que permite reposicionar/escalar el
+  // orbe entero para poner varias copias en render().
+  vec2 uv = gOrbUV;
   vec3 ro = vec3(0.0, 0.0, uP_camDist);
   vec3 rd = normalize(vec3(uv, -uP_focal));
 
@@ -233,10 +241,13 @@ void orbMain() {
 }
 // ---------------- fin del shader de Orbkit ----------------
 
-vec4 render(vec2 uv)
-{
-    vec2 p = centered(uv);
-    gOrbUV = p;
+// Varios orbes en pantalla (pedido explicito: "que se vea mas bonito, no
+// solo una"). Mismo shader repetido con offset/escala/fase distintos
+// (gOrbUV local por copia, gOrbPhase desfasa el reloj) para que no queden
+// clonados. El mas grande queda de protagonista, los otros dos de satelites.
+vec3 renderOrbAt(vec2 p, vec2 center, float scale, float phase, out float coverOut, out vec2 localP) {
+    gOrbPhase = phase;
+    gOrbUV = (p - center) / scale;
     gOrbOut = vec4(0.0);
     orbMain();
     vec3 col = gOrbOut.rgb;
@@ -244,22 +255,53 @@ vec4 render(vec2 uv)
 
     // Halo tenue alrededor (Density): el orbe no flota en negro absoluto.
     float rOrb = (uP_focal * uP_envRadius / uP_camDist);
-    float rd = length(p);
+    float rd = length(gOrbUV);
     col += uC_arc * exp(-max(rd - rOrb, 0.0) * 5.0) * (1.0 - cover) * (0.04 + uDensity * 0.16);
+    // uHigh: destello justo en el borde del vidrio -- reusa rd/rOrb ya
+    // calculados, se nota como chisporroteo de alta tension con los
+    // agudos.
+    col += uC_inner * exp(-abs(rd - rOrb) * 40.0) * uHigh * 0.6;
+    coverOut = cover;
+    localP = gOrbUV;
+    return col;
+}
 
-    // PIANO: "tocar el vidrio". Como en un globo de plasma real, apoyar
-    // un dedo en el vidrio atrae un filamento: la tecla elige el angulo
-    // (el teclado da la vuelta al globo) y aparece un arco brillante del
-    // nucleo al borde, con un destello donde toca. Velocity = mas brillo.
+vec4 render(vec2 uv)
+{
+    vec2 p = centered(uv);
+
+    vec3 col = vec3(0.0);
+    float cover = 0.0;
+    vec2  centers[3];
+    float scales[3];
+    float phases[3];
+    centers[0] = vec2(-0.95,  0.28); scales[0] = 0.55; phases[0] = 0.0;
+    centers[1] = vec2( 0.55, -0.15); scales[1] = 1.00; phases[1] = 2.7;
+    centers[2] = vec2( 0.05,  0.80); scales[2] = 0.40; phases[2] = 5.4;
+    // Se guarda el orbe PRINCIPAL (el mas grande) para el toque de piano:
+    // un solo dedo en el vidrio, no tendria sentido repetido en los tres.
+    vec2 pMain = p; float rOrbMain = (uP_focal * uP_envRadius / uP_camDist);
+    for (int i = 0; i < 3; i++) {
+        float oc; vec2 lp;
+        vec3 oCol = renderOrbAt(p, centers[i], scales[i], phases[i], oc, lp);
+        col = oCol + col * (1.0 - oc);
+        cover = oc + cover * (1.0 - oc);
+        if (i == 1) { pMain = lp; }
+    }
+
+    // PIANO: "tocar el vidrio", sobre el orbe principal (el mas grande).
+    // Apoyar un dedo en el vidrio atrae un filamento: la tecla elige el
+    // angulo y aparece un arco brillante del nucleo al borde, con un
+    // destello donde toca. Velocity = mas brillo.
     if (uKeypulse > 0.0015) {
         float ka = uKeypos * TAU + 1.2;
-        vec2  tip = vec2(cos(ka), sin(ka)) * rOrb;
-        float h = clamp(dot(p, tip) / dot(tip, tip), 0.0, 1.0);
-        vec2  nrm = vec2(-tip.y, tip.x) / rOrb;
+        vec2  tip = vec2(cos(ka), sin(ka)) * rOrbMain;
+        float h = clamp(dot(pMain, tip) / dot(tip, tip), 0.0, 1.0);
+        vec2  nrm = vec2(-tip.y, tip.x) / rOrbMain;
         float wob = sin(h * 23.0 + uTime * 9.0) * 0.03 * h * (1.0 - h) * 4.0;
-        float dd = length(p - (tip * h + nrm * wob));
+        float dd = length(pMain - (tip * h + nrm * wob));
         float arc = exp(-dd * dd / 0.0006) + exp(-dd * dd / 0.01) * 0.35;
-        float touch = exp(-dot(p - tip, p - tip) / 0.004);
+        float touch = exp(-dot(pMain - tip, pMain - tip) / 0.004);
         col += mix(uC_arc, uC_inner, h) * (arc + touch * 1.5) * uKeypulse * (1.0 + uKeyvel * 1.5);
     }
 
@@ -267,7 +309,9 @@ vec4 render(vec2 uv)
     // Chaos: un titilar fino de brillo sobre el orbe (no mueve la forma).
     col *= 1.0 + (noise21(p * 9.0 + vec2(uTime * 1.7, -uTime * 1.3)) - 0.5) * uChaos * 0.35 * cover;
 
-    col = hueRot(col, (uHue + uMid * 0.04) * TAU);
+    // Mid subido (0.04 -> 0.12): pedido explicito de que el tinte de
+    // medios se note de verdad, no solo un barrido casi imperceptible.
+    col = hueRot(col, (uHue + uMid * 0.12) * TAU);
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.7);
     return vec4(col, 1.0);

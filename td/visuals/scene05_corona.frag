@@ -28,7 +28,7 @@
 //            se nota el movimiento)
 //   Mid      tinte adicional (audioHue)
 //   Kick     el anillo de borde destella mas fuerte un instante
-//   High     no usado directo (reservado)
+//   High     chispas en las puntas de los rayos/streamers de la corona
 //
 // @D1: rugosidad de la turbulencia de la corona
 // @D2: cantidad de rayos/streamers radiales
@@ -78,6 +78,11 @@ vec4 render(vec2 uv)
     float ringD = abs(r - diskR);
     float ring = exp(-ringD * ringD / 0.0006) * (0.15 + uD6 * 2.4);   // D6 rango ampliado (auditoria)
     col += vec3(1.0, 0.95, 0.85) * ring;
+
+    // uHigh: chispas en las puntas de los rayos -- reusa 'rays' (ya
+    // calculado arriba), elevado a una potencia para que solo las puntas
+    // mas afiladas destellen, como electricidad estatica sobre la corona.
+    col += vec3(1.0, 0.95, 0.9) * pow(rays, 4.0) * falloff * uHigh * 0.9;
 
     // Kick: el anillo de borde destella mas fuerte un instante, ademas
     // del flash general de mas abajo.

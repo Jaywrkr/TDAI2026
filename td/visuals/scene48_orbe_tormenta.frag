@@ -30,8 +30,9 @@
 //   Density  cuanto brilla el halo alrededor del orbe
 //   Chaos    temblor de la silueta (micro, en brillo) -- sutil
 //   Bass     brillo de lo ya claro (audioLift)
-//   Mid      tinte que se mueve con la musica
+//   Mid      tinte que se mueve con la musica (girado bien notorio)
 //   Kick     destello breve
+//   High     destello electrico en el borde de la tormenta (rim light)
 //   Piano    cae un rayo sobre la tormenta en la X de la tecla (ver PIANO)
 //
 // @D1: tamano del orbe
@@ -42,8 +43,12 @@
 // @D6: grano del campo
 // ===============================================================
 
-#define ORB_TIME (uTime * 0.5)
-#define ORB_CLOCK (uTime * 0.85)
+// gOrbPhase desfasa el reloj de cada copia del orbe (ver render(), varios
+// orbes en pantalla): 0.0 no cambia nada, asi que sigue siendo un no-op
+// para cualquier otro shader que copie este patron con un solo orbe.
+float gOrbPhase = 0.0;
+#define ORB_TIME ((uTime + gOrbPhase) * 0.5)
+#define ORB_CLOCK ((uTime + gOrbPhase) * 0.85)
 #define ORB_IN 0.6
 #define ORB_OUT 0.7
 #define uP_speed (0.9 * ORB_CLOCK)
@@ -219,10 +224,12 @@ void orbMain() {
 }
 // ---------------- fin del shader de Orbkit ----------------
 
-vec4 render(vec2 uv)
-{
-    vec2 p = centered(uv);
-    gOrbUV = p;
+// Varios orbes en pantalla (pedido explicito: "que se vea mas bonito, no
+// solo una"). Mismo shader repetido con offset/escala/fase distintos para
+// que no queden clonados. El mas grande queda de protagonista.
+vec3 renderOrbAt(vec2 p, vec2 center, float scale, float phase, out float coverOut, out vec2 localP) {
+    gOrbPhase = phase;
+    gOrbUV = (p - center) / scale;
     gOrbOut = vec4(0.0);
     orbMain();
     vec3 col = gOrbOut.rgb;
@@ -230,19 +237,48 @@ vec4 render(vec2 uv)
 
     // Halo tenue alrededor (Density): el orbe no flota en negro absoluto.
     float rOrb = uP_radius;
-    float rd = length(p);
+    float rd = length(gOrbUV);
     col += uC_mid * exp(-max(rd - rOrb, 0.0) * 5.0) * (1.0 - cover) * (0.04 + uDensity * 0.16);
+    // uHigh: destello justo en el borde de la tormenta -- reusa rd/rOrb
+    // ya calculados, se nota como electricidad estatica con los agudos.
+    col += uC_hot * exp(-abs(rd - rOrb) * 40.0) * uHigh * 0.6;
+    coverOut = cover;
+    localP = gOrbUV;
+    return col;
+}
 
-    // PIANO: "rayo". La tecla hace caer un relampago vertical sobre la
-    // esfera en la X que elige uKeypos: trazo quebrado con resplandor, solo
-    // dentro del orbe. Velocity = rayo mas brillante.
+vec4 render(vec2 uv)
+{
+    vec2 p = centered(uv);
+
+    vec3 col = vec3(0.0);
+    float cover = 0.0;
+    vec2  centers[3];
+    float scales[3];
+    float phases[3];
+    centers[0] = vec2(-0.95,  0.28); scales[0] = 0.55; phases[0] = 0.0;
+    centers[1] = vec2( 0.55, -0.15); scales[1] = 1.00; phases[1] = 2.7;
+    centers[2] = vec2( 0.05,  0.80); scales[2] = 0.40; phases[2] = 5.4;
+    vec2 pMain = p; // el orbe principal (el mas grande) recibe el rayo
+    for (int i = 0; i < 3; i++) {
+        float oc; vec2 lp;
+        vec3 oCol = renderOrbAt(p, centers[i], scales[i], phases[i], oc, lp);
+        col = oCol + col * (1.0 - oc);
+        cover = oc + cover * (1.0 - oc);
+        if (i == 1) { pMain = lp; }
+    }
+
+    // PIANO: "rayo", sobre el orbe principal. La tecla hace caer un
+    // relampago vertical sobre la esfera en la X que elige uKeypos: trazo
+    // quebrado con resplandor, solo dentro del orbe. Velocity = mas brillo.
     if (uKeypulse > 0.0015) {
+        float rOrb = uP_radius;
         float x0 = mix(-0.7, 0.7, uKeypos) * rOrb;
-        float seg = floor(p.y * 9.0);
-        float fy = fract(p.y * 9.0);
+        float seg = floor(pMain.y * 9.0);
+        float fy = fract(pMain.y * 9.0);
         float xa = x0 + (hash21(vec2(seg, floor(uKeypos * 25.0))) - 0.5) * 0.12;
         float xb = x0 + (hash21(vec2(seg + 1.0, floor(uKeypos * 25.0))) - 0.5) * 0.12;
-        float dd = abs(p.x - mix(xa, xb, fy));
+        float dd = abs(pMain.x - mix(xa, xb, fy));
         float bolt = exp(-dd * dd / 0.00012) + exp(-dd * dd / 0.004) * 0.3;
         col += uC_flash * bolt * cover * uKeypulse * (1.0 + uKeyvel * 1.5);
     }
@@ -251,7 +287,9 @@ vec4 render(vec2 uv)
     // Chaos: un titilar fino de brillo sobre el orbe (no mueve la forma).
     col *= 1.0 + (noise21(p * 9.0 + vec2(uTime * 1.7, -uTime * 1.3)) - 0.5) * uChaos * 0.35 * cover;
 
-    col = hueRot(col, (uHue + uMid * 0.04) * TAU);
+    // Mid subido (0.04 -> 0.12): pedido explicito de que el tinte de
+    // medios se note de verdad, no solo un barrido casi imperceptible.
+    col = hueRot(col, (uHue + uMid * 0.12) * TAU);
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.7);
     return vec4(col, 1.0);

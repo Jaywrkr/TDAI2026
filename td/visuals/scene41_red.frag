@@ -22,7 +22,8 @@
 //   Bass     brillo de las conexiones (mas fuerte que el de los nodos)
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en toda la red
-//   High     vibracion micro de la posicion de los nodos (excepcion)
+//   High     vibracion micro de la posicion de los nodos (excepcion) +
+//            destello en cada nodo
 //
 // @D1: tamano de los nodos
 // @D2: grosor de las conexiones
@@ -122,6 +123,9 @@ vec4 render(vec2 uv)
 
             vec3  nodeCol = hsv2rgb(vec3(h, 0.65, 1.0));
             col += nodeCol * (nodeCov + nodeGlow * 0.5) * pulse * (1.0 + netFront * 3.0);
+            // uHigh: destello en el nodo -- reusa nodeCov, se nota como
+            // un chispazo con los agudos.
+            col += vec3(1.0) * nodeCov * uHigh * 0.5;
         }
     }
 

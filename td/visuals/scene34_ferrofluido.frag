@@ -27,7 +27,8 @@
 //   Mid      tinte adicional del brillo especular (audioHue)
 //   Kick     empuja la altura de los picos -- ACOTADO, se relaja solo
 //            con la envolvente de uKick (excepcion del contrato)
-//   High     vibracion micro del borde (excepcion del contrato)
+//   High     vibracion micro del borde (excepcion del contrato) + destella
+//            las puntas mas agudas
 //
 // @D1: agudeza de los picos (romos/redondeados <-> agujas finas)
 // @D2: altura de los picos
@@ -87,7 +88,7 @@ vec4 render(vec2 uv)
     float rim = exp(-sdf * sdf * 900.0);
     float tipGlint = smoothstep(0.7, 1.0, spikeShape) * rim;
     col += accent * rim * (0.5 + uD4 * 1.4);
-    col += vec3(1.0) * tipGlint * (0.3 + uD4 * 0.7);
+    col += vec3(1.0) * tipGlint * (0.3 + uD4 * 0.7 + uHigh * 0.8);
 
     // Afuera del charco: aire oscuro, casi vacio, para que el objeto
     // respire -- ligerisimo resplandor apagado alrededor del borde.

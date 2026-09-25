@@ -25,7 +25,8 @@
 //   Mid      tinte adicional (audioHue)
 //   Kick     el oleaje se agita mas fuerte un instante (acotado, mas
 //            suave que antes -- temblaba demasiado)
-//   High     vibracion micro adicional (excepcion del contrato, bajada)
+//   High     vibracion micro adicional (excepcion del contrato, bajada) +
+//            las "estrellas" titilan mas fuerte
 //
 // @D1: fuerza de la distorsion del oleaje
 // @D2: cuanto se separan los canales de color (aberracion suave, como
@@ -117,7 +118,7 @@ vec4 render(vec2 uv)
     float twinkle = 0.5 + 0.5 * sin(t * (0.6 + hash21(sid + 3.0) * 1.5) + hash21(sid + 7.0) * TAU);
     float starD = length(sf);
     float star = smoothstep(0.3, 0.0, starD) * isStar * twinkle;
-    col += vec3(1.0) * star * (0.18 + uD5 * 0.5 + uKick * 0.15);
+    col += vec3(1.0) * star * (0.18 + uD5 * 0.5 + uKick * 0.15 + uHigh * 0.5);
     col *= vignette(uv, 0.2);
 
     return vec4(col, 1.0);

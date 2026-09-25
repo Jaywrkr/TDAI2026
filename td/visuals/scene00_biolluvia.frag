@@ -25,7 +25,8 @@
 //            acotado, sigue el bajo en vivo en vez de quedar fijo
 //   Mid      tinte adicional (audioHue)
 //   Kick     destello breve en toda la lluvia
-//   High     vibracion micro horizontal de cada gota (excepcion)
+//   High     vibracion micro horizontal de cada gota (excepcion) + chispa
+//            blanca en la cabeza de cada gota activa
 //
 // @D1: tamano/nitidez de la cabeza de la gota
 // @D2: largo de la estela
@@ -75,6 +76,10 @@ vec4 render(vec2 uv)
                          mix(hash21(vec2(cx, 3.0)), uD4, 0.5));
 
     vec3 col = dripCol * drip * xmask * isActiveCol * 1.3;
+
+    // uHigh: chispa blanca en la cabeza de la gota -- reusa la mascara
+    // drip*xmask que ya existe, se nota como un destello con los agudos.
+    col += vec3(1.0) * drip * xmask * isActiveCol * uHigh * 0.6;
 
     // PIANO: una columna invitada, mas brillante y grande, cae en la
     // posicion X que elige uKeypos -- decae sola con uKeypulse.

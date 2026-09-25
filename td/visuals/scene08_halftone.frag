@@ -35,7 +35,8 @@
 //   Bass     brillo de lo ya claro (audioLift) + los puntos engordan
 //   Mid      tinte adicional (audioHue)
 //   Kick     los puntos saltan de tamano y vuelven solos
-//   High     vibracion micro de la posicion del punto (excepcion)
+//   High     vibracion micro de la posicion del punto (excepcion) +
+//            brillo extra en cada punto de tinta
 //
 // @D1: tamano de los puntos (trama abierta <-> casi solida)
 // @D2: angulo base de la trama
@@ -132,6 +133,9 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.16);
     vec3 inkCol = mix(hsv2rgb(vec3(h, 0.80, 1.0)), src / max(lum, 0.08), uD3) * (0.7 + uD6 * 0.8);
     vec3 col = inkCol * ink;
+    // uHigh: brillo extra en cada punto de tinta -- reusa 'ink', se nota
+    // como un destello parejo en toda la trama con los agudos.
+    col += inkCol * ink * uHigh * 0.5;
 
     // Multiplicador subido de nuevo (0.6 -> 1.1 -> 2.4): la primera
     // subida seguia sin notarse -- pedido explicito de mas reaccion al

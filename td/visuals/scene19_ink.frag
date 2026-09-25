@@ -28,7 +28,8 @@
 //            primer warp (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro del segundo warp (excepcion del contrato)
+//   High     vibracion micro del segundo warp (excepcion del contrato) +
+//            destella el highlight especular del borde
 //
 // FOG: ademas del cuerpo de tinta, una segunda capa de niebla -- un campo
 // de ruido MUY grande y lento e independiente del cuerpo principal, con un
@@ -139,7 +140,9 @@ vec4 render(vec2 uv)
     float lightMask = smoothstep(-0.4, 0.7, pOrig.x * 0.6 + pOrig.y * 0.4);
     // D5: brillo del highlight incluso sin kick -- en 0 solo aparece con
     // el golpe, en 1 la tinta ya tiene un reflejo visible en reposo.
-    float rim = pow(1.0 - abs(shape * 2.0 - 1.0), 3.0) * (uD5 * 0.6 + uKick) * lightMask;
+    // uHigh: el highlight especular tambien destella con los agudos,
+    // ademas de con el kick -- mismo termino, sin mascara nueva.
+    float rim = pow(1.0 - abs(shape * 2.0 - 1.0), 3.0) * (uD5 * 0.6 + uKick + uHigh * 0.5) * lightMask;
 
     // Value bajado (era 1.0): a pedido del usuario quedaba "demasiado
     // claro" -- ahora el cuerpo de tinta es notablemente mas oscuro por

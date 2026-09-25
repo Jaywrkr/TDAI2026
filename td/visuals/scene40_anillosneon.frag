@@ -20,7 +20,8 @@
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
 //   Kick     dispara un anillo de choque extra desde el centro
-//   High     vibracion micro del radio (excepcion del contrato)
+//   High     vibracion micro del radio (excepcion del contrato) +
+//            destello en el nucleo central
 //
 // @D1: grosor de los anillos
 // @D2: cantidad de resplandor (glow) alrededor de cada anillo
@@ -59,6 +60,8 @@ vec4 render(vec2 uv)
 
     vec3  coreCol = hsv2rgb(vec3(fract(h + 0.5), 0.5, 1.0));
     col += coreCol * exp(-r * r * 6.0) * (0.3 + uD3 * 0.9);
+    // uHigh: destello en el nucleo -- reusa la misma gaussiana central.
+    col += vec3(1.0) * exp(-r * r * 6.0) * uHigh * 0.5;
 
     col *= 0.5 + uD6 * 0.8;
 

@@ -36,7 +36,8 @@
 //            nucleo y de la imagen entera
 //   Mid      tinte adicional (audioHue)
 //   Kick     empujon de zoom hacia adentro, y vuelve solo
-//   High     vibracion micro del angulo (excepcion del contrato)
+//   High     vibracion micro del angulo (excepcion del contrato) +
+//            destello en el nucleo central
 //
 // @D1: cuantos espejos tiene el caleidoscopio (6 a 18)
 // @D2: desplazamiento del centro de muestreo (que parte de la imagen
@@ -137,6 +138,10 @@ vec4 render(vec2 uv)
     // venir todo el dibujo.
     col += hsv2rgb(vec3(fract(h + 0.5), 0.4, 1.0))
          * exp(-r * r * 22.0) * (0.45 + uD3 * 0.9 + uBass * 0.20);
+
+    // uHigh: destello blanco en el nucleo -- reusa la misma gaussiana
+    // central de arriba, se nota como un chispazo con los agudos.
+    col += vec3(1.0) * exp(-r * r * 22.0) * uHigh * 0.5;
 
     // Grading tipo lente real: un tinte frio muy sutil hacia los bordes y
     // calido hacia el centro -- el toque de color grading que separa una

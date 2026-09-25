@@ -24,7 +24,7 @@
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash breve
 //   High     vibracion micro de la posicion del punto (excepcion del
-//            contrato)
+//            contrato) + destello extra en cada punto
 //
 // @D1: tamano base de los puntos
 // @D2: escala del campo de zonas (zonas grandes <-> zonas chicas)
@@ -113,6 +113,9 @@ vec4 render(vec2 uv)
     // D4: variacion de color entre zonas.
     float hueZone = audioHue(fract(uHue + zone * uD4 * 0.9), uMid * 0.16);
     vec3 col = hsv2rgb(vec3(hueZone, 0.70, 1.0)) * dotShape;
+    // uHigh: destello extra en cada punto -- reusa dotShape, se nota como
+    // un titileo mas fuerte con los agudos.
+    col += vec3(1.0) * dotShape * uHigh * 0.4;
 
     // Constelacion: conecta con lineas finas a las celdas vecinas cuya
     // zona tambien esta "encendida" -- el umbral de conexion BAJA con

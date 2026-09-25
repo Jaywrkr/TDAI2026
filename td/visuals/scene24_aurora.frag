@@ -29,7 +29,8 @@
 //            doblez (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro del doblez (excepcion del contrato)
+//   High     vibracion micro del doblez (excepcion del contrato) +
+//            destella los filamentos de cada cortina
 //
 // @D1: ancho/intensidad del resplandor (ancho y tenue <-> angosto e
 //      intenso)
@@ -124,6 +125,9 @@ vec4 render(vec2 uv)
         float hueI = audioHue(fract(h0 + fi * (0.03 + uD4 * 0.20) + vertHue), uMid * 0.16);
         vec3 curtainCol = hsv2rgb(vec3(hueI, 0.62, 1.0));
         col += curtainCol * curtain;
+        // uHigh: destella los filamentos de la cortina -- reusa 'curtain',
+        // se nota como un chispazo sobre la aurora con los agudos.
+        col += vec3(1.0) * curtain * uHigh * 0.35;
     }
 
     // PIANO: cortina nueva completa en guestX -- mismo tratamiento de

@@ -29,7 +29,8 @@
 //   Mid      tinte adicional (audioHue)
 //   Kick     el nivel de revelacion sube -- se agrietan mas ZONAS
 //            REPARTIDAS por la pantalla con cada golpe
-//   High     vibracion micro de los puntos (excepcion del contrato)
+//   High     vibracion micro de los puntos (excepcion del contrato) +
+//            destello en el nucleo de la grieta
 //
 // @D1: grosor de la grieta nitida
 // @D2: cantidad de glow ancho alrededor de cada grieta
@@ -127,6 +128,9 @@ vec4 render(vec2 uv)
     col = mix(col, hsv2rgb(vec3(fract(h + 0.08 + crackHueVar), 1.0, 1.0)) * 1.2,
               core * uD3 * reveal);
     col += hsv2rgb(vec3(fract(h + 0.05), 0.85, 1.0)) * core * 0.1 * reveal;
+    // uHigh: destello en el nucleo de la grieta -- reusa 'core', se nota
+    // como un chispazo de luz reflejada con los agudos.
+    col += vec3(1.0) * core * reveal * uHigh * 0.5;
 
     // PIANO: un impacto EXTRA agrieta el vidrio en el punto que elige
     // uKeypos, ademas de la revelacion central -- reusa la misma red de

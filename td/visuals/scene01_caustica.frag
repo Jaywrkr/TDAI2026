@@ -25,7 +25,8 @@
 //   Kick     ademas del destello, un empujon fuerte y breve de
 //            turbulencia -- el fluido se mueve de verdad en el golpe,
 //            no solo brilla, y vuelve solo cuando uKick decae
-//   High     vibracion micro del warp (excepcion del contrato)
+//   High     vibracion micro del warp (excepcion del contrato) + destello
+//            en las crestas de las bandas de luz mas brillantes
 //
 // @D1: contraste de las bandas de luz (suaves <-> nitidas)
 // @D2: turbulencia adicional del warp
@@ -90,6 +91,11 @@ vec4 render(vec2 uv)
 
     // D3: brillo del nucleo central.
     col += coreCol * exp(-r * r * 3.0) * (0.3 + uD3 * 1.0);
+
+    // uHigh: destello en las crestas de las bandas de luz -- reusa 'bands'
+    // (0..1, mas alto en la cresta), asi los agudos se notan como brillo
+    // extra justo donde la caustica ya es mas intensa.
+    col += coreCol * bands * uHigh * 0.5;
 
     col += col * uKick * 0.3;
     col *= 0.6 + uD6 * 0.8;

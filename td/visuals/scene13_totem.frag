@@ -49,9 +49,9 @@
 //   Bass     brillo de lo ya claro (audioLift)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash, ademas de adelantar el reseed del panel completo
-//   High     no usado directo (reservado) -- el panel es
-//            deliberadamente RIGIDO/tallado, temblor aca rompe la
-//            lectura de "totem"
+//   High     destello extra en el ojo central (solo brillo -- el panel
+//            sigue deliberadamente RIGIDO/tallado, sin temblor de
+//            geometria, que rompe la lectura de "totem")
 //
 // @D1: cuantas filas tiene el panel
 // @D2: cuantos niveles de columnas por fila (pocas y anchas <-> muchas
@@ -203,6 +203,9 @@ vec4 render(vec2 uv)
     // su alrededor, como si tuviera luz propia -- la identidad visual
     // del totem se nota incluso fuera de su propio marco.
     col += hsv2rgb(vec3(fract(h0 + 0.98), sat, 1.0)) * exp(-eyeD * eyeD * 2.0) * 0.10;
+    // uHigh: destello extra en el ojo central -- reusa la misma gaussiana,
+    // solo brillo.
+    col += vec3(1.0) * exp(-eyeD * eyeD * 2.0) * uHigh * 0.5;
 
     // Kick: flash breve, ademas del adelanto de reseed de arriba.
     col += col * uKick * 0.3;

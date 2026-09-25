@@ -23,7 +23,8 @@
 //            desplazamiento (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro de fase (excepcion del contrato)
+//   High     vibracion micro de fase (excepcion del contrato) + destello
+//            en los filamentos mas brillantes
 //
 // @D1: contraste / brillo general de la red de luz
 // @D2: cuantas iteraciones se acumulan (mas D2 = red mas compleja)
@@ -115,6 +116,9 @@ vec4 render(vec2 uv)
     float h = audioHue(uHue, uMid * 0.16);
     float hueDisp = fract(h + v * (0.03 + uD6 * 0.28));
     vec3 col = hsv2rgb(vec3(hueDisp, 0.55, 1.0)) * v;
+    // uHigh: destello en los filamentos mas brillantes -- reusa 'v', se
+    // nota como un chispazo sobre la red de luz con los agudos.
+    col += vec3(1.0) * smoothstep(0.55, 1.3, v) * uHigh * 0.45;
 
     // Tonemap: v puede crecer bastante en los picos, sin esto se clavan
     // en blanco plano.

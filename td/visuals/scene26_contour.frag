@@ -26,7 +26,8 @@
 //            terreno (ya suavizado, no reintroduce temblor)
 //   Mid      tinte adicional (audioHue)
 //   Kick     flash -- ya llega con envolvente de golpe-y-caida (audio.py)
-//   High     vibracion micro de las curvas (excepcion del contrato)
+//   High     vibracion micro de las curvas (excepcion del contrato) +
+//            destello en las curvas maestras
 //
 // @D1: grosor de las curvas
 // @D2: escala del terreno (mas D2 = terreno mas fino y detallado)
@@ -137,6 +138,9 @@ vec4 render(vec2 uv)
         // que CUALQUIER indice cambia sustancialmente, no solo algunos.
         float bright = mix(0.5, mix(0.08, 0.92, mod(float(i), 2.0)), uD3);
         col += hsv2rgb(vec3(hCol, 0.65, bright)) * line;
+        // uHigh: destello en las curvas maestras -- reusa 'line'/'master',
+        // se nota como un chispazo sobre el mapa con los agudos.
+        col += vec3(1.0) * line * (master ? 1.0 : 0.3) * uHigh * 0.4;
     }
 
     // Oclusion ambiental: donde el terreno es mas escarpado (muchas
