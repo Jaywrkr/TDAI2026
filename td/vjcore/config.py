@@ -261,6 +261,7 @@ CTRL_CHANNELS = [
     'groove',   # 42 hay bombo sonando ahora (0..1, cae en ~0.8 s sin golpes)
     'audioamt', # 43 perilla Audio: profundidad del pump
     'music',    # 44 hay musica (compuerta de audio.py); sin musica el resto del audio vale 0
+    'move',     # 45 perilla BAILE: cuanto se mueve/crece la imagen con la musica (footer)
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -300,6 +301,7 @@ PAR_CHANNELS = [
     ('Detail5', 'd5'),
     ('Detail6', 'd6'),
     ('Audioamount', 'audioamt'),
+    ('Movement', 'move'),
 ]
 
 # ---------------------------------------------------------------
@@ -418,7 +420,9 @@ DEFAULT_MIDI = {
     # capturas los mostraban vacios (no aprendidos todavia): Retro (pad
     # 9), Glitch (pad 10) y Trailszoom (tira de pitch). Quedan listos
     # para Learn el dia que se les asigne un control.
-    'Energy':      'ch1ctrl113',
+    # Perilla 1: era ENERGIA (el macro no le sirvio al usuario en vivo);
+    # ahora es BAILE (Movement), separado de BRILLO (Audioamount, perilla 6).
+    'Movement':    'ch1ctrl113',
     'Hue':         'ch1ctrl75',
     'Speed':       'ch1ctrl72',
     'Density':     'ch1ctrl77',
@@ -499,7 +503,9 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # LAYOUT v2 (ver MIDI_LAYOUT_V2). Van al FINAL a proposito:
               # si un midi_map.json viejo deja el mismo canal en dos slots,
               # midiMap() se queda con el ultimo de esta lista.
-              'Energy', 'Autopilot', 'Retro', 'Trailszoom']
+              'Energy', 'Autopilot', 'Retro', 'Trailszoom',
+              # Perilla 1 desde que Energia salio del controlador.
+              'Movement']
 
 # ---------------------------------------------------------------
 # COLORES DE LOS PADS (MiniLab mkII, SysEx de Arturia)
@@ -552,7 +558,7 @@ MIDI_LAYOUT_V2 = {
 # pagina MIDI Mapping -- builder.py itera sobre ESTA, no sobre MIDI_SLOTS.
 MIDI_PANEL_SLOTS = [
     # 16 perillas, en orden fisico (perilla 1 -> perilla 16).
-    'Energy', 'Hue', 'Speed', 'Density', 'Chaos', 'Audioamount',
+    'Movement', 'Hue', 'Speed', 'Density', 'Chaos', 'Audioamount',
     'Trails', 'Brightness',
     'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
     'Lookamount', 'Palettelock',
@@ -573,8 +579,9 @@ MIDI_PANEL_SLOTS = [
 # parametros. Si un slot no esta aca, el panel cae al nombre del slot tal
 # cual (no deberia pasar para nada de MIDI_PANEL_SLOTS).
 MIDI_SLOT_LABEL_ES = {
-    'Energy': 'Energia', 'Hue': 'Hue', 'Speed': 'Speed', 'Density': 'Density',
-    'Chaos': 'Chaos', 'Audioamount': 'Audio', 'Trails': 'Estela',
+    'Movement': 'Baile', 'Energy': 'Energia', 'Hue': 'Hue', 'Speed': 'Speed',
+    'Density': 'Density', 'Chaos': 'Chaos', 'Audioamount': 'Brillo',
+    'Trails': 'Estela',
     'Brightness': 'Master',
     'Detail1': 'Detail 1', 'Detail2': 'Detail 2', 'Detail3': 'Detail 3',
     'Detail4': 'Detail 4', 'Detail5': 'Detail 5', 'Detail6': 'Detail 6',

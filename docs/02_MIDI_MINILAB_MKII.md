@@ -27,12 +27,12 @@ verdad, ya cargado como default en `config.DEFAULT_MIDI`:
 
 | Perilla | Manda | Función |
 |---|---|---|
-| 1 | `ch1ctrl113` | **ENERGÍA** — la principal: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset |
+| 1 | `ch1ctrl113` | **BAILE** — cuánto se mueven/crecen los visuales con la música (crecen con el bombo, se hinchan con los graves, se balancean con los medios). En 0 no se mueven. Antes era Energía |
 | 2 | `ch1ctrl75` | Hue |
-| 3 | `ch1ctrl72` | Speed (pisa a Energía hasta que vuelvas a moverla) |
+| 3 | `ch1ctrl72` | Speed |
 | 4 | `ch1ctrl77` | Density |
 | 5 | `ch1ctrl78` | Chaos |
-| 6 | `ch1ctrl94` | Audio (reacción al sonido) |
+| 6 | `ch1ctrl94` | **BRILLO** — cuánto se iluminan con la música y cuánto bombea el brillo con el bombo |
 | 7 | `ch1ctrl74` | Estela (Trails) |
 | 8 | `ch1ctrl76` | Master (brillo general) |
 | 9 | `ch1ctrl115` | Detail 1 |
@@ -44,7 +44,7 @@ verdad, ya cargado como default en `config.DEFAULT_MIDI`:
 | 15 | `ch1ctrl80` | Look |
 | 16 | `ch1ctrl73` | Paleta |
 | `Shift` + 1 | `ch1ctrl23` | Mezcla 2 Capas |
-| `Shift` + 9 | `ch1ctrl24` | Transición (fundido a mano, pisa a Energía) |
+| `Shift` + 9 | `ch1ctrl24` | Transición (duración del fundido a mano) |
 | tira **mod** | `ch1ctrl1` | Imagen (scrub, recorre la carpeta con el dedo) |
 | tira **pitch** | — | Zoom Estela — todavía sin aprender, ver "Lo que salió" |
 

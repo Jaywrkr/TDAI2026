@@ -205,6 +205,9 @@ CONTINUOUS = {
     # (que la apaga, ver control_script.resetControls) basta con tocarla
     # para que vuelva a mandar. Ver control_script.applyEnergy.
     'Energy': ('Energy', 0.0, 1.0),
+    # BAILE (perilla 1): cuanto se mueve/crece la imagen con la musica
+    # (footer de shader.py). Separada de BRILLO (Audioamount, perilla 6).
+    'Movement': ('Movement', 0.0, 1.0),
     # Zoom de la estela, centrado en 0.5 = neutro: ideal para la tira de
     # pitch (vuelve sola al centro al soltarla).
     'Trailszoom': ('Trailszoom', 0.0, 1.0),
