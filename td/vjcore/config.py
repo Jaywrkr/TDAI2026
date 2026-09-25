@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 54
+N_SCENES = 55
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
