@@ -101,19 +101,32 @@ void main() {
     // LEVELS: cuantos niveles de mip (el ultimo, 6, cubre ~64 px).
     const float AMOUNT = 1.6;
     const int LEVELS = 6;
-    // Kick: mismo motivo que en el prefiltro. KICK_GLOW empuja el glow,
-    // KICK_BASE da un empujon chico a la imagen de base tambien -- entre
-    // los dos, el golpe SE VE (no solo un halo mas ancho) sin lavar el
-    // negro de fondo ni recortar a blanco (el tonemap de abajo lo cuida).
+    // Kick: mismo motivo que en el prefiltro. KICK_GLOW empuja el glow.
     const float KICK_GLOW = 1.1;
-    const float KICK_BASE = 0.22;
     float kick = clamp(uKick, 0.0, 1.0);
+
+    // PUMP ("sidechain" visual): la imagen ENTERA baja entre golpes y
+    // pega arriba en cada bombo. Subir solo el brillo en el golpe no
+    // alcanzaba: los visuales ya estan cerca de su tope y el tonemap se
+    // comia la diferencia (medido: un filo rojo oscilaba x1.09). Para que
+    // "se prenda y se apague" hace falta tambien el "se apague": entre
+    // golpes baja a PUMP_FLOOR, en el golpe sube a 1+PUMP_BOOST.
+    // Simulado con techno y reggaeton: x2.5-2.8 de oscilacion.
+    //   depth = perilla Audio x groove: sin bombo sonando (break, entre
+    //   temas, sin microfono) groove cae a 0 y la imagen vuelve SOLA a su
+    //   brillo normal; con la perilla Audio en 0 no bombea nunca.
+    const float PUMP_FLOOR = 0.45;
+    const float PUMP_BOOST = 0.60;
+    float env = pow(max(clamp(uBeat, 0.0, 1.0), kick), 0.8);
+    float depth = clamp(uAudioamt, 0.0, 1.0)
+                * smoothstep(0.30, 0.70, clamp(uGroove, 0.0, 1.0));
+    float pump = 1.0 + depth * (PUMP_FLOOR + (1.0 + PUMP_BOOST - PUMP_FLOOR) * env - 1.0);
 
     vec2 uv = vUV.st;
     // Input 0: imagen original. Input 1: prefiltro (solo brillos).
     // textureLod 0 explicito: la entrada tiene filtro mipmap y no hace
     // falta que el GPU adivine el nivel por derivadas.
-    vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb * (1.0 + kick * KICK_BASE);
+    vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb;
     vec2 texel = uTD2DInfos[1].res.zw;
 
     vec3 glow = vec3(0.0);
@@ -139,7 +152,7 @@ void main() {
     }
     glow /= wsum;
 
-    vec3 col = base + glow * AMOUNT * (1.0 + kick * KICK_GLOW);
+    vec3 col = (base + glow * AMOUNT * (1.0 + kick * KICK_GLOW)) * pump;
 
     // Tonemap de hombro suave. El footer de las escenas ya comprime lo
     // que pasa de 1.0, pero el glow se suma DESPUES de eso y nadie lo
@@ -157,6 +170,10 @@ void main() {
 """
 
 
+_BLOOM_NOCTRL = ('#define uKick 0.0\n#define uBeat 0.0\n'
+                 '#define uGroove 0.0\n#define uAudioamt 0.0\n')
+
+
 def _build_bloom(proj, src_top, ctrl_tex=None, channels=None):
     # uKick (input 2, textura de control) empuja el glow con cada golpe de
     # bomba -- ver la nota en _BLOOM_PREFILTER_FRAG/_BLOOM_FRAG. Sin
@@ -165,7 +182,7 @@ def _build_bloom(proj, src_top, ctrl_tex=None, channels=None):
     if ctrl_tex is not None and channels:
         head = shader.ctrl_header(channels, 2)
     else:
-        head = '#define uKick 0.0\n'
+        head = _BLOOM_NOCTRL
 
     pre_src = proj.create(textDAT, 'bloom_prefilter_src')
     pre_src.nodeX, pre_src.nodeY = 1000, 160

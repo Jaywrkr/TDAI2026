@@ -426,42 +426,42 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
 
   // id = clave de la funcion; now = lo que manda HOY segun el mapeo del rig
   const knobs = [
-    {id:'Energy', n:1, name:'ENERGÍA', g:'show', d:'La perilla principal. De calma a pico: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset.', shift:'Mezcla 2 capas', shiftId:'Layermix', shiftD:'Con Shift: cuánto entra la capa B en modo Dos Capas.', now:'CC 74', isNew:true},
-    {id:'Hue', n:2, name:'HUE', g:'show', d:'Gira la paleta de color. El giro es parejo en todos los tonos.', now:'CC 77'},
-    {id:'Speed', n:3, name:'SPEED', g:'show', d:'Velocidad de la animación. Pisa a Energía hasta que vuelvas a moverla.', now:'CC 75'},
-    {id:'Density', n:4, name:'DENSITY', g:'show', d:'Cantidad de detalle y cobertura.', now:'CC 72'},
+    {id:'Energy', n:1, name:'ENERGÍA', g:'show', d:'La perilla principal. De calma a pico: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset.', shift:'Mezcla 2 capas', shiftId:'Layermix', shiftD:'Con Shift: cuánto entra la capa B en modo Dos Capas.', now:'CC 113', isNew:true},
+    {id:'Hue', n:2, name:'HUE', g:'show', d:'Gira la paleta de color. El giro es parejo en todos los tonos.', now:'CC 75'},
+    {id:'Speed', n:3, name:'SPEED', g:'show', d:'Velocidad de la animación. Pisa a Energía hasta que vuelvas a moverla.', now:'CC 72'},
+    {id:'Density', n:4, name:'DENSITY', g:'show', d:'Cantidad de detalle y cobertura.', now:'CC 77'},
     {id:'Chaos', n:5, name:'CHAOS', g:'show', d:'Turbulencia y distorsión.', now:'CC 78'},
-    {id:'Audioamount', n:6, name:'AUDIO', g:'look', d:'Cuánto reaccionan los visuales al sonido. En 0 nada reacciona. Con Auto-gain el nivel de la sala se compensa solo.', now:'CC 76'},
-    {id:'Trails', n:7, name:'ESTELA', g:'look', d:'Rastro de los cuadros anteriores. En 0 está apagada y no consume.', now:'CC 19', isNew:true},
-    {id:'Brightness', n:8, name:'MASTER', g:'safe', d:'Brillo general de la salida. Energía nunca lo toca.', now:'CC 94'},
-    {id:'Detail1', n:9, name:'DETAIL 1', g:'scene', d:'Significa algo distinto en cada escena: la leyenda del dashboard te dice qué.', shift:'Transición', shiftId:'Transition', shiftD:'Con Shift: duración del fundido a mano (pisa a Energía).', now:'CC 18'},
-    {id:'Detail2', n:10, name:'DETAIL 2', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 92'},
-    {id:'Detail3', n:11, name:'DETAIL 3', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 80'},
-    {id:'Detail4', n:12, name:'DETAIL 4', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 73'},
-    {id:'Detail5', n:13, name:'DETAIL 5', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 2'},
-    {id:'Detail6', n:14, name:'DETAIL 6', g:'scene', d:'Perilla de detalle propia de cada escena. Hoy está en la tira de pitch, que vuelve sola al centro: en el dibujo pasa a esta perilla.', now:'Pitch'},
-    {id:'Lookamount', n:15, name:'LOOK', g:'look', d:'Cuánto se aplica el look del show (Neón frío, Ámbar fílmico, Mono contraste). El look se elige en el dashboard.', now:'CC 20', isNew:true},
-    {id:'Palettelock', n:16, name:'PALETA', g:'look', d:'Fuerza todas las escenas a una misma paleta de dos tonos. En 0 cada escena usa sus colores.', now:'CC 17', isNew:true},
+    {id:'Audioamount', n:6, name:'AUDIO', g:'look', d:'Cuánto reaccionan los visuales al sonido y cuánto BOMBEA la imagen con el bombo (baja entre golpes, pega arriba en cada golpe). En 0 nada reacciona. Con Auto-gain el nivel de la sala se compensa solo.', now:'CC 94'},
+    {id:'Trails', n:7, name:'ESTELA', g:'look', d:'Rastro de los cuadros anteriores. En 0 está apagada y no consume.', now:'CC 74', isNew:true},
+    {id:'Brightness', n:8, name:'MASTER', g:'safe', d:'Brillo general de la salida. Energía nunca lo toca.', now:'CC 76'},
+    {id:'Detail1', n:9, name:'DETAIL 1', g:'scene', d:'Significa algo distinto en cada escena: la leyenda del dashboard te dice qué.', shift:'Transición', shiftId:'Transition', shiftD:'Con Shift: duración del fundido a mano (pisa a Energía).', now:'CC 115'},
+    {id:'Detail2', n:10, name:'DETAIL 2', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 19'},
+    {id:'Detail3', n:11, name:'DETAIL 3', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 20'},
+    {id:'Detail4', n:12, name:'DETAIL 4', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 17'},
+    {id:'Detail5', n:13, name:'DETAIL 5', g:'scene', d:'Perilla de detalle propia de cada escena.', now:'CC 18'},
+    {id:'Detail6', n:14, name:'DETAIL 6', g:'scene', d:'Perilla de detalle propia de cada escena. Hoy está en la tira de pitch, que vuelve sola al centro: en el dibujo pasa a esta perilla.', now:'CC 92'},
+    {id:'Lookamount', n:15, name:'LOOK', g:'look', d:'Cuánto se aplica el look del show (Neón frío, Ámbar fílmico, Mono contraste). El look se elige en el dashboard.', now:'CC 80', isNew:true},
+    {id:'Palettelock', n:16, name:'PALETA', g:'look', d:'Fuerza todas las escenas a una misma paleta de dos tonos. En 0 cada escena usa sus colores.', now:'CC 73', isNew:true},
   ];
   const padsA = [
-    {id:'Next', n:1, name:'NEXT', g:'show', d:'Siguiente escena.', cc:'CC 30', led:['cyan','white'], ledD:'Late blanco con el beat mientras el autopilot anda'},
-    {id:'Prev', n:2, name:'PREV', g:'show', d:'Escena anterior.', cc:'CC 29', led:['cyan','cyan'], ledD:'—'},
-    {id:'Blackout', n:3, name:'BLACKOUT', g:'safe', d:'Negro total, on/off.', cc:'CC 28', led:['red','white'], ledD:'Blanco = en negro'},
-    {id:'Autopilot', n:4, name:'AUTOPILOT', g:'show', d:'El rig cambia de escena solo, a tiempo con el bombo. El ritmo lo marca Energía.', cc:'CC 27', isNew:true, led:['off','green'], ledD:'Verde = andando'},
-    {id:'Textvisible', n:5, name:'TEXTO', g:'show', d:'Muestra el siguiente nombre de la cola, con fundido. Otro toque lo oculta. Lo último que escribas a mano en Texto sale primero.', cc:'CC 26', isNew:true, led:['blue','white'], ledD:'Azul = hay un nombre listo · blanco = en pantalla'},
-    {id:'Medianext', n:6, name:'IMAGEN →', g:'show', d:'Siguiente imagen en las 7 escenas de imagen.', cc:'CC 24', led:['yellow','yellow'], ledD:'—'},
-    {id:'Duallayer', n:7, name:'DOS CAPAS', g:'show', d:'Dos escenas a la vez, mezcladas. La mezcla va en Shift + perilla 1 y el modo en el pad 16.', cc:'CC 23', isNew:true, led:['off','purple'], ledD:'Violeta = activo'},
-    {id:'Medialock', n:8, name:'IMAGEN FIJA', g:'show', d:'Congela la imagen actual: el avance automático se detiene.', cc:'CC 25', led:['off','blue'], ledD:'Azul = congelada'},
+    {id:'Next', n:1, name:'NEXT', g:'show', d:'Siguiente escena.', cc:'nota 38 · canal 10', led:['cyan','white'], ledD:'Late blanco con el beat mientras el autopilot anda'},
+    {id:'Prev', n:2, name:'PREV', g:'show', d:'Escena anterior.', cc:'nota 37 · canal 10', led:['cyan','cyan'], ledD:'—'},
+    {id:'Blackout', n:3, name:'BLACKOUT', g:'safe', d:'Negro total, on/off.', cc:'nota 39 · canal 10', led:['red','white'], ledD:'Blanco = en negro'},
+    {id:'Autopilot', n:4, name:'AUTOPILOT', g:'show', d:'El rig cambia de escena solo, a tiempo con el bombo. El ritmo lo marca Energía.', cc:'nota 40 · canal 10', isNew:true, led:['off','green'], ledD:'Verde = andando'},
+    {id:'Textvisible', n:5, name:'TEXTO', g:'show', d:'Muestra el siguiente nombre de la cola, con fundido. Otro toque lo oculta. Lo último que escribas a mano en Texto sale primero.', cc:'nota 41 · canal 10', isNew:true, led:['blue','white'], ledD:'Azul = hay un nombre listo · blanco = en pantalla'},
+    {id:'Medianext', n:6, name:'IMAGEN →', g:'show', d:'Siguiente imagen en las 7 escenas de imagen.', cc:'nota 42 · canal 10', led:['yellow','yellow'], ledD:'—'},
+    {id:'Duallayer', n:7, name:'DOS CAPAS', g:'show', d:'Dos escenas a la vez, mezcladas. La mezcla va en Shift + perilla 1 y el modo en el pad 16.', cc:'nota 43 · canal 10', isNew:true, led:['off','purple'], ledD:'Violeta = activo'},
+    {id:'Medialock', n:8, name:'IMAGEN FIJA', g:'show', d:'Congela la imagen actual: el avance automático se detiene.', cc:'nota 44 · canal 10', led:['off','blue'], ledD:'Azul = congelada'},
   ];
   const padsB = [
-    {id:'Retro', n:9, name:'RETRO', g:'fx', d:'Grano + posterizado juntos: look de pantalla vieja en un golpe.', cc:'nota 37 · canal 10', isNew:true, led:['yellow','white'], ledD:'Blanco mientras pega'},
-    {id:'Glitch', n:10, name:'GLITCH', g:'fx', d:'Canales de color corridos y bandas corruptas.', cc:'nota 38 · canal 10', led:['cyan','white'], ledD:'Blanco mientras pega'},
-    {id:'Pixelate', n:11, name:'PIXELATE', g:'fx', d:'Bloques grandes de píxel.', cc:'nota 39 · canal 10', led:['green','white'], ledD:'Blanco mientras pega'},
-    {id:'Strobe', n:12, name:'STROBE', g:'fx', d:'Destellos fuertes, máximo 3 por segundo.', cc:'nota 40 · canal 10', led:['red','white'], ledD:'Blanco mientras pega'},
-    {id:'Invert', n:13, name:'INVERT', g:'fx', d:'Invierte los colores.', cc:'nota 41 · canal 10', led:['white','purple'], ledD:'Violeta mientras pega'},
-    {id:'Mirror', n:14, name:'MIRROR', g:'fx', d:'Espejo horizontal.', cc:'nota 50 · canal 10', led:['blue','white'], ledD:'Blanco mientras pega'},
-    {id:'Zoom', n:15, name:'ZOOM', g:'fx', d:'Empujón de zoom hacia el centro.', cc:'nota 51 · canal 10', led:['purple','white'], ledD:'Blanco mientras pega'},
-    {id:'Blendnext', n:16, name:'MODO MEZCLA', g:'show', d:'Cicla el modo de Dos Capas: Mix, Add, Screen, Multiply, Difference, Lighten.', cc:'nota 52 · canal 10', isNew:true, led:['off','green'], ledD:'Verde = Dos Capas activo'},
+    {id:'Retro', n:9, name:'RETRO', g:'fx', d:'Grano + posterizado juntos: look de pantalla vieja en un golpe.', cc:'sin aprender', isNew:true, led:['yellow','white'], ledD:'Blanco mientras pega'},
+    {id:'Glitch', n:10, name:'GLITCH', g:'fx', d:'Canales de color corridos y bandas corruptas.', cc:'sin aprender', led:['cyan','white'], ledD:'Blanco mientras pega'},
+    {id:'Pixelate', n:11, name:'PIXELATE', g:'fx', d:'Bloques grandes de píxel.', cc:'CC 25', led:['green','white'], ledD:'Blanco mientras pega'},
+    {id:'Strobe', n:12, name:'STROBE', g:'fx', d:'Destellos fuertes, máximo 3 por segundo.', cc:'CC 26', led:['red','white'], ledD:'Blanco mientras pega'},
+    {id:'Invert', n:13, name:'INVERT', g:'fx', d:'Invierte los colores.', cc:'CC 27', led:['white','purple'], ledD:'Violeta mientras pega'},
+    {id:'Mirror', n:14, name:'MIRROR', g:'fx', d:'Espejo horizontal.', cc:'CC 28', led:['blue','white'], ledD:'Blanco mientras pega'},
+    {id:'Zoom', n:15, name:'ZOOM', g:'fx', d:'Empujón de zoom hacia el centro.', cc:'CC 29', led:['purple','white'], ledD:'Blanco mientras pega'},
+    {id:'Blendnext', n:16, name:'MODO MEZCLA', g:'show', d:'Cicla el modo de Dos Capas: Mix, Add, Screen, Multiply, Difference, Lighten.', cc:'CC 30', isNew:true, led:['off','green'], ledD:'Verde = Dos Capas activo'},
   ];
   const strips = [
     {id:'Trailszoom', key:'pitch', short:'ZOOM', name:'ZOOM ESTELA', g:'look', d:'Tira de pitch: acerca o aleja la estela. Al soltarla vuelve sola al centro, que es "sin zoom". Hoy la tira de pitch manda Detail 6: para esto, Learn Trailszoom.', how:'Vuelve al centro al soltar'},
@@ -475,10 +475,8 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   };
 
   // Lo que manda cada control HOY (mapeo del rig tras la migracion v2)
-  const CC_MAP = {74:'Energy', 77:'Hue', 75:'Speed', 72:'Density', 78:'Chaos', 76:'Audioamount', 19:'Trails', 94:'Brightness',
-    18:'Detail1', 92:'Detail2', 80:'Detail3', 73:'Detail4', 2:'Detail5', 20:'Lookamount', 17:'Palettelock', 1:'Mediascrub',
-    30:'Next', 29:'Prev', 28:'Blackout', 27:'Autopilot', 26:'Textvisible', 24:'Medianext', 23:'Duallayer', 25:'Medialock'};
-  const NOTE_MAP = {37:'Retro', 38:'Glitch', 39:'Pixelate', 40:'Strobe', 41:'Invert', 50:'Mirror', 51:'Zoom', 52:'Blendnext'};
+  const CC_MAP = {113:'Energy', 75:'Hue', 72:'Speed', 77:'Density', 78:'Chaos', 94:'Audioamount', 74:'Trails', 76:'Brightness', 115:'Detail1', 19:'Detail2', 20:'Detail3', 17:'Detail4', 18:'Detail5', 92:'Detail6', 80:'Lookamount', 73:'Palettelock', 23:'Layermix', 24:'Transition', 1:'Mediascrub', 25:'Pixelate', 26:'Strobe', 27:'Invert', 28:'Mirror', 29:'Zoom', 30:'Blendnext'};
+  const NOTE_MAP = {38:'Next', 37:'Prev', 39:'Blackout', 40:'Autopilot', 41:'Textvisible', 42:'Medianext', 43:'Duallayer', 44:'Medialock'};
 
   const all = {};
   knobs.forEach(k => { all[k.id] = {item:k, kind:'Perilla ' + k.n}; if (k.shiftId) all[k.shiftId] = {item:{name:k.shift, g:k.g, d:k.shiftD}, kind:'Shift + perilla ' + k.n, el:k.id}; });

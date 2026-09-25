@@ -257,6 +257,9 @@ CTRL_CHANNELS = [
     'rtime',    # 39 tiempo real en segundos (independiente de Speed)
     'resw',     # 40 ancho de salida
     'resh',     # 41 alto de salida
+    # PUMP (program.py, bloom): la imagen entera "bombea" con el bombo.
+    'groove',   # 42 hay bombo sonando ahora (0..1, cae en ~0.8 s sin golpes)
+    'audioamt', # 43 perilla Audio: profundidad del pump
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -295,6 +298,7 @@ PAR_CHANNELS = [
     ('Detail4', 'd4'),
     ('Detail5', 'd5'),
     ('Detail6', 'd6'),
+    ('Audioamount', 'audioamt'),
 ]
 
 # ---------------------------------------------------------------
