@@ -52,28 +52,26 @@ Las bandas Bass/Mid/High Amount salen del controlador porque con
 **Auto-gain** ya no hace falta corregirlas en vivo: quedan en la pestaña
 **Audio**.
 
-### Perillas 1 y 9: ya en modo Absolute
+### Perillas 1 y 9: comprobar el modo de giro
 
-Las perillas 1 y 9 son las clicables, y las que venían de fábrica en modo
-relativo (ver más abajo la nota de "red de seguridad"). Hoy mandan `CC 113`
-y `CC 115` — dos números lejos de la banda angosta donde cae una perilla
-relativa (58..70), lo que confirma que ya están en modo **Absolute**
-(seguramente reconfiguradas en Arturia MIDI Control Center): responden 1:1,
-sin el paso extra de "acumular". Si alguna vez vuelven a comportarse raro
-(saltan cerca de la mitad y se quedan mudas), repetí este chequeo:
+Las perillas 1 y 9 son las clicables y pueden configurarse en modo relativo
+(ver más abajo la nota de "red de seguridad"). `CC 113` y `CC 115`
+identifican los controles, pero no dicen qué valores envían al girar. El
+manual oficial de Arturia indica que **Relative 1** envía 61–63 hacia la
+izquierda y 65–67 hacia la derecha, con un `0` neutro entre mensajes. En
+**Absolute** envía posiciones de 0 a 127. Para comprobar el modo real:
 
-1. Abre **Arturia MIDI Control Center**, memoria que usás: perilla 1 y 9 →
-   **Mode: Absolute**, Min 0, Max 127. **Store To** → la misma memoria.
-2. Verificá con el probador del manual (`docs/10_MANUAL_MINILAB.html`): al
-   girarlas tiene que decir **✓ Modo absoluto**.
+1. Mirá los valores de `ch1ctrl113` y `ch1ctrl115` en `/project1/midi1` mientras
+   girás cada perilla lentamente en ambos sentidos.
+2. Si aparecen `65, 0, 65` y `63, 0, 63`, están en Relative 1 y el rig acumula
+   esos pasos. Si recorren 0–127, están en Absolute.
+3. Si preferís Absolute, abre **Arturia MIDI Control Center**, seleccioná la
+   memoria que usás, configura las perillas 1 y 9 en **Mode: Absolute**, Min 0,
+   Max 127 y usa **Store To** para guardar esa memoria en el equipo.
 
-**Red de seguridad en software (igual sigue activa):** `dats/midi_logic.py`
-detecta solo las perillas que SIEMPRE mandan un valor pegado a 64 (nunca un
-extremo) y las trata como relativas, acumulando en vez de quedarse mudas.
-Con las perillas 1 y 9 ya en `CC 113`/`115` (fuera de esa banda desde el
-primer mensaje) esto queda inactivo para ellas por diseño -- solo entraría
-a ayudar si algún día otra perilla (u otro controlador) vuelve a mandar en
-relativo.
+**Red de seguridad en software:** `dats/midi_logic.py` reconoce los pasos
+cercanos a 64 como Relative 1, conserva la posición durante el `0` neutro y
+acumula los pasos. Un valor distinto de esa secuencia confirma Absolute.
 
 ### Pads — banco A (`Pad 1-8`): el show
 

@@ -34,7 +34,8 @@ from vjcore import config as c  # noqa: E402
 # midi.py. Escritos a mano aca porque son las unicas fuentes que
 # realmente no se pueden leer de config.py -- estan armadas como nodos
 # TD en midi.py/audio.py, no como una lista de datos.
-AUDIO_CHANNELS = {'level', 'bass', 'mid', 'high', 'kick', 'beat', 'groove', 'music'}
+AUDIO_CHANNELS = {'level', 'bass', 'mid', 'high', 'kick', 'beat', 'groove', 'music',
+                  'bassmove', 'midmove'}
 KEY_CHOP_CHANNELS = {'keypulse'}                 # midi.build_keypulse
 FX_CHOP_CHANNELS = {c2 for _, c2 in c.FX_TRIGGER_PARS}  # midi.build_effects_envelope
 

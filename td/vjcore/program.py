@@ -80,7 +80,7 @@ void main() {
     // no hace falta ninguna logica de encendido/apagado aca.
     const float THRESH = 0.35;
     const float KNEE = 0.2;
-    float thresh = THRESH - clamp(uKick, 0.0, 1.0) * 0.16;
+    float thresh = THRESH - clamp(uKick, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0) * 0.16;
 
     vec3 c = texture(sTD2DInputs[0], vUV.st).rgb;
     float l = luminance(c);
@@ -103,7 +103,7 @@ void main() {
     const int LEVELS = 6;
     // Kick: mismo motivo que en el prefiltro. KICK_GLOW empuja el glow.
     const float KICK_GLOW = 1.1;
-    float kick = clamp(uKick, 0.0, 1.0);
+    float kick = clamp(uKick, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0);
 
     // PUMP ("sidechain" visual): la imagen ENTERA baja entre golpes y
     // pega arriba en cada bombo. Subir solo el brillo en el golpe no

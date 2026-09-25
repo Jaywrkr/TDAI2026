@@ -42,6 +42,22 @@ DJ. Se aplica después de todas las escenas, así que funciona igual en las 54.
 
 ## Para verlo
 
+### BRILLO y BAILE por separado
+
+La perilla 6, **BRILLO** (`Audioamount`), regula la respuesta luminosa al
+audio: bandas, destellos de bombo y bombeo del programa. En 0, la reacción
+luminosa al audio queda apagada. La perilla 8, **Master**, sigue siendo el
+brillo general de la salida.
+
+La perilla 1, **BAILE** (`Movement`), regula el zoom con el bombo y los graves
+y el balanceo con los medios. Recibe canales de audio propios (`bassmove` y
+`midmove`) y el bombo crudo, por lo que puede seguir moviendo la imagen con
+BRILLO en 0. En 0 se apaga esta transformación común a todas las escenas;
+cada escena puede conservar animación o reacciones geométricas propias.
+
+Para aplicar este cambio hay que reconstruir el rig, no solo recargar los
+shaders: se agregaron canales a `/project1/ctrl`.
+
 `git pull` y correr `td/RUN_ME.py` dentro de TouchDesigner (el rebuild). Sin
 el rebuild TD sigue con la red vieja.
 

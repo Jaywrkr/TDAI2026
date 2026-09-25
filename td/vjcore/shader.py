@@ -204,10 +204,10 @@ void main() {
     //   - se balancea (giro chico) con los medios
     if (uMove > 0.0015) {
         float mv = clamp(uMove, 0.0, 1.0);
-        float hit = pow(max(clamp(uBeat, 0.0, 1.0), clamp(uKick, 0.0, 1.0)), 1.5);
-        float grow = mv * (0.16 * hit + 0.05 * clamp(uBass, 0.0, 1.0));
+        float hit = pow(max(clamp(uBeatraw, 0.0, 1.0), clamp(uKickraw, 0.0, 1.0)), 1.5);
+        float grow = mv * (0.16 * hit + 0.05 * clamp(uBassmove, 0.0, 1.0));
         vec2 q = (renderUV - 0.5) * vec2(uAspect, 1.0);
-        float sway = mv * 0.07 * clamp(uMid, 0.0, 1.0) * sin(uRTime * 1.3);
+        float sway = mv * 0.07 * clamp(uMidmove, 0.0, 1.0) * sin(uRTime * 1.3);
         q = rot2(sway) * q * (1.0 - grow);
         renderUV = q / vec2(uAspect, 1.0) + 0.5;
     }
@@ -415,7 +415,7 @@ FALLBACK = {
 FALLBACK_DEFAULT = '0.0'
 
 
-def _defines(channels):
+def _defines(channels, scene_audio=False):
     """Genera los #define desde el orden REAL de canales de /project1/ctrl.
 
     - Canal presente  -> apunta a su indice real en la textura.
@@ -431,7 +431,14 @@ def _defines(channels):
 
     for name in names:
         uni = uniform_name(name)
-        if name in index:
+        if scene_audio and name in ('kick', 'beat'):
+            raw = uni + 'raw'
+            value = '_ctrl({})'.format(index[name]) if name in index else FALLBACK_DEFAULT
+            lines.append('#define {:<10} {}'.format(raw, value))
+            lines.append('#define {:<10} ({} * clamp(uAudioamt, 0.0, 1.0))'.format(uni, raw))
+            if name not in index:
+                missing.append(name)
+        elif name in index:
             lines.append('#define {:<10} _ctrl({})'.format(uni, index[name]))
         else:
             lines.append('#define {:<10} {}   // AUSENTE en /project1/ctrl'.format(
@@ -474,7 +481,7 @@ def ctrl_header(channels, input_index):
 
 
 def make_header(scene_index, channels):
-    header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+    header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels, scene_audio=True))
     # Tope de frecuencia del pad Strobe (ver config.STROBE_MAX_HZ). Como
     # #define y no uniform: es politica de seguridad del venue, no una
     # perilla en vivo.

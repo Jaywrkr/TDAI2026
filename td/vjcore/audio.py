@@ -161,7 +161,22 @@ def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
     safe_set_first(mt, ['clamplowvalue', 'clamplowval'], 0.0)
     safe_set_first(mt, ['clamphighvalue', 'clamphighval'], 1.0)
     connect(mt, norm)
-    return mt
+    return mt, norm
+
+
+def _movement_band(proj, norm, name, x, y, gain_par, amount_par):
+    """Banda para BAILE con ganancia propia, independiente de BRILLO."""
+    mt = proj.create(mathCHOP, name + '_gain')
+    mt.nodeX, mt.nodeY = x, y
+    safe_expr(mt, 'gain',
+              "(op('/project1').par.{g}.eval() / ({f} if op('/project1').par.Autogain.eval() else 1.0)) * op('/project1').par.{a}.eval()"
+              .format(g=gain_par, f=FACTORY_GAIN[gain_par], a=amount_par))
+    safe_set(mt, 'clamplow', True)
+    safe_set(mt, 'clamphigh', True)
+    safe_set_first(mt, ['clamplowvalue', 'clamplowval'], 0.0)
+    safe_set_first(mt, ['clamphighvalue', 'clamphighval'], 1.0)
+    connect(mt, norm)
+    return _smooth_out(proj, mt, name + '_out', x + 160, y)
 
 
 def _smooth_out(proj, src, name, x, y, attack=0.05, release=0.20):
@@ -196,26 +211,30 @@ def build(proj):
     safe_set_first(mono, ['chopop', 'chanop'], 'average')
     connect(mono, audio_in)
 
-    level_env = _envelope(proj, mono, 'a_level', -1060, 860, 0.15, 'Mastergain')
+    level_env, _ = _envelope(proj, mono, 'a_level', -1060, 860, 0.15, 'Mastergain')
     level = _smooth_out(proj, level_env, 'a_level_out', -900, 900)
 
     bass_f = _filter(proj, mono, 'a_bass_lp', 'lowpass', BASS_HI, -1060, 700)
     # bass_env se queda RAPIDO a proposito: lo usa la deteccion de kick de
     # abajo, y suavizarlo de mas ahi mata el transitorio que se busca
     # detectar. bass (mas abajo) es la copia suavizada que ven los visuales.
-    bass_env = _envelope(proj, bass_f, 'a_bass', -900, 700, 0.07, 'Bassgain',
-                         'Bassamount')
+    bass_env, bass_norm = _envelope(proj, bass_f, 'a_bass', -900, 700, 0.07, 'Bassgain',
+                                    'Bassamount')
+    bass_move = _movement_band(proj, bass_norm, 'a_bass_move', -420, 1200,
+                               'Bassgain', 'Bassamount')
 
     mid_hp = _filter(proj, mono, 'a_mid_hp', 'highpass', MID_LO, -1060, 540)
     mid_lp = _filter(proj, mid_hp, 'a_mid_lp', 'lowpass', MID_HI, -900, 540)
-    mid_env = _envelope(proj, mid_lp, 'a_mid', -740, 540, 0.09, 'Midgain',
-                        'Midamount')
+    mid_env, mid_norm = _envelope(proj, mid_lp, 'a_mid', -740, 540, 0.09, 'Midgain',
+                                  'Midamount')
+    mid_move = _movement_band(proj, mid_norm, 'a_mid_move', -420, 1100,
+                              'Midgain', 'Midamount')
     mid = _smooth_out(proj, mid_env, 'a_mid_out', -580, 540)
 
     hi_hp = _filter(proj, mono, 'a_high_hp', 'highpass', HIGH_LO, -1060, 380)
     hi_lp = _filter(proj, hi_hp, 'a_high_lp', 'lowpass', HIGH_HI, -900, 380)
-    high_env = _envelope(proj, hi_lp, 'a_high', -740, 380, 0.06, 'Highgain',
-                         'Highamount')
+    high_env, _ = _envelope(proj, hi_lp, 'a_high', -740, 380, 0.06, 'Highgain',
+                            'Highamount')
     high = _smooth_out(proj, high_env, 'a_high_out', -580, 380)
 
     # ---- KICK: transitorio de graves, con COMPUERTA ----
@@ -380,7 +399,9 @@ def build(proj):
                             (high, 'high', -520, 380),
                             (kick, 'kick', -120, 640),
                             (beat, 'beat', 40, 740),
-                            (groove, 'groove', 40, 1000)]:
+                            (groove, 'groove', 40, 1000),
+                            (bass_move, 'bassmove', -260, 1200),
+                            (mid_move, 'midmove', -260, 1100)]:
         g = proj.create(mathCHOP, 'a_g_' + chan)
         g.nodeX, g.nodeY = x + 90, y - 60
         safe_set_first(g, ['chopop', 'chanop'], 'multiply')

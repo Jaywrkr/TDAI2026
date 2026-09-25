@@ -262,6 +262,8 @@ CTRL_CHANNELS = [
     'audioamt', # 43 perilla Audio: profundidad del pump
     'music',    # 44 hay musica (compuerta de audio.py); sin musica el resto del audio vale 0
     'move',     # 45 perilla BAILE: cuanto se mueve/crece la imagen con la musica (footer)
+    'bassmove', # 46 graves para BAILE, sin atenuacion de BRILLO
+    'midmove',  # 47 medios para BAILE, sin atenuacion de BRILLO
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -411,10 +413,9 @@ DEFAULT_MIDI = {
     # usuario, panel ya reordenado a Layout v2 -- ver MIDI_PANEL_SLOTS):
     # cada control fisico ya aprendido queda de una vez como default, asi
     # que un build nuevo no necesita repetir el Learn de las 32 filas que
-    # ya funcionan. Las perillas 1 y 9 (Energy/Detail1) mandan CC 113/115
-    # -- fuera de la banda angosta 58..70 de _relativePosition
-    # (dats/midi_logic.py), asi que se confirman ABSOLUTAS de una: ya no
-    # necesitan la red de seguridad de modo relativo.
+    # ya funcionan. Las perillas 1 y 9 (Movement/Detail1) mandan CC 113/115.
+    # Esos son identificadores de canal, no los valores MIDI: por si solos
+    # no indican si las perillas estan en modo Absolute o Relative 1.
     #
     # Tres controles del panel siguen SIN default a proposito porque las
     # capturas los mostraban vacios (no aprendidos todavia): Retro (pad

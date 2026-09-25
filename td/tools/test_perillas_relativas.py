@@ -52,7 +52,8 @@ def load_midi_logic(p):
 
 def project_with_midi(**extra):
     pars = {'Midi' + s.lower(): '' for s in config.MIDI_SLOTS}
-    pars.update(Energy=0.5, Energyactive=True, Detail1=0.0, Repopath='')
+    pars.update(Energy=0.5, Energyactive=True, Movement=0.5, Audioamount=1.0,
+                Detail1=0.0, Repopath='')
     pars.update(extra)
     return T.FakeProject(**pars)
 
@@ -82,12 +83,16 @@ def main():
     # Arranca en 0.5 (centro) y cada paso +1/-1 mueve 1/127.
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
     check('primer paso: sube', p.par.Energy.val, 0.5 + 1 / 127.0)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 0, False)  # neutro Arturia
+    check('mensaje neutro no cambia la posicion', p.par.Energy.val, 0.5 + 1 / 127.0)
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
+    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 0, False)
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
     check('varios pasos hacia arriba: acumula (no se queda mudo)',
           p.par.Energy.val, 0.5 + 3 / 127.0)
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 63, False)  # -1
     check('un paso hacia abajo', p.par.Energy.val, 0.5 + 2 / 127.0)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 0, False)
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 66, False)  # +2 (giro rapido)
     check('paso mas grande girando rapido', p.par.Energy.val, 0.5 + 4 / 127.0)
 
@@ -97,15 +102,28 @@ def main():
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)
     check('confirmada absoluta: ya no vuelve a acumular', p.par.Energy.val, 65 / 127.0)
 
-    print('\n--- Perilla 9 (Detail1) con su propio estado, no se pisa con otro canal ---')
-    p = project_with_midi(Midienergy='ch1ctrl74', Mididetail1='ch1ctrl18')
+    print('\n--- Perillas 1 (BAILE) y 9 (Detail1) del layout actual ---')
+    p = project_with_midi(Midimovement='ch1ctrl113', Midiaudioamount='ch1ctrl94',
+                          Mididetail1='ch1ctrl115')
     ml = load_midi_logic(p)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl18'), 65, False)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl18'), 65, False)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl115'), 65, False)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl115'), 0, False)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl115'), 65, False)
     check('Detail1 (relativo) acumula independiente', p.par.Detail1.val, 0.5 + 2 / 127.0)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 90, False)
-    check('Energy (canal distinto) sigue absoluto sin verse afectado',
-          p.par.Energy.val, 90 / 127.0)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 65, False)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 0, False)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 65, False)
+    check('BAILE (relativo) acumula independiente',
+          p.par.Movement.val, 0.5 + 2 / 127.0)
+    check('Detail1 conserva su posicion', p.par.Detail1.val, 0.5 + 2 / 127.0)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl94'), 0, False)
+    check('BRILLO (perilla 6) llega a cero', p.par.Audioamount.val, 0.0)
+    check('BAILE no cambia al mover BRILLO',
+          p.par.Movement.val, 0.5 + 2 / 127.0)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 0, False)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 65, False)
+    check('BAILE sigue respondiendo con BRILLO en cero',
+          p.par.Movement.val, 0.5 + 3 / 127.0)
 
     print('\n--- La tira de pitch (Detail6) nunca pasa por deteccion relativa ---')
     p = project_with_midi(Mididetail6='ch1pitch', Detail6=0.0)
