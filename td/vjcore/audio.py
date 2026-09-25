@@ -182,7 +182,7 @@ def _smooth_out(proj, src, name, x, y, attack=0.05, release=0.20):
 
 
 def build(proj):
-    """Devuelve un CHOP con los canales level/bass/mid/high/kick/beat, o None."""
+    """Devuelve un CHOP con los canales level/bass/mid/high/kick/beat/groove, o None."""
     try:
         audio_in = proj.create(audiodeviceinCHOP, 'audio1')
         audio_in.nodeX, audio_in.nodeY = -1400, 700
@@ -218,20 +218,49 @@ def build(proj):
                          'Highamount')
     high = _smooth_out(proj, high_env, 'a_high_out', -580, 380)
 
-    # ---- KICK: transitorio = bass - media movil del bass ----
-    # Usa bass_env (rapido), NO la copia suavizada de mas abajo.
+    # ---- KICK: transitorio de graves, con COMPUERTA ----
+    # Medido en simulacion (techno 128 / reggaeton 95, ver
+    # docs/12_AUDIO_BAILE.md): el detector viejo (bass - su media, x9)
+    # disparaba tambien con la linea de bajo -- 25 falsos en 6 s de techno
+    # -- y uKick nunca bajaba de ~0.46: siempre "prendido", nada pulsaba.
+    # Ahora solo cuenta como golpe lo que supera Kickgate (0.65 = 65% del
+    # pico reciente de graves, ya normalizado por el auto-gain): el bombo
+    # llega ahi, el bajo no. Resultado simulado: 0 falsos, 13/13 aciertos.
+    #
+    # Detecta sobre los graves SIN Audioamount/Bassamount: si la perilla
+    # Audio bajara la senal por debajo de la compuerta, el bombo dejaria
+    # de detectarse de golpe (efecto precipicio). La perilla Audio se
+    # aplica despues, como profundidad del pump (ver program.py).
+    det = proj.create(mathCHOP, 'a_bass_det')
+    det.nodeX, det.nodeY = -760, 1000
+    safe_expr(det, 'gain',
+              "op('/project1').par.Bassgain.eval() / ({} if op('/project1').par.Autogain.eval() else 1.0)"
+              .format(FACTORY_GAIN['Bassgain']))
+    safe_set(det, 'clamplow', True)
+    safe_set(det, 'clamphigh', True)
+    safe_set_first(det, ['clamplowvalue', 'clamplowval'], 0.0)
+    safe_set_first(det, ['clamphighvalue', 'clamphighval'], 1.0)
+    connect(det, proj.op('a_bass_agcnorm'))
+
     slow = proj.create(filterCHOP, 'a_bass_slow')
     slow.nodeX, slow.nodeY = -600, 780
     safe_set(slow, 'type', 'gaussian')
     safe_set(slow, 'units', 'seconds')
     safe_expr(slow, 'width', "op('/project1').par.Kickwindow")
-    connect(slow, bass_env)
+    connect(slow, det)
+
+    ref = proj.create(mathCHOP, 'a_kick_ref')
+    ref.nodeX, ref.nodeY = -600, 1000
+    safe_set(ref, 'clamplow', True)
+    safe_expr_first(ref, ['clamplowvalue', 'clamplowval'],
+                    "op('/project1').par.Kickgate.eval()")
+    connect(ref, slow)
 
     diff = proj.create(mathCHOP, 'a_kick_diff')
     diff.nodeX, diff.nodeY = -440, 740
     safe_set_first(diff, ['chopop', 'chanop'], 'subtract')
-    connect(diff, bass_env, 0)
-    connect(diff, slow, 1)
+    connect(diff, det, 0)
+    connect(diff, ref, 1)
 
     # Copia suavizada de bass para el canal que ven los visuales -- se crea
     # DESPUES de que kick ya tomo su entrada de bass_env, para no competir.
@@ -261,10 +290,13 @@ def build(proj):
     # A diferencia de 'beat' (Trigger CHOP, binario: siempre pega a 1.0),
     # esto SI preserva la intensidad relativa del golpe -- un golpe suave
     # sigue viendose mas chico que uno fuerte.
+    # Caida 0.22 -> 0.15 s: con 0.22 a 128 BPM el flash seguia en ~0.45 a
+    # mitad de camino al proximo golpe -- poco contraste entre golpe y
+    # silencio, que es justo lo que se lee como "bailar".
     kick = proj.create(lagCHOP, 'a_kick')
     kick.nodeX, kick.nodeY = -120, 700
     safe_set(kick, 'lag1', 0.008)
-    safe_set(kick, 'lag2', 0.22)
+    safe_set(kick, 'lag2', 0.15)
     safe_set_first(kick, ['lagmethod', 'method'], 'slew')
     connect(kick, kick_raw)
 
@@ -275,9 +307,21 @@ def build(proj):
     safe_set_first(beat, ['attack', 'attacklength'], 0.005)
     safe_set_first(beat, ['decay', 'decaylength'], 0.0)
     safe_set_first(beat, ['sustain', 'sustainlevel'], 1.0)
-    safe_set_first(beat, ['release', 'releaselength'], 0.22)
+    safe_set_first(beat, ['release', 'releaselength'], 0.18)
     safe_set(beat, 'retrigger', True)
     connect(beat, kick_raw)
+
+    # ---- GROOVE: "hay bombo sonando ahora" (0..1) ----
+    # Sube al instante con cada beat y cae en 0.8 s. Es lo que prende y
+    # apaga el pump de program.py: en un drop se queda arriba (golpes cada
+    # 0.47-0.63 s), en un break o entre temas cae solo y la imagen vuelve a
+    # su brillo normal en ~1 s -- sin esto el pump dejaria la pantalla
+    # oscura mientras no haya bombo.
+    groove = proj.create(lagCHOP, 'a_groove')
+    groove.nodeX, groove.nodeY = -120, 1000
+    safe_set(groove, 'lag1', 0.0)
+    safe_set(groove, 'lag2', 0.8)
+    connect(groove, beat)
 
     # ---- Renombrar y unir ----
     named = []
@@ -286,7 +330,8 @@ def build(proj):
                             (mid, 'mid', -520, 500),
                             (high, 'high', -520, 380),
                             (kick, 'kick', -120, 640),
-                            (beat, 'beat', 40, 740)]:
+                            (beat, 'beat', 40, 740),
+                            (groove, 'groove', 40, 1000)]:
         r = proj.create(renameCHOP, 'a_n_' + chan)
         r.nodeX, r.nodeY = x + 180, y
         safe_set(r, 'renamefrom', '*')
@@ -299,5 +344,5 @@ def build(proj):
     for i, n in enumerate(named):
         connect(merge, n, i)
 
-    log('AUDIO: cadena construida (level/bass/mid/high/kick/beat)')
+    log('AUDIO: cadena construida (level/bass/mid/high/kick/beat/groove)')
     return merge

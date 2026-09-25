@@ -107,9 +107,9 @@ def postfx_sources(channels=None):
         ('bloom', _td_prologue_post(3) + head + program._BLOOM_FRAG),
         # Fallback sin ctrl_tex (program.build() llamado suelto, ver
         # _build_bloom): uKick fijo en 0, sin input 1/2 de control.
-        ('bloom_prefilter_noctrl', _td_prologue_post(1) + '#define uKick 0.0\n'
+        ('bloom_prefilter_noctrl', _td_prologue_post(1) + program._BLOOM_NOCTRL
          + program._BLOOM_PREFILTER_FRAG),
-        ('bloom_noctrl', _td_prologue_post(2) + '#define uKick 0.0\n'
+        ('bloom_noctrl', _td_prologue_post(2) + program._BLOOM_NOCTRL
          + program._BLOOM_FRAG),
         ('program_blend', _td_prologue_post(3) + head + program._BLEND_FRAG),
         ('program_trails', _td_prologue_post(3) + head + program._TRAILS_FRAG),

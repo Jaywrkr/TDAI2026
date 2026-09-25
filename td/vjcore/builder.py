@@ -71,8 +71,12 @@ def _parameters(proj):
     add_float(a, 'Midgain', 'Mid Gain', 6.0, 0.1, 60)
     add_float(a, 'Highgain', 'High Gain', 10.0, 0.1, 60)
     add_float(a, 'Kickwindow', 'Kick Window (s)', 0.35, 0.05, 2.0)
-    add_float(a, 'Kickgain', 'Kick Gain', 9.0, 0.1, 60)
+    # Kick Gain 9 -> 6 junto con la compuerta nueva (ver audio.py): con 9
+    # el transitorio saturaba y el bombo quedaba "siempre prendido".
+    add_float(a, 'Kickgain', 'Kick Gain', 6.0, 0.1, 60)
     add_float(a, 'Kickthreshold', 'Beat Threshold', 0.30, 0.01, 1.0)
+    add_float(a, 'Kickgate', 'Compuerta del bombo (sube si el bajo dispara)',
+              0.65, 0.2, 0.95)
     # Auto-gain (ver audio.py): cada banda se normaliza a su pico reciente,
     # asi el rig reacciona igual en una sala suave o a todo volumen sin
     # tocar ganancias en vivo. Prendido por defecto. Con el prendido, las
