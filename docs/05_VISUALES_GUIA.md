@@ -593,6 +593,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 94 | procedural spiderweb | Dos telarañas radiales de hilos finos sobre negro |
 | 95 | digital embroidery | Imagen o video Media convertido en cruces de hilo sobre tela |
 | 96 | particle mandala | Nube de puntos de color en sectores simétricos |
+| 97 | audio wire room | Cubos luminosos y haces amarillos en profundidad |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
