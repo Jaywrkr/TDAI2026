@@ -586,6 +586,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 87 | organic structure | Membrana de celdas irregulares con nervios cromados violetas |
 | 88 | audio pops | Cúmulo de puntos blancos y trazos luminosos sensibles al kick |
 | 89 | particle cube scanner | Cubo de alambre con un escáner rojo y partículas interiores |
+| 90 | the shore | Cascada de líneas azules y oleaje de filamentos en perspectiva |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
