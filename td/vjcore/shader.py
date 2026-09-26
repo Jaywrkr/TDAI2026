@@ -41,6 +41,15 @@ out vec4 fragColor;
 
 mat2 rot2(float a) {{ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }}
 
+// Mas recorrido util en las perillas Detail de las escenas recientes.
+// 0, 0.5 y 1 mantienen el mismo significado; cerca del centro cada giro
+// produce un cambio mas visible sin alterar el aspecto del preset medio.
+float detailDrive(float x) {{
+    x = clamp(x, 0.0, 1.0);
+    float y = smoothstep(0.08, 0.92, x);
+    return mix(x, y, 0.88);
+}}
+
 float hash21(vec2 p) {{
     p = fract(p * vec2(123.34, 456.21));
     p += dot(p, p + 45.32);
@@ -109,6 +118,33 @@ vec3 hsv2rgb(vec3 c) {{
 // uv centrado y con aspecto corregido: x en [-a,a], y en [-1,1]
 vec2 centered(vec2 uv) {{ return (uv - 0.5) * vec2(uAspect, 1.0) * 2.0; }}
 
+// Las escenas 58+ desplazan el dibujo por bandas de audio. Dos ondas
+// espaciales suaves mueven partes distintas del visual; la fase cambia
+// por escena, por eso no bailan todas a la vez. Sin audio devuelve UV
+// intacto. El desplazamiento no escala la imagen ni altera el reloj.
+vec2 audioDanceUV(vec2 uv) {{
+    if (uMusic < 0.5) return uv;
+    float bass = clamp(uBass, 0.0, 1.0);
+    float mid = clamp(uMid, 0.0, 1.0);
+    float high = clamp(uHigh, 0.0, 1.0);
+    float hit = clamp(max(uKick, uBeat * 0.68) * uAudioamt, 0.0, 1.0);
+    if (max(max(bass, mid), max(high, hit)) < 0.002) return uv;
+    vec2 p = centered(uv);
+    float scene = float(uScene);
+    float phase = scene * 2.39996;
+    float fy = 2.5 + mod(scene, 5.0) * 0.44;
+    float fx = 2.2 + mod(scene, 7.0) * 0.31;
+    float flowX = sin(p.y * fy + 0.48 * sin(p.x * 1.7 + phase) +
+                      phase + uTime * 0.13);
+    float flowY = sin(p.x * fx - 0.41 * cos(p.y * 1.9 - phase) -
+                      phase * 0.73 - uTime * 0.11);
+    vec2 movement = vec2(flowX * (bass * 0.023 + hit * 0.043),
+                         flowY * (mid * 0.018 + hit * 0.025));
+    movement += vec2(flowX * flowY, flowX - flowY) *
+                high * 0.0035;
+    return uv + movement / (2.0 * vec2(uAspect, 1.0));
+}}
+
 float vignette(vec2 uv, float amt) {{
     vec2 d = (uv - 0.5) * 2.0;
     return mix(1.0, clamp(1.0 - dot(d, d) * 0.55, 0.0, 1.0), amt);
@@ -118,8 +154,9 @@ float vignette(vec2 uv, float amt) {{
 // El audio continuo se usa principalmente para brillo y color. Cada escena
 // decide si un golpe mueve su propia geometria. No hay zoom global.
 //
-// Evitar multiplicar velocidades de reloj por niveles de microfono: eso
-// produce temblor. Usar envolventes de kick/beat para gestos breves.
+// El reloj integrado ya incorpora un impulso acotado del bajo suavizado.
+// No volver a multiplicar uTime por audio ni por uSpeed en cada escena.
+// Usar envolventes de kick/beat para gestos breves.
 
 // Sube el brillo SOLO donde ya hay algo brillante. col * (1+x) sigue siendo
 // 0 si col era 0 -- el negro se queda negro por construccion, no por ajuste
@@ -187,6 +224,7 @@ void main() {
     // un no-op) -- nunca pixelaba nada de verdad. Ahora cuantiza el UV
     // antes de muestrear, que es como se pixela de verdad.
     vec2 renderUV = vUV.st;
+    if (uScene >= 58) renderUV = audioDanceUV(renderUV);
 
     if (uPixelate > 0.0015) {
         // Piso bajado otra vez (16 -> 10 -> 6): a fondo de pad, bloques
@@ -391,7 +429,7 @@ FALLBACK = {
 FALLBACK_DEFAULT = '0.0'
 
 
-def _defines(channels):
+def _defines(channels, scene_index=None):
     """Genera los #define desde el orden REAL de canales de /project1/ctrl.
 
     - Canal presente  -> apunta a su indice real en la textura.
@@ -408,7 +446,14 @@ def _defines(channels):
     for name in names:
         uni = uniform_name(name)
         if name in index:
-            lines.append('#define {:<10} _ctrl({})'.format(uni, index[name]))
+            value = '_ctrl({})'.format(index[name])
+            if scene_index is not None and scene_index >= 58 and name in (
+                    'd1', 'd2', 'd3', 'd4', 'd5', 'd6'):
+                value = 'detailDrive({})'.format(value)
+            if scene_index is not None and scene_index >= 58 and name in (
+                    'bass', 'mid', 'high', 'kick', 'beat'):
+                value = '({} * uMusic)'.format(value)
+            lines.append('#define {:<10} {}'.format(uni, value))
         else:
             lines.append('#define {:<10} {}   // AUSENTE en /project1/ctrl'.format(
                 uni, FALLBACK.get(name, FALLBACK_DEFAULT)))
@@ -450,7 +495,8 @@ def ctrl_header(channels, input_index):
 
 
 def make_header(scene_index, channels):
-    header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
+    header = _HEADER_TOP.format(scene=scene_index,
+                                defines=_defines(channels, scene_index))
     # Tope de frecuencia del pad Strobe (ver config.STROBE_MAX_HZ). Como
     # #define y no uniform: es politica de seguridad del venue, no una
     # perilla en vivo.

@@ -61,7 +61,7 @@ vec2 wireCube(vec2 p, float angle, float size,
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.07 + uSpeed * 0.22);
+    float t = uTime * 0.29;
     float kick = max(uKick, uBeat * 0.60) * uAudioamt;
     float angle = -0.27 + t * 0.14 +
                   kick * uD3 * 0.32 + uMid * uAudioamt * 0.07;
@@ -76,7 +76,7 @@ vec4 render(vec2 uv) {
 
     float rays = 0.0, rayHalo = 0.0;
     for (int i = 0; i < 8; i++) {
-        if (i >= 4 + int(floor(uD4 * 4.5))) break;
+        if (i >= 2 + int(floor(uD4 * 6.0))) break;
         float sx = mod(float(i), 2.0) * 2.0 - 1.0;
         float sy = mod(floor(float(i) * 0.5), 2.0) * 2.0 - 1.0;
         float layer = i < 4 ? 0.55 : 0.82;

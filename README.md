@@ -81,6 +81,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [48 — Digital Embroidery](docs/48_DIGITAL_EMBROIDERY.md) | Imagen de Media tejida con cruces de hilo; escena 95 |
 | [49 — Particle Mandala](docs/49_PARTICLE_MANDALA.md) | Mandala simétrico formado por miles de puntos; escena 96 |
 | [50 — Audio Wire Room](docs/50_AUDIO_WIRE_ROOM.md) | Cubos de líneas amarillas y azules que responden al audio; escena 97 |
+| [51 — Speed y baile de escenas nuevas](docs/51_SPEED_Y_BAILE.md) | Speed lineal con empuje moderado de bajo; detalles y movimiento de escenas 58–97 |
 
 ## Crear una escena nueva
 

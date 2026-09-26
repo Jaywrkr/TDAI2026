@@ -30,7 +30,7 @@ float pnSegment(vec2 q, vec2 dir, float halfLen, float width) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.18 + uSpeed * 0.36);
+    float t = uTime * 0.54;
     float radius = mix(0.80, 1.17, uD1);
     float kick = max(uKick, uBeat * 0.6) * uAudioamt;
 

@@ -17,7 +17,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.10 + uSpeed * 0.26);
+    float t = uTime * 0.36;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float ax = abs(p.x);
     float warp = (0.004 + uChaos * 0.008 + uD4 * 0.022) *
@@ -78,11 +78,11 @@ vec4 render(vec2 uv) {
 
     // Los acentos frios ocupan solo algunas celdas cerca del centro.
     float accentCell = hash21(floor(vec2(x * 15.0, y * 11.0)));
-    float accent = smoothstep(0.75, 0.94, accentCell) *
+    float accent = smoothstep(0.94 - uD5 * 0.55, 0.99, accentCell) *
                    exp(-ax * 1.8) * cells * uD5;
     vec3 cold = hsv2rgb(vec3(fract(uHue + 0.54 +
                         0.27 * step(0.88, accentCell)), 0.82, 1.0));
-    col = mix(col, cold * (0.22 + lit * 0.9), accent * 0.85);
+    col = mix(col, cold * (0.22 + lit * 0.9), accent * 1.0);
     col = audioLift(col, uBass * 0.35 + uHigh * 0.12);
     return vec4(col, 1.0);
 }

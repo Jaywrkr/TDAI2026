@@ -27,7 +27,7 @@ float particleLayer(vec2 p, float cells, float seed, float density, float size) 
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.05 + uSpeed * 0.20);
+    float t = uTime * 0.25;
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
     float r = length(p);
     float angle = atan(p.y, p.x);
@@ -67,7 +67,7 @@ vec4 render(vec2 uv) {
     float hue = audioHue(uHue, uMid * 0.009);
     vec3 violet = hsv2rgb(vec3(fract(hue + 0.75), 0.84, 1.0));
     vec3 pink = hsv2rgb(vec3(fract(hue + 0.88), 0.65, 1.0));
-    vec3 ringColor = mix(violet, pink, uD5 * 0.52);
+    vec3 ringColor = mix(violet, pink, uD5);
     vec3 col = ringColor * (rings * (1.65 + kick * 0.55) +
                             halo * uD6 * 0.48);
     col += mix(violet, vec3(0.91, 0.74, 1.0), 0.31) *

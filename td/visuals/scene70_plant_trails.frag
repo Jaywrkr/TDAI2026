@@ -16,7 +16,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.09 + uSpeed * 0.26);
+    float t = uTime * 0.35;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float count = 54.0 + uDensity * 42.0 + uD1 * 68.0;
     float cellW = 2.0 * uAspect / count;
@@ -71,7 +71,7 @@ vec4 render(vec2 uv) {
     float colorSeed = hash21(vec2(id, 134.0));
     vec3 warm = mix(orange, gold, smoothstep(0.29, 0.74, colorSeed));
     vec3 budColor = mix(warm, violet,
-                        step(0.78, colorSeed) * uD5);
+                        smoothstep(0.08, 0.82, colorSeed) * uD5);
     vec3 col = green * (stem * (0.30 + uD6 * 0.46) +
                         stemHalo * 0.07);
     col += budColor * bud *

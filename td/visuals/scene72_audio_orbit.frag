@@ -34,7 +34,7 @@ vec4 render(vec2 uv) {
     float radius = length(p);
     if (radius > 1.22) return vec4(0.0, 0.0, 0.0, 1.0);
 
-    float t = uTime * (0.18 + uSpeed * 0.38);
+    float t = uTime * 0.56;
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
     float count = 22.0 + floor(uD2 * 16.0 + uDensity * 12.0);
     float spacing = 0.19 + uD1 * 0.025;

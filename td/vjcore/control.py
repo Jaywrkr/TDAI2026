@@ -27,7 +27,21 @@ except ImportError:
 
 
 from . import config
-from .tdutil import safe_set, safe_set_first, safe_expr, connect, log, chan_names
+from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
+                     connect, log, chan_names)
+
+
+def speed_rate_expression():
+    """Tasa del reloj integrado: Speed manda y el bajo suma como maximo 25 %."""
+    gate = ("(op('/project1/a_level_smooth') is not None and "
+            "op('/project1/a_level_smooth')[0].eval() >= {})"
+            .format(config.SILENCE_RMS_THRESHOLD))
+    bass = ("max(0.0, min(1.0, "
+            "op('/project1/a_bass_out')[0].eval())) if "
+            "op('/project1/a_bass_out') is not None else 0.0")
+    return ("(2.0 * max(0.0, min(1.0, op('/project1').par.Speed.eval())) "
+            "* (1.0 + 0.25 * ({}))) "
+            "if {} else 0.0".format(bass, gate))
 
 
 def build(proj, audio_chop, key_chop=None, fx_chop=None):
@@ -53,25 +67,17 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     # NO produce saltos de fase en los visuales (problema clasico de usar
     # absTime.seconds * Speed directamente).
     #
-    # CURVA NO LINEAL de la perilla: Speed^2.2 en vez de Speed. Con una
-    # recta, la mitad del recorrido de la perilla ya daba mas o menos la
-    # mitad del movimiento -- con la potencia, el primer tramo de la
-    # perilla queda casi plano (poco baile) y el ultimo tramo es donde
-    # de verdad se dispara -- la diferencia entre "perilla al minimo" y
-    # "perilla al maximo" es mucho mas grande.
-    #
-    # La tasa tiene solo dos estados: la elegida por Speed cuando hay
-    # musica, y cero bajo el piso de RMS crudo. Nunca se multiplica por
-    # un nivel fluctuante: eso produce aceleraciones y frenadas visibles.
-    # Se usa a_level_smooth ANTES del auto-gain para que el ruido residual
-    # de una fuente en pausa no active el reloj.
+    # Speed elige la velocidad BASE lineal: 0 quieto, 0.5 media velocidad,
+    # 1 velocidad maxima. El bajo SUAVIZADO solo agrega hasta un 25 % de
+    # la base. Asi la perilla siempre manda y el kick no frena el reloj.
+    # Bajo el piso de RMS crudo la velocidad es cero, incluso si el
+    # auto-gain llego a levantar ruido residual de una fuente pausada.
     music_gate = ("(op('/project1/a_level_smooth') is not None and "
                   "op('/project1/a_level_smooth')[0].eval() >= {})"
                   .format(config.SILENCE_RMS_THRESHOLD))
     t_scaled = proj.create(speedCHOP, 'time_scaled')
     t_scaled.nodeX, t_scaled.nodeY = -1400, 60
-    safe_expr(t_scaled, 'speed',
-              "(0.15 + pow(max(0.0, min(1.0, op('/project1').par.Speed.eval())), 2.2) * 1.85) if {} else 0.0".format(music_gate))
+    safe_expr(t_scaled, 'speed', speed_rate_expression())
     t_scaled_n = proj.create(renameCHOP, 'time_scaled_named')
     t_scaled_n.nodeX, t_scaled_n.nodeY = -1240, 60
     safe_set(t_scaled_n, 'renamefrom', '*')
@@ -87,10 +93,19 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     safe_set(t_real_n, 'renameto', 'rtime')
     connect(t_real_n, t_real)
 
+    # Compuerta explicita para la deformacion de audio del shader. Los
+    # envelopes pueden tardar unas decimas en caer al pausar una fuente;
+    # este canal corta el movimiento en cuanto cierra el RMS crudo.
+    music = proj.create(constantCHOP, 'music_gate')
+    music.nodeX, music.nodeY = -1400, -180
+    safe_set_first(music, ['const0name', 'name0'], 'music')
+    safe_expr_first(music, ['const0value', 'value0'],
+                    '1.0 if {} else 0.0'.format(music_gate))
+
     # --- merge ---
     merge = proj.create(mergeCHOP, 'ctrl_merge')
     merge.nodeX, merge.nodeY = -1040, 120
-    srcs = [par_ren, t_scaled_n, t_real_n]
+    srcs = [par_ren, t_scaled_n, t_real_n, music]
     if audio_chop is not None:
         srcs.insert(1, audio_chop)
     if key_chop is not None:

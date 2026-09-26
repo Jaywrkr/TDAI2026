@@ -18,7 +18,7 @@ vec4 render(vec2 uv) {
     if (abs(p.x) > 1.85 || abs(p.y) > 1.10)
         return vec4(0.0, 0.0, 0.0, 1.0);
 
-    float t = uTime * (0.07 + uSpeed * 0.25);
+    float t = uTime * 0.32;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float bass = uBass * uAudioamt;
     float hue = audioHue(uHue, uMid * 0.010);
@@ -47,7 +47,7 @@ vec4 render(vec2 uv) {
     float web = 0.0;
     for (int j = 0; j < 5; j++) {
         float id = float(j);
-        float amount = step(id, 2.0 + floor(uD3 * 2.0 + uDensity));
+        float amount = step(id, 1.0 + floor(uD3 * 4.0 + uDensity * 0.5));
         vec2 q = rot2(id * 0.61 + 0.18) * p;
         float bend = (0.13 + uD4 * 0.10) *
                      sin(q.x * (5.0 + id * 1.20) + t * (0.55 + id * 0.08) + id);

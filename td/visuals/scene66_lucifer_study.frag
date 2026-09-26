@@ -18,7 +18,7 @@
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
     vec2 q = p - vec2(0.18, 0.04);
-    float t = uTime * (0.09 + uSpeed * 0.25);
+    float t = uTime * 0.34;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
 
     // Silueta irregular con esquirlas cortas alrededor. No hay zoom:
@@ -47,7 +47,7 @@ vec4 render(vec2 uv) {
                     abs(sin(q.x * 23.0 + q.y * 9.0 + n * 13.0)));
     float material = body * (0.12 + plates * 0.88) *
                      (0.22 + grain * 0.90) *
-                     (1.0 - crack * (0.38 + uD3 * 0.57));
+                     (1.0 - crack * (0.08 + uD3 * 0.90));
 
     // Huecos que sugieren un rostro erosionado, sin dibujar una cara
     // lisa ni repetir la misma luz sobre toda la superficie.
@@ -64,7 +64,7 @@ vec4 render(vec2 uv) {
     vec3 red = hsv2rgb(vec3(redH, 0.90, 1.0));
     vec3 cyan = hsv2rgb(vec3(cyanH, 0.78, 1.0));
     float split = smoothstep(-0.32, 0.34,
-                  q.x + (grain - 0.5) * (0.36 + uD5 * 0.46) +
+                  q.x + (uD5 - 0.5) * 0.85 + (grain - 0.5) * 0.48 +
                   0.13 * sin(q.y * 7.0 + n * 5.0));
     vec3 pigment = mix(red, cyan, split);
 

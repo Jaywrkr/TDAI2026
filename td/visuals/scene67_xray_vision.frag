@@ -16,7 +16,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.10 + uSpeed * 0.22);
+    float t = uTime * 0.32;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
 
     // Los dos lados comparten estructura, con diferencias internas.

@@ -21,7 +21,7 @@ vec4 render(vec2 uv) {
     if (rr > 1.0) return vec4(0.0, 0.0, 0.0, 1.0);
     float z = sqrt(max(1.0 - rr, 0.0));
     vec3 normal = vec3(xy, z);
-    float t = uTime * (0.018 + uSpeed * 0.075) *
+    float t = uTime * 0.093 *
               (0.35 + uD4 * 1.45);
     float longitude = atan(normal.x, normal.z) + t;
     float latitude = asin(clamp(normal.y, -1.0, 1.0));
@@ -54,7 +54,7 @@ vec4 render(vec2 uv) {
     float chosen = step(0.55, hash21(cell + 49.2));
     color *= shade * (0.91 + kick * chosen * 0.32);
     color += vec3(0.56, 0.74, 0.89) *
-             (specular * uD6 * 0.32 + rim * uD6 * 0.07);
+             (specular * uD6 * 1.4 + rim * uD6 * 0.30);
     color *= tile;
     float key = exp(-pow((uv.x - uKeypos) / 0.055, 2.0)) * uKeypulse;
     color += color * key * 0.50;

@@ -45,7 +45,7 @@ float veilLayer(vec2 p, float t, float id, float field) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.12 + uSpeed * 0.30);
+    float t = uTime * 0.42;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float field = fbm(p * 2.35 + vec2(t * 0.055, -t * 0.07), 2);
     float weave = 0.0;

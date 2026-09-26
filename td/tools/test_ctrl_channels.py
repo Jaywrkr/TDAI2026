@@ -65,7 +65,7 @@ def main():
         'FX_TRIGGER_PARS (midi.build_effects_envelope)': set(fx_channels),
         'midi.build_keypulse': KEY_CHOP_CHANNELS,
         'audio.py': AUDIO_CHANNELS,
-        'time/rtime (control.py, fijos)': {'time', 'rtime'},
+        'time/rtime/music (control.py, fijos)': {'time', 'rtime', 'music'},
     }
     names = list(sources)
     for i in range(len(names)):
@@ -86,6 +86,12 @@ def main():
           'faltan: {}'.format(faltan))
     check('ninguna fuente escribe un canal que CTRL_CHANNELS no declara',
           not sobran, 'sobran: {}'.format(sobran))
+    control_src = open(os.path.join(TD, 'vjcore', 'control.py'),
+                       encoding='utf-8').read()
+    check('music sale del Constant CHOP con compuerta de RMS',
+          "proj.create(constantCHOP, 'music_gate')" in control_src and
+          "['const0name', 'name0'], 'music'" in control_src and
+          "['const0value', 'value0']" in control_src)
 
     print('\n--- keypulse y los 8 efectos de pad NO estan en el pasamanos directo ---')
     # Este es el chequeo que habria atrapado el bug original: si alguno

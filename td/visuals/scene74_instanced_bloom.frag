@@ -15,13 +15,13 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv) - vec2(0.06, 0.0);
-    float t = uTime * (0.07 + uSpeed * 0.22);
+    float t = uTime * 0.29;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float blades = 3.0 + floor(uD2 * 2.0 + 0.5);
     float opening = 0.75 + uD1 * 0.46;
     float twist = 0.35 + uD3 * 0.70 + uChaos * 0.15;
     float lines = 34.0 + uD4 * 44.0 + uDensity * 18.0;
-    float split = 0.012 + uD5 * 0.032;
+    float split = 0.003 + uD5 * 0.16;
     float aa = 2.0 / max(uResH, 360.0);
     float hRed = audioHue(fract(uHue + 0.025), uMid * 0.012);
     vec3 red = hsv2rgb(vec3(hRed, 0.88, 1.0));
@@ -61,7 +61,8 @@ vec4 render(vec2 uv) {
                               crossbar * 0.28 + edge * 0.50);
         float redSide = smoothstep(-split, split, v +
                                    0.20 * sin(x * 4.0 + id));
-        vec3 ink = mix(cyan, red, redSide);
+        vec3 ink = mix(mix(cyan, red, 0.5),
+                       mix(cyan, red, redSide), uD5);
         col += ink * lit * (0.85 + 0.50 * envelope);
 
         float rimDist = abs(surfaceY) - width;
@@ -71,8 +72,8 @@ vec4 render(vec2 uv) {
     }
 
     float r = length(p);
-    float knot = exp(-r * (7.0 + uD6 * 3.0)) *
-                 (0.26 + uD6 * 0.49 + kick * 0.21);
+    float knot = exp(-r * (10.0 - uD6 * 6.0)) *
+                 (0.08 + uD6 * 1.4 + kick * 0.21);
     float sparks = exp(-r * 18.0) * (0.25 + kick * 0.19);
     col += mix(red, cyan, 0.35) * knot +
            vec3(1.0, 0.65, 0.88) * sparks;

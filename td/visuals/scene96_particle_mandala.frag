@@ -34,7 +34,7 @@ vec4 render(vec2 uv) {
     float sectors = 8.0 + floor(uD2 * 6.0 + 0.5);
     float wedge = TAU / sectors;
     float fold = abs(mod(a + wedge * 0.5, wedge) - wedge * 0.5);
-    float t = uTime * (0.035 + uSpeed * 0.13);
+    float t = uTime * 0.165;
     float kick = max(uKick, uBeat * 0.60) * uAudioamt;
     float pleat = (0.06 + uD3 * 0.12 + uChaos * 0.035) *
                   sin(r * 12.0 - fold * sectors * 3.0 + t * 0.42);
@@ -70,8 +70,8 @@ vec4 render(vec2 uv) {
     float ray = pow(max(0.0, 1.0 - abs(sin(fold * sectors * 3.0 +
                                            r * 25.0 + pleat * 13.0))),
                     12.0) * shape * inner;
-    float center = exp(-r * (8.0 + uD6 * 4.0)) *
-                   (0.24 + uD6 * 0.50);
+    float center = exp(-r * (12.0 - uD6 * 8.0)) *
+                   (0.05 + uD6 * 1.5);
     float key = exp(-pow((uv.x - uKeypos) / 0.075, 2.0)) * uKeypulse;
     vec3 col = ink * (dotField * (1.00 + uBright * 0.50 +
                                  kick * 0.30 + key * 0.30) +

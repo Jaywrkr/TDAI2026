@@ -25,7 +25,7 @@ float spectralPoint(vec2 p, float grid, float seed, float amount, float size) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.06 + uSpeed * 0.24);
+    float t = uTime * 0.3;
     float kick = max(uKick, uBeat * 0.68) * uAudioamt;
     float bass = uBass * uAudioamt;
     float high = uHigh * uAudioamt;
@@ -61,7 +61,7 @@ vec4 render(vec2 uv) {
     dust *= cloudMask * (0.70 + high * 0.45);
 
     vec3 white = vec3(0.88, 0.93, 1.0);
-    vec3 lime = hsv2rgb(vec3(audioHue(uHue + 0.15 + uD5 * 0.10,
+    vec3 lime = hsv2rgb(vec3(audioHue(uHue + 0.08 + uD5 * 0.32,
                                     uMid * 0.009), 0.82, 1.0));
     vec3 col = white * (beamA * (0.82 + bass * 0.22) +
                         beamB * 0.69 +

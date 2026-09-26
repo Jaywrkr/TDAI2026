@@ -12,7 +12,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.10 + uSpeed * 0.34);
+    float t = uTime * 0.44;
     float count = 3.0 + floor(uD1 * 4.0 + 0.5);
     float spread = 0.19 + uD5 * 0.13;
     float amp = 0.09 + uD2 * 0.21 + uChaos * 0.035;

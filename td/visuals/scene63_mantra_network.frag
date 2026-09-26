@@ -33,7 +33,7 @@ float mantraSegment(vec2 p, vec2 a, vec2 b) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.12 + uSpeed * 0.31);
+    float t = uTime * 0.43;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float radius = 0.78 + uD1 * 0.18;
     float r = length(p);
@@ -91,14 +91,14 @@ vec4 render(vec2 uv) {
     vec2 jitter = hash22(cell + 35.1);
     float spark = 1.0 - smoothstep(0.04, 0.27,
                   length(fract(gridUv) - jitter));
-    spark *= step(mix(0.96, 0.72, uD2), hash21(cell + 17.8));
+    spark *= step(mix(0.985, 0.42, uD2), hash21(cell + 17.8));
     spark *= exp(-abs(spine) * 2.9) * disc;
 
     float h = audioHue(fract(uHue + 0.34), uMid * 0.015);
     vec3 ice = hsv2rgb(vec3(h, 0.19, 1.0));
     vec3 col = ice * (rays * 0.34 + rim * 0.37 +
                links * (0.19 + uD5 * 0.32) +
-               filaments * 0.31 + spark * (0.22 + uD2 * 0.66) +
+               filaments * 0.31 + spark * (0.14 + uD2 * 1.65) +
                node * (0.65 + uD6 * 0.92 + kick * 0.72) +
                aura * (0.11 + uD6 * 0.20));
     col *= disc;

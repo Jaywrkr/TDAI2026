@@ -26,7 +26,7 @@ float segmentDistance(vec2 p, vec2 a, vec2 b) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.15 + uSpeed * 0.56);
+    float t = uTime * 0.71;
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
     float wireWidth = 0.004 + uD1 * 0.006;
     vec2 a = cubeProject(vec3(-1.0, -0.68, -1.0));
@@ -58,7 +58,7 @@ vec4 render(vec2 uv) {
     float irregular = noise21(p * 9.0 + vec2(t * 0.24, -t * 0.18));
     float beamDist = segmentDistance(p, left, right);
     float beamWidth = 0.025 + uD2 * 0.066;
-    beamDist += (irregular - 0.5) * uD4 * 0.028;
+    beamDist += (irregular - 0.5) * uD4 * 0.34;
     float beam = exp(-pow(beamDist / beamWidth, 2.0));
     float capWidth = 0.045 + uD6 * 0.070;
     float caps = exp(-pow(length(p - left) / capWidth, 2.0)) +
@@ -68,8 +68,8 @@ vec4 render(vec2 uv) {
     vec2 cell = floor(p * 75.0);
     vec2 local = fract(p * 75.0);
     vec2 pos = hash22(cell + vec2(4.2, 18.1));
-    float fleck = exp(-pow(length(local - pos) / 0.14, 2.0));
-    float keep = step(0.76 - uD3 * 0.15 - uDensity * 0.07,
+    float fleck = exp(-pow(length(local - pos) / (0.10 + uD3 * 0.22), 2.0));
+    float keep = step(0.96 - uD3 * 0.56 - uDensity * 0.07,
                       hash21(cell + 33.4));
     float inside = (1.0 - smoothstep(0.82, 1.07, abs(p.x))) *
                    (1.0 - smoothstep(0.48, 0.70, abs(p.y)));
