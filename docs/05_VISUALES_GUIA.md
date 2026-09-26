@@ -569,6 +569,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 70 | plant trails | Aparece un anillo de luz en la posición de la tecla |
 | 71 | color ribbon | Aparece un anillo de luz en la posición de la tecla |
 | 72 | audio orbit | Aparece un anillo de luz en la posición de la tecla |
+| 73 | time grid circles | Aparece un anillo de luz en la posición de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
