@@ -1,6 +1,6 @@
 # TDAI2026 — Rig de VJ para TouchDesigner
 
-Sistema de 83 escenas con control MIDI (Arturia MiniLab MkII), audio reactivo,
+Sistema de 84 escenas con control MIDI (Arturia MiniLab MkII), audio reactivo,
 crossfade A/B y dashboard clickable.
 
 ![veins](docs/img/veins_default.png)
@@ -65,6 +65,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [32 — Polar Trails](docs/32_POLAR_TRAILS.md) | Arcos blancos con extremos rojo y cian; escena 80 |
 | [33 — Wavy Particles](docs/33_WAVY_PARTICLES.md) | Filamentos ondulados azules y violetas; escena 81 |
 | [34 — Iterative Tentacles](docs/34_ITERATIVE_TENTACLES.md) | Tentáculos blancos y puntos luminosos; escena 82 |
+| [35 — Echoforms](docs/35_ECHOFORMS.md) | Ecos cuadrados y contornos magenta/cian; escena 83 |
 
 ## Crear una escena nueva
 
