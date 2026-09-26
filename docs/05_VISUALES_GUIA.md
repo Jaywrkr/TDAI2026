@@ -589,6 +589,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 90 | the shore | Cascada de líneas azules y oleaje de filamentos en perspectiva |
 | 91 | image wire extrusion | Contornos de imagen o video Media con capas de profundidad |
 | 92 | frequency guided particles | Haces blancos cruzados y nube amarilla de partículas |
+| 93 | image instancing sphere | Imagen de Media repetida en piezas sobre una esfera oscura |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
