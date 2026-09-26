@@ -15,12 +15,12 @@
 
 vec4 render(vec2 uv) {
     vec2 pixel = vec2(1.0 / max(uResW, 1.0), 1.0 / max(uResH, 1.0));
-    float t = uTime * (0.025 + uSpeed * 0.11);
+    float t = uTime * 0.135;
     float kick = max(uKick, uBeat * 0.6) * uAudioamt;
     float low = noise21(uv * 4.6 + vec2(t * 0.12, -t * 0.09));
     float medium = noise21(uv * 24.0 + vec2(-t * 0.25, t * 0.20));
     vec2 warp = (vec2(low, medium) - 0.5) *
-                (0.002 + uD2 * 0.014 + uChaos * 0.003);
+                (0.002 + uD2 * 0.16 + uChaos * 0.003);
     vec2 q = clamp(uv + warp, pixel, 1.0 - pixel);
     vec3 center = mediaTex(q).rgb;
 
@@ -37,11 +37,13 @@ vec4 render(vec2 uv) {
     vec3 bands = floor(wash * levels + 0.5) / levels;
     vec3 color = mix(wash, bands, uD4 * 0.60);
     float edge = length(left - right) + length(down - up);
-    edge = smoothstep(0.06, 0.54, edge) * (0.10 + uD3 * 0.38);
+    edge = smoothstep(0.06, 0.54, edge +
+                      uD2 * abs(low - medium) * 0.32) *
+           (0.10 + uD3 * 0.38);
     float paper = noise21(uv * vec2(uResW, uResH) * 0.20);
     float pigment = noise21(uv * 73.0 + vec2(12.3, 8.7));
-    float textureAmt = (paper - 0.5) * 0.10 + (pigment - 0.5) * 0.12;
-    color *= 1.0 + textureAmt * uD6 * 2.0;
+    float textureAmt = (paper - 0.5) * 0.27 + (pigment - 0.5) * 0.39;
+    color *= 1.0 + textureAmt * uD6 * 3.0;
     color *= 1.0 - edge;
 
     float luminance = dot(color, vec3(0.299, 0.587, 0.114));

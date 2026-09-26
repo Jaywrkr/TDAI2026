@@ -18,7 +18,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = uv;
-    float t = uTime * (0.08 + uSpeed * 0.28);
+    float t = uTime * 0.36;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
 
     // Un mapa acumulado aproximado: cada escala suma desplazamiento

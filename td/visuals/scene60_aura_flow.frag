@@ -20,7 +20,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.18 + uSpeed * 0.33);
+    float t = uTime * 0.51;
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
 
     // La columna nace estrecha arriba; al llegar al plano inferior los

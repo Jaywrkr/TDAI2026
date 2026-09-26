@@ -27,7 +27,7 @@ vec4 render(vec2 uv) {
     vec2 q = fract(grid) - 0.5;
     float index = cell.x + cell.y * cols;
     float delay = 0.20 + uD3 * 0.72;
-    float phase = uTime * (0.35 + uSpeed * 0.85) - index * delay;
+    float phase = uTime * 1.2 - index * delay;
     float freq = 3.2 + uDensity * 4.0;
     vec2 samplePoint = q * freq +
                        vec2(phase * 0.38, phase * -0.26);
@@ -35,7 +35,7 @@ vec4 render(vec2 uv) {
     float noiseB = noise21(samplePoint * 2.3 + vec2(12.7, 4.1));
     float noiseC = noise21(samplePoint * 5.1 - vec2(8.1, 6.4));
     float textureValue = noiseA * 0.54 + noiseB * 0.31 + noiseC * 0.15;
-    float roughness = (0.025 + uD4 * 0.074) *
+    float roughness = (0.005 + uD4 * 0.38) *
                       (0.6 + uChaos * 0.8);
     float diskRadius = 0.205 + uD5 * 0.105;
     float signedEdge = length(q) - diskRadius -
@@ -56,8 +56,8 @@ vec4 render(vec2 uv) {
     col += red * rim * (0.13 + uHigh * 0.07);
 
     float frameDist = 0.49 - max(abs(q.x), abs(q.y));
-    float frame = 1.0 - smoothstep(0.0, 0.009, abs(frameDist));
-    col += vec3(0.28, 0.12, 0.15) * frame * (0.06 + uD6 * 0.32);
+    float frame = 1.0 - smoothstep(0.0, 0.006 + uD6 * 0.018, abs(frameDist));
+    col += vec3(0.28, 0.12, 0.15) * frame * (0.02 + uD6 * 1.8);
     col = audioLift(col, uBass * 0.20 + uHigh * 0.10);
     return vec4(col, 1.0);
 }

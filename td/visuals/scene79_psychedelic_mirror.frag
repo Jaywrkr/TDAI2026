@@ -22,7 +22,7 @@ vec4 render(vec2 uv) {
     float folded = abs(mod(theta + 0.7853982, 1.5707963) -
                        0.7853982);
     vec2 q = vec2(cos(folded), sin(folded)) * r;
-    float t = uTime * (0.08 + uSpeed * 0.26);
+    float t = uTime * 0.34;
     float reach = 0.62 + uD1 * 0.31;
     float threads = 80.0 + uD3 * 78.0 + uDensity * 19.0;
     float kick = max(uKick, uBeat * 0.60) * uAudioamt;
@@ -61,8 +61,8 @@ vec4 render(vec2 uv) {
     float grain = noise21(p * (48.0 + uDensity * 31.0) +
                           vec2(t * 0.035, -t * 0.025));
     float intensity = (lace + body) * (0.77 + grain * 0.46);
-    float core = exp(-r * (13.0 - uD6 * 3.0)) *
-                 (0.21 + uD6 * 0.31 + kick * 0.26);
+    float core = exp(-r * (16.0 - uD6 * 10.0)) *
+                 (0.04 + uD6 * 1.2 + kick * 0.26);
     vec3 col = vec3(0.88, 0.90, 1.0) * intensity * 1.48 +
                vec3(1.0) * core;
     col = audioLift(col, uBass * 0.27 + uHigh * 0.13);

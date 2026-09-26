@@ -18,7 +18,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.13 + uSpeed * 0.30);
+    float t = uTime * 0.43;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float floorY = -0.68;
     float mirror = step(p.y, floorY);
@@ -65,7 +65,7 @@ vec4 render(vec2 uv) {
                   line * visible;
 
     float reflected = mix(1.0,
-                    exp((p.y - floorY) * 6.0) * (0.14 + uD5 * 0.65),
+                    exp((p.y - floorY) * (8.0 - uD5 * 4.0)) * (0.04 + uD5 * 1.25),
                     mirror);
     float h = audioHue(fract(uHue + 0.76), uMid * 0.018);
     vec3 violet = hsv2rgb(vec3(h, 0.74, 1.0));

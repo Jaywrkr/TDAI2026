@@ -8,7 +8,7 @@
 // @D6: intensidad de la tinta
 vec4 render(vec2 uv) {
     vec2 p = centered(uv) * mix(1.1, 3.6, uD1);
-    float t = uTime * mix(0.08, 0.7, uSpeed);
+    float t = uTime * 0.7;
     float kick = max(uKick, uBeat * 0.7) * uAudioamt;
     float a = noise21(p * 0.9 + vec2(t, -t * 0.5));
     p = rot2((a - 0.5) * (1.0 + uD2 * 4.0 + uChaos * 2.0) + kick * 0.28) * p;

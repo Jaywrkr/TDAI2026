@@ -22,7 +22,7 @@ No los declares: ya están.
 
 | Uniform | Rango | Qué es |
 |---|---|---|
-| `uSpeed` | 0–1 | Knob 1. **Ya está aplicado en `uTime`** — úsalo solo para efectos extra |
+| `uSpeed` | 0–1 | Knob 1. **Ya está aplicado en `uTime`** — no vuelvas a multiplicar el reloj por él |
 | `uDensity` | 0–1 | Knob 2. Cantidad de detalle / cobertura |
 | `uHue` | 0–1 | Knob 3. Rota la paleta completa |
 | `uChaos` | 0–1 | Knob 4. Turbulencia / distorsión |
@@ -33,11 +33,11 @@ No los declares: ya están.
 | `uHigh` | 0–1 | 2–12 kHz |
 | `uKick` | 0–1 | Transitorio de graves. Pico corto en el golpe |
 | `uBeat` | 0–1 | Envolvente que decae tras cada golpe (~0.22 s) |
-| `uTime` | seg | **Tiempo para animar.** Ya escalado por Speed e integrado |
+| `uTime` | seg | **Tiempo para animar.** Speed fija la base lineal y el bajo suavizado agrega hasta 25 % de esa base |
 | `uRTime` | seg | Segundos reales, independientes de Speed |
 | `uResW`, `uResH` | px | Resolución de salida |
 | `uAspect` | — | `uResW / uResH` |
-| `uScene` | 0–19 | Índice de esta escena |
+| `uScene` | 0–97 | Índice de esta escena |
 | `uD1`…`uD6` | 0–1 | Perillas de Detail. **Significan lo que tú definas** — documéntalo con `@D1`…`@D6`, ver abajo |
 | `uKeypulse` | 0–1 | Pulso al tocar cualquier tecla del piano, decae solo (~0.35 s). El anillo base ya sale gratis del footer — usa esto si quieres un efecto propio además |
 | `uKeypos` | 0–1 | Grave→agudo de la última tecla tocada |
@@ -76,11 +76,11 @@ Constantes: `PI`, `TAU`.
 
 ## Contrato de audio y movimiento
 
-El nivel continuo de micrófono se usa principalmente para brillo y color.
-Los golpes `uKick` y `uBeat` pueden mover o agrandar formas de manera
-acotada. El footer añade a todas las escenas un zoom de hasta 3,5 % en el
-golpe; `uSpeed` controla una parte de esa amplitud y `uAudioamt` la apaga.
-Cada escena puede sumar un gesto propio si hace falta.
+En las escenas 58–97, el footer aplica una deformación espacial suave
+distinta por escena: graves mueven una banda, medios otra y el kick suma
+un gesto corto. No aplica zoom. `Detail 1–6` tiene una respuesta más marcada
+alrededor del centro de la perilla; 0, 0.5 y 1 conservan su valor.
+Cada escena puede sumar un gesto propio.
 
 Motivo: con un micrófono de ambiente el nivel nunca está perfectamente
 quieto. Cualquier cosa cuya *forma* dependa de él tiembla sin parar — no se
@@ -88,9 +88,9 @@ lee como "reacciona a la música", se lee como un glitch. `scene00_veins.frag`
 tenía exactamente este bug (el nivel escalaba la posición de cada píxel, los
 graves engordaban el ancho de línea) y así se manifestaba.
 
-`uHigh` puede mover detalles a escala micro (un par de píxeles). No
-multipliques la velocidad del reloj por el nivel del micrófono: sus
-fluctuaciones generan temblor en todo el visual.
+`uHigh` mueve detalles a escala micro. El reloj sí recibe una aceleración
+**suavizada y limitada** del bajo: `2 × Speed × (1 + 0.25 × bass)` mientras
+hay música. En silencio vale cero; con Speed en cero vale cero.
 
 ### `audioLift` — cómo deben usar bajos/nivel
 

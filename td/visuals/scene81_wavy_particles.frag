@@ -18,7 +18,7 @@ vec4 render(vec2 uv) {
     if (abs(p.x) > 1.90 || abs(p.y) > 1.12)
         return vec4(0.0, 0.0, 0.0, 1.0);
 
-    float t = uTime * (0.12 + uSpeed * 0.28);
+    float t = uTime * 0.4;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float amount = 72.0 + uD3 * 87.0 + uDensity * 34.0;
     float width = 0.045 + uD2 * 0.075;
@@ -47,8 +47,8 @@ vec4 render(vec2 uv) {
         float edge = exp(-abs(abs(q) - width * 0.69) /
                          (0.008 + uD2 * 0.005));
         float glow = exp(-abs(q) / (width * 1.8));
-        float tint = clamp(0.36 + q / max(width, 0.01) * 0.42 +
-                           uD5 * 0.22, 0.0, 1.0);
+        float tint = clamp(0.50 + q / max(width, 0.01) * 0.25 +
+                           (uD5 - 0.5) * 1.15, 0.0, 1.0);
         vec3 ink = mix(cyan, violet, tint);
         float light = envelope * (filament * 0.46 + particles * 0.36) +
                       edge * 0.46 + glow * haloStrength;

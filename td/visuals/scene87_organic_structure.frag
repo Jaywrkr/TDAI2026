@@ -17,7 +17,7 @@ vec4 render(vec2 uv) {
     vec2 p = centered(uv);
     float scale = 3.4 + uDensity * 3.2;
     vec2 g = p * scale;
-    float t = uTime * (0.08 + uSpeed * 0.27);
+    float t = uTime * 0.35;
     // Dobla los lados rectos de Voronoi en nervios de membrana.
     vec2 warp = vec2(sin(g.y * 1.15 + sin(g.x * 0.71) + t * 0.18),
                      sin(g.x * 1.22 - sin(g.y * 0.83) - t * 0.15));

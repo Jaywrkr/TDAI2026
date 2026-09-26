@@ -12,7 +12,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.07 + uSpeed * 0.22);
+    float t = uTime * 0.29;
     float scale = 3.0 + uD1 * 2.3 + uDensity * 0.5;
     vec2 q = p * scale;
     vec2 warp = vec2(noise21(q * 0.46 + vec2(t * 0.16, 4.7)),
@@ -48,7 +48,7 @@ vec4 render(vec2 uv) {
     vec3 blue = hsv2rgb(vec3(fract(hue + 0.59), 0.93, 0.92));
     vec3 col = pink * (0.69 + uD4 * center * 0.27);
     col = mix(col, blue, border * (0.72 + uD5 * 0.25));
-    col *= 1.0 - seam * (0.72 + uD6 * 0.21);
+    col *= 1.0 - seam * (0.05 + uD6 * 0.94);
     col = audioLift(col, uBass * 0.16 + uHigh * 0.10);
     return vec4(col, 1.0);
 }

@@ -25,7 +25,7 @@ float popsPoint(vec2 q, float grid, float seed, float size, float amount) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.06 + uSpeed * 0.21);
+    float t = uTime * 0.27;
     float kick = max(uKick, uBeat * 0.70) * uAudioamt;
     float r = length(p);
     float envelope = exp(-pow(r / 0.74, 6.0));
@@ -48,7 +48,7 @@ vec4 render(vec2 uv) {
     vec2 a = f - start;
     float along = clamp(dot(a, direction) / lengthPx, 0.0, 1.0);
     float dist = length(a - direction * lengthPx * along);
-    float keep = step(0.92 - uD4 * 0.11,
+    float keep = step(0.96 - uD4 * 0.42,
                       hash21(cell + 64.2));
     float stroke = exp(-dist * dist / 0.0013) *
                    sin(along * PI) * keep;
@@ -62,7 +62,7 @@ vec4 render(vec2 uv) {
     vec3 lightColor = mix(white, blue, uD5 * 0.72);
     vec3 col = lightColor * envelope *
                (points * (2.20 + uHigh * uAudioamt * 0.35) +
-                flash * 2.40 + halo * uD6 * 0.40);
+                flash * 2.40 + halo * uD6 * 1.0);
     float key = exp(-pow((uv.x - uKeypos) / 0.065, 2.0)) * uKeypulse;
     col += lightColor * envelope * (points + stroke) * key * 0.75;
     col = audioLift(col, uBass * 0.12 + uHigh * 0.10);

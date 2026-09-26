@@ -15,7 +15,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.065 + uSpeed * 0.21);
+    float t = uTime * 0.275;
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
     float wave = sin(p.x * 2.8 - t * 0.65) * 0.65 +
                  sin(p.x * 5.9 + t * 0.38) * 0.25 +

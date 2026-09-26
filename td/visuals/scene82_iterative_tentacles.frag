@@ -19,7 +19,7 @@ vec4 render(vec2 uv) {
     if (r > 1.15) return vec4(0.0, 0.0, 0.0, 1.0);
 
     float theta = atan(p.y, p.x);
-    float t = uTime * (0.08 + uSpeed * 0.24);
+    float t = uTime * 0.32;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float count = 38.0 + floor(uD3 * 28.0 + uDensity * 20.0);
     float lengthScale = 0.57 + uD1 * 0.39;

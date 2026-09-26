@@ -18,7 +18,7 @@ vec4 render(vec2 uv) {
     vec2 grid = uv * vec2(uAspect, 1.0) * rows;
     vec2 cell = floor(grid);
     vec2 local = fract(grid) - 0.5;
-    float t = uTime * (0.04 + uSpeed * 0.15);
+    float t = uTime * 0.19;
     float seed = hash21(cell + 17.3);
     float tilt = (uD3 - 0.5) * 0.35 +
                  (seed - 0.5) * uChaos * 0.18 +
@@ -42,7 +42,7 @@ vec4 render(vec2 uv) {
                            0.35 + uD4 * 0.65);
     vec3 fabricColor = hsv2rgb(vec3(audioHue(uHue + 0.57,
                                               uMid * 0.006),
-                                     0.18 + uD5 * 0.34, 0.075));
+                                     0.06 + uD5 * 0.82, 0.05 + uD5 * 0.16));
     float weave = 0.85 + 0.15 *
                   sin(grid.x * TAU) * sin(grid.y * TAU);
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
@@ -51,7 +51,7 @@ vec4 render(vec2 uv) {
                (0.72 + luminance * 0.28);
     col += threadColor * stitches * available *
            (0.92 + uBright * 0.42 + kick * chosen * 0.30);
-    col += threadColor * ridge * available * uD6 * 0.27;
+    col += threadColor * ridge * available * uD6 * 1.0;
     float key = exp(-pow((uv.x - uKeypos) / 0.065, 2.0)) * uKeypulse;
     col += threadColor * stitches * key * 0.42;
     col = audioLift(col, uBass * 0.13 + uHigh * 0.10);

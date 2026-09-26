@@ -26,7 +26,7 @@ vec4 render(vec2 uv) {
     float r = length(p * vec2(0.93, 1.09));
     if (r > 1.28) return vec4(0.0, 0.0, 0.0, 1.0);
     float theta = atan(p.y, p.x);
-    float t = uTime * (0.10 + uSpeed * 0.24);
+    float t = uTime * 0.34;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float spread = 0.010 + uD5 * 0.046;
     float width = 0.034 + uD4 * 0.065;

@@ -40,7 +40,7 @@ vec3 spiderwebField(vec2 p, float scale, float t, float seed, float kick) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.06 + uSpeed * 0.22);
+    float t = uTime * 0.28;
     float kick = max(uKick, uBeat * 0.62) * uAudioamt;
     vec3 left = spiderwebField(p - vec2(-0.62, 0.06),
                                1.02, t, 1.7, kick);

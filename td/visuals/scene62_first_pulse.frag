@@ -17,7 +17,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.10 + uSpeed * 0.34);
+    float t = uTime * 0.44;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float side = 0.41 + uD1 * 0.22;
     float boxDist = max(abs(p.x), abs(p.y)) - side;

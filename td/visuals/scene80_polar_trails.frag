@@ -18,12 +18,12 @@ vec4 render(vec2 uv) {
     float r = length(p);
     if (r > 1.15) return vec4(0.0, 0.0, 0.0, 1.0);
     float angle = atan(p.y, p.x);
-    float t = uTime * (0.13 + uSpeed * 0.31);
+    float t = uTime * 0.44;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     float spacing = 0.19 + uD1 * 0.085;
     float stroke = 0.006 + uD4 * 0.011;
     float gap = -0.05 + uD3 * 0.42;
-    float coloredWidth = 0.11 + uD5 * 0.34;
+    float coloredWidth = 0.04 + uD5 * 0.95;
     float count = 2.0 + floor(uD2 * 2.0 + uDensity * 0.6);
     float hue = audioHue(uHue, uMid * 0.012);
     vec3 red = hsv2rgb(vec3(fract(hue + 0.02), 0.91, 1.0));

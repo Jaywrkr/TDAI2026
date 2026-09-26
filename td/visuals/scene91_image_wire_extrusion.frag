@@ -22,7 +22,7 @@ float wireEdge(vec2 uv, vec2 stepSize) {
 }
 
 vec4 render(vec2 uv) {
-    float t = uTime * (0.07 + uSpeed * 0.22);
+    float t = uTime * 0.29;
     float kick = max(uKick, uBeat * 0.65) * uAudioamt;
     vec2 pixel = vec2(1.0 / max(uResW, 1.0), 1.0 / max(uResH, 1.0));
     vec2 stepSize = pixel * (0.8 + uDensity * 1.7);

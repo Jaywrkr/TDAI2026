@@ -16,7 +16,7 @@ float shardCross(vec2 a, vec2 b) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.07 + uSpeed * 0.22);
+    float t = uTime * 0.29;
     float scale = 2.6 + uD1 * 1.8 + uDensity * 0.35;
     vec2 q = p * scale;
     vec2 warp = vec2(noise21(q * 0.34 + vec2(t * 0.10, 3.8)),

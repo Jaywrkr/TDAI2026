@@ -23,7 +23,7 @@ float prismSegment(vec2 p, vec2 a, vec2 b) {
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.08 + uSpeed * 0.25);
+    float t = uTime * 0.33;
     float kick = max(uKick, uBeat * 0.55) * uAudioamt;
     vec3 red = hsv2rgb(vec3(audioHue(fract(uHue + 0.005),
                                        uMid * 0.012), 0.94, 1.0));

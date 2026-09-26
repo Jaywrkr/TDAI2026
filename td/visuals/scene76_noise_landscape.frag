@@ -12,7 +12,7 @@
 
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * (0.06 + uSpeed * 0.19);
+    float t = uTime * 0.25;
     float scale = 2.0 + uD1 * 2.2 + uDensity * 0.7;
     vec2 q = p * scale;
     vec2 drift = vec2(t * 0.23, -t * 0.17);
