@@ -3,6 +3,9 @@
 Sistema de 98 escenas con control MIDI (Arturia MiniLab MkII), audio reactivo,
 crossfade A/B y dashboard clickable.
 
+> **Relevo para Claude:** [estado real y dos trabajos pendientes](docs/51_SPEED_Y_BAILE.md).
+> Esta actualización documenta los cambios solicitados; aún no cambia el código.
+
 ![veins](docs/img/veins_default.png)
 
 ## Qué es esto
@@ -28,6 +31,13 @@ Una reescritura del build script original con tres cambios de fondo:
 6. `/project1` → pestaña **MIDI Mapping** → `Learn Speed` → mueve el knob 1. Repite.
 7. `/project1` → **System** → desmarca `Safe Start Blackout`.
 8. Abre `/project1/dashboard_ui` en modo Perform.
+
+## Próximos dos trabajos
+
+1. **Escenas nuevas (58–97):** quitar la deformación o *twirl* compartido que hace que todas se muevan parecido. Hacer que audio y kick muevan los elementos internos de cada escena de forma distinta y subir el brillo donde haga falta, sin perder contraste ni rendimiento.
+2. **Speed en todo el set (especialmente 00–57):** la perilla debe mantener movimiento base también en silencio y llegar a una velocidad máxima mucho mayor. El sonido añade solo un pequeño impulso positivo: si la velocidad base es 100, con audio puede ser 104–108, pero nunca bajar de 100. Los gestos causados únicamente por audio sí deben detenerse en silencio.
+
+El contrato actual **todavía no cumple esos dos puntos**: el reloj se congela sin audio y las escenas nuevas usan una deformación global. La implementación, los criterios de prueba y los archivos a revisar están en [docs/51_SPEED_Y_BAILE.md](docs/51_SPEED_Y_BAILE.md).
 
 ## Documentación
 
@@ -81,7 +91,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [48 — Digital Embroidery](docs/48_DIGITAL_EMBROIDERY.md) | Imagen de Media tejida con cruces de hilo; escena 95 |
 | [49 — Particle Mandala](docs/49_PARTICLE_MANDALA.md) | Mandala simétrico formado por miles de puntos; escena 96 |
 | [50 — Audio Wire Room](docs/50_AUDIO_WIRE_ROOM.md) | Cubos de líneas amarillas y azules que responden al audio; escena 97 |
-| [51 — Speed y baile de escenas nuevas](docs/51_SPEED_Y_BAILE.md) | Speed lineal con empuje moderado de bajo; detalles y movimiento de escenas 58–97 |
+| [51 — Relevo para Claude: Speed y baile](docs/51_SPEED_Y_BAILE.md) | Estado implementado, cambio de criterio y los dos siguientes trabajos |
 
 ## Crear una escena nueva
 
@@ -122,7 +132,7 @@ shader generado por IA que pase esto ya no te va a romper el show en vivo.
 
 - `smoke_import.py`: el paquete importa y los puntos de entrada resuelven.
 - Los módulos de Python parsean.
-- Los dos `.frag` **compilan de verdad** con `glslangValidator`, con el mismo
+- Los 99 shaders (98 escenas y plantilla) **compilan de verdad** con `glslangValidator`, con el mismo
   header y footer que TouchDesigner inyecta.
 - El shader de venas se renderizó en CPU para validar el look (las imágenes de
   `docs/img/` salen de `td/tools/preview_veins_cpu.py`).

@@ -33,8 +33,8 @@ No los declares: ya están.
 | `uHigh` | 0–1 | 2–12 kHz |
 | `uKick` | 0–1 | Transitorio de graves. Pico corto en el golpe |
 | `uBeat` | 0–1 | Envolvente que decae tras cada golpe (~0.22 s) |
-| `uTime` | seg | **Tiempo para animar.** Speed fija la base lineal y el bajo suavizado agrega hasta 25 % de esa base |
-| `uRTime` | seg | Segundos reales, independientes de Speed |
+| `uTime` | seg | **Tiempo para animar.** Hoy Speed fija la base lineal y el bajo agrega hasta 25 %, pero el reloj se congela en silencio; está pendiente corregirlo según [el relevo de Speed](51_SPEED_Y_BAILE.md) |
+| `uRTime` | seg | Reloj independiente de Speed; hoy también se congela sin audio. Auditar antes de usarlo para movimiento base |
 | `uResW`, `uResH` | px | Resolución de salida |
 | `uAspect` | — | `uResW / uResH` |
 | `uScene` | 0–97 | Índice de esta escena |
@@ -76,11 +76,12 @@ Constantes: `PI`, `TAU`.
 
 ## Contrato de audio y movimiento
 
-En las escenas 58–97, el footer aplica una deformación espacial suave
-distinta por escena: graves mueven una banda, medios otra y el kick suma
-un gesto corto. No aplica zoom. `Detail 1–6` tiene una respuesta más marcada
-alrededor del centro de la perilla; 0, 0.5 y 1 conservan su valor.
-Cada escena puede sumar un gesto propio.
+**Estado actual, pendiente de revisión:** en las escenas 58–97, el footer
+aplica una deformación espacial compartida con audio. El usuario la percibe
+como un twirl parecido en todas las escenas y pidió retirarlo. El próximo
+cambio debe mover elementos internos según la naturaleza de cada visual.
+`Detail 1–6` tiene una respuesta más marcada alrededor del centro de la
+perilla. Véase [el relevo de Speed y baile](51_SPEED_Y_BAILE.md).
 
 Motivo: con un micrófono de ambiente el nivel nunca está perfectamente
 quieto. Cualquier cosa cuya *forma* dependa de él tiembla sin parar — no se
@@ -88,9 +89,11 @@ lee como "reacciona a la música", se lee como un glitch. `scene00_veins.frag`
 tenía exactamente este bug (el nivel escalaba la posición de cada píxel, los
 graves engordaban el ancho de línea) y así se manifestaba.
 
-`uHigh` mueve detalles a escala micro. El reloj sí recibe una aceleración
-**suavizada y limitada** del bajo: `2 × Speed × (1 + 0.25 × bass)` mientras
-hay música. En silencio vale cero; con Speed en cero vale cero.
+`uHigh` puede mover detalles a escala micro. **Implementación actual que se
+debe cambiar:** el reloj recibe `2 × Speed × (1 + 0.25 × bass)` solo mientras
+hay música y vale cero en silencio. El criterio nuevo es que Speed mantenga
+movimiento base incluso sin audio, con un tope más rápido; el bajo suma solo
+un pequeño impulso positivo y nunca reduce la velocidad elegida.
 
 ### `audioLift` — cómo deben usar bajos/nivel
 
