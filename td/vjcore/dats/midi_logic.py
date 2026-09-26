@@ -103,6 +103,12 @@ def _piano_note(name):
     return None
 
 
+def _piano_velocity(value):
+    """MIDI In CHOP puede entregar la amplitud de nota en 0..1 o 0..127."""
+    value = max(0.0, float(value))
+    return min(1.0, value if value <= 1.0 else value / 127.0)
+
+
 def _handlePianoKey(note, val):
     p = op('/project1')
     if not p:
@@ -117,11 +123,12 @@ def _handlePianoKey(note, val):
     # necesita sacrificar teclas para los efectos.
     _, plo, phi = _piano_range()
     pos = max(0.0, min(1.0, (note - plo) / float(max(phi - plo, 1))))
-    vel = max(0.0, min(1.0, float(val) / 127.0))
+    vel = _piano_velocity(val)
 
     for par_name, v in (('Keypos', pos), ('Keyvel', vel), ('Keypulseraw', 1.0)):
         par = getattr(p.par, par_name, None)
         if par is not None:
+            _assertRange(par, 0.0, 1.0)
             par.val = v
 
     # Modo PIANO de la carpeta de media: la tecla ELIGE la imagen (no

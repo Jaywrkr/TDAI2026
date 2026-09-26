@@ -145,6 +145,91 @@ vec2 audioDanceUV(vec2 uv) {{
     return uv + movement / (2.0 * vec2(uAspect, 1.0));
 }}
 
+// Piano de las escenas recientes: cada tecla empuja la geometria antes
+// de dibujarla. La posicion viene de la nota, la fuerza de la velocidad
+// MIDI y el recorrido de la envolvente. Seis gestos alternan por escena;
+// no hay zoom global ni movimiento continuo al soltar la tecla.
+vec2 pianoGestureUV(vec2 uv) {{
+    float pulse = sqrt(clamp(uKeypulse, 0.0, 1.0));
+    if (pulse < 0.0015) return uv;
+    float vel = clamp(uKeyvel, 0.0, 1.0);
+    float scene = float(uScene);
+    float style = mod(scene, 6.0);
+    vec2 p = centered(uv);
+    vec2 origin = vec2(mix(-uAspect * 0.60, uAspect * 0.60, uKeypos),
+                       0.30 * sin(scene * 1.73 + uKeypos * 9.0));
+    vec2 delta = p - origin;
+    float dist = length(delta);
+    float travel = 1.0 - pulse;
+    float push = pulse * (0.10 + vel * 0.22);
+    if (style < 1.0) {{
+        float front = travel * (0.38 + vel * 0.75);
+        float wave = exp(-pow((dist - front) * 4.2, 2.0));
+        p += delta / max(dist, 0.05) * push * wave;
+    }} else if (style < 2.0) {{
+        float bow = exp(-pow(delta.x * (3.0 + vel), 2.0));
+        p.y += sin(delta.y * 5.0 + travel * 7.0 + scene) * bow * push;
+    }} else if (style < 3.0) {{
+        float falloff = exp(-dist * dist * 2.0);
+        p = origin + rot2(push * falloff * 1.7) * delta;
+    }} else if (style < 4.0) {{
+        float stripe = exp(-pow((delta.y - travel * 0.55) * 3.5, 2.0));
+        p.x += sin(delta.x * 5.0 + scene) * stripe * push;
+    }} else if (style < 5.0) {{
+        float diagonal = delta.y - delta.x * (0.30 + uKeypos * 0.30);
+        float crease = exp(-pow((diagonal - travel * 0.55) * 4.0, 2.0));
+        p += vec2(0.65, -0.35) * crease * push;
+    }} else {{
+        float lane = exp(-pow(delta.x * 2.6, 2.0));
+        p.x += sin(delta.y * 6.0 - travel * 9.0 + scene) * lane * push;
+    }}
+    return 0.5 + p / (2.0 * vec2(uAspect, 1.0));
+}}
+
+// Acento del mismo gesto, integrado con el color de la escena. La
+// deformacion anterior es la reaccion principal; este trazo permite ver
+// el origen y recorrido de la nota incluso sobre fondos negros.
+vec3 pianoGestureLight(vec2 uv, vec3 col) {{
+    float pulse = sqrt(clamp(uKeypulse, 0.0, 1.0));
+    if (pulse < 0.0015) return col;
+    float scene = float(uScene);
+    float style = mod(scene, 6.0);
+    vec2 p = centered(uv);
+    vec2 origin = vec2(mix(-uAspect * 0.60, uAspect * 0.60, uKeypos),
+                       0.30 * sin(scene * 1.73 + uKeypos * 9.0));
+    vec2 d = p - origin;
+    float travel = 1.0 - pulse;
+    float line = 0.0;
+    if (style < 1.0) {{
+        line = exp(-pow((length(d) - travel * 1.0) * 17.0, 2.0));
+    }} else if (style < 2.0) {{
+        line = exp(-pow((d.x - sin(d.y * 5.0 + travel * 7.0) * 0.12) * 14.0, 2.0));
+        line *= exp(-abs(d.y) * 1.1);
+    }} else if (style < 3.0) {{
+        float a = atan(d.y, d.x);
+        float spiral = length(d) - 0.10 - 0.14 * (a + PI) - travel * 0.25;
+        line = exp(-pow(spiral * 15.0, 2.0));
+    }} else if (style < 4.0) {{
+        line = exp(-pow((d.y - travel * 0.55) * 14.0, 2.0));
+        line *= exp(-abs(d.x) * 0.9);
+    }} else if (style < 5.0) {{
+        float diagonal = d.y - d.x * (0.30 + uKeypos * 0.30);
+        line = exp(-pow((diagonal - travel * 0.55) * 15.0, 2.0));
+        line *= exp(-abs(d.x) * 0.75);
+    }} else {{
+        float streak = d.x - sin(d.y * 6.0 - travel * 9.0 + scene) * 0.11;
+        line = exp(-pow(streak * 16.0, 2.0)) * exp(-abs(d.y) * 0.9);
+    }}
+    float energy = pulse * (0.35 + clamp(uKeyvel, 0.0, 1.0) * 0.85);
+    float contact = exp(-dot(d, d) * 18.0) * pulse *
+                    (0.18 + clamp(uKeyvel, 0.0, 1.0) * 0.35);
+    vec3 ink = hsv2rgb(vec3(fract(uHue + uKeypos * 0.22 + scene * 0.071),
+                            0.63, 1.0));
+    float existing = clamp(dot(col, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+    return col + ink * (line * energy + contact) *
+                 (0.65 + existing * 0.80);
+}}
+
 float vignette(vec2 uv, float amt) {{
     vec2 d = (uv - 0.5) * 2.0;
     return mix(1.0, clamp(1.0 - dot(d, d) * 0.55, 0.0, 1.0), amt);
@@ -224,7 +309,10 @@ void main() {
     // un no-op) -- nunca pixelaba nada de verdad. Ahora cuantiza el UV
     // antes de muestrear, que es como se pixela de verdad.
     vec2 renderUV = vUV.st;
-    if (uScene >= 58) renderUV = audioDanceUV(renderUV);
+    if (uScene >= 58) {
+        renderUV = audioDanceUV(renderUV);
+        renderUV = pianoGestureUV(renderUV);
+    }
 
     if (uPixelate > 0.0015) {
         // Piso bajado otra vez (16 -> 10 -> 6): a fondo de pad, bloques
@@ -248,12 +336,11 @@ void main() {
     vec4 c = render(renderUV);
     c.rgb = max(c.rgb, vec3(0.0));
 
-    // Anillo universal de teclas del piano (Fase 3). Horneado aca, no en
-    // cada .frag: las 20 escenas reaccionan igual sin que el autor del
-    // visual tenga que acordarse de implementarlo. uKeypulse decae solo
-    // tras cada tecla (ver audio.py / midi_logic.py); en reposo vale 0 y
-    // esto no cuesta nada (el if lo salta).
-    if (uKeypulse > 0.0015) {
+    // Las escenas recientes tienen deformacion y acentos de piano segun
+    // su familia visual. Las anteriores conservan el anillo original.
+    if (uScene >= 58) {
+        c.rgb = pianoGestureLight(vUV.st, c.rgb);
+    } else if (uKeypulse > 0.0015) {
         vec2 kp = centered(vec2(mix(0.14, 0.86, uKeypos), 0.5));
         float d = length(centered(vUV.st) - kp);
         float ring = exp(-d * 5.0) * uKeypulse * (0.16 + uKeyvel * 0.30);
