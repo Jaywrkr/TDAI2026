@@ -791,14 +791,22 @@ def _build_outputs(proj, show):
         log('SALIDA: Syphon/Spout no disponible en este build/licencia '
             '({})'.format(type(e).__name__))
 
-    # Grabacion a disco. El nombre de archivo lo arma control_script en
-    # el momento de grabar (con fecha y hora), no una expresion: si fuera
-    # una expresion se reevaluaria sola y podria cambiar el archivo a
-    # mitad de grabacion.
+    # Grabacion a disco. Movie File Out recibe el TOP final y el Audio
+    # Device In CHOP original, que es time-sliced y conserva sus canales
+    # (estereo si la entrada tiene dos). audio_mono perderia un canal.
+    # El nombre de archivo lo arma control_script al comenzar, para que
+    # no cambie a mitad de grabacion.
     try:
         rec = proj.create(moviefileoutTOP, 'recorder')       # noqa: F821
         rec.nodeX, rec.nodeY = 1560, 440
         connect(rec, show)
+        audio_src = proj.op('audio1')
+        if audio_src is None:
+            log('SALIDA: no hay audio1; la grabacion con audio no esta lista')
+        elif safe_set(rec, 'audiochop', audio_src.path):
+            log('SALIDA: audio de grabacion <- {}'.format(audio_src.path))
+        else:
+            log('SALIDA: Movie File Out TOP no expone Audio CHOP')
         safe_expr(rec, 'record', "op('/project1').par.Record")
         made.append('grabacion')
     except Exception as e:

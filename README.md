@@ -66,6 +66,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [33 — Wavy Particles](docs/33_WAVY_PARTICLES.md) | Filamentos ondulados azules y violetas; escena 81 |
 | [34 — Iterative Tentacles](docs/34_ITERATIVE_TENTACLES.md) | Tentáculos blancos y puntos luminosos; escena 82 |
 | [35 — Echoforms](docs/35_ECHOFORMS.md) | Ecos cuadrados y contornos magenta/cian; escena 83 |
+| [36 — Grabar video con audio](docs/36_GRABAR_VIDEO_CON_AUDIO.md) | Conexión del audio original al Movie File Out TOP y verificación de la toma |
 
 ## Crear una escena nueva
 
