@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 72
+N_SCENES = 73
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -80,9 +80,9 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 # build real). Con el ceil() la grilla siempre tiene exactamente las
 # filas que necesita, sin volver a tocar esto a mano cada vez que se
 # agregan o sacan escenas.
-# Con 72 escenas, 9 columnas mantienen 8 filas y el dashboard sigue
+# Con 73 escenas, 10 columnas mantienen 8 filas y el dashboard sigue
 # entrando en 1920x1080 (ver test_dashboard_layout.py).
-GRID_COLS = 9
+GRID_COLS = 10
 GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
 
 # STROBE (pad) - frecuencia MAXIMA del destello, en Hz (con el pad a
@@ -135,7 +135,8 @@ FULLRES_SCENES = {23, 33, 39, 41}
 # reservaba la columna derecha (ver mas abajo), asi que el dashboard NO
 # crece -- de hecho el dashboard entero se angosta un poco, porque la
 # grilla tambien se achica a lo ancho.
-THUMB_W = 120
+# Diez columnas: 114 px dejan el dashboard dentro de 1920 px.
+THUMB_W = 114
 # Subido de 84 a 104 para hacerle lugar a la ETIQUETA (numero + nombre)
 # abajo de cada miniatura. Sin nombre, una grilla de 34 casilleros obliga
 # a acordarse de memoria que la 17 es "triangles" -- y con las miniaturas
