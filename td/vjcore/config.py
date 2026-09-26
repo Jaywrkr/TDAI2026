@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 55
+N_SCENES = 64
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -46,7 +46,7 @@ N_SCENES = 55
 # archivo son la fuente de verdad real (scenes.py arma esto leyendo el
 # prefijo sceneNN_ de cada .frag), este set tiene que seguir esos mismos
 # indices o las escenas de imagen quedan sin su segundo input.
-MEDIA_SCENES = {2, 3, 7, 8, 42, 43, 44}
+MEDIA_SCENES = {2, 3, 7, 8, 42, 43, 44, 56, 59}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
@@ -80,11 +80,9 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 # build real). Con el ceil() la grilla siempre tiene exactamente las
 # filas que necesita, sin volver a tocar esto a mano cada vez que se
 # agregan o sacan escenas.
-# 7 columnas desde que son 49 escenas (orbes 45-48): con 6 la grilla
-# pasaba a 9 filas y empujaba el boton PANICO y el panel de Master FX
-# fuera del dashboard (lo detecto test_dashboard_layout). Con 7 entran en
-# 7 filas y el dashboard sigue entrando en 1920 de ancho.
-GRID_COLS = 7
+# Con 64 escenas, 8 columnas mantienen 8 filas y el dashboard sigue
+# entrando en 1920x1080 (ver test_dashboard_layout.py).
+GRID_COLS = 8
 GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
 
 # STROBE (pad) - frecuencia MAXIMA del destello, en Hz (con el pad a

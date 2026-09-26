@@ -551,6 +551,15 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 46 | orbe plasma | **Tocar el vidrio**: un filamento salta del núcleo al borde, hacia la tecla (el teclado da la vuelta al globo) |
 | 47 | orbe orbital | **Salto de nivel**: una banda de color cruza el orbe a la altura de la tecla |
 | 48 | orbe tormenta | **Rayo**: cae un relámpago sobre la esfera en la X de la tecla |
+| 55 | franjas de eco | Aparece un anillo de luz en la posición de la tecla |
+| 56 | baldosas reordenadas | Aparece un anillo de luz en la posición de la tecla |
+| 57 | espiral de trazos | Aparece un anillo de luz en la posición de la tecla |
+| 58 | tinta fluida | Aparece un anillo de luz en la posición de la tecla |
+| 59 | desplazamiento cromático | Aparece un anillo de luz en la posición de la tecla |
+| 60 | cubos orbitales | Aparece un anillo de luz en la posición de la tecla |
+| 61 | puntos de audio | Aparece un anillo de luz en la posición de la tecla |
+| 62 | matriz de círculos | Aparece un anillo de luz en la posición de la tecla |
+| 63 | aro tipográfico | Aparece un anillo de luz en la posición de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver

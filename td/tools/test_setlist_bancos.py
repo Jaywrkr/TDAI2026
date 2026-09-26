@@ -42,7 +42,8 @@ class FakeProject:
 
 def load_control_script(proj, scenes_valid, N=None):
     """Carga control_script.py con los globales de TD stubbeados."""
-    path = '/home/user/TDAI2026/td/vjcore/dats/control_script.py'
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                        'vjcore', 'dats', 'control_script.py')
     with open(path) as f:
         src = f.read()
     mod = types.ModuleType('control_script')
