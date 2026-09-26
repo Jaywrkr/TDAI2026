@@ -32,13 +32,6 @@ El primero comprueba que el paquete importa y que `vjcore.build()` resuelve a
 lo que debe — atrapa errores que si no solo verías al pulsar *Run Script*.
 Debe terminar en `RESULTADO: TODO OK`.
 
-Si acabas de actualizar `td/vjcore/`, ejecuta **Reconstruir Todo** en
-`/project1` → **System**. **Recargar Shaders** solo relee los `.frag` y no
-agrega los nuevos operadores del programa. Tras reconstruir, comprueba que
-existan `/project1/silence_hold` y `/project1/silence_fb`. Cuando el panel
-diga **SIN MÚSICA**, el monitor de programa y `show_out` deben conservar el
-último fotograma. El texto, el brillo y blackout siguen siendo manuales.
-
 **Checkpoint 1**
 
 ```

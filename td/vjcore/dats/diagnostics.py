@@ -323,11 +323,6 @@ def update():
         _bar(bass, 8), bass, _bar(mid, 8), mid))
     lines.append('High {} {:.2f}   Kick {} {:.2f}'.format(
         _bar(high, 8), high, _bar(kick, 8), kick))
-    # Compuerta de musica (audio.py): si esta cerrada, las barras de arriba
-    # estan en 0 A PROPOSITO -- que no parezca que el audio se rompio.
-    if _chan_val('/project1/ctrl', 'music', 1.0) < 0.5:
-        lines.append('>> SIN MUSICA: nada reacciona (Audio > Compuerta {:.0f} dB)'.format(
-            _par_val('Musicgate')))
 
     if learn:
         lines.append('')

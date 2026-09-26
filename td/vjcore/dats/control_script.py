@@ -724,27 +724,6 @@ def refreshPadLeds(force=False):
         print('refreshPadLeds ERROR:', e)
 
 
-def calibrateMusicGate():
-    """Pulso 'Calibrar compuerta': se aprieta SIN musica. Mide el nivel
-    crudo de la sala ahora (a_level_smooth, antes del auto-gain) y deja
-    la compuerta 8 dB por encima -- el murmullo queda afuera, cualquier
-    tema la abre de sobra. Ver audio.py (compuerta de musica)."""
-    import math
-    p = _p()
-    if not p:
-        return
-    src = op('/project1/a_level_smooth')
-    try:
-        lvl = float(src[0].eval()) if src is not None and src.numChans else 0.0
-    except Exception as e:
-        print('calibrateMusicGate ERROR:', e)
-        return
-    db = 20.0 * math.log10(max(lvl, 1e-6))
-    gate = max(-70.0, min(-5.0, db + 8.0))
-    p.par.Musicgate.val = gate
-    print('Compuerta de musica: sala en {:.0f} dB -> compuerta en {:.0f} dB'.format(db, gate))
-
-
 def testPadLeds():
     """Pulso 'Probar colores de pads': pinta los 16 pads con los 8 colores
     (dos vueltas, banco A y B) y a los 3 s vuelve al estado normal (o apaga

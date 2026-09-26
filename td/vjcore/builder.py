@@ -84,21 +84,10 @@ def _parameters(proj):
     add_toggle(a, 'Autogain', 'Auto-gain (normalizar audio)', True)
     add_float(a, 'Agcrelease', 'Auto-gain: memoria del pico (s)', 12.0, 2.0, 60.0)
     add_float(a, 'Agcfloor', 'Auto-gain: piso (no amplifica debajo)', 0.25, 0.02, 1.0)
-    # COMPUERTA DE MUSICA (ver audio.py): nivel crudo en dBFS debajo del
-    # cual NADA reacciona al audio. El auto-gain sin esto amplificaba el
-    # murmullo de la sala hasta parecer musica. Cada sala/microfono es
-    # distinto: el pulso de abajo lo mide solo (apretarlo en silencio).
-    add_float(a, 'Musicgate', 'Compuerta de musica (dB): debajo nada reacciona',
-              -26.0, -70.0, -5.0)
-    add_pulse(a, 'Musicgatecal', 'Calibrar compuerta (apretar SIN musica)')
     # Perillas de performance: cuanto deja pasar el audio hacia los visuales.
     # Default 1.0 = no cambia nada hasta que se toquen (sin sorpresas para
     # quien ya tenia el rig funcionando).
-    # BRILLO (perilla 6): cuanto se iluminan con la musica (bandas + pump).
-    # BAILE (perilla 1): cuanto se mueven/crecen (footer de shader.py). Dos
-    # perillas separadas a pedido del usuario.
-    add_float(a, 'Audioamount', 'BRILLO: cuanto se iluminan con la musica', 1.0, 0, 1)
-    add_float(a, 'Movement', 'BAILE: cuanto se mueven/crecen con la musica', 0.5, 0, 1)
+    add_float(a, 'Audioamount', 'Audio Amount (master)', 1.0, 0, 1)
     add_float(a, 'Bassamount', 'Bass Amount', 1.0, 0, 1)
     add_float(a, 'Midamount', 'Mid Amount', 1.0, 0, 1)
     add_float(a, 'Highamount', 'High Amount', 1.0, 0, 1)
@@ -292,9 +281,9 @@ def _parameters(proj):
     # drama (gana lo ultimo que tocaste), que es como se espera que se
     # comporte un macro en vivo.
     add_float(bk, 'Energy', 'MACRO ENERGIA (calma <-> pico)', 0.5, 0, 1)
-    # Apagado por defecto: Energia ya no esta en el controlador (la perilla
-    # 1 es BAILE) y prendido pisaria Speed/Density/Chaos/Estela.
-    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', False)
+    # Prendido por defecto (layout v2): Energia es la perilla principal.
+    # Tocar la perilla via MIDI tambien la vuelve a prender.
+    add_toggle(bk, 'Energyactive', 'Energia escribe las perillas', True)
 
     # --- COLORES DE LOS PADS (SysEx del MiniLab mkII) ---
     # Cada pad se pinta segun el estado de su funcion (autopilot prendido,
@@ -403,8 +392,6 @@ def onPulse(par):
 
     if n == 'Nextscene':
         m.nextScene()
-    elif n == 'Musicgatecal':
-        m.calibrateMusicGate()
     elif n == 'Prevscene':
         m.prevScene()
     elif n == 'Snapshot':
@@ -600,7 +587,7 @@ def build(verbose=True):
     # ctrl_tex/channels: los shaders de Master FX (dos capas + estela)
     # leen la MISMA textura de control que las escenas -- ver program.py.
     ops = program.build(proj, outs, ctrl_tex, channels)
-    dash = dashboard.build(proj, thumbs, ops['silence_hold'])
+    dash = dashboard.build(proj, thumbs, ops['bloom'])
 
     _mark_setup_nodes(proj, midi_in, dash, ops.get('window'))
 
@@ -692,8 +679,7 @@ def verify(proj, channels):
     # inputs, que es lo que romperia el efecto en silencio (un input mal
     # conectado da negro o el frame sin procesar, no un error rojo).
     for name, n_inputs in (('program_blend', 3), ('program_trails', 3),
-                           ('program_pick', 2), ('trails_pick', 2),
-                           ('silence_hold', 2)):
+                           ('program_pick', 2), ('trails_pick', 2)):
         node = proj.op(name)
         check('{} con {} inputs'.format(name, n_inputs),
               bool(node) and len(node.inputs) == n_inputs,
@@ -708,10 +694,6 @@ def verify(proj, channels):
     check('{} escenas completas'.format(config.N_SCENES), not bad, 'faltan en {}'.format(bad))
 
     check('ctrl_tex existe', bool(proj.op('ctrl_tex')))
-    hold_fb = proj.op('silence_fb')
-    hold_target = getattr(hold_fb.par, 'top', None) if hold_fb else None
-    check('silence_fb apunta al ultimo fotograma',
-          bool(hold_target) and hold_target.eval() == '/project1/silence_hold')
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))
     check('show_window existe', bool(proj.op('show_window')))

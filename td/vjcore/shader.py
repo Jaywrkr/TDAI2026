@@ -191,27 +191,6 @@ void main() {
     // antes de muestrear, que es como se pixela de verdad.
     vec2 renderUV = vUV.st;
 
-    // ---- BAILE (perilla 1, uMove): movimiento y crecimiento con la musica ----
-    // Pedido explicito: el brillo con el bajo (perilla Brillo / uAudioamt)
-    // y cuanto se MUEVE el visual tienen que ser dos perillas distintas.
-    // Unica excepcion al contrato "el audio no toca geometria": aca la
-    // geometria la mueve el audio A PROPOSITO y con perilla propia (en 0 no
-    // se mueve nada, como antes). Sin musica uKick/uBeat/uBass/uMid valen 0
-    // por la compuerta de musica (audio.py), asi que tampoco baila en
-    // silencio. Es la imagen entera la que baila, igual en las 55 escenas:
-    //   - crece con cada bombo (zoom hacia adentro, hasta ~16%)
-    //   - se hincha un poco con los graves sostenidos
-    //   - se balancea (giro chico) con los medios
-    if (uMove > 0.0015) {
-        float mv = clamp(uMove, 0.0, 1.0);
-        float hit = pow(max(clamp(uBeatraw, 0.0, 1.0), clamp(uKickraw, 0.0, 1.0)), 1.5);
-        float grow = mv * (0.16 * hit + 0.05 * clamp(uBassmove, 0.0, 1.0));
-        vec2 q = (renderUV - 0.5) * vec2(uAspect, 1.0);
-        float sway = mv * 0.07 * clamp(uMidmove, 0.0, 1.0) * sin(uRTime * 1.3);
-        q = rot2(sway) * q * (1.0 - grow);
-        renderUV = q / vec2(uAspect, 1.0) + 0.5;
-    }
-
     if (uPixelate > 0.0015) {
         // Piso bajado otra vez (16 -> 10 -> 6): a fondo de pad, bloques
         // enormes -- pedido explicito de que TODOS los efectos de pad
@@ -415,7 +394,7 @@ FALLBACK = {
 FALLBACK_DEFAULT = '0.0'
 
 
-def _defines(channels, scene_audio=False):
+def _defines(channels):
     """Genera los #define desde el orden REAL de canales de /project1/ctrl.
 
     - Canal presente  -> apunta a su indice real en la textura.
@@ -431,14 +410,7 @@ def _defines(channels, scene_audio=False):
 
     for name in names:
         uni = uniform_name(name)
-        if scene_audio and name in ('kick', 'beat'):
-            raw = uni + 'raw'
-            value = '_ctrl({})'.format(index[name]) if name in index else FALLBACK_DEFAULT
-            lines.append('#define {:<10} {}'.format(raw, value))
-            lines.append('#define {:<10} ({} * clamp(uAudioamt, 0.0, 1.0))'.format(uni, raw))
-            if name not in index:
-                missing.append(name)
-        elif name in index:
+        if name in index:
             lines.append('#define {:<10} _ctrl({})'.format(uni, index[name]))
         else:
             lines.append('#define {:<10} {}   // AUSENTE en /project1/ctrl'.format(
@@ -481,7 +453,7 @@ def ctrl_header(channels, input_index):
 
 
 def make_header(scene_index, channels):
-    header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels, scene_audio=True))
+    header = _HEADER_TOP.format(scene=scene_index, defines=_defines(channels))
     # Tope de frecuencia del pad Strobe (ver config.STROBE_MAX_HZ). Como
     # #define y no uniform: es politica de seguridad del venue, no una
     # perilla en vivo.

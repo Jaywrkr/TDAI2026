@@ -146,16 +146,6 @@ def main():
         except SyntaxError as e:
             check('dats/' + fn, False, str(e))
 
-    # En TD se ha observado un submodulo cargado sin __spec__. El loader
-    # debe poder refrescarlo sin llamar importlib.reload() sobre el.
-    sys.modules['vjcore.config'].__spec__ = None
-    try:
-        vjcore.reload_all()
-        check('reload_all recupera config sin spec',
-              getattr(sys.modules['vjcore.config'], '__spec__', None) is not None)
-    except Exception as e:
-        check('reload_all recupera config sin spec', False, repr(e))
-
     print('')
     print('RESULTADO: {}'.format(
         'TODO OK' if not FAILURES else '{} fallo(s)'.format(len(FAILURES))))

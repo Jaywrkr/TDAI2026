@@ -6,8 +6,6 @@ Reconstruir ya no significa perder tu trabajo: los visuales son archivos
 .frag y el mapeo MIDI se guarda en td/config/midi_map.json.
 """
 
-import importlib
-import os
 import sys
 
 # --- 1. Ajusta esta ruta a donde clonaste el repo ---------------
@@ -16,22 +14,11 @@ REPO = 'C:/TDAI2026/td'
 # REPO = project.folder + '/TDAI2026/td'
 # ----------------------------------------------------------------
 
-REPO = os.path.abspath(REPO)
-if not os.path.isfile(os.path.join(REPO, 'vjcore', 'config.py')):
-    raise FileNotFoundError('REPO debe apuntar a la carpeta td: ' + REPO)
-
-# TD conserva modulos Python entre ejecuciones del Text DAT. Un import
-# anterior desde otra copia del repo puede quedar en sys.modules sin spec y
-# romper importlib.reload() con "spec not found for vjcore.config".
-if REPO in sys.path:
-    sys.path.remove(REPO)
-sys.path.insert(0, REPO)
-for name in list(sys.modules):
-    if name == 'vjcore' or name.startswith('vjcore.'):
-        del sys.modules[name]
-importlib.invalidate_caches()
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)
 
 import vjcore          # noqa: E402
+vjcore.reload_all()    # recoge cambios en los .py sin reiniciar TD
 vjcore.build()
 
 

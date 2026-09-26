@@ -27,12 +27,12 @@ verdad, ya cargado como default en `config.DEFAULT_MIDI`:
 
 | Perilla | Manda | Función |
 |---|---|---|
-| 1 | `ch1ctrl113` | **BAILE** — cuánto se mueven/crecen los visuales con la música (crecen con el bombo, se hinchan con los graves, se balancean con los medios). En 0 no se mueven. Antes era Energía |
+| 1 | `ch1ctrl113` | **ENERGÍA** — la principal: velocidad, densidad, caos, estela, duración del fundido y ritmo del autopilot. Tocarla la reactiva después de un Reset |
 | 2 | `ch1ctrl75` | Hue |
-| 3 | `ch1ctrl72` | Speed |
+| 3 | `ch1ctrl72` | Speed (pisa a Energía hasta que vuelvas a moverla) |
 | 4 | `ch1ctrl77` | Density |
 | 5 | `ch1ctrl78` | Chaos |
-| 6 | `ch1ctrl94` | **BRILLO** — cuánto se iluminan con la música y cuánto bombea el brillo con el bombo |
+| 6 | `ch1ctrl94` | Audio (reacción al sonido) |
 | 7 | `ch1ctrl74` | Estela (Trails) |
 | 8 | `ch1ctrl76` | Master (brillo general) |
 | 9 | `ch1ctrl115` | Detail 1 |
@@ -44,7 +44,7 @@ verdad, ya cargado como default en `config.DEFAULT_MIDI`:
 | 15 | `ch1ctrl80` | Look |
 | 16 | `ch1ctrl73` | Paleta |
 | `Shift` + 1 | `ch1ctrl23` | Mezcla 2 Capas |
-| `Shift` + 9 | `ch1ctrl24` | Transición (duración del fundido a mano) |
+| `Shift` + 9 | `ch1ctrl24` | Transición (fundido a mano, pisa a Energía) |
 | tira **mod** | `ch1ctrl1` | Imagen (scrub, recorre la carpeta con el dedo) |
 | tira **pitch** | — | Zoom Estela — todavía sin aprender, ver "Lo que salió" |
 
@@ -52,26 +52,28 @@ Las bandas Bass/Mid/High Amount salen del controlador porque con
 **Auto-gain** ya no hace falta corregirlas en vivo: quedan en la pestaña
 **Audio**.
 
-### Perillas 1 y 9: comprobar el modo de giro
+### Perillas 1 y 9: ya en modo Absolute
 
-Las perillas 1 y 9 son las clicables y pueden configurarse en modo relativo
-(ver más abajo la nota de "red de seguridad"). `CC 113` y `CC 115`
-identifican los controles, pero no dicen qué valores envían al girar. El
-manual oficial de Arturia indica que **Relative 1** envía 61–63 hacia la
-izquierda y 65–67 hacia la derecha, con un `0` neutro entre mensajes. En
-**Absolute** envía posiciones de 0 a 127. Para comprobar el modo real:
+Las perillas 1 y 9 son las clicables, y las que venían de fábrica en modo
+relativo (ver más abajo la nota de "red de seguridad"). Hoy mandan `CC 113`
+y `CC 115` — dos números lejos de la banda angosta donde cae una perilla
+relativa (58..70), lo que confirma que ya están en modo **Absolute**
+(seguramente reconfiguradas en Arturia MIDI Control Center): responden 1:1,
+sin el paso extra de "acumular". Si alguna vez vuelven a comportarse raro
+(saltan cerca de la mitad y se quedan mudas), repetí este chequeo:
 
-1. Mirá los valores de `ch1ctrl113` y `ch1ctrl115` en `/project1/midi1` mientras
-   girás cada perilla lentamente en ambos sentidos.
-2. Si aparecen `65, 0, 65` y `63, 0, 63`, están en Relative 1 y el rig acumula
-   esos pasos. Si recorren 0–127, están en Absolute.
-3. Si preferís Absolute, abre **Arturia MIDI Control Center**, seleccioná la
-   memoria que usás, configura las perillas 1 y 9 en **Mode: Absolute**, Min 0,
-   Max 127 y usa **Store To** para guardar esa memoria en el equipo.
+1. Abre **Arturia MIDI Control Center**, memoria que usás: perilla 1 y 9 →
+   **Mode: Absolute**, Min 0, Max 127. **Store To** → la misma memoria.
+2. Verificá con el probador del manual (`docs/10_MANUAL_MINILAB.html`): al
+   girarlas tiene que decir **✓ Modo absoluto**.
 
-**Red de seguridad en software:** `dats/midi_logic.py` reconoce los pasos
-cercanos a 64 como Relative 1, conserva la posición durante el `0` neutro y
-acumula los pasos. Un valor distinto de esa secuencia confirma Absolute.
+**Red de seguridad en software (igual sigue activa):** `dats/midi_logic.py`
+detecta solo las perillas que SIEMPRE mandan un valor pegado a 64 (nunca un
+extremo) y las trata como relativas, acumulando en vez de quedarse mudas.
+Con las perillas 1 y 9 ya en `CC 113`/`115` (fuera de esa banda desde el
+primer mensaje) esto queda inactivo para ellas por diseño -- solo entraría
+a ayudar si algún día otra perilla (u otro controlador) vuelve a mandar en
+relativo.
 
 ### Pads — banco A (`Pad 1-8`): el show
 

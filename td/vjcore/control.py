@@ -69,14 +69,11 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     # visuales (todos dependen de uTime). Ademas, sin musica fuerte el
     # factor caia a ~0.08 y todo quedaba casi congelado. El contrato de
     # audio (ver header de shader.py) ya es claro: el audio toca brillo y
-    # color, nunca la velocidad global de tiempo. La compuerta BINARIA de
-    # musica si detiene ambos relojes en silencio, sin modularlos con el
-    # nivel fluctuante: las escenas quedan quietas y reanudan sin salto.
+    # color, nunca la velocidad global de tiempo.
     t_scaled = proj.create(speedCHOP, 'time_scaled')
     t_scaled.nodeX, t_scaled.nodeY = -1400, 60
     safe_expr(t_scaled, 'speed',
-              "(0.15 + pow(max(0.0, min(1.0, op('/project1').par.Speed.eval())), 2.2) * 1.85) if {} else 0.0"
-              .format(config.MUSIC_ACTIVE_EXPR))
+              "0.15 + pow(max(0.0, min(1.0, op('/project1').par.Speed.eval())), 2.2) * 1.85")
     t_scaled_n = proj.create(renameCHOP, 'time_scaled_named')
     t_scaled_n.nodeX, t_scaled_n.nodeY = -1240, 60
     safe_set(t_scaled_n, 'renamefrom', '*')
@@ -85,7 +82,7 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
 
     t_real = proj.create(speedCHOP, 'time_real')
     t_real.nodeX, t_real.nodeY = -1400, -60
-    safe_expr(t_real, 'speed', '1.0 if {} else 0.0'.format(config.MUSIC_ACTIVE_EXPR))
+    safe_set(t_real, 'speed', 1.0)
     t_real_n = proj.create(renameCHOP, 'time_real_named')
     t_real_n.nodeX, t_real_n.nodeY = -1240, -60
     safe_set(t_real_n, 'renamefrom', '*')
