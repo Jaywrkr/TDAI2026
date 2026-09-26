@@ -581,6 +581,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 82 | iterative tentacles | Ramas blancas salen de un núcleo luminoso |
 | 83 | echoforms | Ecos cuadrados y trazos eléctricos magenta/cian |
 | 84 | abstract fluid | Pliegues oscuros con contornos de luz finos |
+| 85 | reactive particles | Dos coronas violetas con puntas radiales y puntos dispersos |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
