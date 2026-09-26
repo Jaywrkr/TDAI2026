@@ -582,6 +582,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 83 | echoforms | Ecos cuadrados y trazos eléctricos magenta/cian |
 | 84 | abstract fluid | Pliegues oscuros con contornos de luz finos |
 | 85 | reactive particles | Dos coronas violetas con puntas radiales y puntos dispersos |
+| 86 | watercolor media | Imagen o video tratado como acuarela de bordes suaves y textura de papel |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
