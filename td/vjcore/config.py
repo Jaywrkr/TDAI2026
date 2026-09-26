@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 64
+N_SCENES = 65
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -80,9 +80,9 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 # build real). Con el ceil() la grilla siempre tiene exactamente las
 # filas que necesita, sin volver a tocar esto a mano cada vez que se
 # agregan o sacan escenas.
-# Con 64 escenas, 8 columnas mantienen 8 filas y el dashboard sigue
+# Con 65 escenas, 9 columnas mantienen 8 filas y el dashboard sigue
 # entrando en 1920x1080 (ver test_dashboard_layout.py).
-GRID_COLS = 8
+GRID_COLS = 9
 GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
 
 # STROBE (pad) - frecuencia MAXIMA del destello, en Hz (con el pad a
