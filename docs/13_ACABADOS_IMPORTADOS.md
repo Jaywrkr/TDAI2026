@@ -1,4 +1,4 @@
-# Acabados 001–010 integrados
+# Acabados 001–010 revisados
 
 Los `.toe` originales se inspeccionaron fuera de TouchDesigner. Las escenas nuevas
 son reconstrucciones de sus ideas visuales en GLSL; no son conversiones exactas de
@@ -11,22 +11,15 @@ externos en el repositorio.
 | `acabado003.toe` | 56 `tile_repack` | Recortes de imagen reordenados en baldosas. |
 | `acabado004.toe` | 57 `type_spiral` | Trazos con aspecto tipográfico distribuidos en espiral. |
 | `acabado005.toe` | 58 `feedback_ink` | Remolinos y filamentos de tinta. |
-| `acabado006.toe` | 59 `chromatic_feedback` | Imagen deformada y separación RGB. |
-| `acabado007.toe` | 60 `orbital_cubes` | Cubos esquemáticos sobre una órbita inclinada. |
-| `acabado008.toe` | 61 `audio_points` | Nube de puntos que se abre con el kick. |
-| `acabado009.toe` | 62 `circle_tiles` | Matriz de círculos con posición, tamaño y color variables. |
-| `acabado010.toe` | 63 `type_torus` | Marcas tipográficas abstractas sobre un aro orgánico. |
+| `acabado006.toe`–`acabado010.toe` | Retiradas | Las escenas 59–63 se quitaron por petición del usuario (visuales 60–64 al contar desde uno). |
 
 Cada escena es un solo GLSL TOP, usa `Detail 1–6`, `Speed`, `Density`, `Hue`,
 `Chaos` y los canales compartidos de audio. Las deformaciones disparadas por
-`Kick` y `Beat` quedan en cero en silencio; la animación propia de `Speed`
-continúa como en las otras escenas. La escena 61 usa el análisis de audio del
-rig y no necesita el archivo de audio que había dentro del TOE.
+`Kick` y `Beat` quedan en cero en silencio. Los relojes de animación también
+se detienen cuando el RMS de entrada cae bajo el piso de silencio.
 
-Las escenas 56 y 59 leen la carpeta **Media** común. El TOE 006 referenciaba
-una imagen de una ruta local que no venía con los archivos recibidos; se
-reemplazó por esta entrada. Ambas escenas tienen un patrón procedural visible
-cuando falta la imagen.
+La escena 56 lee la carpeta **Media** común y tiene un patrón procedural
+visible cuando falta la imagen.
 
 La integración reemplaza las redes originales de múltiples TOPs, feedback,
 render 3D y controles de interfaz por una pasada de shader por escena. Eso
@@ -35,7 +28,8 @@ los originales. La compilación está verificada fuera de TouchDesigner; el
 aspecto final y los FPS se deben comprobar en el equipo de show.
 
 Tras actualizar el código del repo en la máquina de TouchDesigner, hay que
-reconstruir el proyecto para crear los nueve componentes nuevos. `Recargar
-Shaders` solo recarga escenas que ya existen. Luego se pueden hornear las
+reconstruir el proyecto para crear cuatro componentes nuevos y retirar los
+cinco eliminados. `Recargar Shaders` solo recarga escenas que ya existen.
+Luego se pueden hornear las
 miniaturas desde el dashboard para sustituir las tarjetas provisionales
-de las escenas 55–63 en la guía web.
+de las escenas 55–58 en la guía web.

@@ -115,10 +115,8 @@ float vignette(vec2 uv, float amt) {{
 }}
 
 // ---------------- contrato de audio ----------------
-// El audio continuo se usa principalmente para brillo y color. Los golpes
-// uKick/uBeat pueden mover la geometria de forma acotada; el footer aplica
-// un zoom de hasta 3.5%, con amplitud parcialmente controlada por Speed.
-// Cada escena puede sumar un gesto propio sin modificar la deteccion.
+// El audio continuo se usa principalmente para brillo y color. Cada escena
+// decide si un golpe mueve su propia geometria. No hay zoom global.
 //
 // Evitar multiplicar velocidades de reloj por niveles de microfono: eso
 // produce temblor. Usar envolventes de kick/beat para gestos breves.
@@ -208,13 +206,6 @@ void main() {
         float mFold = renderUV.x > 0.5 ? (1.0 - renderUV.x) : renderUV.x;
         renderUV.x = mix(renderUV.x, mFold, uMirror);
     }
-
-    // Un pequeno empuje de escala comun al beat. Speed controla parte de
-    // su amplitud, sin cambiar el reloj ni la deteccion de audio. En
-    // silencio uBeat/uKick son cero y el UV queda exactamente igual.
-    float dance = max(uBeat * 0.7, uKick) * clamp(uAudioamt, 0.0, 1.0)
-                * (0.65 + 0.35 * clamp(uSpeed, 0.0, 1.0));
-    renderUV = vec2(0.5) + (renderUV - vec2(0.5)) * (1.0 - 0.035 * dance);
 
     vec4 c = render(renderUV);
     c.rgb = max(c.rgb, vec3(0.0));

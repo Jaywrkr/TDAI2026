@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 64
+N_SCENES = 59
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -46,7 +46,7 @@ N_SCENES = 64
 # archivo son la fuente de verdad real (scenes.py arma esto leyendo el
 # prefijo sceneNN_ de cada .frag), este set tiene que seguir esos mismos
 # indices o las escenas de imagen quedan sin su segundo input.
-MEDIA_SCENES = {2, 3, 7, 8, 42, 43, 44, 56, 59}
+MEDIA_SCENES = {2, 3, 7, 8, 42, 43, 44, 56}
 
 # Extensiones que control_script.mediaFiles() acepta de la carpeta comun.
 MEDIA_EXTS = ('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tif', '.tiff',
@@ -80,7 +80,7 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 # build real). Con el ceil() la grilla siempre tiene exactamente las
 # filas que necesita, sin volver a tocar esto a mano cada vez que se
 # agregan o sacan escenas.
-# Con 64 escenas, 8 columnas mantienen 8 filas y el dashboard sigue
+# Con 59 escenas, 8 columnas mantienen 8 filas y el dashboard sigue
 # entrando en 1920x1080 (ver test_dashboard_layout.py).
 GRID_COLS = 8
 GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
@@ -114,6 +114,11 @@ MAX_OUTPUT = 1280
 # de show: se deja fija para el equipo). uResW/uResH siguen valiendo la
 # resolucion de SALIDA, no la de render.
 DEFAULT_RENDER_SCALE = 0.75
+
+# RMS de la entrada antes del auto-gain. Por debajo de este piso se congela
+# el reloj visual y se cierra el detector de kick: el ruido residual de una
+# fuente en pausa no debe mover ninguna escena.
+SILENCE_RMS_THRESHOLD = 0.005
 # Escenas de lineas muy finas (1-2 px): a menos resolucion se ablandan de
 # forma visible, asi que se calculan SIEMPRE a resolucion completa.
 # 23 web, 33 tormenta (rayos), 39 laseres, 41 red.

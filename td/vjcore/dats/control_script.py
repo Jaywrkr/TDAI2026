@@ -1911,7 +1911,16 @@ def _mediaTick(token):
     p = _p()
     if not p or int(p.fetch('media_token', 0) or 0) != int(token):
         return
-    if mediaMode() == 'TIEMPO':
+    # La carpeta en modo TIEMPO tampoco debe pasar de imagen con la
+    # fuente pausada: todas las escenas quedan quietas en silencio.
+    audio_raw = op('/project1/a_level_smooth')
+    try:
+        import vjcore.config as _vjconfig
+        music_on = bool(audio_raw and
+                        audio_raw[0].eval() >= _vjconfig.SILENCE_RMS_THRESHOLD)
+    except Exception:
+        music_on = False
+    if mediaMode() == 'TIEMPO' and music_on:
         advanceMediaIndex(1)
     _scheduleMediaAdvance()
 

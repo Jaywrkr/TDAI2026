@@ -53,6 +53,7 @@ except ImportError:
     pass
 
 
+from . import config
 from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
                      connect, log)
 
@@ -155,6 +156,8 @@ def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
     if amount_par:
         parts.append("op('/project1').par.{}.eval()".format(amount_par))
     parts.append("op('/project1').par.Audioamount.eval()")
+    parts.append("(1.0 if op('/project1/a_level_smooth')[0].eval() >= {} else 0.0)"
+                 .format(config.SILENCE_RMS_THRESHOLD))
     safe_expr(mt, 'gain', ' * '.join(parts))
     safe_set(mt, 'clamplow', True)
     safe_set(mt, 'clamphigh', True)
@@ -268,7 +271,12 @@ def build(proj):
 
     kick_raw = proj.create(mathCHOP, 'a_kick_raw')
     kick_raw.nodeX, kick_raw.nodeY = -280, 740
-    safe_expr(kick_raw, 'gain', "op('/project1').par.Kickgain")
+    # El mismo piso de silencio del reloj: un transitorio espurio cuando
+    # la fuente esta pausada no puede disparar Beat ni el pump del bloom.
+    safe_expr(kick_raw, 'gain',
+              "op('/project1').par.Kickgain.eval() if "
+              "op('/project1/a_level_smooth')[0].eval() >= {} else 0.0"
+              .format(config.SILENCE_RMS_THRESHOLD))
     safe_set(kick_raw, 'clamplow', True)
     safe_set(kick_raw, 'clamphigh', True)
     safe_set_first(kick_raw, ['clamplowvalue', 'clamplowval'], 0.0)

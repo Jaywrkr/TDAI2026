@@ -581,7 +581,10 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     # exacto, y sin umbral la estela quedaria cocinando para siempre por
     # un 0.003 que no se ve.
     safe_expr(trails_pick, 'index',
-              "1 if op('/project1').par.Trails.eval() > 0.005 else 0")
+              "1 if op('/project1').par.Trails.eval() > 0.005 and "
+              "op('/project1/a_level_smooth') is not None and "
+              "op('/project1/a_level_smooth')[0].eval() >= {} else 0"
+              .format(config.SILENCE_RMS_THRESHOLD))
 
     log('MASTER FX: dos capas + estela (con bypass real por switch) OK')
     return {'blend': blend, 'pick': pick, 'clean': clean,

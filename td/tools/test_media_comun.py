@@ -70,7 +70,12 @@ def load_control_script(proj):
     with open(CONTROL_SCRIPT) as f:
         src = f.read()
     mod = types.ModuleType('control_script')
-    mod.__dict__['op'] = lambda p=None: proj if p in ('/project1', None) else None
+    class _AudioLevel:
+        def __getitem__(self, i):
+            return FakePar(proj.fetch('raw_audio_level', 0.1))
+
+    mod.__dict__['op'] = lambda p=None: (proj if p in ('/project1', None) else
+                                         _AudioLevel() if p == '/project1/a_level_smooth' else None)
     # run() de TD agenda para despues; aca no queremos que _mediaTick se
     # dispare solo -- cada test llama a mano lo que quiere probar.
     mod.__dict__['run'] = lambda *a, **k: None
@@ -217,6 +222,9 @@ def main():
         check('TIEMPO ignora el beat', p.par.Mediaindex.val, 0)
         m._mediaTick(0)
         check('TIEMPO avanza con su propio tick', p.par.Mediaindex.val, 1)
+        p.store('raw_audio_level', 0.0)
+        m._mediaTick(0)
+        check('TIEMPO se congela sin musica', p.par.Mediaindex.val, 1)
 
         p = new_proj(folder, mode='BEAT')
         m = load_control_script(p)

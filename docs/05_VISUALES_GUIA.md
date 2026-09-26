@@ -555,11 +555,6 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 56 | baldosas reordenadas | Aparece un anillo de luz en la posición de la tecla |
 | 57 | espiral de trazos | Aparece un anillo de luz en la posición de la tecla |
 | 58 | tinta fluida | Aparece un anillo de luz en la posición de la tecla |
-| 59 | desplazamiento cromático | Aparece un anillo de luz en la posición de la tecla |
-| 60 | cubos orbitales | Aparece un anillo de luz en la posición de la tecla |
-| 61 | puntos de audio | Aparece un anillo de luz en la posición de la tecla |
-| 62 | matriz de círculos | Aparece un anillo de luz en la posición de la tecla |
-| 63 | aro tipográfico | Aparece un anillo de luz en la posición de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver

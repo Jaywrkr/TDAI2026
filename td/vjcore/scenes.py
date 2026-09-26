@@ -110,7 +110,11 @@ def build_scene(scenes, i, channels):
         # tres maneras y no como tres cosas sueltas.
         safe_expr(media_in, 'file',
                   "op('/project1/control_script').module.currentMediaPath()")
-        safe_set(media_in, 'play', True)
+        # Los GIFs y videos tambien se quedan quietos al pausar el audio.
+        safe_expr(media_in, 'play',
+                  "op('/project1/a_level_smooth') is not None and "
+                  "op('/project1/a_level_smooth')[0].eval() >= {}"
+                  .format(config.SILENCE_RMS_THRESHOLD))
         safe_set_first(media_in, ['cueloop', 'loop'], True)
         connect(glsl, media_in, 1)
     # IMPORTANTE: sin esto el GLSL TOP hereda la resolucion del input 0,
