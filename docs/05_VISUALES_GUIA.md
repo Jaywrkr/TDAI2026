@@ -567,6 +567,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 68 | geometric fractals | Aparece un anillo de luz en la posición de la tecla |
 | 69 | audio prisms | Aparece un anillo de luz en la posición de la tecla |
 | 70 | plant trails | Aparece un anillo de luz en la posición de la tecla |
+| 71 | color ribbon | Aparece un anillo de luz en la posición de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
