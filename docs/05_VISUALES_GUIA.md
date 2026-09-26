@@ -565,6 +565,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 66 | lucifer study | Aparece un anillo de luz en la posición de la tecla |
 | 67 | x-ray vision | Aparece un anillo de luz en la posición de la tecla |
 | 68 | geometric fractals | Aparece un anillo de luz en la posición de la tecla |
+| 69 | audio prisms | Aparece un anillo de luz en la posición de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
