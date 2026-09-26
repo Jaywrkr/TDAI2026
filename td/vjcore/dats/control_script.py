@@ -1026,6 +1026,15 @@ def toggleRecord():
             print('GRABACION detenida')
             return
 
+        # No anunciar una toma "con audio" si el Movie File Out perdio
+        # la referencia a la fuente tras un rebuild o cambio de build.
+        audio_par = getattr(rec.par, 'audiochop', None)
+        audio_path = str(audio_par.eval() or '').strip() if audio_par else ''
+        if not audio_path or op(audio_path) is None:
+            print('GRABACION cancelada: Recorder > Audio CHOP no apunta '
+                  'a una fuente valida. Reconstruye el rig y revisa audio1.')
+            return
+
         import datetime
         folder = str(p.par.Recordfolder.eval() or '').strip()
         if not folder:
