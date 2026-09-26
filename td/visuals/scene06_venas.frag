@@ -46,6 +46,8 @@ vec4 render(vec2 uv)
     float turb = 0.4 + uD4 * 1.3;
     vec2  warp = vec2(fbm(p * 1.2 + t * 0.03, 4), fbm(p * 1.2 - t * 0.025 + 9.0, 4)) - 0.5;
     vec2  wp = p * mix(1.5, 4.0, uDensity) + warp * turb;
+    wp += uKick * 0.10 * vec2(sin(wp.y * 7.0 + t * 2.0),
+                              cos(wp.x * 6.0 - t * 1.7));
     float field = fbm(wp, 6, 0.45 + uD2 * 0.2);
 
     float sharp = mix(2.0, 14.0, uD1);
@@ -56,12 +58,15 @@ vec4 render(vec2 uv)
     // zona que crece desde el punto y se desinfla sola con uKeypulse.
     // Velocity = mas sangre: zona mas grande y venas mas gordas.
     float swell = 0.0;
+    float keyShock = 0.0;
     if (uKeypulse > 0.0015) {
         vec2  gp = centered(vec2(mix(0.12, 0.88, uKeypos), 0.5));
         float dg = length(p - gp);
         float reach = (0.25 + uKeyvel * 0.55) * (1.3 - uKeypulse * 0.3);
         swell = (1.0 - smoothstep(reach * 0.5, reach, dg)) * uKeypulse;
-        sharp = mix(sharp, sharp * 0.35, swell * (0.6 + uKeyvel * 0.4));
+        sharp = mix(sharp, sharp * 0.22, swell * (0.6 + uKeyvel * 0.4));
+        float front = (1.0 - uKeypulse) * (0.30 + uKeyvel * 0.35);
+        keyShock = exp(-pow((dg - front) * 12.0, 2.0)) * uKeypulse;
     }
     float veins = ridge(field, sharp);
     float veinLine = smoothstep(0.55, 0.98, veins);
@@ -76,8 +81,9 @@ vec4 render(vec2 uv)
     vec3  col = hsv2rgb(vec3(fract(h + 0.5), 0.4, 0.02));
     vec3  veinCol = hsv2rgb(vec3(h, 0.65, 1.0));
     veinCol = mix(veinCol, hsv2rgb(vec3(fract(h - 0.12), 0.8, 1.0)) * 1.6, swell);
-    col += veinCol * veinLine * (0.7 + uD6 * 0.5);
-    col += vec3(0.6, 1.0, 0.9) * pulse * (1.0 + uKick * 1.8);
+    col += veinCol * veinLine * (0.7 + uD6 * 0.5 + uKick * 0.9);
+    col += vec3(0.6, 1.0, 0.9) * pulse * (1.0 + uKick * 3.0);
+    col += vec3(0.5, 1.0, 0.8) * keyShock * (0.8 + uKeyvel * 1.6);
     // Bloom ancho: la vena "sangra" un halo tenue, como luz real bajo
     // la piel en vez de un trazo con blur fijo.
     col += veinCol * exp(-pow(1.0 - veins, 2.0) * 30.0) * 0.15;
@@ -89,7 +95,7 @@ vec4 render(vec2 uv)
     float nodeHash = hash21(nodeId + 3.0);
     float isNode = step(0.85, nodeHash) * veinLine;
     float nodePulse = 0.5 + 0.5 * sin(t * 2.0 + nodeHash * 20.0);
-    col += veinCol * isNode * nodePulse * (0.4 + uD5 * 1.6);
+    col += veinCol * isNode * nodePulse * (0.4 + uD5 * 1.6 + uKick * 1.0);
     // uHigh: chispa blanca en los nodos -- reusa isNode*nodePulse, se
     // nota como un destello de energia con los agudos.
     col += vec3(1.0) * isNode * nodePulse * uHigh * 0.7;

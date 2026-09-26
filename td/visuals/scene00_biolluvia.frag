@@ -61,13 +61,18 @@ vec4 render(vec2 uv)
     // -- pedido explicito ("que la llama crezca o decrezca con el
     // bajo"), acotado (headSize nunca se dispara, sigue el nivel en
     // vivo, no acumula).
-    float headSize = mix(0.010, 0.05, uD1) * (1.0 + uBass * 0.9);
+    float bassShare = mix(0.15, 1.35, hash21(vec2(cx, 4.0)));
+    float kickDance = uKick * (0.35 + colSeed * 0.65)
+                    * smoothstep(-0.25, 0.5, sin(t * (2.0 + colSeed * 2.5) + phase));
+    float headSize = mix(0.010, 0.05, uD1)
+                   * (1.0 + uBass * bassShare + kickDance * 0.55);
     float trailLen = mix(0.15, 0.85, uD2);
     float drip = smoothstep(0.0, headSize, y) * smoothstep(trailLen, headSize, y);
 
     // uHigh: vibracion micro horizontal -- unica excepcion del
     // contrato, amplitud pequena.
-    float xf = fract(uv.x * cols) - 0.5 + uHigh * 0.01 * sin(t * 10.0 + cx);
+    float xf = fract(uv.x * cols) - 0.5
+             + (uHigh * 0.01 + kickDance * 0.025) * sin(t * 10.0 + phase);
     float xmask = exp(-xf * xf * 70.0);
 
     // D4: mezcla de color entre cian y violeta, hue base encima.
@@ -91,7 +96,7 @@ vec4 render(vec2 uv)
         col += vec3(1.0) * gdrip * xmask * onCol * uKeypulse * (0.6 + uKeyvel * 0.8);
     }
 
-    col += col * uKick * 0.4;
+    col += col * kickDance * 0.75;
     col *= 0.6 + uD6 * 0.8;
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.2);

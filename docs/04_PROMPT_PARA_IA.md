@@ -75,9 +75,11 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
    - Density → cuánta imagen hay: cobertura, cantidad de elementos, detalle
    - Hue     → paleta COMPLETA, no un tinte
    - Chaos   → desorden: turbulencia, distorsión, ruptura
-4. CONTRATO DE AUDIO -- regla dura, casi sin excepciones:
-   EL AUDIO NUNCA MUEVE GEOMETRIA. Nunca posicion, ancho de linea, radio,
-   umbral de cobertura, ni cantidad de elementos. Solo brillo y color.
+4. CONTRATO DE AUDIO:
+   El nivel continuo afecta principalmente brillo y color. uKick/uBeat
+   pueden mover o agrandar formas de manera acotada. El footer ya aplica
+   un zoom corto a todas las escenas, cuya amplitud depende un poco de
+   Speed y de Audioamount; suma un gesto propio solo si mejora la escena.
    Motivo: con un microfono de ambiente el nivel nunca esta perfectamente
    quieto, y cualquier cosa cuya FORMA dependa de el tiembla sin parar en
    vivo -- no se lee como "reacciona a la musica", se lee como un glitch.
@@ -89,7 +91,7 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
      - uMid -> SOLO color, con audioHue, ANTES de convertir a RGB:
            float h = audioHue(uHue, uMid * 0.05);
        amount pequeno (centesimas de vuelta): es un tinte, no un carrusel.
-     - uHigh -> la UNICA excepcion. Puede tocar geometria, pero SOLO a
+     - uHigh -> puede tocar geometria, pero SOLO a
        escala micro (unos pocos pixeles/unidades como mucho) -- una
        vibracion de detalle en las intersecciones o los bordes, nunca una
        reestructuracion. Ejemplo real en scene00_veins.frag:

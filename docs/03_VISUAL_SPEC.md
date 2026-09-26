@@ -74,11 +74,13 @@ Constantes: `PI`, `TAU`.
 
 ---
 
-## Contrato de audio: solo brillo y color, nunca geometría
+## Contrato de audio y movimiento
 
-Regla dura, sin excepciones salvo una: **el audio no mueve posición, ancho
-de línea, radio, umbral de cobertura ni cantidad de elementos.** Solo brillo
-y color.
+El nivel continuo de micrófono se usa principalmente para brillo y color.
+Los golpes `uKick` y `uBeat` pueden mover o agrandar formas de manera
+acotada. El footer añade a todas las escenas un zoom de hasta 3,5 % en el
+golpe; `uSpeed` controla una parte de esa amplitud y `uAudioamt` la apaga.
+Cada escena puede sumar un gesto propio si hace falta.
 
 Motivo: con un micrófono de ambiente el nivel nunca está perfectamente
 quieto. Cualquier cosa cuya *forma* dependa de él tiembla sin parar — no se
@@ -86,10 +88,9 @@ lee como "reacciona a la música", se lee como un glitch. `scene00_veins.frag`
 tenía exactamente este bug (el nivel escalaba la posición de cada píxel, los
 graves engordaban el ancho de línea) y así se manifestaba.
 
-**La única excepción es `uHigh`**, y solo a escala micro (un par de píxeles
-como mucho) — una vibración de detalle, nunca una reestructuración. `uHigh`
-además llega ya suavizado desde `audio.py` (ver Fase 2), así que no
-reintroduce temblor aunque toque geometría.
+`uHigh` puede mover detalles a escala micro (un par de píxeles). No
+multipliques la velocidad del reloj por el nivel del micrófono: sus
+fluctuaciones generan temblor en todo el visual.
 
 ### `audioLift` — cómo deben usar bajos/nivel
 

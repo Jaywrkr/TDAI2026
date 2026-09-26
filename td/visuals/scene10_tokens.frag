@@ -165,11 +165,10 @@ vec4 render(vec2 uv)
         float h = audioHue(paletteHue(colorIdx) + uHue, uMid * 0.10);
         // Las fichas de contorno se leen mas tenues que las rellenas en
         // el tablero de referencia -- menos saturacion, no menos brillo.
-        // Rango bajado (0.55/0.85 -> 0.30/0.55): pedido explicito de que
-        // el tablero se vea menos colorido en general.
-        float sat = mix(0.30, 0.55, isFilled);
-        vec3  tokenCol = hsv2rgb(vec3(h, sat, 1.0));
-        tokenCol = mix(tokenCol, hsv2rgb(vec3(fract(h + 0.5), 0.7, 1.0)) * 1.4, keyHop);
+        // Tonos mas saturados y un poco menos blancos: menos pastel.
+        float sat = mix(0.75, 0.92, isFilled);
+        vec3  tokenCol = hsv2rgb(vec3(h, sat, 0.90));
+        tokenCol = mix(tokenCol, hsv2rgb(vec3(fract(h + 0.5), 0.95, 0.95)) * 1.3, keyHop);
 
         col += tokenCol * coverage;
         // uHigh: brillo extra en cada ficha -- reusa 'coverage', se nota

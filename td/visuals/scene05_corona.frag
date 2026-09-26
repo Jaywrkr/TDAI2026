@@ -18,7 +18,7 @@
 // cuando era un diafragma.
 //
 // CONTROLES
-//   Speed    no usado directo (reservado)
+//   Speed    flujo de la corona y movimiento comun con el beat
 //   Density  no usado directo (reservado)
 //   Hue      color base de la corona
 //   Chaos    no usado directo (reservado)
@@ -58,7 +58,7 @@ vec4 render(vec2 uv)
     // explicito de "sin bajo no se mueve, con bajo si". Amplitud
     // escalada por uBass (no re-escala de t), asi es continuo: crece
     // suave con el nivel en vez de saltar cuando cruza un umbral.
-    float turbSpeed = 0.015 + uD5 * 0.10;
+    float turbSpeed = (0.015 + uD5 * 0.10) * (0.85 + uSpeed * 0.3);
     vec2  bassFlow = uBass * (0.5 + uD5 * 0.5) * vec2(sin(t * 0.8), cos(t * 0.65));
     float turb = fbm(vec2(ang * 2.5, r * 4.0) + vec2(t * turbSpeed, -t * turbSpeed * 0.7) + bassFlow, 5, 0.5 + uD1 * 0.2);
 
@@ -109,6 +109,26 @@ vec4 render(vec2 uv)
     }
 
     col *= smoothstep(diskR * 0.7, diskR, r);
+
+    // Dos eclipses satelite. Usan anillos y rayos baratos; el campo fbm
+    // costoso de la corona principal se evalua una sola vez por pixel.
+    for (int i = 0; i < 2; i++) {
+        float fi = float(i);
+        vec2 center = i == 0 ? vec2(-0.78, 0.27) : vec2(0.76, -0.30);
+        center += vec2(sin(t * (0.08 + fi * 0.04) + fi) * 0.035,
+                       cos(t * (0.06 + fi * 0.03) + fi) * 0.025);
+        vec2 sp = centered(uv) - center;
+        float sr = length(sp);
+        float satelliteR = diskR * (i == 0 ? 0.68 : 0.55);
+        float rim = exp(-pow(sr - satelliteR, 2.0) * 650.0);
+        float halo = exp(-max(sr - satelliteR, 0.0) * 7.0)
+                   * smoothstep(satelliteR * 0.8, satelliteR + 0.03, sr);
+        float rays2 = 0.45 + 0.55 * pow(abs(sin(atan(sp.y, sp.x)
+                       * (9.0 + fi * 4.0) + t * (0.2 + fi * 0.1))), 3.0);
+        col *= smoothstep(satelliteR * 0.72, satelliteR, sr);
+        col += hotCol * halo * rays2 * (0.48 + uKick * 0.5);
+        col += vec3(1.0, 0.88, 0.68) * rim * (0.65 + uD6 + uKick);
+    }
 
     col += col * uKick * 0.35;
     col = audioLift(col, uBass * 0.35);

@@ -55,6 +55,10 @@ vec4 render(vec2 uv)
     // uHigh: vibracion micro del warp -- unica excepcion del contrato.
     warp += uHigh * 0.015 * vec2(sin(t * 9.0), cos(t * 7.5));
     vec2  wp = p + warp * turb * 0.5;
+    // La ola se desplaza en el golpe: no depende solo del brillo.
+    float surge = sin(r * 13.0 - t * (1.4 + uSpeed))
+                * (uBass * 0.045 + uKick * 0.12);
+    wp += p / (r + 0.08) * surge;
 
     // PIANO: "piedra en la pileta". Cada tecla tira una piedra en el punto
     // que elige uKeypos: un frente de onda circular sale de ahi, DOBLA el
@@ -88,6 +92,7 @@ vec4 render(vec2 uv)
     vec3  edgeCol = hsv2rgb(vec3(fract(h), 0.65, 1.0));
     vec3  coreCol = hsv2rgb(vec3(fract(h + 0.08 + uD5 * 0.3), 0.5, 1.0));
     vec3  col = mix(edgeCol, coreCol, smoothstep(0.6, 0.0, r)) * bands;
+    col += coreCol * pow(bands, 3.0) * (uBass * 0.5 + uKick * 1.15);
 
     // D3: brillo del nucleo central.
     col += coreCol * exp(-r * r * 3.0) * (0.3 + uD3 * 1.0);
@@ -97,7 +102,7 @@ vec4 render(vec2 uv)
     // extra justo donde la caustica ya es mas intensa.
     col += coreCol * bands * uHigh * 0.5;
 
-    col += col * uKick * 0.3;
+    col += col * uKick * 0.65;
     col *= 0.6 + uD6 * 0.8;
     col = audioLift(col, uBass * 0.5);
     col *= vignette(uv, 0.25);
