@@ -103,6 +103,11 @@ DEFAULT_OUTPUT_W = 1280
 DEFAULT_OUTPUT_H = 720
 MAX_OUTPUT = 1280
 
+# La compuerta de audio se construye antes que los relojes y las escenas.
+# Usar a_music directamente evita un ciclo con /project1/ctrl, que contiene
+# los propios canales de tiempo. El umbral coincide con "SIN MUSICA" del panel.
+MUSIC_ACTIVE_EXPR = "(op('/project1/a_music') and op('/project1/a_music').numChans and op('/project1/a_music')[0].eval() >= 0.5)"
+
 # ESCALA DE RENDER DE LAS ESCENAS. Las escenas (los .frag, que es donde
 # esta casi todo el costo de GPU: fbm de 4-7 octavas por pixel) se
 # calculan a esta fraccion de la resolucion de salida; el resto del

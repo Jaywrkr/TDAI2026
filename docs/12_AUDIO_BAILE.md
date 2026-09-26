@@ -92,3 +92,16 @@ autopilot, luz BEAT y colores de pads.
 - Default −26 dB, por si no se calibra.
 - Cuando está cerrada, el panel de status dice **">> SIN MUSICA"**, para
   que no parezca que el audio se rompió.
+
+### Imagen quieta en silencio
+
+La compuerta también detiene los relojes `time` y `rtime` de los shaders
+cuando `music < 0.5`. Antes los canales de audio llegaban a cero, pero las
+escenas seguían pulsando por animaciones basadas en tiempo (incluso con Speed
+en cero, que conservaba una velocidad mínima). Al volver la música, ambos
+relojes continúan desde donde quedaron, sin salto. Los GIF y videos cargados
+en escenas de media se pausan con el mismo criterio. Los controles manuales
+del show siguen disponibles durante el silencio.
+
+Hay que ejecutar `td/RUN_ME.py` para reconstruir la red: recargar solo los
+shaders no actualiza las expresiones de los relojes ni el playback de media.
