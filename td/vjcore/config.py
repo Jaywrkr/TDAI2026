@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 88
+N_SCENES = 89
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -80,7 +80,8 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 # build real). Con el ceil() la grilla siempre tiene exactamente las
 # filas que necesita, sin volver a tocar esto a mano cada vez que se
 # agregan o sacan escenas.
-# Con 88 escenas, 11 columnas mantienen 8 filas y el dashboard sigue
+# Con 89 escenas, 11 columnas requieren 9 filas. Un pixel menos de alto
+# por miniatura conserva espacio para Master FX en 1920x1080.
 # entrando en 1920x1080 (ver test_dashboard_layout.py).
 GRID_COLS = 11
 GRID_ROWS = math.ceil(N_SCENES / GRID_COLS)
@@ -147,7 +148,7 @@ THUMB_W = 103
 # abajo (Master FX + preview + TAKE/PANICO), que es lo que paso con 46
 # escenas y forzo bajar esto de 104 a 84.
 # Con etiqueta de 18 px, la imagen queda cerca de 16:9 a 103 px de ancho.
-THUMB_H = 78
+THUMB_H = 77
 THUMB_LABEL_H = 18
 
 # Antes vivian SOLO adentro de dashboard.build() (definian el alto
