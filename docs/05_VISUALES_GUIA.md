@@ -578,6 +578,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 79 | psychedelic mirror | Aparece un anillo de luz en la posición de la tecla |
 | 80 | polar trails | Aparece un anillo de luz en la posición de la tecla |
 | 81 | wavy particles | Filamentos ondulados azul y violeta sobre negro |
+| 82 | iterative tentacles | Ramas blancas salen de un núcleo luminoso |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
