@@ -12,7 +12,7 @@ import math
 # y cortes por pedido directo del usuario (justo despues de pedirles
 # ajustes de contenido -- el usuario cambio de opinion y prefirio
 # sacarlas), y el resto se renumero para cerrar los huecos.
-N_SCENES = 94
+N_SCENES = 95
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -80,7 +80,7 @@ MEDIA_MODES = ['MANUAL', 'TIEMPO', 'BEAT', 'COMPAS', 'PIANO']
 # build real). Con el ceil() la grilla siempre tiene exactamente las
 # filas que necesita, sin volver a tocar esto a mano cada vez que se
 # agregan o sacan escenas.
-# Con 94 escenas, 11 columnas requieren 9 filas. Un pixel menos de alto
+# Con 95 escenas, 11 columnas requieren 9 filas. Un pixel menos de alto
 # por miniatura conserva espacio para Master FX en 1920x1080.
 # entrando en 1920x1080 (ver test_dashboard_layout.py).
 GRID_COLS = 11
