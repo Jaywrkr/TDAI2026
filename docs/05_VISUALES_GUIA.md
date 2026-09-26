@@ -557,6 +557,7 @@ elige *cuánto* (más alcance, más tamaño, más brillo).
 | 58 | tinta fluida | Aparece un anillo de luz en la posición de la tecla |
 | 59 | nebulosa de partículas | Aparece un anillo de luz en la posición de la tecla |
 | 60 | aura flow | Aparece un anillo de luz en la posición de la tecla |
+| 61 | frequency modulation | Aparece un anillo de luz en la posición de la tecla |
 
 En **negrita**, los que se rediseñaron para que no se repitan entre visuales.
 Las escenas 45–48 son orbes adaptados de Orbkit (MIT, ver
