@@ -681,11 +681,31 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     bloom_fx = _build_bloom(proj, post, ctrl_tex, channels)
     bloom = bloom_fx['bloom']
 
+    # Conservar el ultimo fotograma visible cuando el detector indica
+    # "SIN MUSICA". Congelar los relojes de los shaders no alcanza para
+    # detener todos los TOP (feedback, peliculas y efectos con estado propio).
+    # El Feedback TOP entrega el fotograma anterior de silence_hold; al
+    # seleccionar esa rama, el switch devuelve ese mismo fotograma sin
+    # volver a procesar la imagen viva. Al volver la musica, usa bloom.
+    # Va antes del texto y del master fade para que los controles manuales
+    # de texto, brillo y blackout sigan disponibles durante el silencio.
+    silence_fb = proj.create(feedbackTOP, 'silence_fb')
+    silence_fb.nodeX, silence_fb.nodeY = 1320, 660
+    silence_hold = proj.create(switchTOP, 'silence_hold')
+    silence_hold.nodeX, silence_hold.nodeY = 1480, 520
+    safe_set_first(silence_fb, ['top', 'targettop', 'target'], silence_hold.path)
+    safe_set_first(silence_fb, ['format', 'pixelformat'], 'rgba16float')
+    connect(silence_hold, bloom, 0)
+    connect(silence_hold, silence_fb, 1)
+    safe_set(silence_hold, 'cooktype', 'selective')
+    safe_expr(silence_hold, 'index',
+              '0 if {} else 1'.format(config.MUSIC_ACTIVE_EXPR))
+
     # --- overlay de texto (nombre de artista) -- DESPUES del bloom (que
     # el texto quede nitido, sin el glow difuminandolo) y ANTES del
     # master fade (que el blackout y el master brightness lo tapen a el
     # tambien: si el show se va a negro, el texto se va con el show).
-    text_fx = _build_text_overlay(proj, bloom, ctrl_tex, channels)
+    text_fx = _build_text_overlay(proj, silence_hold, ctrl_tex, channels)
     post_text = text_fx['text_composite']
 
     # --- master fade / blackout (solo en SHOW OUT) ---
@@ -712,6 +732,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # que coincidir SI O SI con el shader que lo alimenta (si no, cada
     # frame se reescala contra el anterior y la estela "respira" sola).
     res_nodes = [black, cross, clean, bloom, bloom_fx['bloom_prefilter'],
+                 silence_fb, silence_hold,
                  master, show,
                  text_fx['text_y'], text_fx['text_composite']]
     res_nodes += [fx[k] for k in ('blend', 'pick', 'trails', 'trails_fb',
@@ -733,9 +754,10 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
 
     _build_outputs(proj, show)
 
-    log('PROGRAM: bus A/B + preview + crossfade nativo + master fade OK')
+    log('PROGRAM: bus A/B + preview + crossfade + silencio congelado + master fade OK')
     out = {'a': sw_a, 'b': sw_b, 'preview': sw_prev, 'cross': cross,
-           'clean': clean, 'bloom': bloom, 'master': master, 'show': show,
+           'clean': clean, 'bloom': bloom, 'silence_hold': silence_hold,
+           'silence_fb': silence_fb, 'master': master, 'show': show,
            'bloom_prefilter': bloom_fx['bloom_prefilter'],
            'window': win}
     out.update(fx)

@@ -600,7 +600,7 @@ def build(verbose=True):
     # ctrl_tex/channels: los shaders de Master FX (dos capas + estela)
     # leen la MISMA textura de control que las escenas -- ver program.py.
     ops = program.build(proj, outs, ctrl_tex, channels)
-    dash = dashboard.build(proj, thumbs, ops['bloom'])
+    dash = dashboard.build(proj, thumbs, ops['silence_hold'])
 
     _mark_setup_nodes(proj, midi_in, dash, ops.get('window'))
 
@@ -692,7 +692,8 @@ def verify(proj, channels):
     # inputs, que es lo que romperia el efecto en silencio (un input mal
     # conectado da negro o el frame sin procesar, no un error rojo).
     for name, n_inputs in (('program_blend', 3), ('program_trails', 3),
-                           ('program_pick', 2), ('trails_pick', 2)):
+                           ('program_pick', 2), ('trails_pick', 2),
+                           ('silence_hold', 2)):
         node = proj.op(name)
         check('{} con {} inputs'.format(name, n_inputs),
               bool(node) and len(node.inputs) == n_inputs,
@@ -707,6 +708,10 @@ def verify(proj, channels):
     check('{} escenas completas'.format(config.N_SCENES), not bad, 'faltan en {}'.format(bad))
 
     check('ctrl_tex existe', bool(proj.op('ctrl_tex')))
+    hold_fb = proj.op('silence_fb')
+    hold_target = getattr(hold_fb.par, 'top', None) if hold_fb else None
+    check('silence_fb apunta al ultimo fotograma',
+          bool(hold_target) and hold_target.eval() == '/project1/silence_hold')
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))
     check('show_window existe', bool(proj.op('show_window')))
