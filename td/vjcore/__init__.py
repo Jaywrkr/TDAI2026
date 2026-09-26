@@ -44,12 +44,19 @@ def _mod(name):
 
 
 def reload_all():
-    """Recarga todos los submodulos. Necesario tras editar los .py."""
+    """Importa los submodulos de nuevo, incluso si TD les quito el spec.
+
+    importlib.reload() falla con ``spec not found`` en algunas sesiones de
+    TouchDesigner. Quitar primero los modulos cacheados tambien evita que un
+    cambio de ruta del repo deje archivos viejos cargados en memoria.
+    """
+    importlib.invalidate_caches()
     for name in _SUBMODULES:
         full = '{}.{}'.format(__name__, name)
-        if full in sys.modules:
-            importlib.reload(sys.modules[full])
-    importlib.reload(sys.modules[__name__])
+        sys.modules.pop(full, None)
+        globals().pop(name, None)
+    for name in _SUBMODULES:
+        _mod(name)
 
 
 def build(verbose=True):

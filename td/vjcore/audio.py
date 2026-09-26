@@ -161,7 +161,22 @@ def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
     safe_set_first(mt, ['clamplowvalue', 'clamplowval'], 0.0)
     safe_set_first(mt, ['clamphighvalue', 'clamphighval'], 1.0)
     connect(mt, norm)
-    return mt
+    return mt, norm
+
+
+def _movement_band(proj, norm, name, x, y, gain_par, amount_par):
+    """Banda para BAILE con ganancia propia, independiente de BRILLO."""
+    mt = proj.create(mathCHOP, name + '_gain')
+    mt.nodeX, mt.nodeY = x, y
+    safe_expr(mt, 'gain',
+              "(op('/project1').par.{g}.eval() / ({f} if op('/project1').par.Autogain.eval() else 1.0)) * op('/project1').par.{a}.eval()"
+              .format(g=gain_par, f=FACTORY_GAIN[gain_par], a=amount_par))
+    safe_set(mt, 'clamplow', True)
+    safe_set(mt, 'clamphigh', True)
+    safe_set_first(mt, ['clamplowvalue', 'clamplowval'], 0.0)
+    safe_set_first(mt, ['clamphighvalue', 'clamphighval'], 1.0)
+    connect(mt, norm)
+    return _smooth_out(proj, mt, name + '_out', x + 160, y)
 
 
 def _smooth_out(proj, src, name, x, y, attack=0.05, release=0.20):
@@ -182,7 +197,7 @@ def _smooth_out(proj, src, name, x, y, attack=0.05, release=0.20):
 
 
 def build(proj):
-    """Devuelve un CHOP con los canales level/bass/mid/high/kick/beat/groove, o None."""
+    """Devuelve un CHOP con los canales level/bass/mid/high/kick/beat/groove/music, o None."""
     try:
         audio_in = proj.create(audiodeviceinCHOP, 'audio1')
         audio_in.nodeX, audio_in.nodeY = -1400, 700
@@ -196,26 +211,30 @@ def build(proj):
     safe_set_first(mono, ['chopop', 'chanop'], 'average')
     connect(mono, audio_in)
 
-    level_env = _envelope(proj, mono, 'a_level', -1060, 860, 0.15, 'Mastergain')
+    level_env, _ = _envelope(proj, mono, 'a_level', -1060, 860, 0.15, 'Mastergain')
     level = _smooth_out(proj, level_env, 'a_level_out', -900, 900)
 
     bass_f = _filter(proj, mono, 'a_bass_lp', 'lowpass', BASS_HI, -1060, 700)
     # bass_env se queda RAPIDO a proposito: lo usa la deteccion de kick de
     # abajo, y suavizarlo de mas ahi mata el transitorio que se busca
     # detectar. bass (mas abajo) es la copia suavizada que ven los visuales.
-    bass_env = _envelope(proj, bass_f, 'a_bass', -900, 700, 0.07, 'Bassgain',
-                         'Bassamount')
+    bass_env, bass_norm = _envelope(proj, bass_f, 'a_bass', -900, 700, 0.07, 'Bassgain',
+                                    'Bassamount')
+    bass_move = _movement_band(proj, bass_norm, 'a_bass_move', -420, 1200,
+                               'Bassgain', 'Bassamount')
 
     mid_hp = _filter(proj, mono, 'a_mid_hp', 'highpass', MID_LO, -1060, 540)
     mid_lp = _filter(proj, mid_hp, 'a_mid_lp', 'lowpass', MID_HI, -900, 540)
-    mid_env = _envelope(proj, mid_lp, 'a_mid', -740, 540, 0.09, 'Midgain',
-                        'Midamount')
+    mid_env, mid_norm = _envelope(proj, mid_lp, 'a_mid', -740, 540, 0.09, 'Midgain',
+                                  'Midamount')
+    mid_move = _movement_band(proj, mid_norm, 'a_mid_move', -420, 1100,
+                              'Midgain', 'Midamount')
     mid = _smooth_out(proj, mid_env, 'a_mid_out', -580, 540)
 
     hi_hp = _filter(proj, mono, 'a_high_hp', 'highpass', HIGH_LO, -1060, 380)
     hi_lp = _filter(proj, hi_hp, 'a_high_lp', 'lowpass', HIGH_HI, -900, 380)
-    high_env = _envelope(proj, hi_lp, 'a_high', -740, 380, 0.06, 'Highgain',
-                         'Highamount')
+    high_env, _ = _envelope(proj, hi_lp, 'a_high', -740, 380, 0.06, 'Highgain',
+                            'Highamount')
     high = _smooth_out(proj, high_env, 'a_high_out', -580, 380)
 
     # ---- KICK: transitorio de graves, con COMPUERTA ----
@@ -323,7 +342,56 @@ def build(proj):
     safe_set(groove, 'lag2', 0.8)
     connect(groove, beat)
 
-    # ---- Renombrar y unir ----
+    # ---- COMPUERTA DE MUSICA: sin musica no reacciona NADA ----
+    # El auto-gain normaliza cada banda a su pico reciente -- con musica es
+    # lo que queremos, pero sin musica normaliza el RUIDO: medido en
+    # simulacion, una sala con gente y sin musica (-32 dBFS) llegaba a
+    # nivel 0.89 / medios 0.78 / agudos 0.79 -- los visuales "bailaban" con
+    # el murmullo. La compuerta mira el nivel CRUDO (antes del auto-gain):
+    # debajo de Musicgate (dBFS), las 7 senales de audio valen 0.
+    #   sw    : 1 si el nivel crudo pasa el umbral, 0 si no (escalon).
+    #   hold  : abre si el nivel se sostiene ~0.4 s (un aplauso o una voz
+    #           suelta no la abren) y cierra ~1.5 s despues de que baja (un
+    #           silencio corto dentro del tema no la cierra).
+    #   music : fundido corto para que abrir/cerrar no sea un salto.
+    raw = proj.op('a_level_smooth')
+    sw = proj.create(mathCHOP, 'a_music_sw')
+    sw.nodeX, sw.nodeY = -2080, 1060
+    safe_expr(sw, 'preoff', "-pow(10.0, op('/project1').par.Musicgate.eval() / 20.0)")
+    safe_set(sw, 'gain', 10000.0)
+    safe_set(sw, 'clamplow', True)
+    safe_set(sw, 'clamphigh', True)
+    safe_set_first(sw, ['clamplowvalue', 'clamplowval'], 0.0)
+    safe_set_first(sw, ['clamphighvalue', 'clamphighval'], 1.0)
+    connect(sw, raw)
+
+    hold = proj.create(lagCHOP, 'a_music_hold')
+    hold.nodeX, hold.nodeY = -1920, 1060
+    safe_set(hold, 'lag1', 0.8)
+    safe_set(hold, 'lag2', 2.5)
+    connect(hold, sw)
+
+    sharp = proj.create(mathCHOP, 'a_music_sharp')
+    sharp.nodeX, sharp.nodeY = -1760, 1060
+    safe_set(sharp, 'preoff', -0.5)
+    safe_set(sharp, 'gain', 20.0)
+    safe_set(sharp, 'clamplow', True)
+    safe_set(sharp, 'clamphigh', True)
+    safe_set_first(sharp, ['clamplowvalue', 'clamplowval'], 0.0)
+    safe_set_first(sharp, ['clamphighvalue', 'clamphighval'], 1.0)
+    connect(sharp, hold)
+
+    music = proj.create(lagCHOP, 'a_music')
+    music.nodeX, music.nodeY = -1600, 1060
+    safe_set(music, 'lag1', 0.15)
+    safe_set(music, 'lag2', 0.3)
+    connect(music, sharp)
+
+    # ---- Compuerta + renombrar + unir ----
+    # Cada senal x music con un Math CHOP de 2 entradas de 1 canal cada
+    # una (multiplicar sin ambiguedad de canales). Todo lo que reacciona al
+    # audio lee /project1/ctrl -- escenas, pump, autopilot, luz BEAT,
+    # colores de pads --, asi que esto lo apaga todo junto.
     named = []
     for src, chan, x, y in [(level, 'level', -520, 900),
                             (bass, 'bass', -520, 620),
@@ -331,18 +399,34 @@ def build(proj):
                             (high, 'high', -520, 380),
                             (kick, 'kick', -120, 640),
                             (beat, 'beat', 40, 740),
-                            (groove, 'groove', 40, 1000)]:
+                            (groove, 'groove', 40, 1000),
+                            (bass_move, 'bassmove', -260, 1200),
+                            (mid_move, 'midmove', -260, 1100)]:
+        g = proj.create(mathCHOP, 'a_g_' + chan)
+        g.nodeX, g.nodeY = x + 90, y - 60
+        safe_set_first(g, ['chopop', 'chanop'], 'multiply')
+        connect(g, src, 0)
+        connect(g, music, 1)
         r = proj.create(renameCHOP, 'a_n_' + chan)
         r.nodeX, r.nodeY = x + 180, y
         safe_set(r, 'renamefrom', '*')
         safe_set(r, 'renameto', chan)
-        connect(r, src)
+        connect(r, g)
         named.append(r)
+
+    # 'music' tambien sale a la textura de control (sin compuerta, claro):
+    # el panel de status lo usa para avisar "sin musica".
+    rm = proj.create(renameCHOP, 'a_n_music')
+    rm.nodeX, rm.nodeY = -1440, 1060
+    safe_set(rm, 'renamefrom', '*')
+    safe_set(rm, 'renameto', 'music')
+    connect(rm, music)
+    named.append(rm)
 
     merge = proj.create(mergeCHOP, 'audio_ctrl')
     merge.nodeX, merge.nodeY = 200, 640
     for i, n in enumerate(named):
         connect(merge, n, i)
 
-    log('AUDIO: cadena construida (level/bass/mid/high/kick/beat/groove)')
+    log('AUDIO: cadena construida (level/bass/mid/high/kick/beat/groove/music, con compuerta de musica)')
     return merge

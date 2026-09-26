@@ -110,7 +110,7 @@ def build_scene(scenes, i, channels):
         # tres maneras y no como tres cosas sueltas.
         safe_expr(media_in, 'file',
                   "op('/project1/control_script').module.currentMediaPath()")
-        safe_set(media_in, 'play', True)
+        safe_expr(media_in, 'play', config.MUSIC_ACTIVE_EXPR)
         safe_set_first(media_in, ['cueloop', 'loop'], True)
         connect(glsl, media_in, 1)
     # IMPORTANTE: sin esto el GLSL TOP hereda la resolucion del input 0,

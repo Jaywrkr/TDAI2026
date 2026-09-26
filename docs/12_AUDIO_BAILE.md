@@ -42,6 +42,22 @@ DJ. Se aplica después de todas las escenas, así que funciona igual en las 54.
 
 ## Para verlo
 
+### BRILLO y BAILE por separado
+
+La perilla 6, **BRILLO** (`Audioamount`), regula la respuesta luminosa al
+audio: bandas, destellos de bombo y bombeo del programa. En 0, la reacción
+luminosa al audio queda apagada. La perilla 8, **Master**, sigue siendo el
+brillo general de la salida.
+
+La perilla 1, **BAILE** (`Movement`), regula el zoom con el bombo y los graves
+y el balanceo con los medios. Recibe canales de audio propios (`bassmove` y
+`midmove`) y el bombo crudo, por lo que puede seguir moviendo la imagen con
+BRILLO en 0. En 0 se apaga esta transformación común a todas las escenas;
+cada escena puede conservar animación o reacciones geométricas propias.
+
+Para aplicar este cambio hay que reconstruir el rig, no solo recargar los
+shaders: se agregaron canales a `/project1/ctrl`.
+
 `git pull` y correr `td/RUN_ME.py` dentro de TouchDesigner (el rebuild). Sin
 el rebuild TD sigue con la red vieja.
 
@@ -54,3 +70,38 @@ python3 sim_kick.py    # compara detectores
 python3 sim_final.py   # luz en pantalla antes / ahora
 python3 plot.py        # regenera docs/img/baile_antes_despues.png
 ```
+
+## Sin música no reacciona nada (compuerta de música)
+
+El auto-gain lleva cada banda a su pico reciente. Con música es lo que
+queremos; sin música **amplifica el ruido de la sala**. Medido
+(`td/tools/sim_baile/sim_silencio.py`): una sala con gente y sin música
+(−32 dBFS) llegaba a nivel 0.89, medios 0.78, agudos 0.79. Casi lo mismo que
+un tema, así que los visuales bailaban con el murmullo.
+
+Ahora hay una **compuerta** que mira el nivel crudo, antes del auto-gain.
+Debajo del umbral, todas las señales de audio valen 0: escenas, pump,
+autopilot, luz BEAT y colores de pads.
+
+- Se abre si el sonido se **sostiene** ~0.4 s. Un aplauso o una voz suelta no
+  la abren. Se cierra ~1.5 s después de que la música para, así que un corte
+  corto dentro del tema no la cierra.
+- **Audio → Calibrar compuerta**: apretarlo **en silencio** (sala abierta, sin
+  música). Mide la sala y deja el umbral 8 dB arriba. Con eso, en la
+  simulación todo queda en 0 sin música y abre en 0.4 s cuando entra el tema.
+- Default −26 dB, por si no se calibra.
+- Cuando está cerrada, el panel de status dice **">> SIN MUSICA"**, para
+  que no parezca que el audio se rompió.
+
+### Imagen quieta en silencio
+
+La compuerta también detiene los relojes `time` y `rtime` de los shaders
+cuando `music < 0.5`. Antes los canales de audio llegaban a cero, pero las
+escenas seguían pulsando por animaciones basadas en tiempo (incluso con Speed
+en cero, que conservaba una velocidad mínima). Al volver la música, ambos
+relojes continúan desde donde quedaron, sin salto. Los GIF y videos cargados
+en escenas de media se pausan con el mismo criterio. Los controles manuales
+del show siguen disponibles durante el silencio.
+
+Hay que ejecutar `td/RUN_ME.py` para reconstruir la red: recargar solo los
+shaders no actualiza las expresiones de los relojes ni el playback de media.

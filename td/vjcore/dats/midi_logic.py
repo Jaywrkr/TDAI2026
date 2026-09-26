@@ -205,6 +205,9 @@ CONTINUOUS = {
     # (que la apaga, ver control_script.resetControls) basta con tocarla
     # para que vuelva a mandar. Ver control_script.applyEnergy.
     'Energy': ('Energy', 0.0, 1.0),
+    # BAILE (perilla 1): cuanto se mueve/crece la imagen con la musica
+    # (footer de shader.py). Separada de BRILLO (Audioamount, perilla 6).
+    'Movement': ('Movement', 0.0, 1.0),
     # Zoom de la estela, centrado en 0.5 = neutro: ideal para la tira de
     # pitch (vuelve sola al centro al soltarla).
     'Trailszoom': ('Trailszoom', 0.0, 1.0),
@@ -275,21 +278,23 @@ EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
 
 
 # --- MODO RELATIVO (perillas 1 y 9 de fabrica, ver docs/02) --------------
-# Las perillas CLICABLES (1 y 9) del MiniLab mkII vienen en modo RELATIVO
-# de fabrica (pensado para navegar presets): en vez de mandar la posicion
-# real 0..127 como el resto de las perillas, mandan siempre un numero
-# pegado a 64 en cada paso (Arturia 'Relative #2' / 2's complement: 65 =
-# +1 paso, 63 = -1, nunca los extremos). _handle() asumia SIEMPRE que
+# Las perillas CLICABLES (1 y 9) del MiniLab mkII pueden estar en modo
+# RELATIVO (pensado para navegar presets): en vez de mandar la posicion
+# real 0..127 como el resto de las perillas, pueden mandar un numero
+# pegado a 64 en cada paso (Arturia 'Relative 1': 65 = +1 paso, 63 = -1).
+# Arturia intercala un 0 neutro entre pasos; no es una posicion absoluta.
+# _handle() asumia SIEMPRE que
 # 'val' era la posicion absoluta -- en una perilla relativa eso se lee
 # como "salta cerca de la mitad y se queda ahi", que es justo el sintoma
-# reportado (Energia/Detail1 "no responden bien").
+# reportado (BAILE/Detail1 "no responden bien").
 #
 # La solucion de fondo (docs/02_MIDI_MINILAB_MKII.md) es poner esas 2
 # perillas en modo Absolute desde Arturia MIDI Control Center -- pero
 # mientras eso no este hecho (o con otro controlador que tambien mande
 # relativo), esto detecta el patron solo y acumula en vez de quedarse
 # mudo. Deteccion CONSERVADORA: se asume relativo solo si TODO lo que
-# llego de ese canal cayo siempre en la banda angosta de abajo. En cuanto
+# llego de ese canal cayo siempre en la banda angosta de abajo o fue un
+# mensaje neutro. En cuanto
 # llega un solo valor fuera de la banda, se confirma ABSOLUTO para
 # siempre y esto deja de intervenir -- asi una perilla que ya manda
 # absoluto (todas las demas) nunca cambia de comportamiento.
@@ -321,6 +326,12 @@ def _relativePosition(p, name, val):
 
     if mode == 'absolute':
         return None
+
+    if v == 0:
+        # Relative 1 intercala 0 entre pasos. Mantener la posicion actual
+        # sin desmentir el modo relativo permite recibir dos pasos 65
+        # consecutivos a traves de CHOP Execute (65, 0, 65).
+        return p.fetch(key_pos, 0.5)
 
     if not (_REL_BAND_LO <= v <= _REL_BAND_HI):
         # Un valor fuera de la banda desmiente la hipotesis "relativo":
