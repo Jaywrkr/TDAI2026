@@ -39,7 +39,7 @@ No los declares: ya están.
 | `uAspect` | — | `uResW / uResH` |
 | `uScene` | 0–97 | Índice de esta escena |
 | `uD1`…`uD6` | 0–1 | Perillas de Detail. **Significan lo que tú definas** — documéntalo con `@D1`…`@D6`, ver abajo |
-| `uKeypulse` | 0–1 | Pulso al tocar cualquier tecla del piano, decae solo (~0.35 s). El anillo base ya sale gratis del footer — usa esto si quieres un efecto propio además |
+| `uKeypulse` | 0–1 | Pulso al tocar cualquier tecla del piano, decae solo (~0.35 s). El footer aporta un anillo en escenas antiguas y seis gestos en las escenas 58–97; puede añadirse una respuesta propia del material |
 | `uKeypos` | 0–1 | Grave→agudo de la última tecla tocada |
 | `uKeyvel` | 0–1 | Fuerza de esa tecla |
 

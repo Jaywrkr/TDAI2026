@@ -3,8 +3,9 @@
 Sistema de 98 escenas con control MIDI (Arturia MiniLab MkII), audio reactivo,
 crossfade A/B y dashboard clickable.
 
-> **Relevo para Claude:** [estado real y dos trabajos pendientes](docs/51_SPEED_Y_BAILE.md).
-> Esta actualización documenta los cambios solicitados; aún no cambia el código.
+> **Relevo para Claude (revisado el 28 de septiembre de 2026):** empieza por
+> [CLAUDE.md](CLAUDE.md) y sigue con [el estado y los dos trabajos pendientes](docs/51_SPEED_Y_BAILE.md).
+> Esta actualización solo corrige documentación; los dos trabajos siguen pendientes en el código.
 
 ![veins](docs/img/veins_default.png)
 
@@ -43,6 +44,7 @@ El contrato actual **todavía no cumple esos dos puntos**: el reloj se congela s
 
 | Doc | Para qué |
 |---|---|
+| [CLAUDE.md](CLAUDE.md) | Punto de entrada breve para continuar el trabajo en Claude |
 | [06 — **Primera prueba, paso a paso**](docs/06_PRIMERA_PRUEBA.md) | **Empieza por aquí**: 12 fases con checkpoints |
 | [00 — Análisis del script original](docs/00_ANALISIS.md) | Qué estaba mal y por qué |
 | [01 — Arquitectura](docs/01_ARQUITECTURA.md) | Cómo está armado el rig |

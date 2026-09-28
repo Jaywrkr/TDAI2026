@@ -2,7 +2,7 @@
 
 ## Estado del repo al recibir este relevo
 
-El proyecto tiene 98 escenas (`scene00`–`scene97`). Las escenas 58–97 son las 40 más recientes. La rama de trabajo es `codex/speed-and-reactive-details`; el último commit antes de este relevo es `f255057`. Los cambios descritos aquí como **pendientes** son instrucciones para el siguiente trabajo: **no están implementados por esta actualización de documentación**.
+Estado revisado el **28 de septiembre de 2026**. El proyecto tiene 98 escenas (`scene00`–`scene97`); las escenas 58–97 son las 40 más recientes. La rama local es `codex/speed-and-reactive-details`. El último commit de implementación fue `f255057` y el relevo anterior quedó en `7baf599`; desde entonces no hubo cambios de código en esta copia. Los cambios descritos aquí como **pendientes** son instrucciones para el siguiente trabajo: **no están implementados por esta actualización de documentación**. [CLAUDE.md](../CLAUDE.md) resume el punto de entrada.
 
 Ya se hizo lo siguiente:
 
@@ -30,6 +30,7 @@ Así, **silencio no significa imagen completamente congelada cuando Speed está 
 - Subir el brillo donde los visuales nuevos se ven apagados, conservando negros, contraste y color. Revisar tanto el brillo en reposo como el brillo durante golpes; no blanquear todo el fotograma.
 - Respetar el significado `@D1`–`@D6` de cada `.frag`, la respuesta del piano y el objetivo de buen rendimiento. No añadir cadenas costosas de TOPs ni feedback innecesario.
 - Comprobar, al menos con escenas representativas de cada familia y después en las 40, que: sin audio el movimiento propio de Speed continúa; con audio se mueven rasgos internos; no aparece twirl global; los detalles y las teclas siguen siendo perceptibles. Compilar los shaders y probar FPS en TouchDesigner si está disponible.
+- Evitar un reemplazo único de `audioDanceUV` aplicado a todas las escenas. Documentar por escena qué parte se mueve con cada banda o golpe. Al revisar el piano, conservar nota→posición y velocidad→intensidad, pero quitar la variante de torsión si sigue leyendo como twirl.
 
 ## Siguiente paso 2 — Speed en todas las escenas, especialmente 00–57
 
@@ -37,6 +38,7 @@ Así, **silencio no significa imagen completamente congelada cuando Speed está 
 - Aumentar de forma perceptible la velocidad máxima de la perilla. El bajo suavizado puede añadir una variación positiva pequeña sobre la velocidad seleccionada (el ejemplo de 100→104–108 es una buena referencia inicial); nunca debe reducirla. El 25 % máximo actual es mayor que el ejemplo reciente del usuario y debe revisarse.
 - Auditar las escenas 00–57 y las 58–97 para evitar dobles multiplicaciones por `uSpeed`, animaciones con `uRTime` que ignoren la perilla y otras dependencias de audio que detengan el movimiento base. Conservar animaciones específicas de audio que se apaguen en silencio. Revisar el reloj `rtime`, que actualmente también se congela con la compuerta de música, antes de cambiarlo para no reactivar pulsos no deseados.
 - Probar Speed en 0, mitad y máximo, cada uno con silencio y con audio. Medir que el mínimo de velocidad con audio **nunca** sea menor que la velocidad base seleccionada. Evaluar escenas viejas y nuevas en TouchDesigner, incluido el efecto real sobre FPS.
+- Casos de aceptación: `Speed>0` + silencio → avanza el movimiento propio, sin pulsos de audio; mismo Speed + audio → nunca va más lento que en silencio; `Speed=0` → se detiene la animación gobernada por Speed; girar la perilla mientras corre → no salta de fase.
 
 ## Entrega y operación
 
