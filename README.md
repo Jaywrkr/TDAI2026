@@ -82,6 +82,7 @@ Una reescritura del build script original con tres cambios de fondo:
 | [49 — Particle Mandala](docs/49_PARTICLE_MANDALA.md) | Mandala simétrico formado por miles de puntos; escena 96 |
 | [50 — Audio Wire Room](docs/50_AUDIO_WIRE_ROOM.md) | Cubos de líneas amarillas y azules que responden al audio; escena 97 |
 | [51 — Speed y baile de escenas nuevas](docs/51_SPEED_Y_BAILE.md) | Speed lineal con empuje moderado de bajo; detalles y movimiento de escenas 58–97 |
+| [52 — **Láser ILDA opcional**](docs/52_LASER_ILDA.md) | Se habilita o deshabilita: APAGADO / SIMULADOR (sin hardware) / SALIDA DAC; seguridad y exportar `.ild` |
 
 ## Crear una escena nueva
 
@@ -109,6 +110,8 @@ Luego en TD: `/project1` → **System** → `Recargar Shaders`.
 python3 td/tools/smoke_import.py         # el paquete importa y resuelve bien
 python3 td/tools/validate_shaders.py     # compila los .frag con glslangValidator
 python3 td/tools/preview_veins_cpu.py out.png "{'density':0.8,'hue':0.5}"
+python3 td/tools/preview_laser.py salida/ --ild  # simulador laser + archivos .ild
+python3 td/tools/test_laser.py           # reglas de seguridad del laser
 ```
 
 El validador inyecta el mismo header/footer que TD y compila de verdad. Un
