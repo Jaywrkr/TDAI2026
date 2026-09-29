@@ -699,7 +699,9 @@ def _contract_text(channels):
 def verify(proj, channels):
     """Chequeos post-build. Vale oro porque este script no se puede
     testear fuera de TouchDesigner."""
-    out = ['', '=' * 58, 'VERIFICACION DEL BUILD', '=' * 58]
+    out = ['', '=' * 58, 'VERIFICACION DEL BUILD   [{}]'.format(config.BUILD_TAG),
+           '  codigo: {}'.format(os.path.dirname(os.path.abspath(__file__))),
+           '=' * 58]
     ok = True
 
     def check(label, cond, detail=''):
@@ -750,6 +752,12 @@ def verify(proj, channels):
           bool(lz) and bool(lz.op('laser_points')) and not lz.allowCooking,
           'DAC: {}'.format((lz.fetch('laser_dac_type', '') if lz else '')
                            or 'ninguno -> solo simulador'))
+    ld = proj.op('laser_down')
+    check('laser_down conectado a show_out', bool(ld) and len(ld.inputs) == 1)
+    for name in ('laser_points', 'laser_preview'):
+        node = lz.op(name) if lz else None
+        check('laser/{} con input'.format(name),
+              bool(node) and len(node.inputs) == 1)
     check('Repopath configurado', bool(proj.par.Repopath.eval()),
           proj.par.Repopath.eval())
     check('visuals/ encontrado', os.path.isdir(shader.visuals_dir()),

@@ -19,7 +19,7 @@ zona, brillo, blanking) esta en laserfx.py, Python puro, probada fuera de
 TD. Este archivo solo la cablea:
 
     /project1/ctrl ──> laser_points (Script CHOP: x y r g b) ──> laser_dac
-    show_out ─> laser_down (96x54) ──┘        │
+    show_out ─> laser_down (96x54, en /project1) ┘  │
     ctrl_tex ──> laser_preview (Script TOP) <─┘ (lee el ultimo frame)
                         └──> laser_window (ventana del simulador)
 """
@@ -61,52 +61,43 @@ def build(proj, show, ctrl_chop, ctrl_tex):
     comp = proj.create(baseCOMP, 'laser')
     comp.nodeX, comp.nodeY = 1760, -400
 
-    # TD no permite cables entre redes distintas: lo que viene de
-    # /project1 entra por Select OPs (igual que ctrl_in en las escenas).
-    # Un connect() directo dejaba laser_down sin input ("Not enough
-    # sources specified") y laser_points/laser_preview sin cocinar.
-    show_in = comp.create(selectTOP, 'laser_show_in')
-    show_in.nodeX, show_in.nodeY = -200, 200
-    safe_set(show_in, 'top', show.path)
-    ctrl_in = comp.create(selectCHOP, 'laser_ctrl_in')
-    ctrl_in.nodeX, ctrl_in.nodeY = 0, 0
-    safe_set_first(ctrl_in, ['chop', 'chops'], ctrl_chop.path)
-    tex_in = comp.create(selectTOP, 'laser_ctrl_tex_in')
-    tex_in.nodeX, tex_in.nodeY = 200, -150
-    safe_set(tex_in, 'top', ctrl_tex.path)
-
-    down = comp.create(resolutionTOP, 'laser_down')
-    down.nodeX, down.nodeY = 0, 200
+    # laser_down vive en /project1, AL LADO de show_out, con un cable
+    # directo: TD no permite cables entre redes distintas, y dentro del
+    # COMP quedaba sin input ("Not enough sources specified"). Fuera del
+    # COMP no cuesta nada con el laser apagado: solo cocina si alguien lo
+    # pide, y el unico que lo pide es laser_points en modo AUTO.
+    down = proj.create(resolutionTOP, 'laser_down')
+    down.nodeX, down.nodeY = 1760, -560
     safe_set_first(down, ['outputresolution', 'resolution'], 'custom')
     safe_set_first(down, ['resolutionw', 'resw'], TRACE_W)
     safe_set_first(down, ['resolutionh', 'resh'], TRACE_H)
-    connect(down, show_in)
+    connect(down, show)
 
-    cb = comp.create(textDAT, 'laser_points_callbacks')
-    cb.nodeX, cb.nodeY = 0, -150
-    cb.text = _POINTS_CALLBACKS
+    # ctrl y ctrl_tex entran al COMP por Select (como ctrl_in en las
+    # escenas). Cambian todos los frames, asi que tenerlos de input hace
+    # que los Script OPs cocinen cada frame mientras alguien los mire.
+    ctrl_in = comp.create(selectCHOP, 'laser_ctrl_in')
+    ctrl_in.nodeX, ctrl_in.nodeY = 0, 100
+    safe_set_first(ctrl_in, ['chop', 'chops'], ctrl_chop.path)
+    tex_in = comp.create(selectTOP, 'laser_ctrl_tex_in')
+    tex_in.nodeX, tex_in.nodeY = 0, -150
+    safe_set(tex_in, 'top', ctrl_tex.path)
+
     pts = comp.create(scriptCHOP, 'laser_points')
     pts.nodeX, pts.nodeY = 200, 100
-    safe_set(pts, 'callbacks', cb.path)
-    # ctrl cambia todos los frames (canal time): tenerlo de input hace
-    # que laser_points cocine cada frame mientras alguien lo pida.
+    _set_callbacks(comp, pts, _POINTS_CALLBACKS, 200, 300)
     connect(pts, ctrl_in)
 
-    cbp = comp.create(textDAT, 'laser_preview_callbacks')
-    cbp.nodeX, cbp.nodeY = 200, -300
-    cbp.text = _PREVIEW_CALLBACKS
     prev = comp.create(scriptTOP, 'laser_preview')
-    prev.nodeX, prev.nodeY = 400, -150
-    safe_set(prev, 'callbacks', cbp.path)
+    prev.nodeX, prev.nodeY = 200, -150
+    _set_callbacks(comp, prev, _PREVIEW_CALLBACKS, 200, -350)
     safe_set_first(prev, ['outputresolution', 'resolution'], 'custom')
     safe_set_first(prev, ['resolutionw', 'resw'], PREVIEW_SIZE)
     safe_set_first(prev, ['resolutionh', 'resh'], PREVIEW_SIZE)
-    # Mismo truco que laser_points: ctrl_tex cambia cada frame, asi el
-    # simulador se redibuja cada frame mientras se esta mirando.
     connect(prev, tex_in)
 
     win = comp.create(windowCOMP, 'laser_window')
-    win.nodeX, win.nodeY = 600, -150
+    win.nodeX, win.nodeY = 400, -150
     safe_set_first(win, ['op', 'operator', 'winop'], prev.path)
     safe_set_first(win, ['opensize', 'size'], 'custom')
     safe_set_first(win, ['winw', 'w'], WINDOW_SIZE)
@@ -121,6 +112,23 @@ def build(proj, show, ctrl_chop, ctrl_tex):
     log('LASER: modulo listo y APAGADO (DAC: {})'.format(
         dac_type or 'ninguno en este build -> solo simulador'))
     return comp
+
+
+def _set_callbacks(comp, script_op, text, x, y):
+    """TD crea solo un DAT de callbacks (con la plantilla por defecto)
+    al crear un Script OP. Se reusa ese mismo DAT y se le pone nuestro
+    texto; crear otro aparte dejaba dos DATs y el de TD sin uso."""
+    dat = None
+    try:
+        dat = script_op.par.callbacks.eval()
+    except Exception:
+        dat = None
+    if dat is None:
+        dat = comp.create(textDAT, script_op.name + '_callbacks')
+        safe_set(script_op, 'callbacks', dat.path)
+    dat.text = text
+    dat.nodeX, dat.nodeY = x, y
+    return dat
 
 
 def _build_dac(comp, pts):
@@ -259,7 +267,7 @@ def cook_points(scriptOp):
             pattern = int(_par(proj, 'Laserpattern', 0))
             img = None
             if laserfx.PATTERNS[pattern % len(laserfx.PATTERNS)] == 'AUTO':
-                down = scriptOp.parent().op('laser_down')
+                down = op('/project1/laser_down')
                 if down is not None:
                     img = down.numpyArray()
             strokes = laserfx.pattern_strokes(
