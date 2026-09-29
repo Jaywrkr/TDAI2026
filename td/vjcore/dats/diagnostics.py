@@ -344,6 +344,15 @@ def update():
     if bool(_par_val('Record')):
         lines.append('')
         lines.append('>> GRABANDO')
+    # Laser: solo si esta en uso -- APAGADO es el caso normal (no siempre
+    # hay laser) y no gasta linea.
+    if int(_par_val('Lasermode')):
+        try:
+            import vjcore.laser as _vjlaser
+            lines.append('')
+            lines.append('>> ' + _vjlaser.status(p))
+        except Exception:
+            pass
 
     # Navegacion: solo se muestra cuando NO esta en el modo por defecto,
     # para no gastar lineas del panel diciendo "todo normal".

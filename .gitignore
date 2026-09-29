@@ -7,3 +7,4 @@ td/config/presets.json
 
 *.whl
 *.tar.gz
+td/config/*.ild

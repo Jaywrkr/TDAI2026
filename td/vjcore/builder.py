@@ -14,7 +14,7 @@ except ImportError:
 import os
 
 from . import (config, audio, control, midi, scenes, program, dashboard, shader,
-              media, keyboard, autopilot)
+              media, keyboard, autopilot, laser, laserfx)
 from .tdutil import (safe_set, safe_expr, safe_mark, add_float, add_int,
                      add_toggle, add_string, add_pulse, log, clear_log,
                      chan_names)
@@ -244,6 +244,33 @@ def _parameters(proj):
     add_string(ou, 'Recordfolder', 'Carpeta de grabacion', '')
     add_pulse(ou, 'Togglerecord', 'Empezar / parar grabacion')
 
+    # --- LASER (ILDA) OPCIONAL ---
+    # No siempre hay laser: por defecto APAGADO y /project1/laser no
+    # cocina (costo cero). SIMULADOR no necesita hardware. SALIDA DAC
+    # ademas necesita 'ARMAR emision', que se desarma solo al arrancar,
+    # con PANICO y al salir del modo SALIDA. Ver docs/52_LASER_ILDA.md.
+    lz = proj.appendCustomPage('Laser')
+    add_int(lz, 'Lasermode', 'Modo laser  ' + _menu_hint(laserfx.MODES),
+            laserfx.MODE_OFF, 0, len(laserfx.MODES) - 1)
+    add_toggle(lz, 'Laserarm', 'ARMAR emision (solo SALIDA DAC)', False)
+    add_int(lz, 'Laserpattern', 'Patron  ' + _menu_hint(laserfx.PATTERNS),
+            0, 0, len(laserfx.PATTERNS) - 1)
+    add_float(lz, 'Laserthreshold', 'AUTO: umbral de brillo a trazar',
+              0.35, 0.05, 0.95)
+    add_float(lz, 'Laserbright', 'Brillo maximo (techo)', 0.5, 0, 1)
+    add_int(lz, 'Laserpoints', 'Puntos maximos por frame', 800, 100, 3000)
+    add_float(lz, 'Lasersize', 'Tamano', 0.8, 0.05, 1.0)
+    add_float(lz, 'Laseroffsetx', 'Posicion X', 0.0, -1, 1)
+    add_float(lz, 'Laseroffsety', 'Posicion Y', 0.0, -1, 1)
+    # Zona permitida: lo que cae fuera se APAGA. Ajustala para que el haz
+    # nunca apunte al publico.
+    add_float(lz, 'Laserzoneleft', 'Zona: izquierda', -1.0, -1, 1)
+    add_float(lz, 'Laserzoneright', 'Zona: derecha', 1.0, -1, 1)
+    add_float(lz, 'Laserzonebottom', 'Zona: abajo', -1.0, -1, 1)
+    add_float(lz, 'Laserzonetop', 'Zona: arriba', 1.0, -1, 1)
+    add_pulse(lz, 'Laserwindow', 'Abrir simulador')
+    add_pulse(lz, 'Laserexport', 'Exportar .ild (5 s)')
+
     # --- FAILSAFE DE VIVO ---
     # No es un lujo: un rig que se cae a mitad del set es peor que uno
     # sin efectos. Degrada SOLO cuando el FPS lleva rato abajo, y en
@@ -437,6 +464,12 @@ def onPulse(par):
         m.mediaRescan()
     elif n == 'Fontnext':
         m.nextFont()
+    elif n == 'Laserwindow':
+        import vjcore.laser as L
+        L.open_simulator(p)
+    elif n == 'Laserexport':
+        import vjcore.laser as L
+        L.start_export(p)
     elif n.startswith('Learn'):
         slot = n[5:]
         for s in m._midi_slots():
@@ -469,6 +502,9 @@ def onValueChange(par, prev):
         ctrl.module.mediaReshuffle()
     elif par.name == 'Mediascrub':
         ctrl.module.mediaScrubSelect(par.val)
+    elif par.name == 'Lasermode':
+        import vjcore.laser as L
+        L.apply_mode(op('/project1'))
     return
 
 
@@ -589,6 +625,9 @@ def build(verbose=True):
     ops = program.build(proj, outs, ctrl_tex, channels)
     dash = dashboard.build(proj, thumbs, ops['bloom'])
 
+    # --- laser opcional: se construye siempre, arranca sin cocinar ---
+    laser.build(proj, ops['show'], ctrl_chop, ctrl_tex)
+
     _mark_setup_nodes(proj, midi_in, dash, ops.get('window'))
 
     # --- error log ---
@@ -697,6 +736,11 @@ def verify(proj, channels):
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))
     check('show_window existe', bool(proj.op('show_window')))
+    lz = proj.op('laser')
+    check('laser (opcional) construido y apagado',
+          bool(lz) and bool(lz.op('laser_points')) and not lz.allowCooking,
+          'DAC: {}'.format((lz.fetch('laser_dac_type', '') if lz else '')
+                           or 'ninguno -> solo simulador'))
     check('Repopath configurado', bool(proj.par.Repopath.eval()),
           proj.par.Repopath.eval())
     check('visuals/ encontrado', os.path.isdir(shader.visuals_dir()),

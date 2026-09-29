@@ -993,6 +993,13 @@ def panic():
             par = getattr(p.par, name, None)
             if par is not None:
                 par.val = False
+        # Laser: desarmar SIEMPRE (el modo queda como estaba, asi el
+        # simulador sigue a la vista, pero no sale nada al DAC).
+        try:
+            import vjcore.laser as L
+            L.disarm(p)
+        except Exception:
+            pass
         abortTransition()
         selectScene(0)
         print('>> PANICO: blackout, escena 0, efectos y modos a cero')
@@ -2259,6 +2266,14 @@ def safeStartup():
 
         if bool(p.par.Safestartblackout.eval()):
             p.par.Blackout = True
+
+        # Laser: nunca arranca armado, aunque se haya guardado asi.
+        try:
+            import vjcore.laser as L
+            L.disarm(p)
+            L.apply_mode(p)
+        except Exception as e:
+            print('safeStartup laser:', e)
 
         loadMidiMap()
         loadPianoRange()
