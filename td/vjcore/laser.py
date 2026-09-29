@@ -61,22 +61,36 @@ def build(proj, show, ctrl_chop, ctrl_tex):
     comp = proj.create(baseCOMP, 'laser')
     comp.nodeX, comp.nodeY = 1760, -400
 
+    # TD no permite cables entre redes distintas: lo que viene de
+    # /project1 entra por Select OPs (igual que ctrl_in en las escenas).
+    # Un connect() directo dejaba laser_down sin input ("Not enough
+    # sources specified") y laser_points/laser_preview sin cocinar.
+    show_in = comp.create(selectTOP, 'laser_show_in')
+    show_in.nodeX, show_in.nodeY = -200, 200
+    safe_set(show_in, 'top', show.path)
+    ctrl_in = comp.create(selectCHOP, 'laser_ctrl_in')
+    ctrl_in.nodeX, ctrl_in.nodeY = 0, 0
+    safe_set_first(ctrl_in, ['chop', 'chops'], ctrl_chop.path)
+    tex_in = comp.create(selectTOP, 'laser_ctrl_tex_in')
+    tex_in.nodeX, tex_in.nodeY = 200, -150
+    safe_set(tex_in, 'top', ctrl_tex.path)
+
     down = comp.create(resolutionTOP, 'laser_down')
     down.nodeX, down.nodeY = 0, 200
     safe_set_first(down, ['outputresolution', 'resolution'], 'custom')
     safe_set_first(down, ['resolutionw', 'resw'], TRACE_W)
     safe_set_first(down, ['resolutionh', 'resh'], TRACE_H)
-    connect(down, show)
+    connect(down, show_in)
 
     cb = comp.create(textDAT, 'laser_points_callbacks')
     cb.nodeX, cb.nodeY = 0, -150
     cb.text = _POINTS_CALLBACKS
     pts = comp.create(scriptCHOP, 'laser_points')
-    pts.nodeX, pts.nodeY = 200, 0
+    pts.nodeX, pts.nodeY = 200, 100
     safe_set(pts, 'callbacks', cb.path)
     # ctrl cambia todos los frames (canal time): tenerlo de input hace
     # que laser_points cocine cada frame mientras alguien lo pida.
-    connect(pts, ctrl_chop)
+    connect(pts, ctrl_in)
 
     cbp = comp.create(textDAT, 'laser_preview_callbacks')
     cbp.nodeX, cbp.nodeY = 200, -300
@@ -89,7 +103,7 @@ def build(proj, show, ctrl_chop, ctrl_tex):
     safe_set_first(prev, ['resolutionh', 'resh'], PREVIEW_SIZE)
     # Mismo truco que laser_points: ctrl_tex cambia cada frame, asi el
     # simulador se redibuja cada frame mientras se esta mirando.
-    connect(prev, ctrl_tex)
+    connect(prev, tex_in)
 
     win = comp.create(windowCOMP, 'laser_window')
     win.nodeX, win.nodeY = 600, -150
