@@ -589,7 +589,7 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     safe_expr(trails_pick, 'index',
               "1 if op('/project1').par.Trails.eval() > 0.005 and "
               "op('/project1/a_level_smooth') is not None and "
-              "op('/project1/a_level_smooth')[0].eval() >= {} else 0"
+              "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {} else 0"
               .format(config.SILENCE_RMS_THRESHOLD))
 
     log('MASTER FX: dos capas + estela (con bypass real por switch) OK')

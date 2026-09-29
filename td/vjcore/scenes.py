@@ -113,7 +113,7 @@ def build_scene(scenes, i, channels):
         # Los GIFs y videos tambien se quedan quietos al pausar el audio.
         safe_expr(media_in, 'play',
                   "op('/project1/a_level_smooth') is not None and "
-                  "op('/project1/a_level_smooth')[0].eval() >= {}"
+                  "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {}"
                   .format(config.SILENCE_RMS_THRESHOLD))
         safe_set_first(media_in, ['cueloop', 'loop'], True)
         connect(glsl, media_in, 1)

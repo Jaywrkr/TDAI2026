@@ -19,6 +19,10 @@ class Value:
 
 
 class Channel:
+    # Imita un CHOP de 1 canal: numChans hace falta porque las expresiones
+    # ahora comprueban que el CHOP tenga canales (audio sin Device = 0).
+    numChans = 1
+
     def __init__(self, value):
         self.value = value
 

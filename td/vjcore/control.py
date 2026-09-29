@@ -34,10 +34,10 @@ from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
 def speed_rate_expression():
     """Tasa del reloj integrado: Speed manda y el bajo suma como maximo 25 %."""
     gate = ("(op('/project1/a_level_smooth') is not None and "
-            "op('/project1/a_level_smooth')[0].eval() >= {})"
+            "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {})"
             .format(config.SILENCE_RMS_THRESHOLD))
     bass = ("max(0.0, min(1.0, "
-            "op('/project1/a_bass_out')[0].eval())) if "
+            "(op('/project1/a_bass_out')[0].eval() if op('/project1/a_bass_out') is not None and op('/project1/a_bass_out').numChans else 0.0))) if "
             "op('/project1/a_bass_out') is not None else 0.0")
     return ("(2.0 * max(0.0, min(1.0, op('/project1').par.Speed.eval())) "
             "* (1.0 + 0.25 * ({}))) "
@@ -73,7 +73,7 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     # Bajo el piso de RMS crudo la velocidad es cero, incluso si el
     # auto-gain llego a levantar ruido residual de una fuente pausada.
     music_gate = ("(op('/project1/a_level_smooth') is not None and "
-                  "op('/project1/a_level_smooth')[0].eval() >= {})"
+                  "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {})"
                   .format(config.SILENCE_RMS_THRESHOLD))
     t_scaled = proj.create(speedCHOP, 'time_scaled')
     t_scaled.nodeX, t_scaled.nodeY = -1400, 60
