@@ -547,6 +547,78 @@ def _mark_setup_nodes(proj, midi_in, dash, show_window):
                           '(SIN VERIFICAR contra hardware real)')
 
 
+
+# ---------------------------------------------------------------
+# DEVICES: sobreviven al rebuild
+# ---------------------------------------------------------------
+# Cada build borra /project1 y lo crea de nuevo, y con eso audio1 perdia
+# el Device de audio elegido: sin audio el reloj queda en 0 (silencio) y
+# NADA baila, por mas que se suba el Master Gain. Ahora se copian los
+# parametros que el usuario toco en estos nodos (el build no les pone
+# ninguno) y se guardan en td/config/devices.json para el proximo
+# arranque de TD tambien.
+DEVICE_NODES = ('audio1', 'midi1', 'midi_out')
+
+
+def _devices_path():
+    return os.path.join(shader.repo_root(), 'config', 'devices.json')
+
+
+def _snapshot_devices(old_proj):
+    snap = {}
+    for name in DEVICE_NODES:
+        node = old_proj.op(name) if old_proj else None
+        if node is None:
+            continue
+        vals = {}
+        for par in node.pars():
+            try:
+                if (par.isDefault or par.readOnly or par.isPulse
+                        or not str(par.mode).endswith('CONSTANT')):
+                    continue
+                v = par.eval()
+                if isinstance(v, (int, float, str, bool)):
+                    vals[par.name] = v
+            except Exception:
+                continue
+        if vals:
+            snap[name] = vals
+    return snap
+
+
+def _load_devices():
+    import json
+    try:
+        with open(_devices_path(), 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_devices(snap):
+    import json
+    try:
+        os.makedirs(os.path.dirname(_devices_path()), exist_ok=True)
+        with open(_devices_path(), 'w', encoding='utf-8') as f:
+            json.dump(snap, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        log('AVISO no pude guardar devices.json: {}'.format(e))
+
+
+def _restore_devices(proj, snap):
+    for name, vals in snap.items():
+        node = proj.op(name)
+        if node is None:
+            continue
+        for pname, v in vals.items():
+            safe_set(node, pname, v)
+        log('DEVICES: {} restaurado ({})'.format(
+            name, ', '.join('{}={}'.format(k, v) for k, v in vals.items()
+                            if 'device' in k.lower() or 'driver' in k.lower())
+            or '{} parametros'.format(len(vals))))
+
+
 # ---------------------------------------------------------------
 # BUILD
 # ---------------------------------------------------------------
@@ -565,6 +637,13 @@ def build(verbose=True):
     root = op('/')
 
     old = root.op('project1')
+    # Devices elegidos a mano (audio, MIDI): del project1 que se va a
+    # borrar, o si no hay, de lo guardado en el arranque anterior.
+    devices = _snapshot_devices(old) if old else {}
+    if devices:
+        _save_devices(devices)
+    else:
+        devices = _load_devices()
     if old:
         old.destroy()
         log('project1 anterior eliminado')
@@ -637,6 +716,7 @@ def build(verbose=True):
         print(traceback.format_exc())
 
     _mark_setup_nodes(proj, midi_in, dash, ops.get('window'))
+    _restore_devices(proj, devices)
 
     # --- error log ---
     err = proj.create(errorDAT, 'system_errors')
@@ -743,6 +823,10 @@ def verify(proj, channels):
             bad.append(i)
     check('{} escenas completas'.format(config.N_SCENES), not bad, 'faltan en {}'.format(bad))
 
+    audio_n = chan_names(proj.op('audio1'))
+    check('audio1 con Device elegido (sin audio NADA baila)', bool(audio_n),
+          '{} canales'.format(len(audio_n)) if audio_n else
+          'elegir Device en /project1/audio1')
     check('ctrl_tex existe', bool(proj.op('ctrl_tex')))
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))

@@ -78,6 +78,13 @@ for name in ('audio.py', 'control.py', 'program.py', 'scenes.py'):
     check('{}: todo op(...)[0].eval() va con guarda de canales'.format(name),
           not raw)
 
+# Rebuild borraba el Device de audio1 -> sin audio nada bailaba.
+b = src('builder.py')
+check('el build guarda y restaura los Devices (audio1, midi1, midi_out)',
+      '_snapshot_devices(old)' in b and '_restore_devices(proj, devices)' in b
+      and "DEVICE_NODES = ('audio1', 'midi1', 'midi_out')" in b)
+check('verify avisa si audio1 no tiene Device', 'audio1 con Device elegido' in b)
+
 print()
 print('TODO OK' if not FAILS else 'FALLARON {}: {}'.format(len(FAILS), FAILS))
 sys.exit(1 if FAILS else 0)
