@@ -626,7 +626,15 @@ def build(verbose=True):
     dash = dashboard.build(proj, thumbs, ops['bloom'])
 
     # --- laser opcional: se construye siempre, arranca sin cocinar ---
-    laser.build(proj, ops['show'], ctrl_chop, ctrl_tex)
+    # Es opcional: si algo falla aca (un OP que este build de TD no
+    # tiene), se avisa y el resto del rig se construye igual.
+    try:
+        laser.build(proj, ops['show'], ctrl_chop, ctrl_tex)
+    except Exception as e:
+        import traceback
+        log('LASER: no se pudo construir ({}: {}) -- el show sigue sin '
+            'laser'.format(type(e).__name__, e))
+        print(traceback.format_exc())
 
     _mark_setup_nodes(proj, midi_in, dash, ops.get('window'))
 
@@ -718,7 +726,8 @@ def verify(proj, channels):
     # inputs, que es lo que romperia el efecto en silencio (un input mal
     # conectado da negro o el frame sin procesar, no un error rojo).
     for name, n_inputs in (('program_blend', 3), ('program_trails', 3),
-                           ('program_pick', 2), ('trails_pick', 2)):
+                           ('program_pick', 2), ('trails_pick', 2),
+                           ('trails_fb', 1)):
         node = proj.op(name)
         check('{} con {} inputs'.format(name, n_inputs),
               bool(node) and len(node.inputs) == n_inputs,

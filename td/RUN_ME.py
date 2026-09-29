@@ -17,9 +17,20 @@ REPO = 'C:/TDAI2026/td'
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 
-import vjcore          # noqa: E402
-vjcore.reload_all()    # recoge cambios en los .py sin reiniciar TD
-vjcore.build()
+# TD solo dice "Exception occurred during run operation" y esconde el
+# error real. Con este try el traceback COMPLETO sale en la Textport
+# (Alt+T / Dialogs > Textport): copia desde "BUILD FALLO" hacia abajo.
+try:
+    import vjcore          # noqa: E402
+    vjcore.reload_all()    # recoge cambios en los .py sin reiniciar TD
+    vjcore.build()
+except Exception:
+    import traceback
+    print('=' * 58)
+    print('BUILD FALLO -- copia desde aqui:')
+    traceback.print_exc()
+    print('=' * 58)
+    raise
 
 
 # ================================================================

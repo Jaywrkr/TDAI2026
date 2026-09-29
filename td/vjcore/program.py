@@ -568,6 +568,12 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     safe_set_first(fb, ['top', 'targettop', 'target'], trails.path)
     safe_set_first(fb, ['format', 'pixelformat'], 'rgba16float')
 
+    # El Feedback TOP necesita un INPUT propio ademas del 'Target TOP':
+    # sin el da "Not enough sources specified" y la estela sale negra.
+    # Ese input es la imagen con la que arranca (y a la que vuelve con
+    # Reset); se usa el mismo program_clean, que ademas le da resolucion
+    # y formato correctos desde el primer frame.
+    connect(fb, clean, 0)
     connect(trails, clean, 0)
     connect(trails, fb, 1)
     connect(trails, ctrl_tex, 2)

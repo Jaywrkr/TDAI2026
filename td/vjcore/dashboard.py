@@ -348,7 +348,13 @@ def build_beat_light(dash, x, y, h):
     safe_set(box, 'w', h)
     safe_set(box, 'h', h)
     safe_set(box, 'opacity', 1)
-    expr = "max(0.05, min(1.0, op('/project1/ctrl')['beat'][0]))"
+    # El canal puede no existir todavia (primer cook del build, antes de
+    # que ctrl cocine, o audio sin conectar): op(...)['beat'] da None y
+    # '[0]' tiraba "TypeError: 'NoneType' object is not subscriptable".
+    # Con la guarda queda apagado (0.05) hasta que el canal aparece.
+    expr = ("max(0.05, min(1.0, op('/project1/ctrl')['beat'].eval() "
+            "if op('/project1/ctrl') is not None "
+            "and op('/project1/ctrl')['beat'] is not None else 0.0))")
     for p in ('bgcolorr', 'bgcolorg', 'bgcolorb'):
         safe_expr(box, p, expr)
 
