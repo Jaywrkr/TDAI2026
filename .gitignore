@@ -8,3 +8,4 @@ td/config/presets.json
 *.whl
 *.tar.gz
 td/config/*.ild
+td/config/devices.json
