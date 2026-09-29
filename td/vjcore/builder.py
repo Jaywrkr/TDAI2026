@@ -253,8 +253,10 @@ def _parameters(proj):
     add_int(lz, 'Lasermode', 'Modo laser  ' + _menu_hint(laserfx.MODES),
             laserfx.MODE_OFF, 0, len(laserfx.MODES) - 1)
     add_toggle(lz, 'Laserarm', 'ARMAR emision (solo SALIDA DAC)', False)
+    # Por defecto CIRCULO (1), no AUTO (0): AUTO tiene que leer la imagen
+    # del show desde la GPU y es el modo mas caro.
     add_int(lz, 'Laserpattern', 'Patron  ' + _menu_hint(laserfx.PATTERNS),
-            0, 0, len(laserfx.PATTERNS) - 1)
+            1, 0, len(laserfx.PATTERNS) - 1)
     add_float(lz, 'Laserthreshold', 'AUTO: umbral de brillo a trazar',
               0.35, 0.05, 0.95)
     add_float(lz, 'Laserbright', 'Brillo maximo (techo)', 0.5, 0, 1)
@@ -839,9 +841,7 @@ def verify(proj, channels):
     ld = proj.op('laser_down')
     check('laser_down conectado a show_out', bool(ld) and len(ld.inputs) == 1)
     for name in ('laser_points', 'laser_preview'):
-        node = lz.op(name) if lz else None
-        check('laser/{} con input'.format(name),
-              bool(node) and len(node.inputs) == 1)
+        check('laser/{} existe'.format(name), bool(lz and lz.op(name)))
     check('Repopath configurado', bool(proj.par.Repopath.eval()),
           proj.par.Repopath.eval())
     check('visuals/ encontrado', os.path.isdir(shader.visuals_dir()),

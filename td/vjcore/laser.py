@@ -73,20 +73,15 @@ def build(proj, show, ctrl_chop, ctrl_tex):
     safe_set_first(down, ['resolutionh', 'resh'], TRACE_H)
     connect(down, show)
 
-    # ctrl y ctrl_tex entran al COMP por Select (como ctrl_in en las
-    # escenas). Cambian todos los frames, asi que tenerlos de input hace
-    # que los Script OPs cocinen cada frame mientras alguien los mire.
-    ctrl_in = comp.create(selectCHOP, 'laser_ctrl_in')
-    ctrl_in.nodeX, ctrl_in.nodeY = 0, 100
-    safe_set_first(ctrl_in, ['chop', 'chops'], ctrl_chop.path)
-    tex_in = comp.create(selectTOP, 'laser_ctrl_tex_in')
-    tex_in.nodeX, tex_in.nodeY = 0, -150
-    safe_set(tex_in, 'top', ctrl_tex.path)
-
+    # Los Script OPs NO tienen inputs a proposito: con ctrl de input
+    # cocinaban en CADA frame (Python a 60 fps) y hundian el FPS del show.
+    # Ahora los cocina un reloj propio (tick) a un ritmo fijo: el frame
+    # laser a ~30 Hz y el simulador a ~15 Hz. Un galvo redibuja cada
+    # figura miles de veces por segundo por su cuenta; mandarle una figura
+    # nueva 30 veces por segundo sobra.
     pts = comp.create(scriptCHOP, 'laser_points')
     pts.nodeX, pts.nodeY = 200, 100
     _set_callbacks(comp, pts, _POINTS_CALLBACKS, 200, 300)
-    connect(pts, ctrl_in)
 
     prev = comp.create(scriptTOP, 'laser_preview')
     prev.nodeX, prev.nodeY = 200, -150
@@ -94,7 +89,6 @@ def build(proj, show, ctrl_chop, ctrl_tex):
     safe_set_first(prev, ['outputresolution', 'resolution'], 'custom')
     safe_set_first(prev, ['resolutionw', 'resw'], PREVIEW_SIZE)
     safe_set_first(prev, ['resolutionh', 'resh'], PREVIEW_SIZE)
-    connect(prev, tex_in)
 
     win = comp.create(windowCOMP, 'laser_window')
     win.nodeX, win.nodeY = 400, -150
@@ -184,7 +178,59 @@ def apply_mode(proj):
     comp.allowCooking = mode != laserfx.MODE_OFF
     if mode != laserfx.MODE_DAC:
         safe_set(proj, 'Laserarm', False)
+    if mode != laserfx.MODE_OFF:
+        start_loop()
     log('LASER: modo {}'.format(laserfx.MODES[mode]))
+
+
+# Cada cuantos frames del show se recalcula cada cosa. A 60 fps:
+# puntos cada 2 = 30 Hz; trazado AUTO cada 4 = 15 Hz; simulador cada 4
+# con la ventana abierta (15 Hz) o cada 12 si solo se mira el nodo.
+POINTS_EVERY = 2
+TRACE_EVERY = 4
+PREVIEW_EVERY = 4
+PREVIEW_EVERY_CLOSED = 12
+
+
+def start_loop():
+    _STATE['token'] = _STATE.get('token', 0) + 1
+    _STATE['tick'] = 0
+    run('import vjcore.laser as _L; _L.tick({})'.format(_STATE['token']),
+        delayFrames=1)
+
+
+def tick(token):
+    """Reloj del laser: se reagenda solo mientras el modo no sea
+    APAGADO. Un token nuevo (start_loop) mata al anterior, asi nunca
+    corren dos relojes a la vez."""
+    if token != _STATE.get('token'):
+        return
+    proj = op('/project1')
+    if proj is None or _mode(proj) == laserfx.MODE_OFF:
+        return
+    k = _STATE.get('tick', 0)
+    _STATE['tick'] = k + 1
+    try:
+        comp = proj.op('laser')
+        if k % POINTS_EVERY == 0:
+            pts = comp.op('laser_points')
+            if pts is not None:
+                pts.cook(force=True)
+        win = comp.op('laser_window')
+        is_open = False
+        try:
+            is_open = bool(win.isOpen) if win is not None else False
+        except Exception:
+            is_open = False
+        every = PREVIEW_EVERY if is_open else PREVIEW_EVERY_CLOSED
+        if k % every == 0:
+            prev = comp.op('laser_preview')
+            if prev is not None:
+                prev.cook(force=True)
+    except Exception as e:
+        print('LASER tick ERROR:', e)
+    run('import vjcore.laser as _L; _L.tick({})'.format(token),
+        delayFrames=1)
 
 
 def disarm(proj):
@@ -261,17 +307,15 @@ def cook_points(scriptOp):
     try:
         if proj is not None and _mode(proj) != laserfx.MODE_OFF:
             c = {}
-            if scriptOp.inputs:
-                for ch in scriptOp.inputs[0].chans():
+            ctrl = op('/project1/ctrl')
+            if ctrl is not None:
+                for ch in ctrl.chans():
                     c[ch.name] = ch.eval()
-            pattern = int(_par(proj, 'Laserpattern', 0))
-            img = None
+            pattern = int(_par(proj, 'Laserpattern', 1))
             if laserfx.PATTERNS[pattern % len(laserfx.PATTERNS)] == 'AUTO':
-                down = op('/project1/laser_down')
-                if down is not None:
-                    img = down.numpyArray()
-            strokes = laserfx.pattern_strokes(
-                pattern, c, img, float(_par(proj, 'Laserthreshold', 0.35)))
+                strokes = _auto_strokes(proj)
+            else:
+                strokes = laserfx.pattern_strokes(pattern, c)
             frame = laserfx.finalize(strokes, options(proj))
             _capture(frame)
     except Exception as e:
@@ -293,11 +337,31 @@ def cook_points(scriptOp):
         ch.vals = [float(v) for v in out[name]]
 
 
+def _auto_strokes(proj):
+    """Trazado de la escena, recalculado solo cada TRACE_EVERY cocciones
+    y con lectura DIFERIDA de la GPU: numpyArray() normal obliga a la GPU
+    a terminar el frame y esperar la copia (ese era el bajon de FPS);
+    delayed=True entrega la del frame anterior sin frenar nada."""
+    n = _STATE.get('trace_n', 0)
+    _STATE['trace_n'] = n + 1
+    cached = _STATE.get('trace_strokes')
+    if cached is not None and n % max(1, TRACE_EVERY // POINTS_EVERY):
+        return cached
+    down = op('/project1/laser_down')
+    img = None
+    if down is not None:
+        try:
+            img = down.numpyArray(delayed=True)
+        except TypeError:
+            img = down.numpyArray()
+    strokes = laserfx.trace_image(
+        img, float(_par(proj, 'Laserthreshold', 0.35))) if img is not None else []
+    _STATE['trace_strokes'] = strokes
+    return strokes
+
+
 def cook_preview(scriptOp):
     proj = op('/project1')
-    pts = scriptOp.parent().op('laser_points')
-    if pts is not None:
-        pts.cook()          # asegura el frame de ESTE ciclo
     frame = _STATE.get('frame') or laserfx.empty_frame()
     zone = options(proj)['zone'] if proj is not None else None
     img = laserfx.render_preview(frame, PREVIEW_SIZE, True, zone)

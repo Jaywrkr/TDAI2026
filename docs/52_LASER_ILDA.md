@@ -6,6 +6,23 @@ El láser es un módulo que se enciende y se apaga. **No siempre hay láser**, a
 
 *Simulador: AUTO (trazado de la escena), CÍRCULO, LISSAJOUS, TÚNEL y ONDA. Se genera con `td/tools/preview_laser.py`, sin TouchDesigner y sin hardware.*
 
+## Qué es lo que ves en el simulador
+
+Un láser de show **no proyecta el video**. Proyecta **un punto de luz** que dos espejos (galvos) mueven miles de veces por segundo; el ojo lo ve como **líneas**. El simulador dibuja esas líneas tal como las vería el público:
+
+- **Sobre una pared o pantalla:** la figura aparece dibujada en esa superficie, como en el simulador.
+- **En el aire con humo (haze):** se ven los **haces** saliendo del equipo hacia la figura. La forma es la misma; el humo hace visible el recorrido.
+
+El recuadro del simulador es **todo lo que el láser puede alcanzar** (su ángulo de apertura). Tamaño, Posición y Zona recortan ese campo: si el láser apunta a una pared, la zona es la parte de la pared donde se permite dibujar.
+
+**Dos láseres:** cada uno necesita su propia interfaz (DAC) y su propia salida. Hoy el rig maneja **uno**; con dos, cada uno podría llevar un patrón distinto (por ejemplo, Túnel a la izquierda y Onda a la derecha) o el mismo en espejo. Se agrega cuando tengas el equipo, porque depende del DAC que compres.
+
+## Rendimiento
+
+El láser corre con **su propio reloj**, no en cada frame del show: calcula la figura a unos **30 Hz** y el simulador a **15 Hz** con la ventana abierta (5 Hz si solo miras el nodo). Un láser redibuja cada figura miles de veces por segundo por su cuenta, así que mandarle una figura nueva 30 veces por segundo sobra.
+
+El patrón **AUTO** es el más caro: tiene que leer la imagen del show desde la GPU. Por eso ya **no es el patrón por defecto** (ahora es CÍRCULO), y cuando lo usas lee la imagen en diferido para no frenar el frame.
+
 ## Los tres modos
 
 `/project1` → pestaña **Laser** → **Modo laser**
@@ -63,11 +80,12 @@ Estas reglas se aplican siempre, también en el simulador. Así lo que ves en el
 ## Cómo está armado
 
 ```
-/project1/laser   (COMP: allowCooking = Modo laser != APAGADO)
-  show_out ─> laser_down (96×54) ─┐
-  /project1/ctrl ────────────────> laser_points (Script CHOP: x y r g b) ─> laser_dac
-  ctrl_tex ─> laser_preview (Script TOP) <─ último frame ─┘
-                   └─> laser_window (ventana del simulador)
+/project1
+  show_out ─> laser_down (96×54)      (solo lo lee el patrón AUTO)
+  /project1/laser   (COMP: allowCooking = Modo laser != APAGADO)
+    laser_points (Script CHOP: x y r g b) ─> laser_dac
+    laser_preview (Script TOP) ─> laser_window (ventana del simulador)
+    Sin cables de entrada: los cocina laser.tick() cada 2 y cada 4 frames.
 ```
 
 - `vjcore/laserfx.py`: patrones, trazado, seguridad, simulador y escritor/lector `.ild`. Es Python puro y está probado fuera de TD.

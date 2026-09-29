@@ -71,8 +71,17 @@ def main():
           "proj.create(resolutionTOP, 'laser_down')" in lz
           and 'connect(down, show)' in lz
           and "op('/project1/laser_down')" in lz)
-    check('ctrl/ctrl_tex entran al COMP por Select',
-          'connect(pts, ctrl_in)' in lz and 'connect(prev, tex_in)' in lz)
+    check('Script OPs sin inputs: no cocinan cada frame del show',
+          'connect(pts,' not in lz and 'connect(prev,' not in lz)
+    check('reloj propio: puntos cada 2 frames, simulador cada 4 (o 12)',
+          'POINTS_EVERY = 2' in lz and 'PREVIEW_EVERY = 4' in lz
+          and 'PREVIEW_EVERY_CLOSED = 12' in lz and 'def tick(token)' in lz)
+    check('un solo reloj a la vez (token)',
+          "if token != _STATE.get('token'):" in lz)
+    check('AUTO lee la GPU en diferido (sin frenar el frame)',
+          'numpyArray(delayed=True)' in lz)
+    check('patron por defecto no es AUTO (el mas caro)',
+          "1, 0, len(laserfx.PATTERNS) - 1)" in b)
     check('se reusa el DAT de callbacks que crea TD',
           'script_op.par.callbacks.eval()' in lz)
     cs = src('vjcore', 'dats', 'control_script.py')
