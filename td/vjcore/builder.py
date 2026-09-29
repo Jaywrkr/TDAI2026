@@ -718,7 +718,8 @@ def verify(proj, channels):
     # inputs, que es lo que romperia el efecto en silencio (un input mal
     # conectado da negro o el frame sin procesar, no un error rojo).
     for name, n_inputs in (('program_blend', 3), ('program_trails', 3),
-                           ('program_pick', 2), ('trails_pick', 2)):
+                           ('program_pick', 2), ('trails_pick', 2),
+                           ('trails_fb', 1)):
         node = proj.op(name)
         check('{} con {} inputs'.format(name, n_inputs),
               bool(node) and len(node.inputs) == n_inputs,
