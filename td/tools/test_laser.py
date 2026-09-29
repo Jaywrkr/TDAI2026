@@ -67,6 +67,10 @@ def main():
           in lz)
     check('sin CHOP de DAC en este build -> se sigue (no aborta el build)',
           'g.get(type_name)' in lz and 'return None, None' in lz)
+    check('entradas de /project1 por Select (sin cables entre redes)',
+          'connect(down, show_in)' in lz and 'connect(pts, ctrl_in)' in lz
+          and 'connect(prev, tex_in)' in lz
+          and 'connect(down, show)' not in lz)
     cs = src('vjcore', 'dats', 'control_script.py')
     panic = cs[cs.index('def panic():'):cs.index('def toggleRecord():')]
     check('PANICO desarma el laser', 'L.disarm(p)' in panic)
