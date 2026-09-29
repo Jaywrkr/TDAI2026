@@ -487,11 +487,13 @@ Un visual muy minimalista y abstracto. Pocas formas, mucho espacio. Efecto medit
 
 ## 🎹 Cómo Usar el Piano
 
+> **Actualización para escenas 58–97:** esta tabla nació como guía de diseño y varias filas de las escenas recientes describen el visual o el antiguo anillo, no la respuesta actual de la tecla. En el código vigente el footer reparte **seis gestos de geometría**, más trazo y luz, según el índice de escena. El próximo trabajo revisará la variante de torsión porque el usuario percibe un twirl. Véase [el relevo vigente](51_SPEED_Y_BAILE.md).
+
 ### Tocar Normalmente
 1. Presiona cualquier tecla de F1 a C3
-2. Aparece un anillo de luz que marca tu posición en la pantalla
-3. La **posición** del anillo (izquierda-derecha) depende de cuál tecla tocas
-4. La **intensidad** del anillo depende de la **velocidad** (fuerza) con que toqués
+2. En escenas antiguas aparece un anillo; en las 58–97 aparece uno de seis gestos de geometría con un trazo y luz breve
+3. La **posición** del gesto depende de cuál tecla tocas
+4. La **intensidad** depende de la **velocidad** (fuerza) con que toqués
 5. Cada tecla es un golpe: se dispara al tocar y se apaga solo (~0.35 s)
 
 ### Qué hace el piano en cada visual
