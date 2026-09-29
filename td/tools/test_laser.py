@@ -67,10 +67,14 @@ def main():
           in lz)
     check('sin CHOP de DAC en este build -> se sigue (no aborta el build)',
           'g.get(type_name)' in lz and 'return None, None' in lz)
-    check('entradas de /project1 por Select (sin cables entre redes)',
-          'connect(down, show_in)' in lz and 'connect(pts, ctrl_in)' in lz
-          and 'connect(prev, tex_in)' in lz
-          and 'connect(down, show)' not in lz)
+    check('laser_down en /project1 con cable directo a show_out',
+          "proj.create(resolutionTOP, 'laser_down')" in lz
+          and 'connect(down, show)' in lz
+          and "op('/project1/laser_down')" in lz)
+    check('ctrl/ctrl_tex entran al COMP por Select',
+          'connect(pts, ctrl_in)' in lz and 'connect(prev, tex_in)' in lz)
+    check('se reusa el DAT de callbacks que crea TD',
+          'script_op.par.callbacks.eval()' in lz)
     cs = src('vjcore', 'dats', 'control_script.py')
     panic = cs[cs.index('def panic():'):cs.index('def toggleRecord():')]
     check('PANICO desarma el laser', 'L.disarm(p)' in panic)

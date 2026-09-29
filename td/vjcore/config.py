@@ -14,6 +14,11 @@ import math
 # sacarlas), y el resto se renumero para cerrar los huecos.
 N_SCENES = 98
 
+# Se imprime al final de cada build (VERIFICACION). Si no coincide con el
+# ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
+# text1 y que la carpeta tenga la rama actualizada.
+BUILD_TAG = 'laser-v4 2026-09-29'
+
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
 # del GLSL TOP. El resto de las escenas jamas referencia sTD2DInputs[1]
