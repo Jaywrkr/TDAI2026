@@ -1,6 +1,6 @@
 # Speed, Detail y movimiento con la música
 
-La perilla **Speed** decide la velocidad base: en 0 el reloj no avanza, en 0.5 va a media velocidad y en 1 llega al máximo. Mientras hay música, el bajo suavizado puede sumarle hasta un 25 % de esa velocidad. El bajo no decide si el reloj avanza o se detiene. Si el medidor de entrada está bajo el umbral de silencio, el reloj queda en cero.
+La perilla **Speed** es el **piso** de la velocidad: en 0 el reloj no avanza, en 0.5 corre a media velocidad y en 1 al máximo, **haya música o no**. El bajo suavizado solo **suma** encima, hasta un 50 % más de esa base (`config.BASS_SPEED_BOOST`); nunca la baja. Antes el reloj se detenía cuando el nivel de entrada rozaba el umbral de silencio, y se veía como "para, se mueve, para", como si fuera a 2 fps. Esa compuerta ya no toca el reloj: solo decide si las escenas deforman con el audio (`uMusic`), y se sostiene 2 s después del último sonido (`config.MUSIC_HOLD_SECONDS`) para que un hueco entre frases no corte el baile de golpe.
 
 Las escenas **58–97** ya no vuelven a multiplicar `uTime` por `uSpeed`. Ese doble factor hacía que el punto medio de la perilla se moviera mucho menos que a media velocidad. Cada escena conserva su ritmo propio como un factor constante de `uTime`.
 

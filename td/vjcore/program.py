@@ -586,11 +586,13 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     # Umbral, no "> 0": una perilla fisica rara vez queda clavada en cero
     # exacto, y sin umbral la estela quedaria cocinando para siempre por
     # un 0.003 que no se ve.
+    # music_hold (control.py) y no el RMS crudo: con el crudo, la estela
+    # se prendia y apagaba cada vez que el nivel rozaba el piso.
     safe_expr(trails_pick, 'index',
               "1 if op('/project1').par.Trails.eval() > 0.005 and "
-              "op('/project1/a_level_smooth') is not None and "
-              "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {} else 0"
-              .format(config.SILENCE_RMS_THRESHOLD))
+              "(op('/project1/music_hold')[0].eval() if "
+              "op('/project1/music_hold') is not None and "
+              "op('/project1/music_hold').numChans else 0.0) >= 0.5 else 0")
 
     log('MASTER FX: dos capas + estela (con bypass real por switch) OK')
     return {'blend': blend, 'pick': pick, 'clean': clean,

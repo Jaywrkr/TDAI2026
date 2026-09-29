@@ -32,16 +32,17 @@ from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
 
 
 def speed_rate_expression():
-    """Tasa del reloj integrado: Speed manda y el bajo suma como maximo 25 %."""
-    gate = ("(op('/project1/a_level_smooth') is not None and "
-            "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {})"
-            .format(config.SILENCE_RMS_THRESHOLD))
+    """Tasa del reloj: Speed es el PISO y el bajo solo suma encima.
+
+    Speed 0.5 -> el reloj corre SIEMPRE a 1.0 (media velocidad), haya
+    musica o no. El bajo suavizado lo sube hasta +BASS_SPEED_BOOST de esa
+    base, nunca lo baja. Sin compuerta de silencio: esa compuerta era la
+    que hacia "para, se mueve, para" cuando el RMS rozaba el piso.
+    """
     bass = ("max(0.0, min(1.0, "
-            "(op('/project1/a_bass_out')[0].eval() if op('/project1/a_bass_out') is not None and op('/project1/a_bass_out').numChans else 0.0))) if "
-            "op('/project1/a_bass_out') is not None else 0.0")
-    return ("(2.0 * max(0.0, min(1.0, op('/project1').par.Speed.eval())) "
-            "* (1.0 + 0.25 * ({}))) "
-            "if {} else 0.0".format(bass, gate))
+            "(op('/project1/a_bass_out')[0].eval() if op('/project1/a_bass_out') is not None and op('/project1/a_bass_out').numChans else 0.0)))")
+    return ("2.0 * max(0.0, min(1.0, op('/project1').par.Speed.eval())) "
+            "* (1.0 + {} * {})".format(config.BASS_SPEED_BOOST, bass))
 
 
 def build(proj, audio_chop, key_chop=None, fx_chop=None):
@@ -65,15 +66,9 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     # --- tiempo ---
     # 'time' avanza ya escalado por Speed. Se integra, asi que mover Speed
     # NO produce saltos de fase en los visuales (problema clasico de usar
-    # absTime.seconds * Speed directamente).
-    #
-    # Speed elige la velocidad BASE lineal: 0 quieto, 0.5 media velocidad,
-    # 1 velocidad maxima. El bajo SUAVIZADO solo agrega hasta un 25 % de
-    # la base. Asi la perilla siempre manda y el kick no frena el reloj.
-    # Bajo el piso de RMS crudo la velocidad es cero, incluso si el
-    # auto-gain llego a levantar ruido residual de una fuente pausada.
-    music_gate = ("(op('/project1/a_level_smooth') is not None and "
-                  "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {})"
+    # absTime.seconds * Speed directamente). Speed es el piso: ver
+    # speed_rate_expression().
+    music_gate = ("((op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {})"
                   .format(config.SILENCE_RMS_THRESHOLD))
     t_scaled = proj.create(speedCHOP, 'time_scaled')
     t_scaled.nodeX, t_scaled.nodeY = -1400, 60
@@ -84,23 +79,30 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     safe_set(t_scaled_n, 'renameto', 'time')
     connect(t_scaled_n, t_scaled)
 
+    # Tiempo real: corre siempre (sin compuerta), como un reloj de pared.
     t_real = proj.create(speedCHOP, 'time_real')
     t_real.nodeX, t_real.nodeY = -1400, -60
-    safe_expr(t_real, 'speed', '1.0 if {} else 0.0'.format(music_gate))
+    safe_set(t_real, 'speed', 1.0)
     t_real_n = proj.create(renameCHOP, 'time_real_named')
     t_real_n.nodeX, t_real_n.nodeY = -1240, -60
     safe_set(t_real_n, 'renamefrom', '*')
     safe_set(t_real_n, 'renameto', 'rtime')
     connect(t_real_n, t_real)
 
-    # Compuerta explicita para la deformacion de audio del shader. Los
-    # envelopes pueden tardar unas decimas en caer al pausar una fuente;
-    # este canal corta el movimiento en cuanto cierra el RMS crudo.
-    music = proj.create(constantCHOP, 'music_gate')
-    music.nodeX, music.nodeY = -1400, -180
-    safe_set_first(music, ['const0name', 'name0'], 'music')
-    safe_expr_first(music, ['const0value', 'value0'],
+    # Compuerta de la deformacion de audio de las escenas (uMusic). Abre
+    # al instante con sonido y se SOSTIENE MUSIC_HOLD_SECONDS al callar:
+    # un hueco corto entre frases ya no corta el baile de golpe.
+    music_raw = proj.create(constantCHOP, 'music_gate')
+    music_raw.nodeX, music_raw.nodeY = -1400, -180
+    safe_set_first(music_raw, ['const0name', 'name0'], 'music')
+    safe_expr_first(music_raw, ['const0value', 'value0'],
                     '1.0 if {} else 0.0'.format(music_gate))
+    music = proj.create(lagCHOP, 'music_hold')
+    music.nodeX, music.nodeY = -1240, -180
+    safe_set(music, 'lag1', 0.0)
+    safe_set(music, 'lag2', config.MUSIC_HOLD_SECONDS)
+    safe_set_first(music, ['lagmethod', 'method'], 'slew')
+    connect(music, music_raw)
 
     # --- merge ---
     merge = proj.create(mergeCHOP, 'ctrl_merge')

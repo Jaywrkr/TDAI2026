@@ -125,6 +125,17 @@ DEFAULT_RENDER_SCALE = 0.75
 # el reloj visual y se cierra el detector de kick: el ruido residual de una
 # fuente en pausa no debe mover ninguna escena.
 SILENCE_RMS_THRESHOLD = 0.005
+# El reloj de los visuales YA NO se congela con este piso (pedido
+# explicito: "si Speed esta en 50 %, no puede bajar de 50 %"). Con la
+# compuerta, cada vez que el RMS rozaba el piso -- entre frases, en una
+# parte suave, con la entrada baja -- el reloj se detenia y arrancaba y
+# se veia como si fuera a 2 fps. Ahora Speed es el PISO y el bajo solo
+# suma encima, hasta este porcentaje de la base:
+BASS_SPEED_BOOST = 0.5
+# La compuerta de musica (uMusic, deformacion de audio de las escenas)
+# sigue existiendo, pero se mantiene abierta este tiempo despues del
+# ultimo sonido, asi un hueco corto no corta el baile de golpe.
+MUSIC_HOLD_SECONDS = 2.0
 # Escenas de lineas muy finas (1-2 px): a menos resolucion se ablandan de
 # forma visible, asi que se calculan SIEMPRE a resolucion completa.
 # 23 web, 33 tormenta (rayos), 39 laseres, 41 red.

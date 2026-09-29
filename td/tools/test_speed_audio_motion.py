@@ -45,19 +45,25 @@ def rate(speed, bass, rms):
                 {'op': ops.get, 'max': max, 'min': min})
 
 
+# Speed es el PISO: nunca baja por silencio ni por un hueco entre
+# frases (antes el reloj se congelaba bajo el piso de RMS y se veia
+# "para, se mueve, para"). El bajo solo suma, hasta BASS_SPEED_BOOST.
+boost = config.BASS_SPEED_BOOST
 threshold = config.SILENCE_RMS_THRESHOLD
 for speed, bass, rms, expected in [
         (0.0, 0.0, threshold * 2, 0.0),
         (0.0, 1.0, threshold * 2, 0.0),
         (0.5, 0.0, threshold * 2, 1.0),
-        (0.5, 1.0, threshold * 2, 1.25),
+        (0.5, 1.0, threshold * 2, 1.0 * (1 + boost)),
         (1.0, 0.0, threshold * 2, 2.0),
-        (1.0, 1.0, threshold * 2, 2.5),
-        (1.0, 1.0, threshold * 0.5, 0.0),
-        (0.5, 0.5, threshold * 2, 1.125)]:
+        (1.0, 1.0, threshold * 2, 2.0 * (1 + boost)),
+        (0.5, 0.0, 0.0, 1.0),             # silencio: sigue a media velocidad
+        (1.0, 1.0, threshold * 0.5, 2.0 * (1 + boost)),
+        (0.5, 0.5, threshold * 2, 1.0 * (1 + boost * 0.5))]:
     actual = rate(speed, bass, rms)
     assert math.isclose(actual, expected, abs_tol=1e-9), (
         speed, bass, rms, actual, expected)
+    assert actual >= 2.0 * speed - 1e-9, 'Speed tiene que ser el piso'
 
 new = [shader.read_body(i)[0] for i in range(58, config.N_SCENES)]
 assert len(new) == 40
@@ -69,4 +75,4 @@ assert '#define uD1        _ctrl(32)' in old_header
 assert '#define uMusic     _ctrl(44)' in recent_header
 assert '#define uBass      (_ctrl(6) * uMusic)' in recent_header
 assert 'audioDanceUV(renderUV)' in shader._FOOTER
-print('Speed 0/0.5/1, bajo +25 %, silencio y 40 escenas: TODO OK')
+print('Speed es el piso, el bajo solo suma, y 40 escenas: TODO OK')
