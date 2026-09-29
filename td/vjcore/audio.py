@@ -156,7 +156,7 @@ def _envelope(proj, src, name, x, y, smooth, gain_par, amount_par=None):
     if amount_par:
         parts.append("op('/project1').par.{}.eval()".format(amount_par))
     parts.append("op('/project1').par.Audioamount.eval()")
-    parts.append("(1.0 if op('/project1/a_level_smooth')[0].eval() >= {} else 0.0)"
+    parts.append("(1.0 if (op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {} else 0.0)"
                  .format(config.SILENCE_RMS_THRESHOLD))
     safe_expr(mt, 'gain', ' * '.join(parts))
     safe_set(mt, 'clamplow', True)
@@ -275,7 +275,7 @@ def build(proj):
     # la fuente esta pausada no puede disparar Beat ni el pump del bloom.
     safe_expr(kick_raw, 'gain',
               "op('/project1').par.Kickgain.eval() if "
-              "op('/project1/a_level_smooth')[0].eval() >= {} else 0.0"
+              "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {} else 0.0"
               .format(config.SILENCE_RMS_THRESHOLD))
     safe_set(kick_raw, 'clamplow', True)
     safe_set(kick_raw, 'clamphigh', True)

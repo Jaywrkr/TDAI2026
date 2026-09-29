@@ -41,6 +41,43 @@ dash = src('dashboard.py')
 check('beat_light protegido si falta el canal beat',
       "['beat'] is not None" in dash)
 
+# Audio sin Device elegido: a_level_smooth existe pero con 0 canales, y
+# op(...)[0] da None -> "'NoneType' object has no attribute 'eval'" en
+# time_scaled, time_real y music_gate.
+sys.path.insert(0, TD)
+from vjcore import control  # noqa: E402
+
+
+class _Par:
+    def eval(self):
+        return 0.5
+
+
+class _Proj:
+    class par:
+        Speed = _Par()
+
+
+class _Empty:
+    numChans = 0
+
+    def __getitem__(self, i):
+        return None
+
+
+ops = {'/project1': _Proj(), '/project1/a_level_smooth': _Empty(),
+       '/project1/a_bass_out': _Empty()}
+try:
+    v = eval(control.speed_rate_expression(),
+             {'op': ops.get, 'max': max, 'min': min})
+    check('Speed sin audio conectado -> 0 (no error)', v == 0.0)
+except Exception as e:
+    check('Speed sin audio conectado -> 0 (no error): {}'.format(e), False)
+for name in ('audio.py', 'control.py', 'program.py', 'scenes.py'):
+    raw = re.findall(r"op\('[^']+'\)\[0\]\.eval\(\)(?! if)", src(name))
+    check('{}: todo op(...)[0].eval() va con guarda de canales'.format(name),
+          not raw)
+
 print()
 print('TODO OK' if not FAILS else 'FALLARON {}: {}'.format(len(FAILS), FAILS))
 sys.exit(1 if FAILS else 0)
