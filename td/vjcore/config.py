@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'laminas-v8 2026-10-20'
+BUILD_TAG = 'noche-v9 2026-10-20'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -293,6 +293,11 @@ CTRL_CHANNELS = [
     'groove',   # 42 hay bombo sonando ahora (0..1, cae en ~0.8 s sin golpes)
     'audioamt', # 43 perilla Audio: profundidad del pump
     'music',    # 44 compuerta de RMS crudo: 1 con musica, 0 en silencio
+    # NOCHE: avance de la fiesta 0..1 (22:00 -> 05:30 por defecto). Lo
+    # calcula diagnostics.updateNight() con el reloj de la maquina, o sale
+    # de la perilla manual. El kit de Halloween lo usa para que todo se
+    # ponga mas oscuro, mas gore y con mas fuego a medida que pasa la noche.
+    'night',    # 45
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -332,6 +337,7 @@ PAR_CHANNELS = [
     ('Detail5', 'd5'),
     ('Detail6', 'd6'),
     ('Audioamount', 'audioamt'),
+    ('Nochevalor', 'night'),
 ]
 
 # ---------------------------------------------------------------

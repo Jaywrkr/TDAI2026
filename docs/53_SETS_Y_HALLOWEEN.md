@@ -151,6 +151,26 @@ En NILA la pared llega a unos 2,7 m y la gente tapa la parte de abajo. Para una 
 
 Después de cambiar el formato hay que **Reconstruir Todo**.
 
+## La noche: más oscuro y más gore con la hora
+
+La fiesta va de las 22:00 a las 05:30 y el set acompaña. El canal `night` (0..1) sale del reloj de la máquina y lo usa el kit de Halloween en `hkFinish`, así que vale para las 20 escenas sin tocarlas una por una.
+
+- **Página Noche de /project1:**
+  - **Noche automática:** usa el reloj.
+  - **Hora de inicio / Hora de fin:** 22 y 5,5 por defecto; la ventana puede cruzar la medianoche.
+  - **Noche manual:** se usa cuando Noche automática está apagada.
+  - **Intensidad:** multiplica el efecto entero.
+- **Antes y después de la ventana:** antes de la hora de inicio vale 0; después de la hora de fin (de día) vale 1.
+- **Qué hace a medida que avanza:**
+  - **Color:** quedan menos colores (solo rojos, naranjas y fuego), los negros se hacen más profundos, los brillos más fuertes y el viñeteo más cerrado.
+  - **Desde 15 %:** humo en los bordes y brasas que suben por los costados.
+  - **Desde 35–40 %:** telarañas en las esquinas de arriba y murciélagos que revolotean.
+  - **Desde 55 %:** lenguas de fuego en el borde de abajo, que suben con el bajo y el golpe.
+  - **Desde 70 %:** sangre que chorrea desde el borde de arriba.
+  - **Desde 85 %:** latido rojo en los bordes con el bombo.
+- **Rendimiento:** todo pasa en los bordes. El centro de cada escena no se tapa y ahí no se calcula nada.
+- **Vista previa:** `python3 td/tools/render_scenes.py salida/ --set halloween --night 0.8`.
+
 ## Láminas: realismo sin cargar el procesador
 
 Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, colinas, lápidas, suelo, luna, texturas de nubes y niebla), dibujadas con todo el detalle fuera de línea. En vivo el shader solo las lee y les pone encima todo lo que se mueve: niebla, luz, relámpagos, fuegos fatuos, viento y parallax. Leer una textura en el GPU cuesta casi nada.

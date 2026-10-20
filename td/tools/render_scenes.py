@@ -10,6 +10,7 @@ fuera de TouchDesigner y sin GPU.
     python3 td/tools/render_scenes.py salida/ --d 0.8         # las 6 Detail en 0.8
     python3 td/tools/render_scenes.py salida/ --chaos 0.9     # perilla Chaos (locura)
     python3 td/tools/render_scenes.py salida/ --size 1280x512 # otro formato
+    python3 td/tools/render_scenes.py salida/ --night 0.8     # avance de la noche
 
 Compone header + .frag + footer exactamente como shader.py lo hace para
 TD, inyecta lo mismo que inyecta un GLSL TOP (vUV, sTD2DInputs,
@@ -169,7 +170,7 @@ def main():
         return 1
     out = args[0]
     opt = {'--t': '8.0', '--audio': 'musica', '--d': '0.0', '--scenes': '',
-           '--chaos': '0.3'}
+           '--chaos': '0.3', '--night': '0.0'}
     for k in opt:
         if k in args:
             opt[k] = args[args.index(k) + 1]
@@ -178,6 +179,7 @@ def main():
     ctx = moderngl.create_standalone_context(backend='egl', require=330)
     values = ctrl_values(float(opt['--t']), opt['--audio'], float(opt['--d']),
                          float(opt['--chaos']))
+    values[list(config.CTRL_CHANNELS).index('night')] = float(opt['--night'])
     media = media_image()
     if opt['--scenes']:
         indices = [int(s) for s in opt['--scenes'].split(',')]

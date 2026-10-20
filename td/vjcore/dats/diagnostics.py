@@ -229,7 +229,45 @@ def _switch_index(name):
         return 0
 
 
+def night_progress(hour, start, end):
+    """Avance de la noche 0..1 para la hora 'hour' (0..24). La ventana
+    puede cruzar la medianoche (22 -> 5.5). Antes de empezar: 0; despues
+    de terminar (de dia): 1, para que una prueba de sonido de dia se vea
+    como el final y no como el comienzo."""
+    span = (end - start) % 24.0
+    if span <= 0.0:
+        return 0.0
+    k = (hour - start) % 24.0
+    if k <= span:
+        return k / span
+    # fuera de la ventana: lo mas cerca, inicio o fin
+    return 0.0 if (24.0 - k) < (k - span) else 1.0
+
+
+def updateNight():
+    """Escribe /project1.Nochevalor desde el reloj (o la perilla manual)."""
+    p = _p()
+    if not p or getattr(p.par, 'Nochevalor', None) is None:
+        return
+    try:
+        if p.par.Nocheauto.eval():
+            import datetime
+            now = datetime.datetime.now()
+            hour = now.hour + now.minute / 60.0 + now.second / 3600.0
+            v = night_progress(hour, float(p.par.Nocheinicio.eval()), float(p.par.Nochefin.eval()))
+        else:
+            v = float(p.par.Nochemanual.eval())
+        v *= float(p.par.Nocheintensidad.eval())
+        p.par.Nochevalor = max(0.0, min(1.0, v))
+    except Exception as e:
+        print('updateNight ERROR:', e)
+
+
 def update():
+    try:
+        updateNight()
+    except Exception:
+        pass
     p = _p()
     status = op('/project1/dashboard_ui/system_status_src')
     if not p or not status:
