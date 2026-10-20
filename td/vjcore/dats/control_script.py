@@ -1598,16 +1598,48 @@ def savePresets():
         print('savePresets ERROR:', e)
 
 
-def loadPresets():
-    path = _presets_path()
+def _defaultPresets():
+    """Presets de fabrica del set (set.json "presets_default")."""
+    try:
+        import vjcore.config as _vjconfig
+        path = _vjconfig.PRESETS_DEFAULT
+    except Exception:
+        path = ''
     if not path or not os.path.isfile(path):
-        return
+        return {}
     try:
         with open(path, 'r', encoding='utf-8') as f:
-            _p().store('presets', json.load(f))
-        print('Presets cargados desde', path)
+            return json.load(f)
     except Exception as e:
-        print('loadPresets ERROR:', e)
+        print('presets de fabrica ERROR:', e)
+        return {}
+
+
+def loadPresets():
+    """Presets de fabrica del set + lo guardado con Snapshot encima (lo
+    tuyo gana, escena por escena)."""
+    data = _defaultPresets()
+    path = _presets_path()
+    if path and os.path.isfile(path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data.update(json.load(f))
+            print('Presets cargados desde', path)
+        except Exception as e:
+            print('loadPresets ERROR:', e)
+    p = _p()
+    if p is not None:
+        p.store('presets', data)
+
+
+def restoreDefaultPresets():
+    """Vuelve a los presets de fabrica del set (borra los Snapshot)."""
+    p = _p()
+    if not p:
+        return
+    p.store('presets', _defaultPresets())
+    savePresets()
+    print('Presets de fabrica restaurados')
 
 
 # ---------------------------------------------------------------

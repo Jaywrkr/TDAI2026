@@ -408,6 +408,7 @@ def _parameters(proj):
     pr = proj.appendCustomPage('Presets')
     add_toggle(pr, 'Usepresets', 'Recall al cambiar escena', True)
     add_pulse(pr, 'Snapshot', 'Snapshot escena activa')
+    add_pulse(pr, 'Presetsfabrica', 'Volver a los presets de fabrica del set')
 
     # Fase 3: perillas de detalle. Significan algo distinto en cada escena
     # -- el .frag las documenta con comentarios @D1.._at6 y el dashboard
@@ -479,6 +480,8 @@ def onPulse(par):
         m.prevScene()
     elif n == 'Snapshot':
         m.snapshotPreset()
+    elif n == 'Presetsfabrica':
+        m.restoreDefaultPresets()
     elif n == 'Savemidi':
         m.saveMidiMap()
     elif n == 'Loadmidi':
