@@ -378,6 +378,14 @@ def _assertRange(par, lo, hi):
         pass
 
 
+def _redirect(slot):
+    try:
+        import vjcore.config as _vjconfig
+        return _vjconfig.MIDI_REDIRECT.get(slot)
+    except Exception:
+        return None
+
+
 def _handle(channel, val, is_trigger):
     p, ctrl = _ctx()
     if not p or not ctrl:
@@ -392,6 +400,28 @@ def _handle(channel, val, is_trigger):
 
     slot = m.midiMap().get(name)
     if not slot:
+        return
+
+    # Redireccion del set (config.MIDI_REDIRECT): el control hace otra
+    # cosa en este set. Perilla -> parametro 0..1; pad -> funcion.
+    red = _redirect(slot)
+    if red:
+        if slot in CONTINUOUS:
+            par = getattr(p.par, red, None)
+            if par is not None:
+                pos01 = None
+                if not _PITCH_RE.match(name):
+                    pos01 = _relativePosition(p, name, val)
+                if pos01 is None:
+                    pos01 = _norm01(name, val)
+                par.val = pos01
+            return
+        if is_trigger:
+            fn = getattr(m, red, None)
+            if callable(fn):
+                fn()
+            _refreshLeds()
+            return
         return
 
     if slot in CONTINUOUS:

@@ -258,6 +258,9 @@ def updateNight():
         else:
             v = float(p.par.Nochemanual.eval())
         v *= float(p.par.Nocheintensidad.eval())
+        on = getattr(p.par, 'Nocheon', None)
+        if on is not None and not bool(on.eval()):
+            v = 0.0
         p.par.Nochevalor = max(0.0, min(1.0, v))
     except Exception as e:
         print('updateNight ERROR:', e)

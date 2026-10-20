@@ -693,6 +693,14 @@ def padLedColors():
     out = []
     for i, (idle, active, names) in enumerate(_PAD_LED_LAYOUT):
         out.append(active if on(names) else idle)
+    # Halloween: el pad 7 es NOCHE ON/OFF (config.MIDI_REDIRECT) -> rojo
+    # prendido, apagado si la noche esta apagada.
+    try:
+        import vjcore.config as _vjconfig
+        if _vjconfig.MIDI_REDIRECT.get('Duallayer') == 'toggleNight':
+            out[6] = 'red' if on('Nocheon') else 'off'
+    except Exception:
+        pass
     # NEXT late blanco con el beat mientras el autopilot anda: se ve en el
     # controlador cuando va a caer el proximo cambio.
     if on('Autopilot'):
@@ -787,6 +795,19 @@ def applyEnergy():
                 par.val = lo + (hi - lo) * e
     except Exception as e:
         print('applyEnergy ERROR:', e)
+
+
+def toggleNight():
+    """Prende/apaga el efecto NOCHE (oscuro y gore con la hora) sin perder
+    la hora ni la intensidad elegidas. Pad 7 en Halloween."""
+    p = _p()
+    if not p or getattr(p.par, 'Nocheon', None) is None:
+        return
+    p.par.Nocheon = not bool(p.par.Nocheon.eval())
+    d = op('/project1/diagnostics')
+    if d:
+        d.module.updateNight()
+    print('NOCHE', 'ON' if p.par.Nocheon.eval() else 'OFF')
 
 
 def toggleBlackout():

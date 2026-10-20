@@ -282,6 +282,7 @@ def _parameters(proj):
     # con el reloj de la maquina. Manual: la perilla manda. Nochevalor es
     # interno (lo escribe diagnostics.updateNight) y es lo que lee el canal.
     nt = proj.appendCustomPage('Noche')
+    add_toggle(nt, 'Nocheon', 'Efecto NOCHE prendido', True)
     add_toggle(nt, 'Nocheauto', 'Noche automatica (reloj)', True)
     add_float(nt, 'Nocheinicio', 'Hora de inicio (h)', 22.0, 0.0, 24.0)
     add_float(nt, 'Nochefin', 'Hora de fin (h)', 5.5, 0.0, 24.0)
@@ -383,7 +384,7 @@ def _parameters(proj):
     # su propia pagina de parametros, no aca.
     m = proj.appendCustomPage('MIDI Mapping')
     for slot in c.MIDI_PANEL_SLOTS:
-        label = c.MIDI_SLOT_LABEL_ES.get(slot, slot)
+        label = c.MIDI_REDIRECT_LABELS.get(slot, c.MIDI_SLOT_LABEL_ES.get(slot, slot))
         add_string(m, 'Midi' + slot.lower(), label, c.DEFAULT_MIDI.get(slot, ''))
         add_pulse(m, 'Learn' + slot.lower(), 'Learn ' + label)
     add_pulse(m, 'Cancellearn', 'Cancelar Learn')
@@ -554,7 +555,7 @@ def onValueChange(par, prev):
         return
     if par.name in ('Performancemode', 'Previewall'):
         ctrl.module.setSceneCooking()
-    elif par.name in ('Nocheauto', 'Nocheinicio', 'Nochefin', 'Nochemanual', 'Nocheintensidad'):
+    elif par.name in ('Nocheon', 'Nocheauto', 'Nocheinicio', 'Nochefin', 'Nochemanual', 'Nocheintensidad'):
         # la perilla manual responde en el momento (no espera el refresco)
         d = op('/project1/diagnostics')
         if d:
