@@ -336,8 +336,10 @@ def _parameters(proj):
     add_pulse(bk, 'Bankprev', 'Banco anterior')
     # Setlist: indices separados por coma o espacio, ej "0, 4, 17, 23".
     # Vacio = sin setlist, Next/Prev recorren las 34 en orden numerico.
-    add_string(bk, 'Setlist', 'Setlist (ej: 0, 4, 17, 23)', '')
-    add_toggle(bk, 'Usesetlist', 'Next/Prev siguen el setlist', False)
+    # Un set puede traer su orden (set.json "setlist"): arranca puesto.
+    add_string(bk, 'Setlist', 'Setlist (ej: 0, 4, 17, 23)',
+               ', '.join(str(i) for i in c.DEFAULT_SETLIST))
+    add_toggle(bk, 'Usesetlist', 'Next/Prev siguen el setlist', bool(c.DEFAULT_SETLIST))
 
     # --- MACRO ENERGIA ---
     # Una perilla que arma el build-up entero. Escribe Speed/Density/

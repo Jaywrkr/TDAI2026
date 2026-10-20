@@ -101,7 +101,7 @@ def sets():
                                                        G.fmt_time(G.duration(g))), not probs, probs[:3])
         if 'halloween' in root:
             scenes = sorted({c['escena'] for c in g['cues'] if c['escena'] is not None})
-            check('halloween: pasan las 20 escenas', scenes == list(range(20)), scenes)
+            check('halloween: pasan todas las escenas ({})'.format(n), scenes == list(range(n)), scenes)
             check('halloween: dura 22:00 -> 05:30 (7:30 h)', near(G.duration(g), 7.5 * 3600, 120))
             check('halloween: arranca a las 22:00', near(g['inicio'], 22.0))
 

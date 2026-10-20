@@ -22,7 +22,7 @@ y **Run Script**. El reporte del build lo confirma en la primera línea:
 
 ```
 VERIFICACION DEL BUILD   [...]
-  set: HALLOWEEN 2026  (20 escenas, sets/halloween/visuals)
+  set: HALLOWEEN 2026  (26 escenas, sets/halloween/visuals)
 ```
 
 El build guarda el set en `td/config/active_set.txt`, así que al reabrir el `.toe` (o con **Reconstruir Todo**) sigue siendo el mismo. En `/project1` → System, **Set de visuales** lo muestra, pero no se cambia ahí: se cambia en `RUN_ME.py`.
@@ -52,7 +52,7 @@ td/
 
 La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
-## Las 20 escenas
+## Las 26 escenas
 
 | # | Escena | Speed mueve | El audio hace | Detail |
 |---|---|---|---|---|
@@ -76,8 +76,28 @@ La cantidad de escenas sale de contar los `.frag` de la carpeta.
 | 17 | Esqueleto bailando | paso de baile | golpe = salto y brazos arriba; bajo enciende las baldosas; medios mueven la cadera | tamaño, energía, grosor, salto, hueso↔neón, piso |
 | 18 | Túnel de calaveras | avance por el túnel | bajo enciende el fondo; golpe = anillo de luz hacia la cámara; medios giran el túnel | calaveras por vuelta, avance, anillo, ojos, antorcha↔verde, niebla |
 | 19 | Glitch demoníaco | respira y mueve el ruido | golpe lo rompe en bloques; bajo hace arder los ojos; agudos = estática | líneas, ruptura, separación de color, ojos, rojo↔violeta, estática |
+| 20 | Galería embrujada (Media) | velas, polvo, balanceo | medios mecen los cuadros; golpe = tirón y la imagen "grita" | cuadros (3↔5), balanceo, grito, velas, sepia↔negativo, polvo |
+| 21 | Espejo maldito (Media) | vapor, gotas, bombita | golpe raja el vidrio desde un punto; medios ondulan la imagen | vapor, rajaduras, pedazos corridos, fantasma, frío↔rojo, velas |
+| 22 | La imagen se quema (Media) | avance del fuego y humo | bajo aviva la brasa; golpe = llamarada; con locura se prenden focos | velocidad, brasa, humo, cenizas, gris↔sepia, vela |
+| 23 | Película de 1920 (Media) | grano, rayas, polvo | bajo = parpadeo; golpe salta el cuadro; medios lo mecen | rayas/polvo, parpadeo, saltos, iris, plata↔sepia, sala |
+| 24 | La imagen sangra (Media) | llegan, sangran, caen | bajo acelera los hilos; golpe = salpicadura | pedazos, sangre, salpicaduras, desgarro, gris↔sepia, charco |
+| 25 | Posesión (Media) | tiras, humo, llamas | golpe hace saltar las tiras y desdobla la imagen; bajo late las venas | tiras, salto, espejo, venas, gris↔rojo, sombras |
 
 Con **Speed en 0** todo queda quieto. Con Speed arriba de 0 y **en silencio**, el movimiento propio sigue y solo se apagan las reacciones al audio.
+
+## Visuales con imagen (20–25) y el orden del show
+
+Seis escenas usan la **carpeta Media** (página Media → Carpeta de imágenes / GIFs), igual que el VHS (06). Todas muestran **la misma imagen a la vez**, cada una con su tratamiento, así que pasar de una a otra se siente como la misma foto que sigue sufriendo. Casi sin color: la imagen va en gris o sepia; el único color fuerte es el fuego o la sangre. Alrededor de cada imagen hay detalles de ambiente (cortinas, velas, azulejos, público, cruces, mesa con restos). Sin archivo cargado se ve una silueta difusa, nunca negro.
+
+Formatos y modos de cambio de imagen: los de siempre (GIF, PNG, JPG, WEBP, MP4, MOV; MANUAL / TIEMPO / BEAT / COMPÁS / PIANO). Con el MiniLab: pad 6 = imagen siguiente, pad 8 = congelar, tira de modulación = recorrer la carpeta.
+
+**Setlist del set.** `set.json` trae `"setlist"` y el rig arranca con **Bancos → Setlist** cargado y **Next/Prev siguen el setlist** prendido. Las escenas no se renumeran: Next/Prev (pads, teclado ← →, autopilot) siguen este orden, intercalando una de imagen cada 2–3 escenas, las suaves temprano y las más gore de madrugada:
+
+`00 01 20 13 07 23 04 14 21 09 06 03 08 22 11 16 02 17 24 12 15 10 05 25 18 19`
+
+Para tocar en orden numérico, apaga **Next/Prev siguen el setlist**. El número de escena del teclado (1–9) y la grilla del dashboard siguen eligiendo por número.
+
+Funciones del kit para imagen (en `common.glsl`, solo en escenas de Media): `hkMediaAspect`, `hkMediaCover`, `hkMediaHas`, `hkMediaGet(muv, lod, has)`; y para todas: `hkTone` (pocos colores), `hkCornerWeb`, `hkCandle`.
 
 ## Locura (perilla Chaos) y kit compartido
 
@@ -89,7 +109,7 @@ Las funciones comunes viven en `td/sets/halloween/common.glsl` (en `set.json`, `
 
 Regla del show: **el FPS no puede bajar de 20**. Para eso:
 
-- **Presupuesto por escena.** Medido con `render_scenes.py` (OpenGL por software, 640×360) en el **peor caso** (golpe, locura en 0.9, Detail en 0.5): las 20 escenas cuestan entre 6 y 12.4 ms, promedio 9.5. Como referencia, en la misma prueba la mediana de las 98 escenas de `tdai2026` es 8 ms y el 10 % más pesado pasa de 23 ms. Ninguna escena de Halloween está en ese grupo pesado.
+- **Presupuesto por escena.** Medido con `render_scenes.py` (OpenGL por software, 640×360) en el **peor caso** (golpe, locura en 0.9, Detail en 0.5): las 20 escenas originales cuestan entre 6 y 12.4 ms (las 6 de imagen, 9–18 ms), promedio 9.5. Como referencia, en la misma prueba la mediana de las 98 escenas de `tdai2026` es 8 ms y el 10 % más pesado pasa de 23 ms. Ninguna escena de Halloween está en ese grupo pesado.
 - **Lo que se hizo para lograrlo:** el ruido caro se calcula solo donde se ve (niebla solo cerca del suelo, humo solo en su columna, fuego solo en los cortes), los murciélagos van en grilla por capas (cada píxel mira 3, no 24), las manos y velas lejanas se saltan, y `hkFog` usa una deformación barata.
 - **Failsafe con piso propio.** En `/project1` → Failsafe, **Actuar si el FPS baja de** = 24 por defecto. Si el FPS pasa 4 s debajo de eso, el rig baja la escala de render (lo que menos se nota) antes de llegar a 20. Antes usaba el aviso de 55 fps y degradaba de más.
 - **Falta medirlo en tu máquina**: los ms de arriba sirven para comparar escenas entre sí, no son los de tu GPU.
@@ -123,6 +143,12 @@ Cada escena avanza sola por **actos de ~78 s** (16 actos ≈ 21 minutos antes de
 | 17 | solo de baile enloquecido (~49 s), el piso hace olas (~91 s); estilo de baile por acto |
 | 18 | acelerón por el túnel (~55 s), se encienden todos los ojos (~97 s); el túnel gira para otro lado por acto |
 | 19 | el rostro se derrite (~43 s), posesión: ruptura total sin golpe (~89 s) |
+| 20 | apagón: solo quedan las imágenes (~53 s), un cuadro se suelta (~67 s), todos negativos (~89 s) |
+| 21 | el espejo se raja entero (~59 s), una mano limpia el vapor (~71 s), se corta la luz (~47 s) |
+| 22 | cada vuelta el fuego empieza por otro borde; ráfaga que tira las cenizas (~61 s) |
+| 23 | iris (~41 s), la cinta se quema (~73 s), cartel de título (~57 s), alguien del público se da vuelta (~67 s) |
+| 24 | la pared llora sangre desde arriba (~50 s), se apaga la lámpara (~79 s) |
+| 25 | se encienden los ojos (~43 s), posesión total (~89 s), las velas se avivan (~61 s) |
 
 Los tiempos son aproximados: cada evento cae en un momento al azar dentro de su ventana, así no se siente mecánico.
 
@@ -153,7 +179,7 @@ Después de cambiar el formato hay que **Reconstruir Todo**.
 
 ## La noche: más oscuro y más gore con la hora
 
-La fiesta va de las 22:00 a las 05:30 y el set acompaña. El canal `night` (0..1) sale del reloj de la máquina y lo usa el kit de Halloween en `hkFinish`, así que vale para las 20 escenas sin tocarlas una por una.
+La fiesta va de las 22:00 a las 05:30 y el set acompaña. El canal `night` (0..1) sale del reloj de la máquina y lo usa el kit de Halloween en `hkFinish`, así que vale para todas las escenas sin tocarlas una por una.
 
 - **Página Noche de /project1:**
   - **Noche automática:** usa el reloj.
@@ -193,7 +219,7 @@ Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, c
 
 ## Guion de la noche (sin MIDI)
 
-`guion.json` de este set lleva la noche entera sin controlador: las 20 escenas de 22:00 a 05:30, con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
+`guion.json` de este set lleva la noche entera sin controlador: las 26 escenas en el orden del setlist, de 22:00 a 05:30, con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
 
 ## Verificar fuera de TouchDesigner
 

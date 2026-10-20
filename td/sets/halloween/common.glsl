@@ -297,3 +297,78 @@ vec3 hkFinish(vec3 col, vec2 uv, vec3 tint) {
     col *= mix(0.55 - uNight * 0.30, 1.0, smoothstep(1.56 - uNight * 0.5, 0.06, dot(vq, vq)));
     return max(col, 0.0);
 }
+
+// ---------------------------------------------------------------
+// IMAGEN (escenas de config.MEDIA_SCENES): la imagen/GIF/video de la
+// carpeta Media. Todas las escenas de imagen muestran la MISMA imagen a
+// la vez, cada una con su tratamiento. Sin archivo cargado el Movie File
+// In sale negro: hkMediaGet devuelve entonces una silueta difusa para
+// que la escena nunca se vea vacia.
+// ---------------------------------------------------------------
+#ifdef HAS_MEDIA
+float hkMediaAspect() {
+    vec2 ts = vec2(textureSize(sTD2DInputs[1], 0));
+    return ts.x / max(ts.y, 1.0);
+}
+// uv 0..1 de un marco de aspecto fa -> uv de la imagen, llenando el
+// marco sin deformar (recorta lo que sobra).
+vec2 hkMediaCover(vec2 uv, float fa) {
+    float ma = hkMediaAspect();
+    if (fa > ma) uv.y = 0.5 + (uv.y - 0.5) * ma / fa;
+    else uv.x = 0.5 + (uv.x - 0.5) * fa / ma;
+    return uv;
+}
+float hkMediaHas() {
+    vec3 a = textureLod(sTD2DInputs[1], vec2(0.5), 3.0).rgb
+           + textureLod(sTD2DInputs[1], vec2(0.3, 0.7), 3.0).rgb
+           + textureLod(sTD2DInputs[1], vec2(0.7, 0.3), 3.0).rgb;
+    return step(0.02, dot(a, vec3(1.0)));
+}
+// Silueta difusa (busto) para cuando no hay archivo.
+vec3 hkMediaGhost(vec2 m) {
+    vec2 q = (m - vec2(0.5, 0.45)) * vec2(1.6, 1.0);
+    float head = length(q - vec2(0.0, 0.12)) - 0.17;
+    float body = length((q - vec2(0.0, -0.42)) * vec2(0.6, 1.2)) - 0.33;
+    float s = 1.0 - smoothstep(-0.02, 0.06, min(head, body));
+    return vec3(0.16) + vec3(0.05) * noise21(m * 9.0 + uRTime * 0.3) - vec3(0.13) * s;
+}
+// Color lineal de la imagen en muv (0..1). lod > 0 = desenfocado.
+vec3 hkMediaGet(vec2 muv, float lod, float has) {
+    vec2 c = clamp(muv, 0.0, 1.0);
+    vec3 im = pow(textureLod(sTD2DInputs[1], c, lod).rgb, vec3(2.2));
+    return mix(pow(hkMediaGhost(c), vec3(2.2)), im, has);
+}
+#endif
+
+// Pocos colores: la imagen queda casi en gris, con un tinte (sepia,
+// frio, rojo) y contraste. sat 0 = blanco y negro, 1 = original.
+vec3 hkTone(vec3 c, float sat, vec3 tint, float contrast) {
+    float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    l = pow(max(l, 0.0), contrast);
+    return mix(vec3(l) * tint, c, sat);
+}
+
+// Telarana en una esquina: corner = centro de la esquina, s = tamano.
+float hkCornerWeb(vec2 p, vec2 corner, float s) {
+    vec2 d = (p - corner) / s;
+    float r = length(d);
+    if (r > 1.0) return 0.0;
+    float a = atan(d.y, d.x);
+    float spokes = hkLine(sin(a * 7.0) * r * 0.16, 0.8);
+    float rings = hkLine((fract(r * 6.0 + sin(a * 7.0) * 0.04) - 0.5) * 0.16, 0.7);
+    return max(spokes, rings) * (1.0 - smoothstep(0.7, 1.0, r)) * 0.5;
+}
+
+// Vela con llama (base en b, alto h del cirio). Devuelve vec4(color, cuanto tapa).
+vec4 hkCandle(vec2 p, vec2 b, float w, float h, float t, float seed) {
+    vec2 q = p - b;
+    float body = hkRBox(q - vec2(0.0, h * 0.5), vec2(w, h * 0.5), w * 0.4);
+    float fl = 0.8 + 0.2 * noise21(vec2(t * 6.0, seed));
+    vec2 fq = (q - vec2(sin(t * 3.1 + seed) * w * 0.25, h + w * 1.6)) / vec2(w * 0.8, w * 2.4 * fl);
+    float flame = 1.0 - smoothstep(0.6, 1.0, length(fq + vec2(0.0, fq.y * fq.y * 0.0)) + max(fq.y, 0.0) * 0.4);
+    vec3 wax = vec3(0.55, 0.52, 0.46) * (0.35 + 0.65 * smoothstep(w, -w, q.x)) * (0.5 + 0.5 * smoothstep(0.0, h, q.y));
+    float inB = 1.0 - smoothstep(0.0, 0.004, body);
+    vec3 c = wax * inB + vec3(1.0, 0.62, 0.25) * flame * 1.6 + vec3(1.0, 0.9, 0.7) * flame * flame;
+    float glow = exp(-length(q - vec2(0.0, h + w * 1.5)) / (w * 10.0)) * fl;
+    return vec4(c + vec3(1.0, 0.55, 0.2) * glow * 0.25, max(inB, flame));
+}

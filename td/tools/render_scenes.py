@@ -117,6 +117,7 @@ def render(ctx, index, values, media):
     if index in config.MEDIA_SCENES:
         tex = ctx.texture((media.shape[1], media.shape[0]), 4,
                           media.astype('f4').tobytes(), dtype='f4')
+        tex.build_mipmaps()
         bind.append((tex, 1))
     # laminas: PNG de 8 bits como las lee el Movie File In TOP (abajo = v 0)
     for k, path in enumerate(config.PLATES.get(index, [])):

@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'guion-v1 2026-10-20'
+BUILD_TAG = 'imagenes-v1 2026-10-20'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -686,6 +686,8 @@ PRESETS_FILE = 'presets.json'    # dentro de td/config/
 # del set (funciones compartidas: acabado, luz, particulas...). Vacio =
 # nada. Ruta relativa a td/.
 SET_PRELUDE = ''
+# Setlist de arranque (indices). Vacio = Next/Prev en orden numerico.
+DEFAULT_SETLIST = []
 
 
 def _read_active_set():
@@ -782,6 +784,9 @@ def _apply_set(name):
         n = _count_scenes(_os.path.join(_TD_DIR, g['VISUALS_DIR']))
     g['N_SCENES'] = max(1, int(n))
     g['MEDIA_SCENES'] = set(int(i) for i in data.get('media_scenes', []))
+    # Orden del show propio del set: Next/Prev lo siguen desde el arranque
+    # (pagina Bancos > Setlist), sin renumerar escenas.
+    g['DEFAULT_SETLIST'] = [int(i) for i in data.get('setlist', [])]
     g['FULLRES_SCENES'] = set(int(i) for i in data.get('fullres_scenes', []))
     g['MODERN_FROM'] = int(data.get('modern_from', 0))
     g['AUDIO_DANCE'] = bool(data.get('audio_dance', False))
