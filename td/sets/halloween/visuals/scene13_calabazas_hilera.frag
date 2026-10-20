@@ -1,10 +1,22 @@
 // ===============================================================
 // HALLOWEEN 13 - CALABAZAS EN HILERA
-// Una fila de calabazas talladas sobre un muro de piedra, cada una con
-// su cara. Laten con la musica como un ecualizador: la luz de cada una
-// sigue una banda distinta (graves a la izquierda, agudos a la derecha).
-// Speed mueve las llamas y la niebla del piso. El golpe hace que todas
-// destellen en ola, de un lado al otro.
+// Un campo de calabazas de noche (LAMINAS horneadas, plates/scene13,
+// ver td/tools/bake_plates_hilera.py): colinas con arboles pelados, una
+// casa y un granero con las ventanas encendidas, maizal seco, fardos de
+// paja, una cerca y calabacitas en el campo. Adelante, un muro de piedra
+// con remate de lajas y musgo; arriba, una fila de calabazas talladas
+// (la calabaza con relieve de la escena 01), cada una con su cara. Laten
+// como un ecualizador y cada una ILUMINA en vivo el muro y a sus vecinas.
+//
+// BAILE (cada calabaza escucha una banda distinta):
+//   bajo   -> las de la izquierda;   medios -> las del centro
+//   agudos -> las de la derecha;     tambien titilan las estrellas
+//   golpe  -> ola de destellos de un lado al otro (D3); con Chaos
+//             saltan, cada una a su tiempo, y el fuego se pone rojo
+// Speed mueve las llamas, la niebla y las nubes aun en silencio.
+// HISTORIA: cada ~47 s persecucion de luz (se encienden de a una); cada
+// ~83 s todas giran a rojo; cada ~61 s un cuervo se posa en el muro;
+// cada acto cambia cuantas hay.
 //
 // @D1: cantidad de calabazas
 // @D2: cuanto laten con el audio
@@ -13,6 +25,25 @@
 // @D5: color (naranja <-> violeta embrujado)
 // @D6: niebla del piso
 // ===============================================================
+
+const vec4 FIELD_R = vec4(-3.1, -0.45, 6.2, 0.90);
+const vec4 WALL_R = vec4(-3.1, -1.2, 6.2, 0.94);
+const vec4 HERO_R = vec4(-0.85, -0.62, 1.70, 1.42);
+const float WALL_TOP = -0.32;
+vec2 rUV(vec2 p, vec4 r) { return (p - r.xy) / r.zw; }
+vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
+
+// cara tallada (varia por calabaza); q en unidades del cuerpo (~0.8 de alto)
+float hwFace(vec2 q, float hsh, float open) {
+    vec2 e = vec2(abs(q.x) - 0.32, q.y - 0.18);
+    float eyes = max(abs(e.x) * 1.7 + e.y * (hsh > 0.5 ? 1.0 : -1.0) - 0.16, abs(e.y) - 0.14);
+    float my = q.y + 0.30 - (0.25 + hsh * 0.25 + open * 0.2) * q.x * q.x;
+    float mouth = max(abs(my) - 0.09 - open * 0.05, abs(q.x) - 0.55);
+    float teeth = step(0.5, fract(q.x * 3.0 + hsh)) * step(my, -0.02);
+    mouth = max(mouth, -(teeth - 0.5));
+    float nose = max(abs(q.x) * 1.6 + (q.y + 0.02) * 1.2 - 0.10, -(q.y + 0.06));
+    return min(min(eyes, mouth), nose);
+}
 
 vec4 render(vec2 uv) {
     vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
@@ -23,88 +54,142 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
-
     vec3 orange = mix(hsv2rgb(vec3(fract(0.07 + hue), 0.95, 1.0)),
                       hsv2rgb(vec3(fract(0.80 + hue), 0.75, 1.0)), uD5);
-    vec3 skinC = mix(hsv2rgb(vec3(fract(0.06 + hue), 0.95, 0.75)),
-                     hsv2rgb(vec3(fract(0.76 + hue), 0.70, 0.55)), uD5);
+    vec3 moonC = vec3(0.55, 0.60, 0.85);
 
-    // cielo y muro
-    vec3 col = mix(vec3(0.04, 0.02, 0.06), vec3(0.005, 0.003, 0.012), smoothstep(-0.2, 1.0, p.y));
-    float wallTop = -0.32;
-    if (p.y < wallTop) {
-        vec2 b = vec2(p.x * 5.0 + 0.5 * mod(floor(p.y * 9.0), 2.0), p.y * 9.0);
-        vec2 bf = fract(b);
-        float mortar = smoothstep(0.0, 0.06, bf.x) * smoothstep(1.0, 0.94, bf.x) *
-                       smoothstep(0.0, 0.10, bf.y) * smoothstep(1.0, 0.90, bf.y);
-        float stone = 0.6 + 0.4 * noise21(floor(b) * 3.1);
-        col = vec3(0.07, 0.06, 0.07) * stone * mortar + vec3(0.01);
-    }
-
-    // historia: cada ~47 s persecucion de luz (se encienden de a una);
-    // cada ~83 s todas giran a rojo; cada acto cambia cuantas hay
     float chase = hkEvent(3.0, 47.0, 8.0);
     float redE = hkEvent(4.0, 83.0, 7.0);
+    float crowE = hkEvent(5.0, 61.0, 10.0);
     float n = 4.0 + floor(uD1 * 4.0 + hkActVal(5.0) * 1.5);
     float span = uAspect * 1.7;
     float cw = span / n;
-    float idx = floor((p.x + span * 0.5) / cw);
-    idx = clamp(idx, 0.0, n - 1.0);
+
+    // --- cielo: luna de cosecha, nubes, estrellas ---
+    vec3 col = mix(vec3(0.05, 0.03, 0.08), vec3(0.006, 0.004, 0.014), smoothstep(-0.3, 1.0, p.y));
+    vec2 mc = vec2(-uAspect * 0.55, 0.55);
+    float md = length(p - mc);
+    col += vec3(1.0, 0.75, 0.45) * (1.0 - smoothstep(0.17, 0.18, md)) * (0.8 + 0.2 * plate5Wrap((p - mc) * 0.6).a);
+    col += vec3(1.0, 0.6, 0.3) * exp(-max(md - 0.17, 0.0) * 4.0) * 0.25;
+    float cl = plate5Wrap(vec2(p.x * 0.10 - t * 0.004, p.y * 0.4)).r;
+    col = mix(col, vec3(0.02, 0.015, 0.03) + vec3(1.0, 0.6, 0.3) * 0.08 * exp(-md * 2.0), smoothstep(0.55, 0.75, cl) * smoothstep(0.0, 0.4, p.y) * 0.8);
+    float sh = hash21(floor(p * 100.0));
+    col += vec3(0.8) * step(0.994, sh) * (0.5 + 0.5 * sin(t * 3.0 + sh * 40.0) * (0.5 + high)) * smoothstep(0.1, 0.6, p.y);
+
+    // --- luz de las 5 calabazas mas cercanas al pixel (j = 2 es la de
+    // este pixel); se usa en el muro, el campo y las vecinas ---
+    float idx = clamp(floor((p.x + span * 0.5) / cw), 0.0, n - 1.0);
+    float lits[5];
+    vec2 cs[5];
+    float ss[5];
     float glowAll = 0.0;
-    for (int k = -1; k <= 1; k++) {
-        float i = idx + float(k);
-        if (i < 0.0 || i > n - 1.0) continue;
-        float u = (i + 0.5) / n;                 // 0 izquierda, 1 derecha
+    float wph = fract(uRTime * (0.6 + uD3 * 3.0));
+    float cph = fract(uRTime * 0.6);
+    for (int j = 0; j < 5; j++) {
+        float i = idx + float(j - 2);
+        if (i < 0.0 || i >= n) { lits[j] = 0.0; cs[j] = vec2(9.0); ss[j] = 0.0; continue; }
+        float u = (i + 0.5) / n;
         float band = u < 0.34 ? bass : (u < 0.67 ? mid : high);
-        // ola del golpe: llega a cada calabaza con retraso segun su lugar
-        float wave = hit * smoothstep(0.0, 1.0, 1.0 - abs(u - fract(uRTime * (0.6 + uD3 * 3.0))) * (2.0 - uD3 * 1.5));
-        float chaseOn = exp(-pow((u - fract(uRTime * 0.6)) * 6.0, 2.0));
-        float lit = (0.75 + band * (0.4 + uD2 * 1.4) + wave * 0.8) * mix(1.0, 0.25 + chaseOn * 2.0, chase);
-        float s = cw * (0.36 + uD4 * 0.12) * (0.9 + 0.2 * hash21(vec2(i, 3.0)));
-        // locura: las calabazas saltan con el golpe, cada una a su tiempo
-        float hop = hit * loco * (0.15 + 0.35 * hash21(vec2(i, floor(uRTime * 2.0)))) * s;
-        vec2 c = vec2(-span * 0.5 + (i + 0.5) * cw, wallTop + s * 0.82 + hop);
-        vec2 q = (p - c) / s;
-        // cuerpo de gajos
-        float body = 1e3, shade = 0.0;
-        for (int g = -1; g <= 1; g++) {
-            vec2 d = (q - vec2(float(g) * 0.42, 0.0)) / vec2(0.62 - abs(float(g)) * 0.08, 0.82);
-            float e = length(d) - 1.0;
-            if (e < body) { body = e; shade = 1.0 - clamp(length(d), 0.0, 1.0); }
-        }
-        float m = 1.0 - smoothstep(-0.02, 0.02, body);
-        float hsh = hash21(vec2(i, 9.0));
-        // cara: ojos triangulares y boca (varia por calabaza)
-        vec2 e = vec2(abs(q.x) - 0.32, q.y - 0.18);
-        float eyes = max(abs(e.x) * 1.7 + e.y * (hsh > 0.5 ? 1.0 : -1.0) - 0.16, abs(e.y) - 0.14);
-        float my = q.y + 0.30 - (0.25 + hsh * 0.25) * q.x * q.x;
-        float mouth = max(abs(my) - 0.09, abs(q.x) - 0.55);
-        float teeth = step(0.5, fract(q.x * 3.0 + hsh)) * step(my, -0.02);
-        mouth = max(mouth, -(teeth - 0.5));
-        float holeD = min(eyes, mouth);
-        float hole = (1.0 - smoothstep(-0.02, 0.02, holeD)) * m;
-        float flick = 0.85 + 0.15 * sin(t * (7.0 + hsh * 4.0) + i);
-        vec3 skin = skinC * (0.25 + 0.75 * pow(shade, 0.6)) * (0.55 + 0.25 * lit);
-        skin += orange * exp(-max(holeD, 0.0) * 8.0) * 0.25 * lit;
-        vec3 inside = mix(orange, vec3(1.0, 0.95, 0.65), 0.35) * lit * flick * 1.3;
-        // con locura la llama se vuelve roja infernal
-        inside = mix(inside, vec3(1.0, 0.08, 0.02) * lit * 1.4, max(hit * smoothstep(0.5, 1.0, loco), redE));
-        // brillo especular arriba a la izquierda de cada gajo
-        skin += vec3(1.0, 0.8, 0.5) * pow(shade, 6.0) * smoothstep(0.0, 0.4, q.y + q.x * -0.5) * 0.25;
-        vec3 pc = mix(skin, inside, hole);
-        col = mix(col, pc, m);
-        // tallo
-        vec2 sq = q - vec2(0.05, 0.86);
-        float stem = max(abs(sq.x) - 0.07, abs(sq.y) - 0.12);
-        col = mix(col, vec3(0.06, 0.08, 0.02), (1.0 - smoothstep(-0.02, 0.02, stem)) * (1.0 - m));
-        glowAll += exp(-length(q - vec2(0.0, -0.2)) * 1.2) * lit;
+        float wave = hit * smoothstep(0.0, 1.0, 1.0 - abs(u - wph) * (2.0 - uD3 * 1.5));
+        float cd = (u - cph) * 6.0;
+        float chaseOn = exp(-cd * cd);
+        float flick = 0.85 + 0.15 * sin(t * (7.0 + hash21(vec2(i, 9.0)) * 4.0) + i);
+        lits[j] = (0.75 + band * (0.4 + uD2 * 1.4) + wave * 0.8) * mix(1.0, 0.25 + chaseOn * 2.0, chase) * flick;
+        float sz = cw * (0.36 + uD4 * 0.12) * (0.9 + 0.2 * hash21(vec2(i, 3.0))) * 1.6;
+        float hop = hit * loco * (0.15 + 0.35 * hash21(vec2(i, floor(uRTime * 2.0)))) * sz * 0.6;
+        ss[j] = sz;
+        cs[j] = vec2(-span * 0.5 + (i + 0.5) * cw, WALL_TOP - 0.02 + 0.5 * sz + hop);
     }
-    col += orange * glowAll * 0.08 * (1.0 - step(wallTop, p.y) * 0.3);
+    vec3 fireC = mix(mix(orange, vec3(1.0, 0.95, 0.65), 0.35), vec3(1.0, 0.08, 0.02), max(hit * smoothstep(0.5, 1.0, loco), redE));
+    vec3 P3 = vec3(p, 0.0);
 
-    // niebla del piso sobre el muro
-    float fog = fbm(vec2(p.x * 1.5 - t * 0.06, p.y * 4.0), 3, 0.5);
-    float fogBand = exp(-pow((p.y - wallTop + 0.05) / 0.18, 2.0));
-    col = mix(col, vec3(0.45, 0.40, 0.55) * (0.4 + bass * 0.4), smoothstep(0.4, 0.85, fog) * fogBand * (0.25 + uD6 * 0.7));
+    // --- campo (luna + resplandor de las calabazas) ---
+    vec4 fl = plate0(rUV(p, FIELD_R));
+    if (fl.a > 0.0) {
+        // ventanas: B puro en la lamina; el borde filtrado se trata suave
+        float winM = smoothstep(0.08, 0.6, fl.b - max(fl.r, fl.g));
+        vec3 fr = vec3(fl.rg, mix(fl.b, fl.g * 1.1, winM));
+        vec3 fc = plateCol(fr) * (0.5 + moonC * 0.5);
+        float warm = 0.0;
+        for (int k = 1; k <= 3; k++) {
+            warm += lits[k] * exp(-length((p - cs[k]) * vec2(0.8, 1.5)) * 2.2);
+        }
+        fc += plateCol(fr) * fireC * warm * 0.6;
+        float winOn = step(0.3, hash21(vec2(floor(p.x * 3.0), floor(uRTime / 11.0))));
+        fc = mix(fc, vec3(1.0, 0.65, 0.25) * (0.8 + 0.2 * sin(t * 3.0)) * winOn, winM);
+        col = mix(col, fc, fl.a);
+    }
+    // niebla del campo
+    float fz = plate5Wrap(vec2(p.x * 0.10 - t * 0.005, p.y * 0.5)).g;
+    col = mix(col, vec3(0.12, 0.10, 0.16), smoothstep(0.40, 0.75, fz) * exp(-pow((p.y + 0.30) / 0.12, 2.0)) * 0.5);
 
+    // --- muro iluminado por las calabazas ---
+    vec2 wu = rUV(p, WALL_R);
+    vec4 wa = plate1(wu);
+    if (wa.a > 0.0) {
+        vec4 wn = plate2(wu);
+        vec2 nxy = wn.rg * 2.0 - 1.0;
+        vec3 nn = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy), 0.05))));
+        vec3 lit = vec3(0.02, 0.02, 0.03) + moonC * 0.06 * max(dot(nn, normalize(vec3(-0.5, 0.6, 0.6))), 0.0);
+        for (int k = 0; k < 5; k++) {
+            if (ss[k] <= 0.0) continue;
+            vec3 v = vec3(cs[k] - vec2(0.0, ss[k] * 0.15), 0.25) - P3;
+            float dd = dot(v, v);
+            lit += fireC * max(dot(nn, v * inversesqrt(dd)), 0.0) * lits[k] / (1.0 + dd * 8.0) * 0.9;
+        }
+        col = mix(col, plateCol(wa.rgb) * lit * 2.4, wa.a);
+    }
+
+    // --- calabazas ---
+    for (int k = 1; k <= 3; k++) {
+        if (ss[k] <= 0.0) continue;
+        float lit = lits[k];
+        float s = ss[k];
+        vec2 qh = (p - cs[k]) / s;                 // unidades de la lamina
+        vec2 huv = rUV(qh, HERO_R);
+        vec4 hc = plate3(huv);
+        if (hc.a <= 0.0) continue;
+        vec4 hn = plate4(huv);
+        vec2 nxy = (hn.rg * 2.0 - 1.0) * 1.2;
+        vec3 nn = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy) * 0.5, 0.05))));
+        float hsh = hash21(vec2(idx + float(k - 2), 9.0));
+        vec2 q = qh * 1.64;
+        float holeD = hwFace(q, hsh, hit * loco);
+        float hole = (1.0 - smoothstep(-0.02, 0.02, holeD)) * step(qh.y, 0.40);
+        vec3 ha = plateCol(hc.rgb);
+        // luz: la luna, las vecinas y la propia vela filtrada por la cascara
+        float nb = 0.0;
+        nb += lits[k - 1] * max(dot(nn, normalize(vec3(-1.0, 0.0, 0.5))), 0.0);
+        nb += lits[k + 1] * max(dot(nn, normalize(vec3(1.0, 0.0, 0.5))), 0.0);
+        vec3 lt = moonC * 0.25 * max(dot(nn, normalize(vec3(-0.6, 0.5, 0.6))), 0.0) + fireC * nb * 0.35 + vec3(0.03);
+        float sss = exp(-max(holeD, 0.0) * 9.0);
+        vec3 skin = ha * lt * hn.b * 2.0 + ha * fireC * sss * lit * 0.9 + fireC * sss * sss * lit * 0.15;
+        float fN = plate5Wrap(vec2(q.x * 0.3, q.y * 0.3 - t * 0.08) + (idx + float(k)) * 0.2).g;
+        vec3 inside = mix(fireC * 0.8, vec3(1.0, 0.95, 0.70), smoothstep(0.4, 0.8, fN)) * lit * 1.3;
+        col = mix(col, mix(skin, inside, hole), hc.a);
+        glowAll += exp(-length(qh - vec2(0.0, -0.1)) * 1.6) * lit;
+    }
+    col += fireC * glowAll * 0.05;
+
+    // --- cuervo que se posa en el muro (evento) ---
+    if (crowE > 0.01) {
+        float cx = -span * 0.5 + floor(n * 0.5 - 0.5) * cw + cw;
+        float land = smoothstep(0.0, 0.3, hkEventPhase(5.0, 61.0, 10.0));
+        vec2 cq = (p - vec2(cx + (1.0 - land) * 1.5, WALL_TOP + 0.08 + (1.0 - land) * 0.6)) / 0.10;
+        float body = length(cq / vec2(1.0, 0.75)) - 0.5;
+        float head = length(cq - vec2(0.35, 0.45)) - 0.22;
+        float beak = max(abs(cq.y - 0.45) - 0.05 + (cq.x - 0.55) * 0.15, abs(cq.x - 0.68) - 0.14);
+        float tail = max(abs(cq.x + 0.65) - 0.25, abs(cq.y + 0.10 + (cq.x + 0.65) * 0.4) - 0.07);
+        float crow = min(min(body, head), min(beak, tail));
+        col = mix(col, vec3(0.005), (1.0 - smoothstep(-0.03, 0.03, crow)) * crowE);
+        col += vec3(1.0, 0.1, 0.05) * exp(-dot(cq - vec2(0.42, 0.50), cq - vec2(0.42, 0.50)) * 400.0) * crowE;
+    }
+
+    // --- niebla sobre el muro ---
+    float fog = plate5Wrap(vec2(p.x * 0.12 - t * 0.008, p.y * 0.6 + 0.3)).b;
+    float fogBand = exp(-pow((p.y - WALL_TOP + 0.05) / 0.18, 2.0));
+    col = mix(col, vec3(0.45, 0.40, 0.55) * (0.3 + bass * 0.4) + fireC * glowAll * 0.03, smoothstep(0.4, 0.8, fog) * fogBand * (0.20 + uD6 * 0.6));
+
+    col = audioLift(col, high * 0.08);
     return vec4(hkFinish(col, uv, vec3(0.8, 0.35, 0.1)), 1.0);
 }
