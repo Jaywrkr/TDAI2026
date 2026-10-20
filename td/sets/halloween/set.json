@@ -39,5 +39,6 @@
     "Lookamount": "Perilla 15: Noche (intensidad)",
     "Palettelock": "Perilla 16: Marco de arco",
     "Duallayer": "Pad 7: Noche ON/OFF"
-  }
+  },
+  "presets_default": "presets_default.json"
 }

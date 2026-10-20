@@ -692,6 +692,7 @@ MODERN_FROM = 58
 # hacer que el audio mueva elementos internos de cada visual.
 AUDIO_DANCE = True
 PRESETS_FILE = 'presets.json'    # dentro de td/config/
+PRESETS_DEFAULT = ''             # presets de fabrica del set (ruta absoluta) o ''
 # GLSL comun del set, que se agrega al final del header de CADA escena
 # del set (funciones compartidas: acabado, luz, particulas...). Vacio =
 # nada. Ruta relativa a td/.
@@ -824,6 +825,10 @@ def _apply_set(name):
         'sets', name, data.get('thumbs_dir', 'thumbs'))
     g['PRESETS_FILE'] = data.get('presets_file',
                                  'presets_{}.json'.format(name))
+    # presets de fabrica del set (versionados): punto de partida por
+    # escena; lo que guardes con Snapshot (td/config) gana encima.
+    if data.get('presets_default'):
+        g['PRESETS_DEFAULT'] = _os.path.join(set_dir(name), data['presets_default'])
     if data.get('output'):
         # Resolucion de salida propia del set, [ancho, alto]. Respeta el
         # tope de la licencia Non-Commercial.

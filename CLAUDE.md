@@ -17,6 +17,7 @@ Lee primero [docs/51_SPEED_Y_BAILE.md](docs/51_SPEED_Y_BAILE.md). Ese documento 
 - Halloween tiene 26 escenas: 20–25 usan la carpeta Media (`media_scenes` en set.json) y el set trae `"setlist"` que las intercala; ver docs/53.
 - Estilo aerógrafo retro: perillas Estilo/Estilomarco (canales `style`/`stylearch`), `hkStyle` en common.glsl; adaptado a fondo en 00, 01, 04, 13, 14 y 16 (docs/53).
 - MiniLab en Halloween: `set.json` → `midi_redirect` (perillas 2/4/15/16 = paleta/estilo/noche/marco, pad 7 = noche on/off); `Nocheon` apaga el efecto de la noche. Test: `td/tools/test_minilab_halloween.py`.
+- Halloween trae miniaturas (`td/tools/render_thumbs.py`) y presets de fábrica por escena (`presets_default.json`; Snapshot del usuario gana encima). Test: `td/tools/test_presets_fabrica.py`.
 - **Guion sin MIDI** (docs/54_GUION.md): `td/vjcore/guion.py` + sección GUION de control_script; el guion de Halloween es `td/sets/halloween/guion.json` (22:00→05:30). Pruebas: `td/tools/test_guion.py`.
 
 ## Entrega

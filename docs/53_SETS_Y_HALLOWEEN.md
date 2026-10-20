@@ -257,6 +257,14 @@ Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, c
 
 `guion.json` de este set lleva la noche entera sin controlador: las 26 escenas en el orden del setlist, de 22:00 a 05:30, con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
 
+## Presets de la noche (punto de partida por escena)
+
+El set trae `td/sets/halloween/presets_default.json`: un preset por escena (Speed, Chaos, Detail 1–6) con valores que ya se ven bien con música y el color "de siempre" de cada escena. Con **Presets → Recall al cambiar escena** prendido (viene prendido), al entrar a una escena las perillas saltan a su punto de partida; de ahí ajustás en vivo.
+
+- **Snapshot escena activa** guarda lo que tenés ahora para esa escena (en `td/config/presets_halloween.json`, que no se versiona). Lo guardado gana sobre el de fábrica, escena por escena.
+- **Volver a los presets de fábrica del set** borra los Snapshot y vuelve a los de fábrica.
+- Las perillas del MiniLab son absolutas: después de un recall, la primera vez que movés una perilla el valor salta a donde está la perilla física.
+
 ## Miniaturas del dashboard
 
 El set trae sus miniaturas ya hechas en `td/sets/halloween/thumbs/` (una por escena, recorte central 16:9), generadas fuera de TD con:
