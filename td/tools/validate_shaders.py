@@ -47,7 +47,7 @@ def build_source(index, force_template=False, channels=None):
             body = f.read()
     else:
         body, path = shader.read_body(index)
-    n_inputs = 2 if index in config.MEDIA_SCENES else 1
+    n_inputs = config.scene_input_count(index)
     src = (_td_prologue(n_inputs)
            + shader.make_header(index, channels or config.CTRL_CHANNELS)
            + body

@@ -104,6 +104,19 @@ def main():
                            capture_output=True, text=True)
         tail = (r.stdout.strip().splitlines() or [''])[-1]
         check('compila todo el set (glslangValidator)', r.returncode == 0, tail)
+        # laminas: PNG por escena, dentro del tope de 1280 px de la licencia
+        code = ('import sys, json; sys.path.insert(0, %r)\n'
+                'from vjcore import config, shader\n'
+                'print(json.dumps({str(k): [v, shader.plates_header(k).count("vec4 plate")]'
+                ' for k, v in config.PLATES.items()}))\n' % TD)
+        out = subprocess.run([sys.executable, '-c', code], env=dict(os.environ, TDAI_SET=name),
+                             capture_output=True, text=True)
+        plates = json.loads(out.stdout.strip().splitlines()[-1])
+        from PIL import Image
+        for k, (files, nfun) in sorted(plates.items(), key=lambda kv: int(kv[0])):
+            sizes = [Image.open(f).size for f in files]
+            check('laminas de la escena {}: {} PNG <= 1280 px y sus plateN()'.format(k, len(files)),
+                  all(max(sz) <= 1280 for sz in sizes) and nfun == 2 * len(files), sizes)
 
     print('ELECCION DEL SET')
     run_me = open(os.path.join(TD, 'RUN_ME.py'), encoding='utf-8').read()

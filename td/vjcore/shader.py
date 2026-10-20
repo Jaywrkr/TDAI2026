@@ -595,8 +595,35 @@ def make_header(scene_index, channels):
     header += '#define AUDIO_DANCE {}\n'.format(1 if config.AUDIO_DANCE else 0)
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
+    header += plates_header(scene_index)
     header += set_prelude()
     return header
+
+
+def plates_header(scene_index):
+    """plate0(uv) ... plateN(uv) para las laminas de la escena (ver
+    config.PLATES). Fuera de 0..1 devuelven transparente: la lamina no se
+    repite en los bordes."""
+    files = config.PLATES.get(scene_index, [])
+    if not files:
+        return ''
+    base = config.plate_base(scene_index)
+    out = ['', '// Laminas de esta escena (config.PLATES), en orden:']
+    for k, f in enumerate(files):
+        out.append('//   plate{}: {}'.format(k, os.path.basename(f)))
+    out.append('#define N_PLATES {}'.format(len(files)))
+    for k in range(len(files)):
+        # sin repetir en los bordes (el modo de borde del input puede ser
+        # 'repeat'): uv recortado medio texel adentro y nivel 0
+        out.append('vec4 plate{0}(vec2 uv) {{ vec2 o = step(vec2(0.0), uv) * step(uv, vec2(1.0)); '
+                   'vec2 hs = 0.5 / vec2(textureSize(sTD2DInputs[{1}], 0)); '
+                   'return textureLod(sTD2DInputs[{1}], clamp(uv, hs, 1.0 - hs), 0.0) * (o.x * o.y); }}'
+                   .format(k, base + k))
+        # textureLod: con fract() la derivada salta en la costura y el
+        # mipmap elegiria el nivel mas chico (linea visible)
+        out.append('vec4 plate{0}Wrap(vec2 uv) {{ return textureLod(sTD2DInputs[{1}], fract(uv), 0.0); }}'
+                   .format(k, base + k))
+    return '\n'.join(out) + '\n'
 
 
 def set_prelude():

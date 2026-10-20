@@ -117,6 +117,15 @@ def build_scene(scenes, i, channels):
                   .format(config.SILENCE_RMS_THRESHOLD))
         safe_set_first(media_in, ['cueloop', 'loop'], True)
         connect(glsl, media_in, 1)
+    # Laminas (config.PLATES): una imagen fija por input, despues de ctrl
+    # y de media. La ruta es absoluta al repo, asi que mover la carpeta
+    # td/ pide Reconstruir Todo.
+    for k, path in enumerate(config.PLATES.get(i, [])):
+        pl = content.create(moviefileinTOP, 'plate{}'.format(k))
+        pl.nodeX, pl.nodeY = -400, 150 - k * 110
+        safe_set(pl, 'file', path.replace('\\', '/'))
+        safe_set(pl, 'play', False)
+        connect(glsl, pl, config.plate_base(i) + k)
     # IMPORTANTE: sin esto el GLSL TOP hereda la resolucion del input 0,
     # que es la textura de control de 1 x 15 px.
     # Resolucion = salida x Renderscale (ver config.DEFAULT_RENDER_SCALE),

@@ -121,7 +121,7 @@ def compose_for_check(index, body, channels=None):
     """Igual que validate_shaders.build_source, pero con el .frag TODAVIA
     en memoria (no escrito a disco todavia) -- para poder validar antes
     de tocar el filesystem."""
-    n_inputs = 2 if index in config.MEDIA_SCENES else 1
+    n_inputs = config.scene_input_count(index)
     src = (vs._td_prologue(n_inputs)
            + shader.make_header(index, channels or config.CTRL_CHANNELS)
            + body + shader._FOOTER)

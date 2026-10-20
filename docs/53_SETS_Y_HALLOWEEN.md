@@ -151,6 +151,26 @@ En NILA la pared llega a unos 2,7 m y la gente tapa la parte de abajo. Para una 
 
 Después de cambiar el formato hay que **Reconstruir Todo**.
 
+## Láminas: realismo sin cargar el procesador
+
+Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, colinas, lápidas, suelo, luna, texturas de nubes y niebla), dibujadas con todo el detalle fuera de línea. En vivo el shader solo las lee y les pone encima todo lo que se mueve: niebla, luz, relámpagos, fuegos fatuos, viento y parallax. Leer una textura en el GPU cuesta casi nada.
+
+- **Dónde van:** `td/sets/<set>/plates/sceneNN/*.png`. Entran al GLSL TOP después de ctrl (y de media), en orden alfabético. En el `.frag` se leen con `plate0(uv)`, `plate1(uv)`… y con `plateNWrap(uv)` para las texturas que se repiten.
+- **Cuándo se cargan:** el build crea un Movie File In TOP por lámina. Si se agregan o quitan láminas, o se mueve la carpeta `td/`, hay que hacer **Reconstruir Todo**. Si solo cambia el contenido de un PNG, alcanza con recargar el archivo.
+- **Tamaño:** máximo 1280 px por lado (licencia Non-Commercial). `test_sets.py` lo verifica.
+- **Escena 00:** `python3 td/tools/bake_plates_cementerio.py` vuelve a generar sus 6 láminas:
+
+| Lámina | Qué es |
+|---|---|
+| `1_lejos` | sierras y capilla: R luz, G cuál sierra, B ventanas, A cobertura |
+| `2_medio_pocas` y `3_medio_muchas` | colinas, reja y lápidas; D2 pasa de una a otra |
+| `4_cerca` | lápidas cercanas, cruz celta, suelo y pasto |
+| `5_ruido` | ruido que se repite: R nubes, G y B niebla, A detalle |
+| `6_luna` | luna con cráteres |
+
+- **Codificación del color:** las láminas de color guardan color lineal ×2 con gamma 2.2; la escena lo decodifica con `plateCol()`.
+- **Reemplazarlas por fotos o arte:** sirve cualquier PNG con el mismo nombre y el mismo encuadre (ver las constantes `FAR_Y`, `MID_Y` y `NEAR_Y` en la escena).
+
 ## Verificar fuera de TouchDesigner
 
 ```bash

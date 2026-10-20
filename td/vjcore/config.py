@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'speedfloor-pano-v7 2026-10-20'
+BUILD_TAG = 'laminas-v8 2026-10-20'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -712,6 +712,42 @@ def set_dir(name=None):
     return _os.path.join(_TD_DIR, 'sets', name)
 
 
+# LAMINAS: capas PNG quietas de una escena (fondo, colinas, lapidas...)
+# dibujadas con todo el detalle fuera de linea; en vivo el shader solo las
+# lee. Viven en sets/<set>/plates/sceneNN/*.png y entran al GLSL TOP de esa
+# escena despues de ctrl (y de media, si la escena usa media), en orden
+# alfabetico. {indice: [rutas absolutas]}.
+PLATES = {}
+
+
+def _find_plates(folder):
+    import re as _re
+    out = {}
+    try:
+        names = _os.listdir(folder)
+    except Exception:
+        return out
+    for d in names:
+        m = _re.match(r'scene(\d+)$', d)
+        if not m:
+            continue
+        sub = _os.path.join(folder, d)
+        files = sorted(f for f in _os.listdir(sub) if f.lower().endswith('.png'))
+        if files:
+            out[int(m.group(1))] = [_os.path.join(sub, f) for f in files]
+    return out
+
+
+def plate_base(i):
+    """Indice de sTD2DInputs donde empieza la primera lamina de la escena i."""
+    return 2 if i in MEDIA_SCENES else 1
+
+
+def scene_input_count(i):
+    """Cuantos inputs tiene el GLSL TOP de la escena i (ctrl + media + laminas)."""
+    return plate_base(i) + len(PLATES.get(i, []))
+
+
 def _count_scenes(folder):
     import re as _re
     idx = []
@@ -755,6 +791,7 @@ def _apply_set(name):
         w, h = data['output']
         g['DEFAULT_OUTPUT_W'] = max(320, min(int(w), MAX_OUTPUT))
         g['DEFAULT_OUTPUT_H'] = max(240, min(int(h), MAX_OUTPUT))
+    g['PLATES'] = _find_plates(_os.path.join(set_dir(name), data.get('plates_dir', 'plates')))
     if data.get('prelude'):
         g['SET_PRELUDE'] = _os.path.join('sets', name, data['prelude'])
     g['GRID_ROWS'] = math.ceil(g['N_SCENES'] / GRID_COLS)
