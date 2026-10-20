@@ -41,7 +41,7 @@ float hwSpider(vec2 p, float t, float curl) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float hit = hkHit();
     float loco = hkLoco();
@@ -55,7 +55,7 @@ vec4 render(vec2 uv) {
     float mr = length(p - moonP);
     float backlight = exp(-mr * 1.3);
     col += vec3(0.55, 0.50, 0.70) * exp(-max(mr - 0.28, 0.0) * 5.0) * 0.25;
-    col = mix(col, vec3(0.70, 0.66, 0.78) * (0.65 + 0.35 * fbm((p - moonP) * 6.0, 4)) * (0.7 + 0.3 * sqrt(max(1.0 - pow(mr / 0.28, 2.0), 0.0))), 1.0 - smoothstep(0.275, 0.285, mr));
+    col = mix(col, vec3(0.70, 0.66, 0.78) * (0.65 + 0.35 * fbm((p - moonP) * 6.0, 3)) * (0.7 + 0.3 * sqrt(max(1.0 - pow(mr / 0.28, 2.0), 0.0))), 1.0 - smoothstep(0.275, 0.285, mr));
     col += vec3(0.6, 0.55, 0.8) * hkRays(p, moonP, t, 16.0) * 0.20;
     vec3 silver = vec3(0.85, 0.88, 0.95);
     vec3 violet = hsv2rgb(vec3(fract(0.76 + hue), 0.55, 1.0));
@@ -66,7 +66,9 @@ vec4 render(vec2 uv) {
     vec2 q = p - c;
     float r = length(q);
     float a = atan(q.y, q.x);
-    float breeze = 0.010 * sin(t * 0.8 + r * 3.0);
+    // historia: rafagas de viento sacuden la tela cada tanto
+    float windE = hkEvent(4.0, 43.0, 7.0);
+    float breeze = (0.010 + windE * 0.03) * sin(t * (0.8 + windE * 3.0) + r * 3.0);
     float spokes = 14.0 + floor(uD1 * 14.0);
     float rings = 12.0 + floor(uD2 * 16.0 + uDensity * 6.0);
     float pxr = 1.0 / uResH;
@@ -96,12 +98,14 @@ vec4 render(vec2 uv) {
 
     // hilo y arana
     float sx = uAspect * 0.15;
-    float drop = 0.25 + 0.30 * sin(t * 0.35);
+    // historia: cada ~67 s la arana baja hasta casi tocar la camara
+    float descend = hkEvent(3.0, 67.0, 9.0);
+    float drop = 0.25 + 0.30 * sin(t * 0.35) + descend * 0.6;
     vec2 sp = vec2(sx, 0.75 - drop);
     float silk = abs(p.x - sx - 0.004 * sin(p.y * 20.0 + t)) ;
     float silkM = (1.0 - smoothstep(pxr, pxr * 2.5, silk)) * step(sp.y, p.y);
     col += ink * silkM * 0.7;
-    float size = 0.36 + uD3 * 0.26;
+    float size = (0.36 + uD3 * 0.26) * (1.0 + descend * 1.4);
     vec2 aq = (p - sp) / size;
     aq.x += 0.05 * sin(t * 1.1);
     float sd = hwSpider(aq, t, hit * 0.8) * size;

@@ -24,7 +24,7 @@ float hwMiniSkull(vec2 q) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
@@ -34,12 +34,15 @@ vec4 render(vec2 uv) {
 
     vec3 lightC = mix(vec3(1.0, 0.55, 0.20), hsv2rgb(vec3(fract(0.33 + hue), 0.85, 1.0)), uD5);
     float r = length(p);
-    float a = atan(p.y, p.x) + t * 0.03 + mid * 0.08;
+    float a = atan(p.y, p.x) + t * 0.03 * (hkActVal(5.0) > 0.5 ? 1.0 : -1.0) + mid * 0.08;
     // locura: el tunel se retuerce con el golpe
     a += hit * loco * 0.6 * sin(0.35 / max(r, 0.02) * 0.8 + uRTime * 3.0);
     // coordenadas del tunel: profundidad 1/r
     float depth = 0.35 / max(r, 0.02);
-    float travel = t * (0.35 + uD2 * 0.8);
+    // historia: cada ~55 s 'acelerón' (el avance se adelanta sin saltar);
+    // cada ~97 s se encienden todos los ojos; cada acto gira para otro lado
+    float rushE = hkEvent(3.0, 55.0, 6.0);
+    float travel = t * (0.35 + uD2 * 0.8) + hkEventPhase(3.0, 55.0, 6.0) * 6.0 * step(0.001, rushE);
     float z = depth + travel;
     float per = 10.0 + floor(uD1 * 10.0);
     vec2 tc = vec2(a / TAU * per, z * per / TAU * 2.2);
@@ -68,7 +71,8 @@ vec4 render(vec2 uv) {
     vec3 col = mix(vec3(0.01, 0.006, 0.004), lit, mask);
     col += vec3(1.0, 0.5, 0.15) * torchB * 0.06 * (1.0 - mask);
     // ojos encendidos en algunas calaveras
-    float eyeOn = step(0.80 - uD4 * 0.5, hash21(id + 7.0));
+    float eyesAll = hkEvent(4.0, 97.0, 6.0);
+    float eyeOn = max(step(0.80 - uD4 * 0.5, hash21(id + 7.0)), eyesAll);
     float eyes = 1.0 - smoothstep(0.0, 0.05, length(vec2(abs(f.x * 1.15) - 0.14, f.y * 1.15 - 0.02)) - 0.06);
     col += lightC * eyes * eyeOn * (0.6 + bass * 0.8 + hit * 0.4) * (1.0 - fogAmt * 0.7);
     // niebla y luz del fondo

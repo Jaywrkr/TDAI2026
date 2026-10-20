@@ -4,7 +4,8 @@
 // un castillo. Ventanas encendidas en las torres.
 // Speed mueve la bandada y el aleteo. El golpe dispersa a los
 // murcielagos (cada uno hacia su lado) y hace parpadear las ventanas;
-// el bajo encendie el halo de la luna.
+// el bajo enciende el halo de la luna. Historia: cada ~61 s cruza una
+// bandada enorme, cada ~53 s relampaguea y cada ~2 min la luna sangra.
 //
 // @D1: cantidad de murcielagos
 // @D2: tamano de la luna
@@ -40,7 +41,7 @@ float hwBat(vec2 p, float flap) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -63,15 +64,17 @@ vec4 render(vec2 uv) {
     float mr = length(mp);
     vec3 pale = vec3(1.0, 0.93, 0.78);
     vec3 blood = hsv2rgb(vec3(fract(0.015 + hue), 0.85, 1.0));
-    vec3 moonC = mix(pale, blood, uD5);
-    float crater = mr < moonR + 0.01 ? fbm(mp * 4.0 / moonR + 5.0, 4, 0.55) : 0.5;
+    // historia: la luna cambia de color segun el acto y a veces sangra
+    float bloodE = hkEvent(4.0, 117.0, 20.0);
+    vec3 moonC = mix(pale, blood, clamp(uD5 + hkActVal(5.0) * 0.25 + bloodE, 0.0, 1.0));
+    float crater = mr < moonR + 0.01 ? fbm(mp * 4.0 / moonR + 5.0, 3, 0.55) : 0.5;
     float disk = 1.0 - smoothstep(moonR - 0.004, moonR + 0.004, mr);
     float limb = sqrt(max(1.0 - pow(mr / moonR, 2.0), 0.0));
     col += moonC * exp(-max(mr - moonR, 0.0) * 4.0) * (0.25 + bass * 0.45);
     col = mix(col, moonC * (0.55 + 0.45 * limb) * (0.80 + 0.35 * crater), disk);
     // rayos de luna y relampago de locura
     col += moonC * hkRays(p, mc, t, 14.0) * 0.18 * (1.0 - disk);
-    float zap = hit * smoothstep(0.4, 0.9, loco);
+    float zap = max(hit * smoothstep(0.4, 0.9, loco), hkEvent(6.0, 53.0, 6.0) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))));
     float bslot = floor(uRTime * 1.5);
     float bd = hkBolt(p, (hash21(vec2(bslot, 2.0)) - 0.5) * uAspect * 1.6, 1.05, -0.55, bslot * 5.0, 0.4);
     col += vec3(0.8, 0.75, 1.0) * (exp(-bd * 160.0) + exp(-bd * 20.0) * 0.3) * zap * 1.5;
@@ -115,31 +118,34 @@ vec4 render(vec2 uv) {
     // halo de las ventanas en el aire humedo
     col += winC * 0.04 * (0.5 + uD6) * flick * exp(-abs(p.y - ground - 0.35) * 4.0) * smoothstep(0.9, 0.2, abs(x));
 
-    // bandada
-    float nBats = 8.0 + floor(uD1 * 22.0 + uDensity * 6.0);
+    // bandada: tres capas de profundidad en grilla. Cada pixel solo mira
+    // el murcielago de SU celda en cada capa (3 en total, no 24): el
+    // costo ya no depende de cuantos murcielagos hay.
+    float swarmE = hkEvent(3.0, 61.0, 9.0);
+    float presence = clamp(0.30 + uD1 * 0.45 + uDensity * 0.10 + swarmE * 0.45, 0.0, 0.95);
     float bats = 1e3;
-    for (int i = 0; i < 28; i++) {
-        float fi = float(i);
-        if (fi >= nBats) break;
-        float h1 = fract(sin(fi * 12.989) * 43758.5);
-        float h2 = fract(sin(fi * 78.233) * 12345.6);
-        float h3 = fract(sin(fi * 39.425) * 24634.6);
-        float depth = 0.45 + h3 * 0.85;
-        float sp = (0.06 + h1 * 0.08) * depth;
-        float bx = mix(-uAspect - 0.4, uAspect + 0.4, fract(h2 + t * sp));
-        float by = -0.15 + h1 * 0.95 + 0.10 * sin(t * (0.8 + h2) + fi);
-        vec2 bp = vec2(bx, by);
+    for (int L = 0; L < 3; L++) {
+        float fl = float(L);
+        float depth = 1.25 - fl * 0.35;
+        float cs = 0.62 * depth;                       // celda
+        vec2 q0 = p + vec2(t * (0.10 + 0.05 * fl) * depth, 0.0);
+        vec2 cid = floor(q0 / cs);
+        if (cid.y * cs < -0.75 || cid.y * cs > 1.1) continue;
+        vec2 h = hash22(cid + fl * 13.0);
+        if (hash21(cid + fl * 7.0 + 0.5) > presence) continue;
+        vec2 center = (cid + 0.5 + (h - 0.5) * 0.35) * cs;
+        center.y += 0.06 * sin(t * (0.8 + h.x) + h.y * 9.0);
         // dispersion con el golpe: cada uno se aleja de la luna a su modo
-        vec2 away = normalize(bp - mc + 1e-4);
-        bp += (away + vec2(h2 - 0.5, h1 - 0.5)) * hit * (0.04 + uD4 * 0.18) * depth;
-        // locura: la bandada se viene encima de la camara con el golpe
-        float scale = 0.17 * depth * (1.0 + hit * loco * 1.2 * h3);
-        // lejos de este murcielago: ni lo calcules (es el costo principal)
-        if (length(p - bp) > scale * 0.75) { bats = min(bats, length(p - bp) - scale * 0.55); continue; }
-        float flap = sin(t * (9.0 + uD3 * 12.0) * (0.8 + h3 * 0.4) + fi * 2.0);
-        vec2 q = (p - bp) / scale;
-        q = rot2((h1 - 0.5) * 0.5) * q;
-        bats = min(bats, hwBat(q, flap) * scale);
+        vec2 world = center - vec2(t * (0.10 + 0.05 * fl) * depth, 0.0);
+        vec2 away = normalize(world - mc + 1e-4);
+        center += (away + (h - 0.5)) * hit * (0.03 + uD4 * 0.10) * depth;
+        // locura: se vienen encima de la camara (limitado a la celda)
+        float scale = 0.17 * depth * (1.0 + hit * loco * 0.6 * h.x + swarmE * 0.25);
+        vec2 bq = (q0 - center) / scale;
+        if (dot(bq, bq) > 0.6) { bats = min(bats, (length(bq) - 0.55) * scale); continue; }
+        float flap = sin(t * (9.0 + uD3 * 12.0) * (0.8 + h.y * 0.4) + h.x * 20.0);
+        bq = rot2((h.x - 0.5) * 0.5) * bq;
+        bats = min(bats, hwBat(bq, flap) * scale);
     }
     float batMask = 1.0 - smoothstep(-0.0015, 0.0015, bats);
     col = mix(col, vec3(0.0), batMask);

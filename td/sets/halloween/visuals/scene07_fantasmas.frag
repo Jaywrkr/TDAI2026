@@ -26,7 +26,7 @@ float hwGhost(vec2 p, float t, float wave, float seed) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -36,7 +36,7 @@ vec4 render(vec2 uv) {
     vec3 bgA = hsv2rgb(vec3(fract(0.58 + hue), 0.70, 0.10));
     vec3 bgB = hsv2rgb(vec3(fract(0.70 + hue), 0.60, 0.02));
     vec3 col = mix(bgA, bgB, smoothstep(-0.8, 1.0, p.y) + 0.3 * abs(p.x) / uAspect);
-    float fog = fbm(vec2(p.x * 1.0 - t * 0.04, p.y * 2.0 + t * 0.02), 4, 0.55);
+    float fog = fbm(vec2(p.x * 1.0 - t * 0.04, p.y * 2.0 + t * 0.02), 3, 0.55);
     col += vec3(0.10, 0.12, 0.16) * smoothstep(0.35, 0.85, fog) * (0.4 + uD6 * 1.0);
 
     // rayos de luz frios que entran desde arriba (ventana alta)
@@ -45,8 +45,12 @@ vec4 render(vec2 uv) {
     vec3 spectral = hsv2rgb(vec3(fract(0.36 + hue), 0.60, 1.0));
     vec3 gc = mix(cold, spectral, uD5);
 
-    float n = 3.0 + floor(uD1 * 6.0 + uDensity * 2.0);
-    for (int i = 0; i < 9; i++) {
+    // historia: cada acto cambia cuantos hay; cada ~59 s uno pasa volando
+    // muy cerca de la camara; cada ~83 s se apagan y reaparecen
+    float flyBy = hkEvent(3.0, 59.0, 6.0);
+    float vanish = hkEvent(4.0, 83.0, 4.0);
+    float n = min(3.0 + floor(uD1 * 4.0 + uDensity * 1.0 + hkActVal(5.0) * 2.0), 6.0);
+    for (int i = 0; i < 6; i++) {
         float fi = float(i);
         if (fi >= n) break;
         float h1 = fract(sin(fi * 12.989 + 1.0) * 43758.5);
@@ -58,15 +62,20 @@ vec4 render(vec2 uv) {
         // locura: se abalanzan hacia la camara gritando
         float rush = hit * loco * step(0.5, fract(h2 * 5.0 + floor(uRTime * 2.0) * 0.37));
         float s = (0.62 + 0.14 * h1) * depth * (1.0 + peek * 0.10 + rush * 1.2);
+        if (i == 0) {   // el que pasa volando cerca de la camara
+            float fp = hkEventPhase(3.0, 59.0, 6.0);
+            x = mix(x, mix(-uAspect - 1.4, uAspect + 1.4, fp), step(0.01, flyBy));
+            s *= 1.0 + flyBy * 1.6;
+        }
         vec2 q = (p - vec2(x, y)) / s;
-        if (length(q) > 1.5) continue;     // fuera del fantasma y su halo
+        if (length(q) > 1.15) continue;     // fuera del fantasma y su halo
         q.x += 0.06 * sin(q.y * 3.0 + t * 1.3 + fi);   // se mece
         float wave = 0.4 + uD3 * 1.2 + mid * 1.5;
         float d = hwGhost(q, t, wave, fi * 3.7) * s;
         float body = 1.0 - smoothstep(-0.004, 0.004, d);
         // brillo interior: mas denso arriba, se desvanece hacia el borde
         float inner = exp(-max(-d, 0.0) * 4.0);
-        float density = (0.35 + 0.45 * smoothstep(-0.6, 0.3, q.y)) * (1.0 - uD2 * 0.6);
+        float density = (0.35 + 0.45 * smoothstep(-0.6, 0.3, q.y)) * (1.0 - uD2 * 0.6) * (1.0 - vanish * step(0.5, hash21(vec2(fi, floor(uRTime * 6.0)))));
         float glow = exp(-max(d, 0.0) * 18.0) * 0.35;
         // ojos y boca oscuros
         vec2 ep = vec2(abs(q.x) - 0.11, q.y - 0.22);

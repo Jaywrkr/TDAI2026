@@ -4,7 +4,8 @@
 // deslizan despacio. Naranja, violeta y verde, como tubos de neon.
 // Speed mueve las capas. Cada calavera mastica a su ritmo; el golpe
 // abre de golpe las mandibulas (cada una distinto) y el bajo enciende
-// las cuencas de los ojos desde adentro.
+// las cuencas de los ojos desde adentro. Historia: cada acto cambia la
+// paleta; cada ~41 s una ola de luz cruza el muro; cada ~89 s apagon.
 //
 // @D1: tamano de las calaveras
 // @D2: grosor del neon
@@ -45,7 +46,7 @@ vec2 hwSkull(vec2 p, float jaw) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -56,11 +57,15 @@ vec4 render(vec2 uv) {
     vec2 bq = vec2(p.x * 7.0 + 0.5 * mod(floor(p.y * 14.0), 2.0), p.y * 14.0);
     vec2 bf = fract(bq);
     float mortar = smoothstep(0.0, 0.05, bf.x) * smoothstep(1.0, 0.95, bf.x) * smoothstep(0.0, 0.08, bf.y) * smoothstep(1.0, 0.92, bf.y);
-    float brick = (0.55 + 0.45 * noise21(floor(bq) * 1.7)) * (0.7 + 0.3 * fbm(p * 20.0, 3));
-    float wet = smoothstep(0.6, 0.9, fbm(vec2(p.x * 3.0, p.y * 0.8), 3));
+    float brick = (0.55 + 0.45 * hash21(floor(bq) * 1.7)) * (0.75 + 0.25 * noise21(p * 20.0));
+    float wet = smoothstep(0.55, 0.9, noise21(vec2(p.x * 3.0, p.y * 0.8)));
     vec3 wall = vec3(0.030, 0.018, 0.022) * brick * mortar * (1.0 + wet * 0.8);
     vec3 col = vec3(0.004, 0.002, 0.008) + wall;
     vec3 palette[3];
+    // historia: cada acto reparte otra paleta; ola de neon y apagon
+    hue += floor(hkActVal(1.0) * 4.0) * 0.18 * step(0.5, hkActVal(2.0));
+    float waveE = hkEvent(3.0, 41.0, 6.0);
+    float blackout = hkEvent(4.0, 89.0, 5.0);
     palette[0] = hsv2rgb(vec3(fract(0.07 + hue), 0.95, 1.0));   // naranja
     palette[1] = hsv2rgb(vec3(fract(0.78 + hue), 0.80, 1.0));   // violeta
     palette[2] = hsv2rgb(vec3(fract(0.33 + hue), 0.85, 1.0));   // verde
@@ -95,6 +100,10 @@ vec4 render(vec2 uv) {
         if (ci == 2) c = mix(palette[0], palette[2], mixC);
         float fade = 1.0 / (1.0 + fl * 1.15);
         float pulse = 0.85 + 0.15 * sin(t * 2.0 + phase) + hit * 0.35;
+        // ola: una franja de luz recorre el muro de izquierda a derecha
+        pulse += waveE * 1.4 * exp(-pow((p.x - mix(-uAspect - 0.5, uAspect + 0.5, fract(uRTime * 0.25))) * 3.0, 2.0));
+        // apagon: se apagan todos y vuelven de a uno, parpadeando
+        pulse *= 1.0 - blackout * step(hash21(id + floor(uRTime * 8.0)), 0.85 - (1.0 - blackout) * 0.8);
         // tubos con zumbido: algunos parpadean como neon gastado; con la
         // locura parpadean todos y se apagan de golpe
         float buzz = step(0.92 - loco * 0.5, hash21(id + floor(uRTime * (6.0 + loco * 20.0)) * 0.13));

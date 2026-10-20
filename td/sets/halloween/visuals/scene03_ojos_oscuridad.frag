@@ -2,7 +2,9 @@
 // HALLOWEEN 03 - OJOS EN LA OSCURIDAD
 // Pares de ojos de bestia que se abren y parpadean en la negrura, con
 // pupila de gato y un brillo que se derrama en la niebla.
-// Speed marca el ritmo de parpadeo y la mirada. El golpe abre de golpe
+// Speed marca el ritmo de parpadeo y la mirada. Historia: cada acto
+// cambia la cantidad de ojos; cada ~37 s parpadean todos juntos y cada
+// ~103 s se abre solo el ojo gigante. El golpe abre de golpe
 // mas pares de ojos (cada uno con su retraso); el bajo dilata el brillo
 // del iris. Las pupilas siguen la ultima tecla del piano.
 //
@@ -30,7 +32,7 @@ vec3 hwEye(vec2 q, float open, vec2 look) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -41,10 +43,13 @@ vec4 render(vec2 uv) {
                        hsv2rgb(vec3(fract(0.995 + hue), 1.0, 1.0)), uD5);
 
     // niebla de fondo
-    float fog = hkFog(p * 1.2, t);
+    float fog = fbm(p * 1.4 + vec2(t * 0.03, -t * 0.01), 3, 0.55);
     vec3 col = vec3(0.012, 0.008, 0.020) + vec3(0.03, 0.02, 0.05) * fog;
 
-    float cells = 2.0 + floor(uD1 * 4.0 + uDensity * 2.0);
+    // historia: cada acto hay mas o menos ojos; parpadeo comun; ojo gigante solo
+    float allBlink = step(0.5, hkEvent(5.0, 37.0, 2.6)) * step(0.3, fract(uRTime * 1.4));
+    float giantE = hkEvent(6.0, 103.0, 6.0);
+    float cells = 2.0 + floor(uD1 * 4.0 + uDensity * 2.0 + hkActVal(7.0) * 1.5);
     vec2 g = p * cells * 0.5 + vec2(17.0, 3.0);
     vec2 id = floor(g);
     vec2 f = fract(g) - 0.5;
@@ -66,6 +71,8 @@ vec4 render(vec2 uv) {
         // parpadeo: cada par a su ritmo
         float bph = fract(t * (0.15 + h.y * 0.18) + h.x * 7.0);
         float blink = 1.0 - smoothstep(0.0, 0.03, bph) * (1.0 - smoothstep(0.03, 0.07, bph));
+        // historia: todos parpadean juntos de vez en cuando
+        blink *= 1.0 - allBlink;
         float open = base * blink;
         if (open < 0.02) continue;
         vec2 look = vec2(mix(-1.0, 1.0, uKeypos), 0.2 * sin(t * 0.7 + h.y * 9.0));
@@ -79,7 +86,7 @@ vec4 render(vec2 uv) {
             vec3 hot = mix(irisCol, vec3(1.0, 0.95, 0.75), 0.35);
             // iris con estrias radiales y un brillo humedo
             float ang = atan(eq.y, eq.x);
-            float stri = 0.75 + 0.25 * noise21(vec2(ang * 9.0, length(eq) * 6.0 + h.x * 9.0));
+            float stri = e.x > 0.0 ? 0.75 + 0.25 * noise21(vec2(ang * 9.0, length(eq) * 6.0 + h.x * 9.0)) : 1.0;
             vec3 eyeC = mix(irisCol * 0.30, hot, e.y) * rad * stri;
             eyeC = mix(eyeC, vec3(0.01, 0.0, 0.0), e.z * 0.92);
             float wetSpot = exp(-dot(eq - vec2(-0.12, 0.08), eq - vec2(-0.12, 0.08)) * 260.0);
@@ -93,7 +100,7 @@ vec4 render(vec2 uv) {
     col += irisCol * glowSum * (0.10 + uD6 * 0.25) * (0.5 + fog);
 
     // LOCURA: un ojo gigante se abre en el centro con el golpe
-    float giant = hit * smoothstep(0.35, 0.9, loco);
+    float giant = max(hit * smoothstep(0.35, 0.9, loco), giantE);
     if (giant > 0.01) {
         vec2 gq = p / 0.75;
         vec3 e = hwEye(gq, giant, vec2(0.0));

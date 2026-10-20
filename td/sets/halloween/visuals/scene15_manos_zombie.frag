@@ -26,6 +26,9 @@ float hwHand(vec2 p, float open, float curl) {
     arm = max(arm, p.y - 0.75);
     float palm = length((p - vec2(0.0, 0.85)) / vec2(0.18, 0.16)) - 1.0;
     float d = min(arm, palm * 0.16);
+    // los dedos estan todos arriba de la palma: debajo no hace falta
+    // calcularlos (es lo mas caro de la mano)
+    if (p.y < 0.62 || abs(p.x) > 0.62) return d;
     for (int i = 0; i < 5; i++) {
         float fi = float(i);
         float a = mix(-0.55, 0.55, fi / 4.0) * (0.4 + open * 1.1);
@@ -45,7 +48,7 @@ float hwHand(vec2 p, float open, float curl) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -68,11 +71,15 @@ vec4 render(vec2 uv) {
         col += light * hkLine(st, 1.2) * 0.25;
     }
     // locura: revientan mas manos de la tierra con el golpe
-    float n = 3.0 + floor(uD1 * 5.0 + hit * loco * 4.0);
+    // historia: cada ~69 s sale una horda; cada acto distinta cantidad
+    float horde = hkEvent(3.0, 69.0, 9.0);
+    float n = min(3.0 + floor(uD1 * 3.0 + hit * loco * 2.0 + horde * 3.0 + hkActVal(4.0) * 1.5), 8.0);
     float handsD = 1e3;
-    for (int i = 0; i < 12; i++) {
+    // bajo tierra o muy arriba no hay manos que buscar
+    bool handZone = p.y > groundY - 0.02 && p.y < groundY + 1.25;
+    for (int i = 0; i < 8; i++) {
         float fi = float(i);
-        if (fi >= n) break;
+        if (fi >= n || !handZone) break;
         float h1 = fract(sin(fi * 12.989 + 3.0) * 43758.5);
         float h2 = fract(sin(fi * 78.233 + 1.0) * 1234.5);
         float x = mix(-uAspect * 0.85, uAspect * 0.85, (fi + 0.5) / n) + (h1 - 0.5) * 0.2;
@@ -82,8 +89,8 @@ vec4 render(vec2 uv) {
         vec2 base = vec2(x, groundY - s * 1.0 + (rise + stretch) * s * 1.2);
         vec2 q = (p - base) / s;
         q = rot2((h1 - 0.5) * 0.5) * q;
-        if (abs(q.x) > 0.8 || q.y > 1.6) {
-            handsD = min(handsD, (max(abs(q.x) - 0.6, q.y - 1.4)) * s);
+        if (abs(q.x) > 0.66 || q.y > 1.38) {
+            handsD = min(handsD, max(max(abs(q.x) - 0.60, q.y - 1.25), 0.05) * s);
             continue;
         }
         float open = clamp(0.3 + uD3 * 0.7 + 0.25 * sin(t * (1.2 + h1) + fi), 0.0, 1.2);
@@ -116,10 +123,11 @@ vec4 render(vec2 uv) {
         col = mix(col, dirt * 2.0 + light * 0.10, (1.0 - smoothstep(0.10, 0.18, length(f))) * alive * hit);
     }
     // locura: la tierra estalla hacia arriba
-    float blast = hit * smoothstep(0.4, 1.0, loco);
+    float blast = max(hit * smoothstep(0.4, 1.0, loco), horde * step(0.6, fract(uRTime * 0.7)) * 0.7);
     if (blast > 0.01) col += dirt * 3.0 * hkParticles(p - vec2(0.0, groundY), uRTime * 2.0, 0.35 * blast, vec2(0.0, 1.0), 0.06) * step(groundY, p.y) * blast;
     // niebla baja
-    float fog = fbm(vec2(p.x * 1.5 - t * 0.05, p.y * 4.0), 4, 0.5);
+    float fogBand = exp(-pow((p.y - groundY - 0.05) / 0.15, 2.0));
+    float fog = fogBand > 0.02 ? fbm(vec2(p.x * 1.5 - t * 0.05, p.y * 4.0), 3, 0.5) : 0.0;
     col = mix(col, light * 0.35, smoothstep(0.45, 0.85, fog) * exp(-pow((p.y - groundY - 0.05) / 0.15, 2.0)) * 0.6);
 
     return vec4(hkFinish(col, uv, vec3(0.2, 0.5, 0.2)), 1.0);

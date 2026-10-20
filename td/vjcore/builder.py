@@ -279,6 +279,10 @@ def _parameters(proj):
     # pasos, empezando por lo mas caro y menos esencial.
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
+    # Piso propio del failsafe, separado del aviso visual (Fpswarning, 55):
+    # el show no puede bajar de 20 fps, asi que actua por debajo de 24
+    # (margen) y no cada vez que el FPS baja de 55.
+    add_int(fs, 'Failsafefps', 'Actuar si el FPS baja de', 24, 10, 120)
     add_float(fs, 'Failsafeseconds', 'Segundos en rojo antes de actuar',
               4.0, 1.0, 30.0)
     # Tope holgado a proposito: el techo REAL de la escalera lo pone

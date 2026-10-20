@@ -51,9 +51,14 @@ vec4 render(vec2 uv) {
     // bloques de glitch: cada uno se desplaza distinto con el golpe
     vec2 blk = floor(uv * vec2(6.0, 14.0));
     float bh = hash21(blk + floor(rt * 8.0));
-    float broken = step(1.0 - hit * (0.25 + uD2 * 0.7) * (1.0 + loco), bh);
+    // historia: cada ~43 s el rostro se derrite (barrido vertical); cada
+    // ~89 s se 'posee' la pantalla: ruptura total sin golpe
+    float meltE = hkEvent(3.0, 43.0, 6.0);
+    float possess = hkEvent(4.0, 89.0, 4.0);
+    float broken = step(1.0 - max(hit * (0.25 + uD2 * 0.7) * (1.0 + loco), possess * 0.8), bh);
     vec2 guv = uv + broken * (hash22(blk + floor(rt * 8.0)) - 0.5) * vec2(0.18, 0.03) * (0.5 + uD2);
-    vec2 p = centered(guv);
+    guv.y += meltE * 0.15 * pow(noise21(vec2(guv.x * 12.0, floor(rt * 3.0))), 2.0) * smoothstep(0.2, 0.8, guv.y);
+    vec2 p = hkCam(centered(guv));
     p *= 1.0 + 0.015 * sin(t * 1.3);           // respira
 
     float split = (0.003 + uD3 * 0.012) + hit * 0.02 + bass * 0.006;

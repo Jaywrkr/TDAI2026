@@ -18,7 +18,7 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -27,12 +27,16 @@ vec4 render(vec2 uv) {
 
     // --- tumba: bloques de piedra y antorcha ---
     vec2 torch = vec2(-uAspect * 0.78, 0.30);
-    float tflick = 0.85 + 0.15 * sin(t * 9.0) + 0.10 * noise21(vec2(t * 5.0, 3.0));
+    // historia: cada ~73 s la antorcha casi se apaga (solo quedan los ojos)
+    // y cada ~41 s la momia gira la cabeza hacia el publico
+    float dimE = hkEvent(3.0, 73.0, 6.0);
+    float turnE = hkEvent(4.0, 41.0, 5.0);
+    float tflick = (0.85 + 0.15 * sin(t * 9.0) + 0.10 * noise21(vec2(t * 5.0, 3.0))) * (1.0 - dimE * 0.85);
     float tl = exp(-length(p - torch) * 1.0) * tflick;
     vec2 bq = vec2(p.x * 2.6 + 0.5 * mod(floor(p.y * 4.0), 2.0), p.y * 4.0);
     vec2 bf = fract(bq);
     float joint = smoothstep(0.0, 0.03, bf.x) * smoothstep(1.0, 0.97, bf.x) * smoothstep(0.0, 0.05, bf.y) * smoothstep(1.0, 0.95, bf.y);
-    float grime = fbm(p * 6.0 + floor(bq) * 0.7, 4, 0.6);
+    float grime = fbm(p * 6.0 + floor(bq) * 0.7, 3, 0.6);
     vec3 col = vec3(0.16, 0.12, 0.075) * (0.45 + 0.7 * grime) * joint * (0.18 + 1.6 * tl);
     // antorcha: llama y halo
     vec2 fq = p - torch;
@@ -42,7 +46,7 @@ vec4 render(vec2 uv) {
     col += vec3(1.0, 0.5, 0.15) * exp(-length(fq) * 5.0) * 0.25 * tflick;
 
     // --- cabeza ---
-    vec2 c = vec2(0.10, -0.02);
+    vec2 c = vec2(0.10 - turnE * 0.06, -0.02);
     vec2 hp = (p - c) / vec2(0.58, 0.80);
     hp.x /= 1.0 - 0.10 * smoothstep(0.0, -0.9, hp.y);
     float head = length(hp) - 1.0;
@@ -86,7 +90,7 @@ vec4 render(vec2 uv) {
     face *= 1.0 - 0.7 * diagEdge * (1.0 - diag * 0.5);
 
     // cuencas hundidas y ojos
-    vec2 look = vec2(mix(-0.05, 0.05, uKeypos) * uKeypulse + 0.02 * sin(t * 0.4), 0.0);
+    vec2 look = vec2(mix(-0.05, 0.05, uKeypos) * uKeypulse + 0.02 * sin(t * 0.4) - turnE * 0.05, 0.0);
     vec2 sk = vec2(abs(hp.x - 0.05) - 0.34, hp.y - 0.14);
     float socket = length(sk / vec2(1.0, 0.55)) - 0.24;
     float socketM = 1.0 - smoothstep(-0.03, 0.03, socket);
@@ -95,7 +99,7 @@ vec4 render(vec2 uv) {
                     hsv2rgb(vec3(fract(0.10 + hue), 0.95, 1.0)), uD5);
     vec2 ep = vec2(abs(p.x - c.x - look.x) - 0.20, p.y - c.y - 0.11);
     float eye = exp(-dot(ep / vec2(0.055, 0.030), ep / vec2(0.055, 0.030)));
-    float eb = (0.9 + uD3 * 1.4) * (0.6 + bass * 0.9 + hit * 0.5);
+    float eb = (0.9 + uD3 * 1.4) * (0.6 + bass * 0.9 + hit * 0.5) * (1.0 + dimE * 1.2);
     face += eyeC * eye * eb;
     face += eyeC * exp(-max(socket, 0.0) * 12.0) * socketM * eb * 0.10;
     col = mix(col, face, headM);

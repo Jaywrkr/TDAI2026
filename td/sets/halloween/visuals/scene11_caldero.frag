@@ -15,7 +15,7 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -23,7 +23,7 @@ vec4 render(vec2 uv) {
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
     vec3 potion = mix(hsv2rgb(vec3(fract(0.32 + hue), 0.95, 1.0)),
-                      hsv2rgb(vec3(fract(0.78 + hue), 0.80, 1.0)), uD5);
+                      hsv2rgb(vec3(fract(0.78 + hue), 0.80, 1.0)), clamp(uD5 + step(0.7, hkActVal(4.0)) * 0.8, 0.0, 1.0));
     vec3 ember = vec3(1.0, 0.40, 0.08);
 
     vec3 col = vec3(0.010, 0.010, 0.015);
@@ -66,11 +66,11 @@ vec4 render(vec2 uv) {
     float lb = 0.55 + uD3 * 0.45 + bass * 0.45;
     vec3 liquid = vec3(0.0);
     if (liquidM > 0.0) {
-    float surf = fbm(mp * vec2(3.0, 1.5) + vec2(t * 0.4, 0.0), 4, 0.5);
+    float surf = fbm(mp * vec2(3.0, 1.5) + vec2(t * 0.4, 0.0), 3, 0.5);
     liquid = potion * (0.35 + 0.65 * surf) * lb;
     // burbujas en la superficie
-    float nb = 8.0 + floor(uD1 * 14.0);
-    for (int i = 0; i < 22; i++) {
+    float nb = 6.0 + floor(uD1 * 8.0);
+    for (int i = 0; i < 14; i++) {
         float fi = float(i);
         if (fi >= nb) break;
         float h1 = fract(sin(fi * 12.989) * 43758.5);
@@ -92,12 +92,13 @@ vec4 render(vec2 uv) {
     float rise = clamp(vp.y / (0.6 + uD2 * 0.9), 0.0, 1.0);
     vec2 sq = vec2(vp.x * (1.6 - rise * 0.6) + 0.25 * sin(vp.y * 3.0 - t * 1.2), vp.y * 1.4 - t * 0.5);
     float colMask = smoothstep(0.65 + rise * 0.5, 0.0, abs(vp.x)) * smoothstep(0.0, 0.05, vp.y) * (1.0 - rise);
-    float steam = colMask > 0.0 ? fbm(sq, 5, 0.55) : 0.0;
+    float steam = colMask > 0.0 ? fbm(sq, 4, 0.55) : 0.0;
     float sAmt = smoothstep(0.38, 0.80, steam) * colMask;
     col += potion * sAmt * (0.75 + bass * 0.6 + uD3 * 0.4);
 
     // LOCURA: la pocion erupciona en un geiser con el golpe
-    float geyser = hit * smoothstep(0.3, 0.9, loco);
+    // historia: cada ~64 s la pocion erupciona sola; cada acto otro color
+    float geyser = max(hit * smoothstep(0.3, 0.9, loco), hkEvent(3.0, 64.0, 5.0) * 0.8);
     if (geyser > 0.01) {
         vec2 gq = p - vec2(0.0, -0.22);
         float hgt = geyser * 1.3;

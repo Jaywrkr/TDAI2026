@@ -6,7 +6,9 @@ Un **set** es un show: sus escenas, su cantidad y sus ajustes. El **núcleo** (`
 
 ![Halloween en el golpe con locura](img/halloween_locura.jpg)
 
-*Arriba: con música y Chaos en 0.3. Abajo: en el golpe con la locura (Chaos) en 0.85. Renderizadas fuera de TouchDesigner con `td/tools/render_scenes.py` (escena sola, sin bloom ni Master FX).*
+![Halloween en el minuto 8](img/halloween_minuto8.jpg)
+
+*Arriba: al empezar, con música y Chaos en 0.3. Al medio: en el golpe con la locura (Chaos) en 0.85. Abajo: la misma música en el minuto 8 (otro acto: otro encuadre, clima y color). Renderizadas fuera de TouchDesigner con `td/tools/render_scenes.py` (escena sola, sin bloom ni Master FX).*
 
 ## Elegir el show
 
@@ -81,6 +83,49 @@ Con **Speed en 0** todo queda quieto. Con Speed arriba de 0 y **en silencio**, e
 En este set la perilla **Chaos (knob 4) es la locura**. En 0 las escenas son cinematográficas y sobrias; al subirla, cada golpe trae algo más fuerte: sacudida y zoom de impacto, relámpagos dobles, lenguas de fuego en la calabaza, un ojo gigante, murciélagos que se vienen encima, salpicaduras de sangre, VHS que rueda e invierte, fantasmas que se abalanzan gritando, un enjambre de arañitas, ojos dentro del portal, un géiser en el caldero, rayos de los ojos de la momia, calabazas que saltan, una bandada de cuervos, manos que revientan la tierra, ráfaga que tumba las velas, rayos X en el esqueleto, el túnel que se retuerce y el demonio que se desdobla.
 
 Las funciones comunes viven en `td/sets/halloween/common.glsl` (en `set.json`, `"prelude": "common.glsl"`): acabado de cine (`hkFinish`: tonemap filmico, grano, negros con color, parpadeo de proyector), `hkShake`/`hkPunch`, rayos de luz `hkRays`, niebla `hkFog`, partículas `hkParticles`, rayos `hkBolt` y SDF básicos. Editar ese archivo cambia todas las escenas del set a la vez; **Recargar Shaders** lo toma.
+
+## Rendimiento: nunca menos de 20 fps
+
+Regla del show: **el FPS no puede bajar de 20**. Para eso:
+
+- **Presupuesto por escena.** Medido con `render_scenes.py` (OpenGL por software, 640×360) en el **peor caso** (golpe, locura en 0.9, Detail en 0.5): las 20 escenas cuestan entre 6 y 12.4 ms, promedio 9.5. Como referencia, en la misma prueba la mediana de las 98 escenas de `tdai2026` es 8 ms y el 10 % más pesado pasa de 23 ms. Ninguna escena de Halloween está en ese grupo pesado.
+- **Lo que se hizo para lograrlo:** el ruido caro se calcula solo donde se ve (niebla solo cerca del suelo, humo solo en su columna, fuego solo en los cortes), los murciélagos van en grilla por capas (cada píxel mira 3, no 24), las manos y velas lejanas se saltan, y `hkFog` usa una deformación barata.
+- **Failsafe con piso propio.** En `/project1` → Failsafe, **Actuar si el FPS baja de** = 24 por defecto. Si el FPS pasa 4 s debajo de eso, el rig baja la escala de render (lo que menos se nota) antes de llegar a 20. Antes usaba el aviso de 55 fps y degradaba de más.
+- **Falta medirlo en tu máquina**: los ms de arriba sirven para comparar escenas entre sí, no son los de tu GPU.
+
+## Historia: 20-25 minutos con una sola escena
+
+Cada escena avanza sola por **actos de ~78 s** (16 actos ≈ 21 minutos antes de repetir) y tiene **eventos propios** que aparecen solos, aunque no haya golpe. Todo esto es aritmética sobre el reloj, **no cuesta fps**. Usa el reloj real de la música (`uRTime`): se queda quieto en silencio y sigue cuando vuelve el audio.
+
+- **En todas, cada acto:** la cámara reencuadra despacio (acercamiento y paneo suaves) y cambia algo del clima o del color.
+- **Eventos por escena:**
+
+| # | Eventos que pasan solos |
+|---|---|
+| 00 | tormenta seca con relámpagos (~47 s), luna de sangre (~2 min); el acto cambia nubes y niebla |
+| 01 | la vela se apaga y vuelve con llamarada (~71 s), la calabaza se ríe (~53 s) |
+| 02 | ola de luz que cruza el muro (~41 s), apagón y reencendido (~89 s); paleta distinta por acto |
+| 03 | todos parpadean a la vez (~37 s), el ojo gigante se abre solo (~103 s); cantidad de ojos por acto |
+| 04 | bandada enorme (~61 s), relámpago (~53 s), luna que sangra (~2 min) |
+| 05 | la pared sangra entera (~50 s), salpicadura sola (~79 s); densidad por acto |
+| 06 | cambio de canal con estática (~44 s), la cinta se come y estira (~97 s) |
+| 07 | un fantasma pasa volando pegado a la cámara (~59 s), desaparecen y vuelven (~83 s) |
+| 08 | la araña baja hasta la cámara (~67 s), ráfagas que sacuden la tela (~43 s) |
+| 09 | pico de tormenta con rayos seguidos (~57 s); intensidad por acto |
+| 10 | el portal se abre de par en par con ojos adentro (~73 s); el remolino cambia de sentido por acto |
+| 11 | erupción sola del caldero (~64 s); color de la poción por acto |
+| 12 | la antorcha casi se apaga y solo quedan los ojos (~73 s), gira la cabeza al público (~41 s) |
+| 13 | persecución de luz calabaza por calabaza (~47 s), todas se vuelven rojas (~83 s) |
+| 14 | bandada grande (~63 s), eclipse que cruza la luna (~2 min) |
+| 15 | horda de manos y tierra que salta (~69 s); cantidad por acto |
+| 16 | una corriente apaga las velas una por una y se reencienden (~61 s) |
+| 17 | solo de baile enloquecido (~49 s), el piso hace olas (~91 s); estilo de baile por acto |
+| 18 | acelerón por el túnel (~55 s), se encienden todos los ojos (~97 s); el túnel gira para otro lado por acto |
+| 19 | el rostro se derrite (~43 s), posesión: ruptura total sin golpe (~89 s) |
+
+Los tiempos son aproximados: cada evento cae en un momento al azar dentro de su ventana, así no se siente mecánico.
+
+Funciones del kit para esto: `hkAct()`, `hkActVal(seed)`, `hkEvent(seed, cada, dura)`, `hkEventPhase(...)`, `hkCam(p)`.
 
 ## Agregar escenas al set
 

@@ -29,7 +29,7 @@ vec2 hwLimb(vec2 o, float len, float ang) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
@@ -37,6 +37,8 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.008);
 
+    float soloE = hkEvent(3.0, 49.0, 7.0);
+    float floorWave = hkEvent(4.0, 91.0, 9.0);
     vec3 boneC = mix(vec3(0.95, 0.92, 0.82), hsv2rgb(vec3(fract(0.33 + hue), 0.80, 1.0)), uD5);
     vec3 col = vec3(0.01, 0.006, 0.02);
 
@@ -48,6 +50,7 @@ vec4 render(vec2 uv) {
         vec2 tid = floor(tq);
         vec2 tf = fract(tq);
         float lit = step(0.55 - bass * 0.4, hash21(tid + floor(uRTime * 2.0)));
+        lit = max(lit, floorWave * step(0.5, sin(tid.x * 0.6 + tid.y * 0.9 - uRTime * 6.0)));
         float grid = smoothstep(0.0, 0.04, tf.x) * smoothstep(1.0, 0.96, tf.x) * smoothstep(0.0, 0.06, tf.y) * smoothstep(1.0, 0.94, tf.y);
         vec3 tc = hsv2rgb(vec3(fract(0.80 + hue + hash21(tid) * 0.25), 0.8, 1.0));
         col = tc * grid * (0.05 + lit * (0.35 + bass * 0.6)) * (0.35 + 0.65 * uD6) * smoothstep(-1.1, floorY, p.y) + vec3(0.01);
@@ -55,7 +58,9 @@ vec4 render(vec2 uv) {
 
     float s = 0.62 + uD1 * 0.28;
     // locura: baile poseido, los miembros se sacuden el doble
-    float e = (0.4 + uD2 * 0.9) * (1.0 + hit * loco * 1.6);
+    // historia: cada acto cambia el estilo del baile (tempo y energia);
+    // cada ~49 s hace un solo enloquecido; cada ~91 s el piso hace olas
+    float e = (0.4 + uD2 * 0.9) * (1.0 + hit * loco * 1.6 + soloE * 0.9) * mix(0.8, 1.25, hkActVal(5.0));
     float beat = sin(t * 3.0);
     float jump = hit * (0.05 + uD4 * 0.20);
     vec2 hip = vec2(0.10 * sin(t * 1.5) * e + mid * 0.05 * sin(t * 6.0),
@@ -113,7 +118,7 @@ vec4 render(vec2 uv) {
     // foco cenital: cono de luz con polvo y circulo en el piso
     float coneW = 0.20 + (1.0 - (p.y - floorY) / 1.9) * 0.45;
     float cone = smoothstep(coneW, coneW * 0.5, abs(p.x - hip.x * 0.5)) * step(floorY, p.y);
-    col += vec3(0.35, 0.40, 0.55) * cone * 0.12 * (0.7 + 0.3 * fbm(p * 4.0 + t * 0.1, 3));
+    col += vec3(0.35, 0.40, 0.55) * cone * 0.12 * (0.7 + 0.3 * noise21(p * 4.0 + t * 0.1));
     col += vec3(0.5, 0.55, 0.7) * exp(-pow((p.x - hip.x * 0.5) / 0.5, 2.0)) * exp(-pow((p.y - floorY + 0.03) / 0.06, 2.0)) * 0.35;
     float bone = 1.0 - smoothstep(-0.0015, 0.0015, d);
     float glow = exp(-max(d, 0.0) * 40.0) * 0.45 + exp(-max(d, 0.0) * 8.0) * 0.12;

@@ -41,7 +41,7 @@ float hwFlyer(vec2 p, float flap) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -55,13 +55,16 @@ vec4 render(vec2 uv) {
     vec2 mc = vec2(-uAspect * 0.15, 0.10);
     float R = 0.55 + uD2 * 0.30;
     float mr = length(p - mc);
-    float crater = mr < R + 0.02 ? fbm((p - mc) * 3.5 / R + 2.0, 4, 0.55) : 0.5;
+    float crater = mr < R + 0.02 ? fbm((p - mc) * 3.5 / R + 2.0, 3, 0.55) : 0.5;
     float disk = 1.0 - smoothstep(R - 0.004, R + 0.004, mr);
     float pulse = 1.0 + bass * 0.25;
+    float eclipse = hkEvent(4.0, 127.0, 14.0);
     col += moonC * exp(-max(mr - R, 0.0) * 3.0) * 0.30 * pulse;
-    col = mix(col, moonC * (0.60 + 0.45 * crater) * (0.85 + 0.25 * pulse), disk);
+    // eclipse: una sombra cruza el disco y deja solo el anillo rojo
+    float shadow = 1.0 - smoothstep(R * 0.96, R * 1.0, length(p - mc - vec2(mix(-2.2, 2.2, hkEventPhase(4.0, 127.0, 14.0)) * R, 0.0)));
+    col = mix(col, moonC * (0.60 + 0.45 * crater) * (0.85 + 0.25 * pulse) * (1.0 - shadow * eclipse * 0.92), disk);
     col += moonC * hkRays(p, mc, t, 12.0) * 0.25 * (1.0 - disk);
-    float cl = fbm(vec2(p.x * 0.8 - t * 0.04, p.y * 3.0), 4, 0.5);
+    float cl = fbm(vec2(p.x * 0.8 - t * 0.04, p.y * 3.0), 3, 0.5);
     col = mix(col, col * 0.3, smoothstep(0.50, 0.82, cl) * (0.3 + uD6 * 0.7));
 
     // arbol muerto desde la derecha, ramas que se mecen
@@ -99,8 +102,10 @@ vec4 render(vec2 uv) {
     }
     // cuervos volando
     // locura: con el golpe sale volando una bandada entera
-    float nF = 2.0 + floor(uD1 * 8.0 + hit * loco * 14.0);
-    for (int i = 0; i < 24; i++) {
+    // historia: cada ~63 s pasa una bandada grande; cada ~2 min eclipse
+    float flockE = hkEvent(3.0, 63.0, 8.0);
+    float nF = min(2.0 + floor(uD1 * 6.0 + hit * loco * 6.0 + flockE * 6.0), 12.0);
+    for (int i = 0; i < 12; i++) {
         float fi = float(i);
         if (fi >= nF) break;
         float h1 = fract(sin(fi * 12.98) * 43758.5);

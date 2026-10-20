@@ -42,7 +42,7 @@ float hwBranchy(vec2 p, float x0, float top, float bot, float seed, float branch
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float rt = uRTime;
     float hit = hkHit();
@@ -52,14 +52,17 @@ vec4 render(vec2 uv) {
 
     // el rayo cambia de lugar en cada golpe: usa el reloj real
     float slot = floor(rt * 1.7);
-    float ambient = uD3 * step(0.86, hash21(vec2(floor(rt * 3.0), 5.0)));
+    // historia: cada acto la tormenta es mas o menos intensa; cada ~57 s
+    // llega el pico: rayos seguidos sin necesidad de golpe
+    float peak = hkEvent(3.0, 57.0, 10.0);
+    float ambient = max(uD3, peak) * step(0.86 - peak * 0.2 - hkActVal(4.0) * 0.08, hash21(vec2(floor(rt * 3.0), 5.0)));
     float strike = clamp(hit + ambient, 0.0, 1.0);
     vec3 boltC = mix(hsv2rgb(vec3(fract(0.77 + hue), 0.45, 1.0)),
                      hsv2rgb(vec3(fract(0.60 + hue), 0.55, 1.0)), uD5);
 
     // nubes
-    float cl = fbm(vec2(p.x * 1.1 - t * 0.04, p.y * 1.8 + t * 0.01), 5, 0.55);
-    float cl2 = fbm(vec2(p.x * 2.3 + t * 0.03, p.y * 3.0) + 9.0, 4, 0.5);
+    float cl = fbm(vec2(p.x * 1.1 - t * 0.04, p.y * 1.8 + t * 0.01), 4, 0.55);
+    float cl2 = noise21(vec2(p.x * 2.3 + t * 0.03, p.y * 3.0) + 9.0) * 0.6 + noise21(vec2(p.x * 5.0, p.y * 6.0) - t * 0.05) * 0.4;
     vec3 cloudDark = hsv2rgb(vec3(fract(0.74 + hue), 0.60, 0.10));
     vec3 cloudLit = hsv2rgb(vec3(fract(0.76 + hue), 0.45, 0.55));
     float shape = smoothstep(0.35, 0.80, cl) * smoothstep(-0.6, 0.4, p.y);

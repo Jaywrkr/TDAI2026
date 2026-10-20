@@ -4,7 +4,8 @@
 // lineas de barrido, perdida de tracking, color corrido, ruido y una
 // banda que sube. Sin archivo cargado se ve estatica de televisor.
 // Speed mueve la banda y el ruido. El golpe dispara un salto de
-// tracking; el bajo separa los canales de color.
+// tracking; el bajo separa los canales de color. Historia: cada ~44 s
+// cambio de canal con estatica; cada ~97 s la cinta se come y se estira.
 //
 // @D1: cantidad de ruido / estatica
 // @D2: perdida de tracking
@@ -27,7 +28,12 @@ vec4 render(vec2 uv) {
     float wobble = sin(uv.y * 30.0 + t * 3.0) * 0.002;
     float trackAmt = (0.004 + uD2 * 0.03) + hit * (0.02 + uD2 * 0.06) * (1.0 + loco * 2.0);
     float tear = step(0.82 - hit * 0.5, noise21(vec2(band * 0.37, floor(rt * 6.0))));
+    // historia: cada ~44 s alguien cambia de canal (estatica total un
+    // momento) y cada ~97 s la cinta se "come" y la imagen se estira
+    float zap = hkEvent(3.0, 44.0, 2.2);
+    float eaten = hkEvent(4.0, 97.0, 6.0);
     vec2 suv = uv;
+    suv.x = mix(suv.x, 0.5 + (suv.x - 0.5) * (1.0 + 0.4 * sin(uv.y * 8.0 + rt * 3.0)), eaten);
     // locura: la imagen rueda verticalmente y se duplica
     suv.y = fract(suv.y + hit * loco * 0.25 * step(0.5, noise21(vec2(floor(rt * 4.0), 9.0))));
     suv.x += jitter * trackAmt * (0.3 + tear) + wobble;
@@ -45,7 +51,7 @@ vec4 render(vec2 uv) {
     float has = step(0.02, dot(mediaTex(vec2(0.5)).rgb + mediaTex(vec2(0.3, 0.7)).rgb, vec3(1.0)));
     float stat = hash21(floor(uv * vec2(uResW, uResH) * 0.5) + floor(rt * 30.0));
     vec3 staticCol = vec3(stat) * 0.55;
-    img = mix(staticCol, img, has);
+    img = mix(staticCol, img, has * (1.0 - smoothstep(0.2, 0.6, zap)));
 
     // grade: desaturado, sepia o rojo
     float l = dot(img, vec3(0.299, 0.587, 0.114));

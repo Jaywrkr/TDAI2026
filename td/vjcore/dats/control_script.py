@@ -914,7 +914,7 @@ _FAILSAFE_MAX_LEVEL = len(_FAILSAFE_STEPS) + 1
 
 def failsafeStep():
     """Baja UN escalon de calidad. La llama diagnostics.py cuando el FPS
-    lleva Failsafeseconds seguidos por debajo de Fpswarning."""
+    lleva Failsafeseconds seguidos por debajo de Failsafefps."""
     p = _p()
     if not p:
         return

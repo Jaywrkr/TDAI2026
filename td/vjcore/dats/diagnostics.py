@@ -78,8 +78,8 @@ def _gpu_ms():
 
 
 def _watchdog(fps, warn):
-    """Failsafe: si el FPS lleva Failsafeseconds SEGUIDOS por debajo del
-    umbral, baja un escalon de calidad (ver control_script.failsafeStep).
+    """Failsafe: si el FPS lleva Failsafeseconds SEGUIDOS por debajo de
+    Failsafefps (24 por defecto: el piso del show es 20), baja un escalon de calidad (ver control_script.failsafeStep).
 
     Se mide por TIEMPO acumulado y no por cantidad de ticks porque el
     intervalo del diagnostico es configurable (Diagnosticinterval): con
@@ -96,7 +96,11 @@ def _watchdog(fps, warn):
             p.store('failsafe_low_since', 0.0)
             return
         now = float(absTime.seconds)
-        if fps >= warn:
+        floor_fps = warn
+        par = getattr(p.par, 'Failsafefps', None)
+        if par is not None:
+            floor_fps = float(par.eval())
+        if fps >= floor_fps:
             p.store('failsafe_low_since', 0.0)
             return
         since = float(p.fetch('failsafe_low_since', 0.0) or 0.0)

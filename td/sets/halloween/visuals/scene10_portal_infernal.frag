@@ -31,7 +31,7 @@ float hwRune(vec2 q, float seed) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float rt = uRTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
@@ -40,7 +40,10 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.008);
 
-    float R = 0.48 + uD1 * 0.30;
+    // historia: cada ~73 s el portal se abre de par en par; cada acto gira
+    // para otro lado y cambia de fuego
+    float openE = hkEvent(3.0, 73.0, 10.0);
+    float R = (0.48 + uD1 * 0.30) * (1.0 + openE * 0.35);
     // calor: el aire alrededor del anillo ondula
     float heat = exp(-abs(length(p) - R) * 6.0);
     p += (vec2(noise21(p * 9.0 + vec2(0.0, t * 3.0)), noise21(p * 9.0 + vec2(5.0, t * 3.0))) - 0.5) * 0.025 * heat * (1.0 + loco);
@@ -52,11 +55,11 @@ vec4 render(vec2 uv) {
     fireA = hsv2rgb(vec3(fract(hue + (uD5 > 0.5 ? 0.30 : 0.04)), 0.95, 1.0)) * 0.5 + fireA * 0.5;
 
     // fondo y humo
-    float smoke = fbm(vec2(a * 2.0, r * 3.0 - t * 0.2) + 4.0, 4, 0.55);
+    float smoke = r < 2.0 ? fbm(vec2(a * 2.0, r * 3.0 - t * 0.2) + 4.0, 3, 0.55) : 0.0;
     vec3 col = vec3(0.012, 0.004, 0.006) + fireA * 0.05 * smoke * (0.4 + uD6 * 1.6) * smoothstep(2.0, 0.4, r);
 
     // vortice: espiral oscura dentro del anillo
-    float swirlA = a + (2.5 / (r + 0.15)) * 0.35 + t * (0.4 + uD3 * 1.2) + mid * 0.6 * sin(r * 6.0);
+    float swirlA = a + (2.5 / (r + 0.15)) * 0.35 + t * (0.4 + uD3 * 1.2) * (hkActVal(4.0) > 0.5 ? 1.0 : -1.0) + mid * 0.6 * sin(r * 6.0);
     float spiral = 0.5 + 0.5 * sin(swirlA * 3.0 + r * 10.0);
     float insideM = 1.0 - smoothstep(R - 0.02, R + 0.01, r);
     vec3 vortex = mix(vec3(0.0), fireA * 0.18, pow(spiral, 3.0) * smoothstep(0.0, R, r));
@@ -68,7 +71,7 @@ vec4 render(vec2 uv) {
     float em = exp(-dot(sf, sf) * 60.0) * step(0.80, hash21(sid)) * smoothstep(R * 1.9, R * 0.9, r) * smoothstep(0.1, R * 0.6, r);
     col += fireB * em * (0.8 + hit);
     // LOCURA: ojos de demonio que se abren dentro del vortice
-    float eyesOn = hit * smoothstep(0.35, 0.9, loco);
+    float eyesOn = max(hit * smoothstep(0.35, 0.9, loco), openE * step(0.5, fract(uRTime * 0.2)));
     if (eyesOn > 0.01) {
         vec2 eq = vec2(abs(p.x) - R * 0.32, p.y - R * 0.05);
         float almond = max(length(eq / R - vec2(0.0, -0.10)), length(eq / R - vec2(0.0, 0.10))) - 0.16;
@@ -80,7 +83,7 @@ vec4 render(vec2 uv) {
     // anillo de fuego: llamas en polares que suben hacia afuera
     float ringD = r - R;
     float flameH = 0.10 + uD2 * 0.22 + bass * 0.10;
-    float fn = fbm(vec2(a * 6.0 + sin(a * 2.0), ringD * 8.0 - t * 2.4), 4, 0.6);
+    float fn = abs(ringD) < 0.45 ? fbm(vec2(a * 6.0 + sin(a * 2.0), ringD * 8.0 - t * 2.4), 3, 0.6) : 0.0;
     float fn2 = noise21(vec2(a * 18.0, ringD * 20.0 - t * 4.0));
     float flame = smoothstep(flameH * (0.4 + fn), 0.0, ringD) * smoothstep(-0.05, 0.0, ringD);
     flame *= 0.7 + 0.5 * fn2;

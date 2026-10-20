@@ -3,7 +3,9 @@
 // Luna llena con mares y halo, rayos de luz que atraviesan la niebla,
 // colinas en capas, un arbol muerto, lapidas y cruces de piedra con
 // textura e iluminadas por la luna, y niebla volumetrica a ras del suelo.
-// Speed mueve nubes, niebla y rayos de luz. El bajo espesa y enciende la
+// Speed mueve nubes, niebla y rayos de luz. Cada acto (~78 s) cambia
+// encuadre, nubes y niebla; cada ~47 s pasa una tormenta seca con
+// relampagos solos y cada ~2 min la luna se pone roja un rato. El bajo espesa y enciende la
 // niebla; el golpe dispara un relampago con rayo visible que recorta
 // todo. LOCURA (Chaos): sacudida, rayos dobles, niebla que hierve.
 //
@@ -25,13 +27,19 @@ float hwTomb(vec2 p, float w, float h, float cross) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
     float loco = hkLoco();
-    float flash = hit * (0.25 + uD4 * 1.0) * (1.0 + loco * 0.6);
+    // historia: cada acto cambia el clima; dos eventos propios
+    float cover = hkActVal(1.0);                 // cuanto tapan las nubes
+    float fogAct = mix(0.7, 1.35, hkActVal(2.0)); // niebla del acto
+    float storm = hkEvent(5.0, 47.0, 9.0);       // tormenta seca: relampagos solos
+    float bloodMoon = hkEvent(6.0, 131.0, 22.0); // la luna se pone roja
+    float autoFlash = storm * step(0.82, noise21(vec2(uRTime * 7.0, 3.0)));
+    float flash = max(hit * (0.25 + uD4 * 1.0) * (1.0 + loco * 0.6), autoFlash * 0.9);
     float hue = audioHue(uHue, mid * 0.01);
 
     // --- cielo con gradiente y estrellas ---
@@ -48,7 +56,7 @@ vec4 render(vec2 uv) {
     float moonR = 0.23;
     float moonGain = 0.75 + uD3 * 0.55;
     float disk = 1.0 - smoothstep(moonR - 0.003, moonR + 0.003, mr);
-    vec3 moonTex = vec3(1.0, 0.90, 0.70);
+    vec3 moonTex = mix(vec3(1.0, 0.90, 0.70), vec3(1.0, 0.30, 0.18), bloodMoon);
     if (mr < moonR + 0.01) {
         float maria = fbm(mp * 5.5 + 3.1, 4, 0.55);
         float craters = ridge(noise21(mp * 22.0), 3.0);
@@ -60,8 +68,8 @@ vec4 render(vec2 uv) {
     col = mix(col, moonTex * moonGain, disk);
 
     // --- nubes con borde iluminado por la luna ---
-    float cl = fbm(vec2(p.x * 1.1 + t * 0.045, p.y * 2.5 - t * 0.01), 5, 0.55);
-    float clouds = smoothstep(0.50, 0.80, cl) * smoothstep(-0.25, 0.35, p.y);
+    float cl = fbm(vec2(p.x * 1.1 + t * 0.045, p.y * 2.5 - t * 0.01), 4, 0.55);
+    float clouds = smoothstep(0.58 - cover * 0.18, 0.84 - cover * 0.12, cl) * smoothstep(-0.25, 0.35, p.y);
     float rim = smoothstep(0.50, 0.62, cl) - smoothstep(0.62, 0.80, cl);
     vec3 cloudCol = mix(vec3(0.03, 0.015, 0.05), vec3(0.45, 0.36, 0.50), exp(-mr * 1.8));
     col = mix(col, cloudCol, clouds * 0.88);
@@ -75,10 +83,10 @@ vec4 render(vec2 uv) {
     if (loco > 0.5) bd = min(bd, hkBolt(p, bx + 0.6, 1.05, 0.0, slot * 3.0 + 2.0, 0.30));
     float bolt = exp(-bd * 180.0) + exp(-bd * 25.0) * 0.30;
     col += flashCol * flash * (0.12 + clouds * 0.75) * smoothstep(-0.5, 0.6, p.y);
-    col += flashCol * bolt * hit * step(0.35, uD4 + loco * 0.5) * 1.6;
+    col += flashCol * bolt * max(hit * step(0.35, uD4 + loco * 0.5), autoFlash) * 1.6;
 
     // --- rayos de luz de la luna atravesando la niebla ---
-    float rays = hkRays(p, mc, t, 18.0);
+    float rays = p.y > -0.6 ? hkRays(p, mc, t, 18.0) : 0.0;
     col += vec3(0.75, 0.70, 0.85) * rays * (0.10 + uD3 * 0.25) * (1.0 - clouds * 0.5);
 
     // --- colinas lejanas en capas ---
@@ -110,7 +118,10 @@ vec4 render(vec2 uv) {
     float cellW = 0.40 / (0.55 + uD2 * 1.1 + uDensity * 0.4);
     float cx = floor(p.x / cellW);
     float tombD = 1e3;
+    // arriba de la lapida mas alta posible no hay nada que buscar
+    bool tombZone = p.y < horizon + cellW * 1.45;
     for (int k = -1; k <= 1; k++) {
+        if (!tombZone) break;
         float id = cx + float(k);
         if (hash21(vec2(id, 4.7)) < 0.30) continue;
         float w = cellW * (0.16 + 0.12 * hash21(vec2(id, 1.3)));
@@ -127,7 +138,7 @@ vec4 render(vec2 uv) {
     float side = clamp(dot(normalize(gn + 1e-6), normalize(mc - p)), 0.0, 1.0);
     float stoneTex = 0.5, moss = 0.0;
     if (tombD < 0.01) {
-        stoneTex = fbm(p * vec2(18.0, 30.0), 4, 0.6);
+        stoneTex = fbm(p * vec2(18.0, 30.0), 3, 0.6);
         moss = smoothstep(0.55, 0.75, fbm(p * 9.0 + 2.0, 3));
     }
     vec3 stoneC = mix(vec3(0.05, 0.048, 0.06), vec3(0.03, 0.05, 0.03), moss) * (0.6 + 0.8 * stoneTex);
@@ -146,7 +157,9 @@ vec4 render(vec2 uv) {
     vec3 fogTint = mix(vec3(0.62, 0.56, 0.80), vec3(0.32, 0.95, 0.40), uD5);
     float fogAmt = 0.0;
     float boil = 1.0 + loco * hit * 1.5;
-    for (int i = 0; i < 3; i++) {
+    bool fogZone = p.y < horizon + 0.42;
+    for (int i = 0; i < 2; i++) {
+        if (!fogZone) break;
         float fi = float(i);
         vec2 fq = vec2(p.x * (1.1 + fi * 0.5) - t * (0.05 + fi * 0.035) * (fi + 1.0),
                        p.y * (3.0 + fi) + fi * 7.0);
@@ -154,9 +167,9 @@ vec4 render(vec2 uv) {
         // solo la capa de adelante usa la niebla deformada (la mas cara)
         float n = (i == 0) ? hkFog(fq * 0.8, t * boil) : fbm(fq + vec2(t * 0.02 * boil, 0.0), 4, 0.55);
         float band = exp(-pow((p.y - horizon - 0.05 - fi * 0.07) / (0.17 + fi * 0.06 + uD1 * 0.10), 2.0));
-        fogAmt += smoothstep(0.35, 0.85, n) * band * (0.60 - fi * 0.13);
+        fogAmt += smoothstep(0.35, 0.85, n) * band * (0.70 - fi * 0.10);
     }
-    fogAmt *= 0.95 + uD1 * 0.85 + bass * 0.55;
+    fogAmt *= (0.95 + uD1 * 0.85 + bass * 0.55) * fogAct;
     float towardMoon = exp(-abs(p.x - mc.x) * 1.1);
     float fogGlow = (0.40 + towardMoon * 0.35 * moonGain) + bass * 0.75 + flash * 0.8;
     col = mix(col, fogTint * fogGlow, clamp(fogAmt, 0.0, 0.92));

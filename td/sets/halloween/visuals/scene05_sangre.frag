@@ -4,6 +4,8 @@
 // redonda en la punta y brillo humedo. Al fondo, pared oscura.
 // Speed hace bajar los hilos. El bajo engorda el brillo humedo; el
 // golpe suelta hilos nuevos y rapidos (cada columna a su tiempo).
+// Historia: cada ~50 s la pared sangra entera y cada ~79 s estalla una
+// salpicadura sola.
 //
 // @D1: cantidad de hilos
 // @D2: largo de los chorreones
@@ -14,7 +16,7 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -22,7 +24,7 @@ vec4 render(vec2 uv) {
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.006);
 
     // pared
-    float wallN = fbm(p * vec2(2.0, 3.0) + 11.0, 5, 0.55);
+    float wallN = fbm(p * vec2(2.0, 3.0) + 11.0, 3, 0.55);
     float cracks = ridge(noise21(p * 6.0 + 3.0), 6.0);
     vec3 col = vec3(0.060, 0.032, 0.036) * (0.6 + (0.5 + uD6) * wallN);
     col -= vec3(0.02) * cracks * uD6;
@@ -32,7 +34,10 @@ vec4 render(vec2 uv) {
     float spot = exp(-dot((p - lc) * vec2(0.9, 1.2), (p - lc) * vec2(0.9, 1.2)) * 1.6);
     col *= 0.45 + 1.8 * spot;
     float top = 1.0 - 0.16 - 0.04 * sin(p.x * 3.0 + 0.7) - 0.03 * noise21(vec2(p.x * 5.0, 0.0));
-    float cols = 14.0 + floor(uD1 * 30.0 + uDensity * 8.0);
+    // historia: cada ~50 s la pared sangra con todo; cada acto otra densidad
+    float bleed = hkEvent(3.0, 50.0, 10.0);
+    float splatE = hkEvent(4.0, 79.0, 2.5);
+    float cols = 14.0 + floor(uD1 * 30.0 + uDensity * 8.0 + hkActVal(5.0) * 8.0);
     float cw = 2.0 * uAspect / cols;
     float cx = floor((p.x + uAspect) / cw);
 
@@ -44,7 +49,7 @@ vec4 render(vec2 uv) {
         float id = cx + float(k);
         float h1 = hash21(vec2(id, 1.7));
         float h2 = hash21(vec2(id, 8.3));
-        if (h1 < 0.25) continue;
+        if (h1 < 0.25 * (1.0 - bleed)) continue;
         float x0 = (id + 0.5) * cw - uAspect + (h2 - 0.5) * cw * 0.5;
         // ciclo de cada hilo: crece, se suelta, vuelve a crecer
         // (el golpe NO toca la velocidad: t*velocidad saltaria de fase)
@@ -52,7 +57,7 @@ vec4 render(vec2 uv) {
         float cyc = fract(t * speed + h1 * 5.0);
         float len = (0.55 + 1.3 * uD2) * (0.25 + 0.75 * h1) * smoothstep(0.0, 0.85, cyc);
         // el golpe estira de golpe la mitad de los hilos, cada uno distinto
-        len *= 1.0 + hit * (0.15 + 0.35 * h2) * step(0.5, h1);
+        len *= 1.0 + hit * (0.15 + 0.35 * h2) * step(0.5, h1) + bleed * 0.8;
         float w = cw * (0.10 + 0.18 * uD3) * (0.7 + 0.6 * h2);
         float tipY = top - len;
         // hilo: mas ancho arriba, se afina, con la gota en la punta
@@ -90,7 +95,7 @@ vec4 render(vec2 uv) {
     vec3 poolC = dark * 0.8 + red * 0.25 * spot + vec3(1.0, 0.8, 0.8) * pow(spot, 3.0) * 0.4 * smoothstep(poolY - 0.06, poolY, p.y);
     col = mix(col, poolC, pool);
     // LOCURA: salpicaduras que estallan en la pared con el golpe
-    float splatOn = hit * smoothstep(0.3, 0.9, loco);
+    float splatOn = max(hit * smoothstep(0.3, 0.9, loco), splatE);
     if (splatOn > 0.01) {
         float sl = floor(uRTime * 2.0);
         for (int i = 0; i < 3; i++) {

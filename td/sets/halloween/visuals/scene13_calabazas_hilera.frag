@@ -15,7 +15,7 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
@@ -41,7 +41,11 @@ vec4 render(vec2 uv) {
         col = vec3(0.07, 0.06, 0.07) * stone * mortar + vec3(0.01);
     }
 
-    float n = 4.0 + floor(uD1 * 5.0);
+    // historia: cada ~47 s persecucion de luz (se encienden de a una);
+    // cada ~83 s todas giran a rojo; cada acto cambia cuantas hay
+    float chase = hkEvent(3.0, 47.0, 8.0);
+    float redE = hkEvent(4.0, 83.0, 7.0);
+    float n = 4.0 + floor(uD1 * 4.0 + hkActVal(5.0) * 1.5);
     float span = uAspect * 1.7;
     float cw = span / n;
     float idx = floor((p.x + span * 0.5) / cw);
@@ -54,7 +58,8 @@ vec4 render(vec2 uv) {
         float band = u < 0.34 ? bass : (u < 0.67 ? mid : high);
         // ola del golpe: llega a cada calabaza con retraso segun su lugar
         float wave = hit * smoothstep(0.0, 1.0, 1.0 - abs(u - fract(uRTime * (0.6 + uD3 * 3.0))) * (2.0 - uD3 * 1.5));
-        float lit = 0.75 + band * (0.4 + uD2 * 1.4) + wave * 0.8;
+        float chaseOn = exp(-pow((u - fract(uRTime * 0.6)) * 6.0, 2.0));
+        float lit = (0.75 + band * (0.4 + uD2 * 1.4) + wave * 0.8) * mix(1.0, 0.25 + chaseOn * 2.0, chase);
         float s = cw * (0.36 + uD4 * 0.12) * (0.9 + 0.2 * hash21(vec2(i, 3.0)));
         // locura: las calabazas saltan con el golpe, cada una a su tiempo
         float hop = hit * loco * (0.15 + 0.35 * hash21(vec2(i, floor(uRTime * 2.0)))) * s;
@@ -83,7 +88,7 @@ vec4 render(vec2 uv) {
         skin += orange * exp(-max(holeD, 0.0) * 8.0) * 0.25 * lit;
         vec3 inside = mix(orange, vec3(1.0, 0.95, 0.65), 0.35) * lit * flick * 1.3;
         // con locura la llama se vuelve roja infernal
-        inside = mix(inside, vec3(1.0, 0.08, 0.02) * lit * 1.4, hit * smoothstep(0.5, 1.0, loco));
+        inside = mix(inside, vec3(1.0, 0.08, 0.02) * lit * 1.4, max(hit * smoothstep(0.5, 1.0, loco), redE));
         // brillo especular arriba a la izquierda de cada gajo
         skin += vec3(1.0, 0.8, 0.5) * pow(shade, 6.0) * smoothstep(0.0, 0.4, q.y + q.x * -0.5) * 0.25;
         vec3 pc = mix(skin, inside, hole);
@@ -97,7 +102,7 @@ vec4 render(vec2 uv) {
     col += orange * glowAll * 0.08 * (1.0 - step(wallTop, p.y) * 0.3);
 
     // niebla del piso sobre el muro
-    float fog = fbm(vec2(p.x * 1.5 - t * 0.06, p.y * 4.0), 4, 0.5);
+    float fog = fbm(vec2(p.x * 1.5 - t * 0.06, p.y * 4.0), 3, 0.5);
     float fogBand = exp(-pow((p.y - wallTop + 0.05) / 0.18, 2.0));
     col = mix(col, vec3(0.45, 0.40, 0.55) * (0.4 + bass * 0.4), smoothstep(0.4, 0.85, fog) * fogBand * (0.25 + uD6 * 0.7));
 

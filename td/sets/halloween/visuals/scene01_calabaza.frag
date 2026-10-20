@@ -7,7 +7,8 @@
 // Speed mueve la llama, el humo y las brasas. El bajo sube la luz de
 // adentro; el golpe aviva la llama y suelta brasas. LOCURA (Chaos):
 // la cara se deforma, salen lenguas de fuego por ojos y boca, sacudida.
-// El piano enciende los ojos.
+// El piano enciende los ojos. Historia: cada ~71 s la vela se apaga y
+// vuelve con una llamarada; cada ~53 s la calabaza se rie (boca enorme).
 //
 // @D1: tamano de la calabaza
 // @D2: fuerza de la llama interior
@@ -50,7 +51,7 @@ float hwFace(vec2 q, float smile, float rage) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = hkPunch(hkShake(centered(uv)));
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
@@ -64,8 +65,13 @@ vec4 render(vec2 uv) {
     q.x *= 1.0 - hit * loco * 0.06 * sin(q.y * 6.0 + uRTime * 20.0);
 
     float flick = 0.70 + 0.18 * sin(t * 7.3) + 0.12 * sin(t * 13.1 + 1.7) + 0.10 * noise21(vec2(t * 3.0, 1.0));
-    float inner = flick * (0.85 + uD2 * 0.70) + bass * 0.40 + hit * 0.70;
-    vec3 orange = hsv2rgb(vec3(fract(0.065 + hue), 0.95, 1.0));
+    // historia: la vela se apaga y se reaviva; la calabaza se rie
+    float outE = hkEvent(3.0, 71.0, 5.0);
+    float relight = smoothstep(0.55, 1.0, outE) * (1.0 - smoothstep(0.9, 1.0, outE));
+    float laugh = hkEvent(4.0, 53.0, 7.0);
+    float warmth = hkActVal(5.0);
+    float inner = (flick * (0.85 + uD2 * 0.70) + bass * 0.40 + hit * 0.70) * (1.0 - outE * 0.92) + relight * 1.5;
+    vec3 orange = hsv2rgb(vec3(fract(0.065 + hue + (warmth - 0.5) * 0.03), 0.95, 1.0));
     vec3 hot = vec3(1.0, 0.86, 0.50);
 
     // --- fondo y piso de madera ---
@@ -100,7 +106,7 @@ vec4 render(vec2 uv) {
         }
     }
     float bodyMask = 1.0 - smoothstep(-0.004, 0.004, body);
-    float bump = fbm(q * 14.0, 3) - 0.5;
+    float bump = bodyMask > 0.0 ? fbm(q * 14.0, 2) - 0.5 : 0.0;
     nrm = normalize(nrm + vec3(bump * 0.25, bump * 0.15, 0.0));
     vec3 L = normalize(vec3(-0.5, 0.6, 0.8));
     float diff = clamp(dot(nrm, L), 0.0, 1.0);
@@ -108,11 +114,11 @@ vec4 render(vec2 uv) {
     vec3 skinDark = hsv2rgb(vec3(fract(0.035 + hue), 1.0, 0.10));
     vec3 skinLit = hsv2rgb(vec3(fract(0.070 + hue), 0.97, 0.55));
     vec3 skin = mix(skinDark, skinLit, diff * 0.85);
-    skin *= 0.80 + 0.25 * fbm(q * vec2(3.0, 1.4) + 2.0, 3);
+    skin *= 0.80 + 0.25 * noise21(q * vec2(3.0, 1.4) + 2.0);
     skin += vec3(1.0, 0.85, 0.6) * spec * 0.25;
     // luz que se filtra por la cascara cerca de los cortes (subsurface)
     float rage = hit * loco;
-    float faceD = hwFace(q, uD4, rage);
+    float faceD = hwFace(q, clamp(uD4 + laugh * 0.6, 0.0, 1.2), rage);
     float sss = exp(-max(faceD, 0.0) * 18.0);
     skin += orange * sss * inner * 0.35 + hot * sss * sss * inner * 0.10;
     col = mix(col, skin, bodyMask);
@@ -126,7 +132,7 @@ vec4 render(vec2 uv) {
 
     // --- cortes: se ve la llama y la pared interior ---
     float hole = (1.0 - smoothstep(-0.005, 0.005, faceD)) * bodyMask;
-    float flameN = fbm(vec2(q.x * 6.0, q.y * 4.0 - t * 2.2), 3);
+    float flameN = hole > 0.0 ? fbm(vec2(q.x * 6.0, q.y * 4.0 - t * 2.2), 3) : 0.5;
     vec3 flame = mix(orange, hot, smoothstep(0.35, 0.80, flameN)) * inner * 1.35;
     float wall = smoothstep(-0.04, -0.004, faceD);
     flame = mix(flame, skinDark * 1.2 + orange * 0.3, wall * 0.6);
@@ -138,8 +144,9 @@ vec4 render(vec2 uv) {
     for (int s = -1; s <= 1; s += 2) {
         vec2 sp = q - vec2(float(s) * 0.26, 0.30);
         float rise = clamp(sp.y / 0.9, 0.0, 1.0);
-        float sm = fbm(vec2(sp.x * 5.0 + sin(sp.y * 3.0 - t), sp.y * 2.5 - t * 0.8) + float(s) * 3.0, 4, 0.55);
         float cone = smoothstep(0.10 + rise * 0.35, 0.0, abs(sp.x)) * smoothstep(0.0, 0.08, sp.y) * (1.0 - rise);
+        if (cone <= 0.0) continue;
+        float sm = fbm(vec2(sp.x * 5.0 + sin(sp.y * 3.0 - t), sp.y * 2.5 - t * 0.8) + float(s) * 3.0, 3, 0.55);
         col += vec3(0.30, 0.25, 0.22) * smoothstep(0.45, 0.85, sm) * cone * (0.25 + uD3 * 0.5);
     }
     // --- locura: lenguas de fuego que salen de ojos y boca ---
@@ -149,8 +156,9 @@ vec4 render(vec2 uv) {
             vec2 dir = (s == 0) ? vec2(0.0, -1.0) : normalize(vec2(float(s) * 0.6, 1.0));
             float along = dot(jp, dir);
             float across = abs(dot(jp, vec2(-dir.y, dir.x)));
-            float n = fbm(vec2(across * 9.0, along * 5.0 - uRTime * 8.0), 3);
             float jet = smoothstep(0.08 + along * 0.25, 0.0, across) * smoothstep(0.0, 0.05, along) * smoothstep(0.6 * rage + 0.05, 0.0, along);
+            if (jet <= 0.0) continue;
+            float n = fbm(vec2(across * 9.0, along * 5.0 - uRTime * 8.0), 3);
             col += mix(orange, hot, n) * jet * n * 2.5;
         }
     }
