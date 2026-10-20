@@ -130,11 +130,16 @@ SILENCE_RMS_THRESHOLD = 0.005
 # compuerta, cada vez que el RMS rozaba el piso -- entre frases, en una
 # parte suave, con la entrada baja -- el reloj se detenia y arrancaba y
 # se veia como si fuera a 2 fps. Ahora Speed es el PISO y el bajo solo
-# suma encima, hasta este porcentaje de la base:
-BASS_SPEED_BOOST = 0.5
-# La compuerta de musica (uMusic, deformacion de audio de las escenas)
-# sigue existiendo, pero se mantiene abierta este tiempo despues del
-# ultimo sonido, asi un hueco corto no corta el baile de golpe.
+# suma encima. Criterio del usuario (docs/51): "si Speed fija 100, con
+# audio oscila entre 100 y ~104-108, jamas por debajo" -> +8 % maximo.
+BASS_SPEED_BOOST = 0.08
+# Tasa del reloj con Speed al maximo (antes 2.0: "en el maximo debe ser
+# bastante mas rapido"). Lineal: Speed 0.5 = la mitad de esto.
+SPEED_MAX_RATE = 4.0
+# La compuerta de musica (uMusic, deformacion de audio de las escenas, y
+# el reloj rtime de pulsos/parpadeos) sigue existiendo, pero se mantiene
+# abierta este tiempo despues del ultimo sonido, asi un hueco corto no
+# corta el baile de golpe ni hace "para, se mueve, para".
 MUSIC_HOLD_SECONDS = 2.0
 # Escenas de lineas muy finas (1-2 px): a menos resolucion se ablandan de
 # forma visible, asi que se calculan SIEMPRE a resolucion completa.

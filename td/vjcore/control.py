@@ -41,8 +41,9 @@ def speed_rate_expression():
     """
     bass = ("max(0.0, min(1.0, "
             "(op('/project1/a_bass_out')[0].eval() if op('/project1/a_bass_out') is not None and op('/project1/a_bass_out').numChans else 0.0)))")
-    return ("2.0 * max(0.0, min(1.0, op('/project1').par.Speed.eval())) "
-            "* (1.0 + {} * {})".format(config.BASS_SPEED_BOOST, bass))
+    return ("{} * max(0.0, min(1.0, op('/project1').par.Speed.eval())) "
+            "* (1.0 + {} * {})".format(config.SPEED_MAX_RATE,
+                                       config.BASS_SPEED_BOOST, bass))
 
 
 def build(proj, audio_chop, key_chop=None, fx_chop=None):
@@ -79,10 +80,17 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     safe_set(t_scaled_n, 'renameto', 'time')
     connect(t_scaled_n, t_scaled)
 
-    # Tiempo real: corre siempre (sin compuerta), como un reloj de pared.
+    # Tiempo real (uRTime): lo usan 43 escenas para pulsos y parpadeos
+    # de AUDIO, asi que se detiene en silencio -- pero con la compuerta
+    # SOSTENIDA (music_hold, abajo), no con el RMS crudo: con el crudo
+    # paraba y arrancaba en cada hueco. Corre mientras music_hold > 0,
+    # o sea hasta MUSIC_HOLD_SECONDS despues del ultimo sonido.
     t_real = proj.create(speedCHOP, 'time_real')
     t_real.nodeX, t_real.nodeY = -1400, -60
-    safe_set(t_real, 'speed', 1.0)
+    safe_expr(t_real, 'speed',
+              "1.0 if (op('/project1/music_hold')[0].eval() if "
+              "op('/project1/music_hold') is not None and "
+              "op('/project1/music_hold').numChans else 0.0) > 0.001 else 0.0")
     t_real_n = proj.create(renameCHOP, 'time_real_named')
     t_real_n.nodeX, t_real_n.nodeY = -1240, -60
     safe_set(t_real_n, 'renamefrom', '*')

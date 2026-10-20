@@ -49,6 +49,7 @@ def rate(speed, bass, rms):
 # frases (antes el reloj se congelaba bajo el piso de RMS y se veia
 # "para, se mueve, para"). El bajo solo suma, hasta BASS_SPEED_BOOST.
 boost = config.BASS_SPEED_BOOST
+k = config.SPEED_MAX_RATE / 2.0  # la tabla esta escrita con tasa maxima 2
 threshold = config.SILENCE_RMS_THRESHOLD
 for speed, bass, rms, expected in [
         (0.0, 0.0, threshold * 2, 0.0),
@@ -61,9 +62,11 @@ for speed, bass, rms, expected in [
         (1.0, 1.0, threshold * 0.5, 2.0 * (1 + boost)),
         (0.5, 0.5, threshold * 2, 1.0 * (1 + boost * 0.5))]:
     actual = rate(speed, bass, rms)
+    expected *= k
     assert math.isclose(actual, expected, abs_tol=1e-9), (
         speed, bass, rms, actual, expected)
-    assert actual >= 2.0 * speed - 1e-9, 'Speed tiene que ser el piso'
+    assert actual >= config.SPEED_MAX_RATE * speed - 1e-9, 'Speed tiene que ser el piso'
+assert config.BASS_SPEED_BOOST <= 0.1, 'el bajo suma poco (100 -> 104-108)'
 
 new = [shader.read_body(i)[0] for i in range(58, config.N_SCENES)]
 assert len(new) == 40

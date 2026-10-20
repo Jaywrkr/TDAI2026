@@ -4,6 +4,8 @@ Copia el bloque de abajo, cambia lo que va entre `<< >>`, y pégalo en
 ChatGPT, Claude o el que uses. Está escrito para que la respuesta sea
 **directamente instalable**, sin traducción manual.
 
+Para modificar escenas existentes, lee primero [el relevo vigente de Speed y movimiento](51_SPEED_Y_BAILE.md). El contrato actual del código todavía congela `uTime` sin audio; **el objetivo pendiente** es mantener el movimiento base de Speed también en silencio. No añadas otra dependencia de audio al reloj.
+
 ---
 
 ## El prompt
@@ -34,12 +36,14 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
   uTime                          SEGUNDOS PARA ANIMAR. Ya escalado por Speed
                                  e integrado, así que nunca produce saltos de
                                  fase. USA ESTE, no uRTime*uSpeed.
-  uRTime                         segundos reales, independientes de Speed
+  uRTime                         reloj independiente de Speed; el rig actual
+                                 tambien lo detiene sin audio. No lo uses
+                                 para movimiento base de una escena
   uResW uResH uAspect uScene
-  uKeypulse uKeypos uKeyvel      piano: pulso/tono/fuerza de la ultima tecla
-                                 tocada. El anillo base YA sale gratis del
-                                 footer -- usa esto solo para un efecto propio
-                                 ADEMAS del anillo, no para reemplazarlo
+  uKeypulse uKeypos uKeyvel      piano: pulso/tono/fuerza de la ultima tecla.
+                                 El footer dibuja un anillo en las escenas
+                                 antiguas y seis gestos en las escenas 58+.
+                                 Puedes sumar una respuesta propia del material
   uD1 uD2 uD3 uD4 uD5 uD6        perillas de Detail, 0..1. Ver seccion
                                  "PERILLAS DE DETAIL" abajo -- documentalas
 
@@ -75,31 +79,30 @@ uv va de 0 a 1. Usa centered(uv) para coordenadas con aspecto corregido
    - Density → cuánta imagen hay: cobertura, cantidad de elementos, detalle
    - Hue     → paleta COMPLETA, no un tinte
    - Chaos   → desorden: turbulencia, distorsión, ruptura
-4. CONTRATO DE AUDIO:
-   El nivel continuo afecta principalmente brillo y color. uKick/uBeat
-   pueden mover o agrandar formas de manera acotada. El footer ya aplica
-   un zoom corto a todas las escenas, cuya amplitud depende un poco de
-   Speed y de Audioamount; suma un gesto propio solo si mejora la escena.
-   Motivo: con un microfono de ambiente el nivel nunca esta perfectamente
-   quieto, y cualquier cosa cuya FORMA dependa de el tiembla sin parar en
-   vivo -- no se lee como "reacciona a la musica", se lee como un glitch.
-     - uBass / uLevel -> SOLO brillo, con audioLift:
+4. CONTRATO DE AUDIO Y MOVIMIENTO:
+   Speed gobierna el movimiento propio de la escena: no multipliques
+   uTime por uSpeed otra vez. El audio puede mover, revelar o densificar
+   ELEMENTOS INTERNOS: cada figura, hilo, particula, borde o region de
+   ruido puede responder de forma distinta. No deformes todo el UV con
+   un twirl/zoom compartido y no limites la reaccion a subir el brillo.
+   En silencio debe desaparecer la respuesta causada por audio, pero el
+   movimiento propio de Speed debe continuar cuando se corrija el reloj
+   del rig (ver docs/51_SPEED_Y_BAILE.md).
+   Usa bandas suavizadas y umbrales para que el microfono residual no
+   haga temblar la forma. El kick/beat puede causar gestos breves.
+     - uBass / uLevel -> puede mover rasgos internos y tambien dar brillo:
            col = audioLift(col, uBass * 0.8);
        Sube el brillo SOLO donde ya hay algo brillante (col*(1+x) sigue
        siendo 0 si col era 0) -- lo oscuro se queda oscuro por
        construccion, no por ajuste fino.
-     - uMid -> SOLO color, con audioHue, ANTES de convertir a RGB:
+     - uMid -> puede alterar color y movimiento local. Para color:
            float h = audioHue(uHue, uMid * 0.05);
-       amount pequeno (centesimas de vuelta): es un tinte, no un carrusel.
-     - uHigh -> puede tocar geometria, pero SOLO a
-       escala micro (unos pocos pixeles/unidades como mucho) -- una
-       vibracion de detalle en las intersecciones o los bordes, nunca una
-       reestructuracion. Ejemplo real en scene00_veins.frag:
+       El cambio de matiz debe ser discreto, sin carrusel global.
+     - uHigh -> puede tocar geometria de detalle en intersecciones,
+       extremos o bordes. Ejemplo en scene00_veins.frag:
            vec2 wa = warp(p, t, 0.25 + uChaos*0.80 + uHigh*0.05);
-       (uHigh ya llega suavizado desde el core, asi que no reintroduce
-       temblor aunque toque geometria a esta escala).
-     - uKick / uBeat -> acentos puntuales (flash, pulso), NO modulacion
-       continua. Esto ya estaba bien, no cambia.
+     - uKick / uBeat -> acentos puntuales de forma, posicion, tamano o luz.
+       Evita mover toda la imagen como una sola lamina.
 5. Presupuesto: menos de 2 ms de GPU a 1280x720. Máximo ~24 octavas de ruido
    por píxel en total. Pon las octavas en #define arriba del archivo.
 6. Termina con un tonemap col = col/(1.0+col) si el visual tiene núcleos
