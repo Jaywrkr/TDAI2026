@@ -257,6 +257,16 @@ Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, c
 
 `guion.json` de este set lleva la noche entera sin controlador: las 26 escenas en el orden del setlist, de 22:00 a 05:30, con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
 
+## Miniaturas del dashboard
+
+El set trae sus miniaturas ya hechas en `td/sets/halloween/thumbs/` (una por escena, recorte central 16:9), generadas fuera de TD con:
+
+```bash
+python3 td/tools/render_thumbs.py --set halloween --media una_imagen.png
+```
+
+`--media` es la imagen que se ve en las escenas de imagen (06, 20–25); sin eso usan una cara de prueba. Dentro de TD, el pulso **Bakethumbs** (página System) las vuelve a sacar del render real y las pisa: conviene hacerlo una vez con tu carpeta de imágenes cargada, así las miniaturas de 20–25 muestran tus imágenes.
+
 ## Verificar fuera de TouchDesigner
 
 ```bash
