@@ -4,7 +4,7 @@ Un **set** es un show: sus escenas, su cantidad y sus ajustes. El **núcleo** (`
 
 ![Halloween](img/halloween_hoja.png)
 
-*Las 12 primeras escenas de Halloween, renderizadas fuera de TouchDesigner con `td/tools/render_scenes.py` (escena sola, sin bloom ni Master FX).*
+*Las 20 escenas de Halloween, renderizadas fuera de TouchDesigner con `td/tools/render_scenes.py` (escena sola, sin bloom ni Master FX).*
 
 ## Elegir el show
 
@@ -18,7 +18,7 @@ y **Run Script**. El reporte del build lo confirma en la primera línea:
 
 ```
 VERIFICACION DEL BUILD   [...]
-  set: HALLOWEEN 2026  (12 escenas, sets/halloween/visuals)
+  set: HALLOWEEN 2026  (20 escenas, sets/halloween/visuals)
 ```
 
 El build guarda el set en `td/config/active_set.txt`, así que al reabrir el `.toe` (o con **Reconstruir Todo**) sigue siendo el mismo. En `/project1` → System, **Set de visuales** lo muestra, pero no se cambia ahí: se cambia en `RUN_ME.py`.
@@ -33,7 +33,7 @@ td/
 └── sets/
     └── halloween/
         ├── set.json             ← lo que cambia en este set
-        └── visuals/             ← scene00_*.frag ... scene11_*.frag
+        └── visuals/             ← scene00_*.frag ... scene19_*.frag
 ```
 
 `set.json` de Halloween:
@@ -47,7 +47,7 @@ td/
 
 La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
-## Las 12 escenas
+## Las 20 escenas
 
 | # | Escena | Speed mueve | El audio hace | Detail |
 |---|---|---|---|---|
@@ -63,6 +63,14 @@ La cantidad de escenas sale de contar los `.frag` de la carpeta.
 | 09 | Tormenta gótica | nubes y lluvia | golpe = rayo (en otro lugar cada vez) que enciende las nubes; agudos en la lluvia | lluvia, ramas del rayo, rayos sin golpe, brillo, violeta↔azul, árbol |
 | 10 | Portal infernal | remolino y llamas | bajo levanta las llamas; golpe hace latir el anillo y enciende runas; medios mueven el remolino | tamaño, llamas, remolino, runas, naranja↔verde, humo |
 | 11 | Caldero de bruja | vapor y burbujas | bajo enciende el líquido; golpe revienta burbujas grandes y aviva las brasas | burbujas, vapor, brillo, brasas, verde↔violeta, chispas |
+| 12 | Momia | polvo y respiración de las vendas | bajo enciende los ojos; golpe afloja las vendas; el piano mueve la mirada | vendas, separación, ojos, aflojar, verde↔ámbar, polvo |
+| 13 | Calabazas en hilera | llamas y niebla | cada calabaza sigue una banda (graves a la izquierda, agudos a la derecha); golpe = ola de luz | cantidad, latido, ola, tamaño, naranja↔violeta, niebla |
+| 14 | Luna de sangre y cuervos | nubes, vuelo y ramas | bajo hace latir la luna; golpe espanta a los cuervos posados | cuervos volando, luna, ramas, posados, cobre↔sangre, nubes |
+| 15 | Manos de zombie | suben y mueven los dedos | golpe = estirón (cada mano con su retraso) y saltan terrones; bajo = luz de la tierra | manos, cuánto salen, dedos, estirón, verde↔rojo, tierra |
+| 16 | Velas | titilan | bajo agranda los halos; golpe estira las llamas; medios las inclinan | velas, llama, halo, salto, cálida↔verde, humo |
+| 17 | Esqueleto bailando | paso de baile | golpe = salto y brazos arriba; bajo enciende las baldosas; medios mueven la cadera | tamaño, energía, grosor, salto, hueso↔neón, piso |
+| 18 | Túnel de calaveras | avance por el túnel | bajo enciende el fondo; golpe = anillo de luz hacia la cámara; medios giran el túnel | calaveras por vuelta, avance, anillo, ojos, antorcha↔verde, niebla |
+| 19 | Glitch demoníaco | respira y mueve el ruido | golpe lo rompe en bloques; bajo hace arder los ojos; agudos = estática | líneas, ruptura, separación de color, ojos, rojo↔violeta, estática |
 
 Con **Speed en 0** todo queda quieto. Con Speed arriba de 0 y **en silencio**, el movimiento propio sigue y solo se apagan las reacciones al audio.
 

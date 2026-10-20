@@ -124,7 +124,7 @@ vec4 render(vec2 uv) {
         bp += (away + vec2(h2 - 0.5, h1 - 0.5)) * hit * (0.04 + uD4 * 0.18) * depth;
         float scale = 0.17 * depth;
         // lejos de este murcielago: ni lo calcules (es el costo principal)
-        if (length(p - bp) > scale * 0.75) continue;
+        if (length(p - bp) > scale * 0.75) { bats = min(bats, length(p - bp) - scale * 0.55); continue; }
         float flap = sin(t * (9.0 + uD3 * 12.0) * (0.8 + h3 * 0.4) + fi * 2.0);
         vec2 q = (p - bp) / scale;
         q = rot2((h1 - 0.5) * 0.5) * q;
@@ -133,7 +133,7 @@ vec4 render(vec2 uv) {
     float batMask = 1.0 - smoothstep(-0.0015, 0.0015, bats);
     col = mix(col, vec3(0.0), batMask);
     // borde rojizo cuando el murcielago pasa delante de la luna
-    col += moonC * edgeLine(bats, 1.2) * disk * 0.5;
+    col += moonC * (1.0 - smoothstep(0.0, 2.4 / uResH, abs(bats))) * disk * 0.5;
 
     col *= vignette(uv, 0.35);
     return vec4(col, 1.0);
