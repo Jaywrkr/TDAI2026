@@ -91,7 +91,8 @@ vec4 render(vec2 uv) {
         disk = mt.a;
         col = mix(col, moonC * mt.r * 1.1, mt.a);
     }
-    col += moonC * hkRays(pS, mc, t, 14.0) * 0.16 * (1.0 - disk);
+    col += moonC * hkRays(pS, mc, t, 14.0) * 0.16 * (1.0 - disk) * hkStyleRays();
+    col = hkStyleMoon(col, pS, mc, moonR);
     // relampago
     float zap = max(hit * smoothstep(0.4, 0.9, loco), hkEvent(6.0, 53.0, 6.0) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))));
     float bslot = floor(uRTime * 1.5);
@@ -110,11 +111,12 @@ vec4 render(vec2 uv) {
     vec3 farC = mix(col * 0.55, moonC * 0.06 + vec3(0.02, 0.02, 0.04), 0.5) * (0.5 + 0.8 * far.r);
     col = mix(col, farC, far.a);
 
+    col = hkStyleBacklight(col, pF, -0.30, 0.45);   // estilo: resplandor detras del castillo
     // --- castillo y ventanas ---
     vec2 cu = rUV(pC, CAS_R);
     vec4 cas = plate1(cu);
     if (cas.a > 0.0) {
-        vec3 cc = plateCol(cas.rgb) * (0.9 + 0.6 * dot(moonC, vec3(0.33))) * 1.3;
+        vec3 cc = plateCol(cas.rgb) * (0.9 + 0.6 * dot(moonC, vec3(0.33))) * 1.3 * hkStyleSil();
         cc += plateCol(cas.rgb) * vec3(0.8, 0.75, 1.0) * zap * 4.0;
         col = mix(col, cc, cas.a);
         float wid = plate2(cu).r;

@@ -148,6 +148,8 @@ vec4 render(vec2 uv) {
         vec3 fc = mix(flameC * 1.6, vec3(1.0, 0.95, 0.80) * 2.2, 1.0 - smoothstep(-0.05, 0.08, core));
         fc = mix(vec3(0.25, 0.35, 1.0) * 0.8, fc, smoothstep(-0.10, 0.10, q.y));    // base azul
         col = mix(col, fc, fA * on[i]);
+        // estilo: destello en cruz en cada llama
+        if (uStyle > 0.001) col += hkStyleMap(0.97) * hkSparkle(dq - vec2(0.0, s * 0.45), s * 4.0) * 0.25 * uStyle * on[i];
         // chispas
         float sp = hkParticles(dq * 3.0, t * 0.8, 0.05 + high * 0.15, vec2(0.0, 1.0), 0.03);
         col += flameC * sp * smoothstep(0.8, 0.0, dq.y) * step(0.0, dq.y) * exp(-abs(dq.x) * 8.0) * (0.2 + high) * on[i];

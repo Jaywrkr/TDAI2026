@@ -100,6 +100,7 @@ vec4 render(vec2 uv) {
         col = mix(col, face, mt.a);
     }
 
+    col = hkStyleMoon(col, p, mc, R);
     // --- nubes que cruzan ---
     float cl = plate6Wrap(vec2(p.x * 0.12 - t * 0.008, p.y * 0.5 + 0.2)).r;
     float cl2 = plate6Wrap(vec2(p.x * 0.20 - t * 0.013 + 0.3, p.y * 0.8)).g;
@@ -158,7 +159,7 @@ vec4 render(vec2 uv) {
         float near = exp(-max(length(p - mc) - R, 0.0) * 1.2);
         vec3 tc = plateCol(ta.rgb) * (0.12 + moonC * 0.10);
         tc += moonC * pow(back, 1.5) * (0.35 + 1.1 * near) * (1.0 + bass * 0.3);
-        col = mix(col, tc, ta.a);
+        col = mix(col, tc * hkStyleSil(), ta.a);
     }
 
     // --- cuervos posados en la rama ---
@@ -195,7 +196,7 @@ vec4 render(vec2 uv) {
         float back = max(dot(nxy, toMoon), 0.0);
         vec3 crowC = plateCol(cc.rgb) * 0.4 + moonC * pow(back, 2.0) * (0.25 + high * 0.3) * 0.9;
         crowC += vec3(0.25, 0.3, 0.6) * pow(max(nxy.y, 0.0), 6.0) * 0.06 * (0.5 + high);   // tornasol
-        col = mix(col, crowC, cc.a);
+        col = mix(col, crowC * hkStyleSil(), cc.a);
     }
 
     return vec4(hkFinish(col, uv, vec3(0.5, 0.1, 0.1)), 1.0);
