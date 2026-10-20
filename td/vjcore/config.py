@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'estilo-v1 2026-10-21'
+BUILD_TAG = 'paletas-v1 2026-10-21'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -302,6 +302,8 @@ CTRL_CHANNELS = [
     # En Halloween es el "aerografo retro" del kit (hkStyle en common.glsl).
     'style',    # 46
     'stylearch',  # 47 marco de arco alrededor de la imagen
+    'stylepal',   # 48 paleta del estilo (0..1 recorre las paletas del set)
+    'styleauto',  # 49 1 = la paleta cambia sola en cada acto
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -344,6 +346,8 @@ PAR_CHANNELS = [
     ('Nochevalor', 'night'),
     ('Estilo', 'style'),
     ('Estilomarco', 'stylearch'),
+    ('Estilopaleta', 'stylepal'),
+    ('Estiloauto', 'styleauto'),
 ]
 
 # ---------------------------------------------------------------
@@ -698,6 +702,9 @@ SET_PRELUDE = ''
 PLATE_LOD = '0.0'
 # Valor de arranque de Estilo / Estilomarco (set.json "style": [estilo, marco]).
 STYLE_DEFAULT = (0.0, 0.0)
+# Nombres de las paletas del estilo, en el orden en que las recorre la
+# perilla Estilopaleta (set.json "style_palettes"; el GLSL del set las define).
+STYLE_PALETTES = []
 # Setlist de arranque (indices). Vacio = Next/Prev en orden numerico.
 DEFAULT_SETLIST = []
 
@@ -817,6 +824,7 @@ def _apply_set(name):
     g['PLATES'] = _find_plates(_os.path.join(set_dir(name), data.get('plates_dir', 'plates')))
     if data.get('style'):
         g['STYLE_DEFAULT'] = (float(data['style'][0]), float(data['style'][1]))
+    g['STYLE_PALETTES'] = list(data.get('style_palettes', []))
     if data.get('plate_lod'):
         g['PLATE_LOD'] = str(data['plate_lod'])
     if data.get('prelude'):
