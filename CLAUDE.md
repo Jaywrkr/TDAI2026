@@ -21,4 +21,4 @@ Lee primero [docs/51_SPEED_Y_BAILE.md](docs/51_SPEED_Y_BAILE.md). Ese documento 
 
 ## Entrega
 
-Trabajar en una rama; hacer **commit y push**. Desde el 20 de octubre de 2026 el usuario pidió que, al terminar cada cosa, Claude abra el PR a `main` y haga el merge él mismo. Ramas anidadas: cada trabajo nuevo va en una rama nueva creada sobre la última (`claude/halloween-...`). Verificar shaders y controles fuera de TD; cualquier afirmación sobre aspecto o FPS reales requiere prueba en el TouchDesigner del usuario. Si cambian CHOPs, DATs o el header/footer, indicar **Reconstruir Todo**.
+Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: **solo commit y push, sin abrir PR ni hacer merge** (pedido del usuario; antes Claude hacía PR + merge). Cada fase de trabajo va en una rama nueva anidada sobre la anterior (`claude/halloween-f6-...`, `claude/halloween-f7-...`). Verificar shaders y controles fuera de TD; cualquier afirmación sobre aspecto o FPS reales requiere prueba en el TouchDesigner del usuario. Si cambian CHOPs, DATs o el header/footer, indicar **Reconstruir Todo**.
