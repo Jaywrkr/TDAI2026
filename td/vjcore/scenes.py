@@ -135,6 +135,10 @@ def build_scene(scenes, i, channels):
     safe_expr(glsl, 'resolutionw', _render_res_expr('Outputwidth', i))
     safe_expr(glsl, 'resolutionh', _render_res_expr('Outputheight', i))
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
+    # Laminas o media: filtro de entrada en mipmap para que textureLod
+    # (desenfoque de vapor, estilo suave de las laminas) lea mips reales.
+    if has_media or config.PLATES.get(i):
+        safe_set_first(glsl, ['inputfiltertype', 'inputfilter'], 'mipmap')
 
     out_top = content.create(nullTOP, 'content_out')
     out_top.nodeX, out_top.nodeY = 0, -150

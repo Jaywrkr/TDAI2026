@@ -275,6 +275,87 @@ vec3 hkNightFrame(vec3 col, vec2 uv) {
     return col;
 }
 
+
+// ---------------------------------------------------------------
+// ESTILO "AEROGRAFO RETRO" (perilla Estilo = uStyle, marco = uStylearch)
+// Como un afiche pintado con aerografo e impreso en papel: formas suaves
+// (las laminas se leen desenfocadas, ver set.json "plate_lod"), paleta
+// corta negro -> violeta -> naranja -> crema, grano de spray (puntitos
+// sueltos donde el tono cambia), polvo y pelusas del papel, y un marco
+// de arco negro alrededor. Todo es por pixel y sin texturas: barato.
+// ---------------------------------------------------------------
+vec3 hkStyleMap(float l) {
+    vec3 c0 = vec3(0.022, 0.018, 0.024);
+    vec3 c1 = vec3(0.15, 0.065, 0.20);    // violeta
+    vec3 c2 = vec3(0.42, 0.22, 0.42);     // malva
+    vec3 c3 = vec3(0.88, 0.36, 0.10);     // naranja
+    vec3 c4 = vec3(0.97, 0.68, 0.46);     // durazno
+    vec3 c5 = vec3(0.97, 0.93, 0.86);     // crema
+    vec3 c = mix(c0, c1, smoothstep(0.03, 0.28, l));
+    c = mix(c, c2, smoothstep(0.28, 0.45, l));
+    c = mix(c, c3, smoothstep(0.45, 0.62, l));
+    c = mix(c, c4, smoothstep(0.62, 0.80, l));
+    return mix(c, c5, smoothstep(0.80, 0.97, l));
+}
+
+// Destello en cruz (las estrellitas de 4 puntas de los afiches).
+float hkSparkle(vec2 d, float size) {
+    vec2 a = abs(d) / size;
+    float cross = exp(-a.y * 60.0) * exp(-a.x * 2.2) + exp(-a.x * 60.0) * exp(-a.y * 2.2);
+    return cross + exp(-dot(a, a) * 40.0) * 1.5;
+}
+
+float hkArchMask(vec2 uv) {
+    vec2 p = (uv - 0.5) * vec2(uAspect, 1.0) * 2.0;
+    float k = uStylearch;
+    float w = mix(uAspect + 0.2, 1.25, k);          // medio ancho de la ventana
+    float top = mix(1.3, 0.92, k);
+    float cy = top - w;                              // centro del semicirculo
+    float d = p.y > cy ? length(vec2(p.x, p.y - cy)) - w : abs(p.x) - w;
+    d = max(d, -(p.y + mix(1.3, 0.92, k)));         // tambien un margen abajo
+    return d;
+}
+
+vec3 hkStyle(vec3 col, vec2 uv) {
+    float s = clamp(uStyle, 0.0, 1.0);
+    vec2 px = uv * vec2(uResW, uResH);
+    float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    l = pow(clamp(l, 0.0, 1.0), 1.05);
+    vec3 mapped = hkStyleMap(l);
+    // conserva un poco del color propio (sangre, verde toxico) para que
+    // cada escena siga siendo ella
+    float sat = length(col - vec3(dot(col, vec3(0.333))));
+    vec3 c = mix(col, mix(mapped, col * 1.1, smoothstep(0.25, 0.6, sat) * 0.35), s * 0.88);
+    // grano de spray: puntitos claros en los medios-oscuros, oscuros en
+    // las luces (el aerografo deja niebla de puntos donde el tono cambia)
+    float n = fract(sin(dot(floor(px), vec2(12.9898, 78.233))) * 43758.5453);
+    float n2 = fract(sin(dot(floor(px) + floor(uRTime * 8.0), vec2(39.3468, 11.1351))) * 24634.6345);
+    float lightDots = step(1.0 - smoothstep(0.10, 0.35, l) * (1.0 - smoothstep(0.40, 0.70, l)) * 0.05, n);
+    float darkDots = step(1.0 - smoothstep(0.55, 0.95, l) * 0.10, n2);
+    c = mix(c, hkStyleMap(min(l + 0.30, 1.0)), lightDots * s * 0.65);
+    c = mix(c, hkStyleMap(max(l - 0.25, 0.0)), darkDots * s * 0.45);
+    // papel: fibra suave + polvo y pelusas blancas que cambian de a ratos
+    float paper = noise21(px * vec2(0.012, 0.35)) * 0.5 + noise21(px * 0.04) * 0.5;
+    c *= 1.0 - s * 0.06 * paper;
+    float slot = floor(uRTime * 2.5);
+    vec2 dg = px / 90.0;
+    vec2 di = floor(dg);
+    float dh = hash21(di + slot * 3.1);
+    vec2 dq = fract(dg) - hash22(di + slot);
+    float speck = step(0.93, dh) * (1.0 - smoothstep(0.004, 0.012, length(dq)));
+    float lint = step(0.985, dh) * hkLine(abs(dq.y + sin(dq.x * 20.0) * 0.02) - 0.0, 0.6) * step(abs(dq.x), 0.2);
+    c = mix(c, vec3(0.95, 0.92, 0.86), (speck + lint) * s * 0.7);
+    // marco de arco: negro de papel con un halo violeta en el borde interior
+    if (uStylearch > 0.001) {
+        float d = hkArchMask(uv);
+        float inner = exp(-max(-d, 0.0) * 6.0) * smoothstep(0.02, -0.02, d);
+        c = mix(c, c * 0.6 + vec3(0.20, 0.08, 0.26) * 0.5, inner * uStylearch * 0.6);
+        vec3 outside = vec3(0.028, 0.024, 0.026) * (0.85 + 0.3 * paper) + vec3(0.6) * speck * 0.3;
+        c = mix(c, outside, smoothstep(-0.006, 0.006, d) * smoothstep(0.0, 0.15, uStylearch));
+    }
+    return c;
+}
+
 // Acabado de cine para TODO el set: exposicion, tonemap, negros con
 // un poco de color (tint), grano y un parpadeo de proyector viejo que
 // crece con la locura. Llamarlo una vez, al final de render().
@@ -284,6 +365,7 @@ vec3 hkFinish(vec3 col, vec2 uv, vec3 tint) {
     col *= 1.15;
     col = hkACES(col);
     col = max(col, tint * 0.018);
+    if (uStyle > 0.001 || uStylearch > 0.001) col = hkStyle(col, uv);
     // grano: un hash barato por pixel (sin noise21)
     vec2 gp = uv * vec2(uResW, uResH) + fract(uRTime * 13.0) * 91.0;
     col += (fract(sin(dot(gp, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * (0.022 + loco * 0.03);

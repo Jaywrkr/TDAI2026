@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'imagenes-v1 2026-10-20'
+BUILD_TAG = 'estilo-v1 2026-10-21'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -298,6 +298,10 @@ CTRL_CHANNELS = [
     # de la perilla manual. El kit de Halloween lo usa para que todo se
     # ponga mas oscuro, mas gore y con mas fuego a medida que pasa la noche.
     'night',    # 45
+    # ESTILO del set (pagina Estilo): 0 = como siempre, 1 = estilo pleno.
+    # En Halloween es el "aerografo retro" del kit (hkStyle en common.glsl).
+    'style',    # 46
+    'stylearch',  # 47 marco de arco alrededor de la imagen
 ]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
@@ -338,6 +342,8 @@ PAR_CHANNELS = [
     ('Detail6', 'd6'),
     ('Audioamount', 'audioamt'),
     ('Nochevalor', 'night'),
+    ('Estilo', 'style'),
+    ('Estilomarco', 'stylearch'),
 ]
 
 # ---------------------------------------------------------------
@@ -686,6 +692,12 @@ PRESETS_FILE = 'presets.json'    # dentro de td/config/
 # del set (funciones compartidas: acabado, luz, particulas...). Vacio =
 # nada. Ruta relativa a td/.
 SET_PRELUDE = ''
+# Nivel de mipmap con que se leen las laminas (plateN): una expresion GLSL.
+# Un set puede atarlo a una perilla (set.json "plate_lod", ej. "uStyle * 2.5")
+# para que el estilo suavice las formas sin costo.
+PLATE_LOD = '0.0'
+# Valor de arranque de Estilo / Estilomarco (set.json "style": [estilo, marco]).
+STYLE_DEFAULT = (0.0, 0.0)
 # Setlist de arranque (indices). Vacio = Next/Prev en orden numerico.
 DEFAULT_SETLIST = []
 
@@ -803,6 +815,10 @@ def _apply_set(name):
         g['DEFAULT_OUTPUT_W'] = max(320, min(int(w), MAX_OUTPUT))
         g['DEFAULT_OUTPUT_H'] = max(240, min(int(h), MAX_OUTPUT))
     g['PLATES'] = _find_plates(_os.path.join(set_dir(name), data.get('plates_dir', 'plates')))
+    if data.get('style'):
+        g['STYLE_DEFAULT'] = (float(data['style'][0]), float(data['style'][1]))
+    if data.get('plate_lod'):
+        g['PLATE_LOD'] = str(data['plate_lod'])
     if data.get('prelude'):
         g['SET_PRELUDE'] = _os.path.join('sets', name, data['prelude'])
     g['GRID_ROWS'] = math.ceil(g['N_SCENES'] / GRID_COLS)

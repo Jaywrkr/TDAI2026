@@ -99,6 +99,17 @@ Para tocar en orden numérico, apaga **Next/Prev siguen el setlist**. El número
 
 Funciones del kit para imagen (en `common.glsl`, solo en escenas de Media): `hkMediaAspect`, `hkMediaCover`, `hkMediaHas`, `hkMediaGet(muv, lod, has)`; y para todas: `hkTone` (pocos colores), `hkCornerWeb`, `hkCandle`.
 
+## Estilo aerógrafo retro (página Estilo)
+
+`/project1` → **Estilo** tiene dos perillas que valen para todo el set:
+
+- **Estilo** (0–1): lleva la imagen a un afiche pintado con aerógrafo. Las formas se ablandan (las láminas se leen desenfocadas, `set.json` → `"plate_lod": "uStyle * 3.2"`); la paleta pasa a negro → violeta → malva → naranja → durazno → crema; aparecen grano de spray, polvo y pelusas de papel. Con 0, todo queda como antes.
+- **Estilomarco** (0–1): encierra la imagen en una ventana de arco sobre negro, con un halo violeta en el borde.
+
+El kit lo aplica en `hkFinish` a **todas** las escenas (`hkStyle`). Cada escena puede además adaptarse: el **cementerio (00)** ya lo hace (tumbas como siluetas suaves contra un resplandor naranja-crema, luna como esfera de aerógrafo con destellos en cruz, niebla como velo, sin rayos duros). Las demás, por ahora, reciben solo la parte general. Arranca en 0; un set puede traer otro valor inicial con `"style": [estilo, marco]`.
+
+Costo en el banco: +3–5 ms con Estilo arriba. Para que el desenfoque de las láminas funcione en TD, las escenas con láminas o media usan filtro de entrada mipmap (lo pone el build).
+
 ## Locura (perilla Chaos) y kit compartido
 
 En este set la perilla **Chaos (knob 4) es la locura**. En 0 las escenas son cinematográficas y sobrias; al subirla, cada golpe trae algo más fuerte: sacudida y zoom de impacto, relámpagos dobles, lenguas de fuego en la calabaza, un ojo gigante, murciélagos que se vienen encima, salpicaduras de sangre, VHS que rueda e invierte, fantasmas que se abalanzan gritando, un enjambre de arañitas, ojos dentro del portal, un géiser en el caldero, rayos de los ojos de la momia, calabazas que saltan, una bandada de cuervos, manos que revientan la tierra, ráfaga que tumba las velas, rayos X en el esqueleto, el túnel que se retuerce y el demonio que se desdobla.

@@ -308,6 +308,13 @@ def _parameters(proj):
     add_float(gu, 'Guionposicion', 'Posicion en segundos (interno)', 0.0, 0.0, 36000.0)
     add_int(gu, 'Guioncue', 'Cue actual (interno)', 0, 0, 999)
 
+    # ESTILO del set (Halloween: aerografo retro -- formas suaves, paleta
+    # negro/violeta/naranja/crema, grano de spray, polvo, destellos). Van
+    # a la textura de control como 'style' y 'stylearch'.
+    es = proj.appendCustomPage('Estilo')
+    add_float(es, 'Estilo', 'Estilo aerografo (0 = normal)', float(c.STYLE_DEFAULT[0]), 0.0, 1.0)
+    add_float(es, 'Estilomarco', 'Marco de arco', float(c.STYLE_DEFAULT[1]), 0.0, 1.0)
+
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
     # Piso propio del failsafe, separado del aviso visual (Fpswarning, 55):
