@@ -1,10 +1,23 @@
 // ===============================================================
 // HALLOWEEN 15 - MANOS DE ZOMBIE
-// Manos huesudas que salen de la tierra de una tumba, se abren y se
-// cierran, bajo una luz verde enfermiza y niebla baja.
-// Speed hace que suban y se muevan los dedos. El golpe hace que se
-// estiren de golpe (cada una con su retraso); el bajo levanta la luz
-// verde que sale de la tierra.
+// Matte painting con LAMINAS horneadas (plates/scene15, ver
+// td/tools/bake_plates_zombies.py): cementerio de noche con reja de
+// hierro, mausoleo, lapidas torcidas y arboles pelados; adelante, la
+// tierra recien removida con montículos, terrones, raices y un agujero
+// en cada tumba. De los agujeros salen manos de zombie (piel podrida,
+// venas, hueso en las puntas, manga rota) que abren y cierran los dedos:
+// el shader mezcla la pose abierta y la de garra. Una luz verde
+// enfermiza sale de la tierra.
+//
+// BAILE (cada cosa escucha una parte distinta de la musica):
+//   bajo   -> la luz de la tierra crece y late
+//   medios -> las manos se mecen y abren/cierran los dedos
+//   agudos -> brillo humedo en la piel y en la niebla
+//   golpe  -> estiron (D4), cada mano con su retraso, y saltan terrones;
+//             con Chaos salen casi enteras y tiemblan
+// Speed mueve la niebla, las nubes y el ritmo de los dedos en silencio.
+// HISTORIA: cada ~69 s una horda: salen todas a la vez; cada acto cambia
+// cuantas manos hay; cada ~53 s un relampago lejano recorta el fondo.
 //
 // @D1: cantidad de manos
 // @D2: cuanto salen de la tierra
@@ -14,121 +27,141 @@
 // @D6: tierra que salta
 // ===============================================================
 
-float hwSegZ(vec2 p, vec2 a, vec2 b) {
-    vec2 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    return length(pa - ba * h);
-}
+const vec4 BACK_R = vec4(-3.1, -0.8, 6.2, 1.4);
+const vec4 GROUND_R = vec4(-3.1, -1.2, 6.2, 0.95);
+const vec4 HAND_R = vec4(-0.5, -0.25, 1.0, 1.55);
+vec2 rUV(vec2 p, vec4 r) { return (p - r.xy) / r.zw; }
+vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
 
-// Mano abierta hacia arriba, base en 0. 'open' separa los dedos.
-float hwHand(vec2 p, float open, float curl) {
-    float arm = max(abs(p.x + 0.03 * sin(p.y * 6.0)) - 0.10 + p.y * 0.02, -p.y - 0.02);
-    arm = max(arm, p.y - 0.75);
-    float palm = length((p - vec2(0.0, 0.85)) / vec2(0.18, 0.16)) - 1.0;
-    float d = min(arm, palm * 0.16);
-    // los dedos estan todos arriba de la palma: debajo no hace falta
-    // calcularlos (es lo mas caro de la mano)
-    if (p.y < 0.62 || abs(p.x) > 0.62) return d;
-    for (int i = 0; i < 5; i++) {
-        float fi = float(i);
-        float a = mix(-0.55, 0.55, fi / 4.0) * (0.4 + open * 1.1);
-        vec2 root = vec2(mix(-0.13, 0.13, fi / 4.0), 0.95);
-        if (i == 0) { root = vec2(-0.17, 0.80); a = -0.9 - open * 0.4; }
-        float len = (i == 0) ? 0.20 : (0.26 + 0.06 * (1.0 - abs(fi - 2.0) * 0.5));
-        vec2 dir = vec2(sin(a), cos(a));
-        vec2 mid = root + dir * len * 0.55;
-        vec2 dir2 = vec2(sin(a + curl * (0.9 + fi * 0.1)), cos(a + curl * (0.9 + fi * 0.1)));
-        vec2 tip = mid + dir2 * len * 0.50;
-        d = min(d, hwSegZ(p, root, mid) - 0.034);
-        d = min(d, hwSegZ(p, mid, tip) - 0.026);
-        // nudillo
-        d = min(d, length(p - mid) - 0.040);
-    }
-    return d;
-}
+// agujeros de las tumbas: la misma lista que el horneado
+const vec2 HOLES[9] = vec2[9](vec2(-2.25, -0.50), vec2(-1.50, -0.47), vec2(-0.75, -0.52), vec2(0.0, -0.46), vec2(0.75, -0.51),
+                              vec2(1.50, -0.47), vec2(2.25, -0.50), vec2(-1.12, -0.60), vec2(1.12, -0.60));
+// orden en que aparecen las manos al subir D1 (centro primero)
+const int ORDER[9] = int[9](3, 2, 4, 1, 5, 7, 8, 0, 6);
 
 vec4 render(vec2 uv) {
-    vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
+    // encuadre bajo: la tierra y las manos ocupan mas de la pantalla
+    vec2 p = hkCam(hkPunch(hkShake(centered(uv)))) * 0.82 + vec2(0.0, -0.30);
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
+    float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
+    float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
     float loco = hkLoco();
-    float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
-    vec3 light = mix(hsv2rgb(vec3(fract(0.27 + hue), 0.80, 1.0)),
-                     hsv2rgb(vec3(fract(0.99 + hue), 0.90, 1.0)), uD5);
-    vec3 col = mix(light * 0.08, vec3(0.005, 0.008, 0.006), smoothstep(-0.7, 1.0, p.y));
+    float horde = hkEvent(20.0, 69.0, 10.0);
+    float boltE = hkEvent(21.0, 53.0, 3.0) * step(0.75, noise21(vec2(uRTime * 8.0, 2.0)));
+    vec3 glowC = mix(vec3(0.35, 1.0, 0.30), vec3(1.0, 0.18, 0.08), uD5);
+    float glow = 0.55 + bass * 0.9 + hit * 0.3;
+    vec3 moonC = vec3(0.55, 0.62, 0.75);
 
-    float groundY = -0.55 + 0.04 * sin(p.x * 2.3);
-    // lapidas torcidas al fondo, recortadas por la luz
-    for (int i = 0; i < 4; i++) {
-        float fi = float(i);
-        vec2 lq = p - vec2((fi - 1.5) * uAspect * 0.55 + 0.2 * sin(fi * 3.0), groundY + 0.05);
-        lq = rot2(0.15 * sin(fi * 5.0)) * lq;
-        float st = min(hkBox(lq - vec2(0.0, 0.16), vec2(0.11, 0.16)), length(lq - vec2(0.0, 0.32)) - 0.11);
-        float sm = 1.0 - smoothstep(-0.003, 0.003, st);
-        if (sm > 0.0) col = mix(col, vec3(0.025, 0.03, 0.028) * (0.7 + 0.6 * fbm(lq * 20.0, 3)), sm * 0.9);
-        col += light * hkLine(st, 1.2) * 0.25;
+    // --- cielo, luna y nubes ---
+    vec3 col = mix(vec3(0.020, 0.035, 0.030), vec3(0.004, 0.006, 0.010), smoothstep(-0.4, 1.0, p.y));
+    vec2 mc = vec2(-uAspect * 0.62, 0.70);
+    float md = length(p - mc);
+    col += moonC * (1.0 - smoothstep(0.10, 0.11, md)) * (0.45 + 0.3 * fbm((p - mc) * 14.0, 3, 0.5));
+    col += moonC * exp(-md * 3.5) * 0.12;
+    float cl = plate7Wrap(vec2(p.x * 0.12 - t * 0.006, p.y * 0.5)).r;
+    col = mix(col, vec3(0.012, 0.018, 0.018) + moonC * 0.05 * exp(-md * 2.0), smoothstep(0.5, 0.75, cl) * smoothstep(0.0, 0.5, p.y) * 0.85);
+    col += vec3(0.7, 0.8, 1.0) * boltE * 0.25 * smoothstep(-0.3, 0.8, p.y);
+
+    // --- cementerio del fondo ---
+    vec4 bk = plate0(rUV(p, BACK_R));
+    if (bk.a > 0.0) {
+        vec3 bc = plateCol(bk.rgb) * (0.4 + moonC * 0.4) + glowC * 0.012;
+        bc = mix(bc, vec3(0.002), boltE * 0.9);                       // recorte con el relampago
+        col = mix(col, bc, bk.a);
     }
-    // locura: revientan mas manos de la tierra con el golpe
-    // historia: cada ~69 s sale una horda; cada acto distinta cantidad
-    float horde = hkEvent(3.0, 69.0, 9.0);
-    float n = min(3.0 + floor(uD1 * 3.0 + hit * loco * 2.0 + horde * 3.0 + hkActVal(4.0) * 1.5), 8.0);
-    float handsD = 1e3;
-    // bajo tierra o muy arriba no hay manos que buscar
-    bool handZone = p.y > groundY - 0.02 && p.y < groundY + 1.25;
-    for (int i = 0; i < 8; i++) {
+    // niebla entre el fondo y las tumbas
+    float fz = plate7Wrap(vec2(p.x * 0.09 - t * 0.007, p.y * 0.6)).g;
+    col = mix(col, glowC * 0.10 + moonC * 0.06, smoothstep(0.4, 0.8, fz) * exp(-pow((p.y + 0.45) / 0.15, 2.0)) * 0.6);
+
+    // --- manos ---
+    float nH = 3.0 + floor(uD1 * 4.0 + hkActVal(3.0) * 2.0) + horde * 9.0;
+    for (int kk = 0; kk < 9; kk++) {
+        if (float(kk) >= nH) break;
+        int i = ORDER[kk];
+        vec2 hole = HOLES[i];
+        if (abs(p.x - hole.x) > 0.65) continue;
         float fi = float(i);
-        if (fi >= n || !handZone) break;
-        float h1 = fract(sin(fi * 12.989 + 3.0) * 43758.5);
-        float h2 = fract(sin(fi * 78.233 + 1.0) * 1234.5);
-        float x = mix(-uAspect * 0.85, uAspect * 0.85, (fi + 0.5) / n) + (h1 - 0.5) * 0.2;
-        float rise = (0.45 + uD2 * 0.45) * (0.6 + 0.4 * sin(t * (0.25 + h2 * 0.2) + fi * 1.3) * 0.5 + 0.2);
-        float stretch = hit * (0.05 + uD4 * 0.20) * step(0.35, fract(h1 * 5.0 + floor(uRTime * 2.0) * 0.21));
-        float s = 0.42 + 0.20 * h2;
-        vec2 base = vec2(x, groundY - s * 1.0 + (rise + stretch) * s * 1.2);
-        vec2 q = (p - base) / s;
-        q = rot2((h1 - 0.5) * 0.5) * q;
-        if (abs(q.x) > 0.66 || q.y > 1.38) {
-            handsD = min(handsD, max(max(abs(q.x) - 0.60, q.y - 1.25), 0.05) * s);
-            continue;
+        float h1 = hash21(vec2(fi, 4.0));
+        float s = (0.56 + 0.08 * h1) * (i >= 7 ? 0.8 : 1.0);
+        // cuanto sale: D2 + ola propia + estiron del golpe con retraso
+        float lag = fract(h1 * 5.0) * 0.3;
+        float stretch = smoothstep(0.0, 0.25, hit - lag) * uD4 * 0.5;
+        float rise = clamp(0.40 + uD2 * 0.60 + 0.08 * sin(t * (0.6 + h1 * 0.5) + fi * 2.0) + stretch + horde * 0.35 + hit * loco * 0.3, 0.0, 1.15);
+        float sway = (0.06 + mid * 0.18) * sin(t * (0.8 + h1) + fi * 1.7) + hit * loco * 0.08 * sin(uRTime * 30.0 + fi);
+        vec2 base = hole + vec2(0.0, (rise - 0.95) * s * 1.2);
+        vec2 q = p - base;
+        float c = cos(sway), sn = sin(sway);
+        q = vec2(c * q.x + sn * q.y, -sn * q.x + c * q.y) / s;
+        if (h1 > 0.5) q.x = -q.x;                                     // mano izquierda/derecha
+        vec2 hu = rUV(q, HAND_R);
+        // abre y cierra los dedos: mezcla de las dos poses
+        float open = clamp(0.5 + 0.5 * sin(t * (1.1 + h1) + fi * 3.0) * (0.4 + mid) + (uD3 - 0.5) * 1.2 + stretch, 0.0, 1.0);
+        vec4 ho = plate3(hu), hg = plate5(hu);
+        float k = smoothstep(0.35, 0.65, open);
+        vec4 hc = mix(hg, ho, k);
+        if (hc.a <= 0.01) continue;
+        vec4 hn = mix(plate6(hu), plate4(hu), k);
+        vec2 nxy = hn.rg * 2.0 - 1.0;
+        if (h1 > 0.5) nxy.x = -nxy.x;
+        vec3 n = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy), 0.05))));
+        vec3 alb = plateCol(hc.rgb);
+        // luz de la tierra desde abajo + luna arriba a la izquierda
+        float below = exp(-max(p.y - hole.y, 0.0) * 1.6);
+        vec3 lit = glowC * glow * (0.20 + max(-n.y, 0.0) * 0.9) * below * 1.1;
+        lit += moonC * 0.30 * max(dot(n, normalize(vec3(-0.6, 0.5, 0.6))), 0.0);
+        lit += vec3(0.02);
+        vec3 hcol = alb * lit;
+        hcol += vec3(0.6, 0.7, 0.6) * pow(max(dot(n, normalize(vec3(-0.3, 0.4, 0.86))), 0.0), 24.0) * (0.05 + high * 0.15);   // brillo humedo
+        col = mix(col, hcol, hc.a);
+    }
+
+    // --- tierra removida (tapa el antebrazo) ---
+    vec2 gu = rUV(p, GROUND_R);
+    vec4 ga = plate1(gu);
+    if (ga.a > 0.0) {
+        vec4 gn = plate2(gu);
+        vec2 nxy = gn.rg * 2.0 - 1.0;
+        vec3 n = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy), 0.05))));
+        vec3 alb = plateCol(ga.rgb);
+        float gl = 0.0;
+        for (int kk = 0; kk < 9; kk++) {
+            if (float(kk) >= nH) break;
+            vec2 d = (p - HOLES[ORDER[kk]]) * vec2(1.0, 2.0);
+            gl += exp(-dot(d, d) * 9.0);
         }
-        float open = clamp(0.3 + uD3 * 0.7 + 0.25 * sin(t * (1.2 + h1) + fi), 0.0, 1.2);
-        float curl = 0.2 + 0.6 * (0.5 + 0.5 * sin(t * (1.5 + h2) + fi * 2.0));
-        handsD = min(handsD, hwHand(q, open, curl) * s);
+        vec3 lit = vec3(0.025) + moonC * 0.30 * max(dot(n, normalize(vec3(-0.6, 0.6, 0.5))), 0.0) + glowC * glow * gl * 0.45;
+        col = mix(col, alb * lit * 2.2, ga.a);
     }
-    float handM = (1.0 - smoothstep(-0.002, 0.002, handsD)) * step(groundY, p.y);
-    // piel muerta iluminada desde abajo
-    float under = smoothstep(groundY + 0.6, groundY, p.y);
-    vec3 skin = vec3(0.10, 0.12, 0.08) + light * 0.30 * under;
-    skin *= 0.7 + 0.3 * noise21(p * 40.0);
-    col = mix(col, skin, handM);
-    col += light * (1.0 - smoothstep(0.0, 3.0 / uResH, abs(handsD))) * step(groundY, p.y) * (0.25 + 0.35 * under);
-
-    // tierra
-    float soil = p.y < groundY + 0.01 ? fbm(p * vec2(6.0, 10.0), 4, 0.6) : 0.5;
-    float groundM = 1.0 - smoothstep(groundY - 0.004, groundY + 0.004, p.y);
-    vec3 dirt = vec3(0.035, 0.025, 0.018) * (0.5 + soil);
-    col = mix(col, dirt, groundM);
-    // luz que sale de la tierra
-    float glowL = exp(-abs(p.y - groundY) * 7.0);
-    col += light * glowL * (0.12 + bass * 0.45 + hit * 0.25);
-    // terrones que saltan con el golpe
-    for (int i = 0; i < 2; i++) {
-        float fi = float(i);
-        vec2 g = vec2(p.x * 18.0, (p.y - groundY) * 10.0 - hit * 2.0 * (fi + 1.0));
-        vec2 id = floor(g);
-        vec2 f = fract(g) - 0.5;
-        float alive = step(0.95 - uD6 * 0.20, hash21(id + fi * 3.0)) * step(groundY, p.y) * step(p.y, groundY + 0.35);
-        col = mix(col, dirt * 2.0 + light * 0.10, (1.0 - smoothstep(0.10, 0.18, length(f))) * alive * hit);
+    // resplandor de los agujeros en el aire
+    for (int kk = 0; kk < 9; kk++) {
+        if (float(kk) >= nH) break;
+        vec2 hole = HOLES[ORDER[kk]];
+        vec2 d = (p - hole - vec2(0.0, 0.12)) * vec2(1.4, 0.9);
+        col += glowC * exp(-dot(d, d) * 14.0) * glow * 0.10;
     }
-    // locura: la tierra estalla hacia arriba
-    float blast = max(hit * smoothstep(0.4, 1.0, loco), horde * step(0.6, fract(uRTime * 0.7)) * 0.7);
-    if (blast > 0.01) col += dirt * 3.0 * hkParticles(p - vec2(0.0, groundY), uRTime * 2.0, 0.35 * blast, vec2(0.0, 1.0), 0.06) * step(groundY, p.y) * blast;
-    // niebla baja
-    float fogBand = exp(-pow((p.y - groundY - 0.05) / 0.15, 2.0));
-    float fog = fogBand > 0.02 ? fbm(vec2(p.x * 1.5 - t * 0.05, p.y * 4.0), 3, 0.5) : 0.0;
-    col = mix(col, light * 0.35, smoothstep(0.45, 0.85, fog) * exp(-pow((p.y - groundY - 0.05) / 0.15, 2.0)) * 0.6);
 
-    return vec4(hkFinish(col, uv, vec3(0.2, 0.5, 0.2)), 1.0);
+    // --- terrones que saltan con el golpe ---
+    if (uD6 > 0.02 && hit > 0.02) {
+        float ph = fract(uRTime * 1.3);
+        for (int kk = 0; kk < 4; kk++) {
+            vec2 hole = HOLES[ORDER[kk]];
+            if (abs(p.x - hole.x) > 0.5) continue;
+            for (int j = 0; j < 5; j++) {
+                float fj = float(j);
+                vec2 v = (hash22(vec2(float(kk) * 7.0 + fj, floor(uRTime * 1.3))) - vec2(0.5, 0.0)) * vec2(0.9, 1.3);
+                vec2 cp = hole + v * ph * 0.6 + vec2(0.0, -1.6 * ph * ph * 0.5);
+                float r = 0.012 + 0.012 * hash21(vec2(fj, float(kk)));
+                col = mix(col, vec3(0.06, 0.045, 0.03) + glowC * 0.05, (1.0 - smoothstep(r, r + 0.004, length(p - cp))) * uD6 * hit);
+            }
+        }
+    }
+
+    // --- niebla baja adelante ---
+    float fz2 = plate7Wrap(vec2(p.x * 0.07 - t * 0.010, p.y * 0.4 + 0.5)).b;
+    col = mix(col, glowC * 0.08 + moonC * 0.05, smoothstep(0.42, 0.8, fz2) * exp(-pow((p.y + 0.85) / 0.22, 2.0)) * (0.35 + high * 0.15));
+
+    return vec4(hkFinish(col, uv, vec3(0.15, 0.4, 0.2)), 1.0);
 }
