@@ -54,6 +54,8 @@ La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
 ## Las 26 escenas
 
+Las 26 usan láminas horneadas (realismo sin costo en vivo); los scripts de horneado están en `td/tools/bake_plates_*.py`.
+
 | # | Escena | Speed mueve | El audio hace | Detail |
 |---|---|---|---|---|
 | 00 | Cementerio en la niebla | nubes y niebla | bajo espesa y enciende la niebla; golpe = relámpago que recorta las lápidas | niebla, lápidas, luna, relámpago, verde tóxico, horizonte |
@@ -170,9 +172,9 @@ Cada escena avanza sola por **actos de ~78 s** (16 actos ≈ 21 minutos antes de
 | 11 | erupción sola del caldero (~64 s); color de la poción por acto |
 | 12 | la antorcha casi se apaga y solo quedan los ojos (~73 s), gira la cabeza al público (~41 s) |
 | 13 | persecución de luz calabaza por calabaza (~47 s), todas se vuelven rojas (~83 s) |
-| 14 | bandada grande (~63 s), eclipse que cruza la luna (~2 min) |
-| 15 | horda de manos y tierra que salta (~69 s); cantidad por acto |
-| 16 | una corriente apaga las velas una por una y se reencienden (~61 s) |
+| 14 | bandada grande que cruza la luna (~63 s), eclipse con anillo de fuego (~127 s), todos los cuervos giran la cabeza (~41 s) |
+| 15 | horda de manos (~69 s), relámpago lejano que recorta el cementerio (~53 s); cantidad por acto |
+| 16 | una corriente apaga las velas una por una y se reencienden (~61 s), luna que entra por el vitral (~83 s) |
 | 17 | solo de baile enloquecido (~49 s), el piso hace olas (~91 s); estilo de baile por acto |
 | 18 | acelerón por el túnel (~55 s), se encienden todos los ojos (~97 s); el túnel gira para otro lado por acto |
 | 19 | el rostro se derrite (~43 s), posesión: ruptura total sin golpe (~89 s) |
