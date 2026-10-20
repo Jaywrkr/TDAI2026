@@ -112,19 +112,22 @@ def render(ctx, index, values, media):
     ctrl.use(0)
     units = [0]
     extra = []
+    bind = []
     if index in config.MEDIA_SCENES:
         tex = ctx.texture((media.shape[1], media.shape[0]), 4,
                           media.astype('f4').tobytes(), dtype='f4')
-        tex.use(1)
-        units.append(1)
-        extra.append(tex)
+        bind.append((tex, 1))
     # laminas: PNG de 8 bits como las lee el Movie File In TOP (abajo = v 0)
     for k, path in enumerate(config.PLATES.get(index, [])):
         im = Image.open(path).convert('RGBA').transpose(Image.FLIP_TOP_BOTTOM)
         tex = ctx.texture(im.size, 4, im.tobytes())
         tex.build_mipmaps()
         tex.filter = (ctx.LINEAR_MIPMAP_LINEAR, ctx.LINEAR)
-        unit = config.plate_base(index) + k
+        bind.append((tex, config.plate_base(index) + k))
+    # se enlazan todas al final: crear una textura nueva puede pisar el
+    # enlace de una unidad ya usada
+    ctrl.use(0)
+    for tex, unit in bind:
         tex.use(unit)
         units.append(unit)
         extra.append(tex)
