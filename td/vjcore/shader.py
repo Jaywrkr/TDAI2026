@@ -557,6 +557,7 @@ _MEDIA_HEADER = """
 // simplemente devuelve negro en ese caso, el .frag debe seguir viendose
 // bien (nunca asumir que siempre hay una imagen real cargada).
 vec4 mediaTex(vec2 uv) { return texture(sTD2DInputs[1], uv); }
+#define HAS_MEDIA 1
 """
 
 
