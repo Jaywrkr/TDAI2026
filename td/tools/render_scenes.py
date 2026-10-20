@@ -132,7 +132,10 @@ def render(ctx, index, values, media):
         units.append(unit)
         extra.append(tex)
     try:
-        prog['sTD2DInputs'].value = units if len(units) > 1 else units[0]
+        # el compilador descarta los inputs que el shader no usa: el arreglo
+        # activo puede ser mas corto que la cantidad de inputs
+        n_act = prog['sTD2DInputs'].array_length
+        prog['sTD2DInputs'].value = units[:n_act] if n_act > 1 else units[0]
     except Exception:
         pass
 
