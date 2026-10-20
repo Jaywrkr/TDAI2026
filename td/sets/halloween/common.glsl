@@ -343,6 +343,37 @@ float hkSparkle(vec2 d, float size) {
     return cross + exp(-dot(a, a) * 40.0) * 1.5;
 }
 
+// Adaptacion por escena (cada escena las llama donde le toca; con
+// Estilo en 0 no hacen nada):
+// luna como esfera de aerografo con destellos en cruz
+vec3 hkStyleMoon(vec3 col, vec2 p, vec2 mc, float R) {
+    float s = uStyle;
+    if (s < 0.001) return col;
+    vec2 mp = p - mc;
+    float mr = length(mp);
+    col += hkStyleMap(0.85) * exp(-max(mr - R * 0.75, 0.0) * 9.0 / max(R, 0.1) * 0.25) * 0.22 * s;
+    col += hkStyleMap(0.98) * hkSparkle(mp - vec2(-0.30, 0.32) * R, 0.55 * R + 0.12) * 0.40 * s;
+    for (int k = 0; k < 3; k++) {
+        float fk = float(k);
+        vec2 sp = mc + vec2(0.45 + fk * 0.20, -0.55 + fk * 0.28) * R;
+        col += hkStyleMap(0.95) * exp(-dot(p - sp, p - sp) * 9000.0) * s * (0.5 + 0.5 * sin(uRTime * 3.0 + fk * 2.0));
+    }
+    return col;
+}
+// cuanto dejar de los rayos duros (god rays) con el estilo
+float hkStyleRays() { return 1.0 - uStyle * 0.85; }
+// resplandor de la paleta detras de las siluetas, centrado en la altura y0
+vec3 hkStyleBacklight(vec3 col, vec2 p, float y0, float width) {
+    float s = uStyle;
+    if (s < 0.001) return col;
+    float gy = p.y - y0;
+    vec3 gc = mix(hkStyleMap(0.60), hkStyleMap(0.92), exp(-abs(gy) * 6.0)) * 1.1;
+    float g = exp(-pow((gy + 0.05) / width, 2.0)) * (0.35 + 0.65 * exp(-pow(p.x / (uAspect * 0.7), 2.0)));
+    return mix(col, col * 0.45, s * 0.5) + gc * g * s * 0.9;
+}
+// siluetas mas oscuras contra el resplandor
+float hkStyleSil() { return mix(1.0, 0.30, uStyle); }
+
 float hkArchMask(vec2 uv) {
     vec2 p = (uv - 0.5) * vec2(uAspect, 1.0) * 2.0;
     float k = uStylearch;
@@ -360,10 +391,17 @@ vec3 hkStyle(vec3 col, vec2 uv) {
     float l = dot(col, vec3(0.2126, 0.7152, 0.0722));
     l = pow(clamp(l, 0.0, 1.0), 1.05);
     vec3 mapped = hkStyleMap(l);
-    // conserva un poco del color propio (sangre, verde toxico) para que
-    // cada escena siga siendo ella
-    float sat = length(col - vec3(dot(col, vec3(0.333))));
-    vec3 c = mix(col, mix(mapped, col * 1.1, smoothstep(0.25, 0.6, sat) * 0.35), s * 0.88);
+    // conserva el color propio de lo muy saturado (sangre, fuego, verde
+    // toxico, ojos): toma su TONO con la luminancia de la paleta. Antes se
+    // media la saturacion absoluta y la sangre oscura caia a violeta.
+    float mx = max(col.r, max(col.g, col.b));
+    float mn = min(col.r, min(col.g, col.b));
+    float sat = (mx - mn) / max(mx, 1e-4);
+    float keep = smoothstep(0.55, 0.92, sat) * smoothstep(0.004, 0.03, mx);
+    float lm = dot(mapped, vec3(0.2126, 0.7152, 0.0722));
+    float lc = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    vec3 own = col * clamp(max(lm, lc) / max(lc, 1e-4), 1.0, 3.0);   // nunca mas oscuro que el original
+    vec3 c = mix(col, mix(mapped, own, keep * 0.75), s * 0.88);
     // grano de spray: puntitos claros en los medios-oscuros, oscuros en
     // las luces (el aerografo deja niebla de puntos donde el tono cambia)
     float n = fract(sin(dot(floor(px), vec2(12.9898, 78.233))) * 43758.5453);

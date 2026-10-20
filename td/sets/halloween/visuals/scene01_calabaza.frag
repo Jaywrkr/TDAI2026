@@ -147,6 +147,7 @@ vec4 render(vec2 uv) {
         float md = length(mq);
         sky += vec3(0.9, 0.9, 1.0) * (1.0 - smoothstep(0.075, 0.08, md)) * 0.9;
         sky += moonC * exp(-md * 8.0) * 0.35;
+        sky = hkStyleMoon(sky, wq, vec2(0.16, 0.24), 0.08);
         float cl = plate5Wrap(vec2(wq.x * 0.25 + t * 0.008, wq.y * 0.5 + 0.2)).r;
         sky = mix(sky, vec3(0.03, 0.035, 0.07) + moonC * 0.15 * exp(-md * 5.0), smoothstep(0.55, 0.75, cl) * 0.85);
         sky += vec3(0.7, 0.75, 1.0) * lightning * 0.8;

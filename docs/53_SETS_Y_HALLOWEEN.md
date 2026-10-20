@@ -112,7 +112,7 @@ Funciones del kit para imagen (en `common.glsl`, solo en escenas de Media): `hkM
 
 Las paletas viven en `common.glsl` (`HK_PAL`, 6 tonos de oscuro a claro cada una) y sus nombres en `set.json` → `"style_palettes"`. Para agregar una: sumar 6 tonos, subir `HK_NPAL` y agregar el nombre.
 
-El kit lo aplica en `hkFinish` a **todas** las escenas (`hkStyle`). Cada escena puede además adaptarse: el **cementerio (00)** ya lo hace (tumbas como siluetas suaves contra un resplandor naranja-crema, luna como esfera de aerógrafo con destellos en cruz, niebla como velo, sin rayos duros). Las demás, por ahora, reciben solo la parte general. Arranca en 0; un set puede traer otro valor inicial con `"style": [estilo, marco]`.
+El kit lo aplica en `hkFinish` a **todas** las escenas (`hkStyle`). Lo muy saturado (sangre, fuego, verde tóxico, ojos) conserva su tono propio con la luminancia de la paleta, así la sangre sigue roja con cualquier paleta. Adaptadas a fondo: **00 cementerio**, **01 calabaza**, **04 castillo**, **13 calabazas en hilera**, **14 luna y cuervos** y **16 velas** (siluetas contra resplandor, luna esfera con destellos, sin rayos duros, destellos en las llamas). Funciones del kit para adaptar otras: `hkStyleMoon`, `hkStyleRays`, `hkStyleBacklight`, `hkStyleSil`. Arranca en 0; un set puede traer otro valor inicial con `"style": [estilo, marco]`.
 
 Costo en el banco: +3–5 ms con Estilo arriba. Para que el desenfoque de las láminas funcione en TD, las escenas con láminas o media usan filtro de entrada mipmap (lo pone el build).
 

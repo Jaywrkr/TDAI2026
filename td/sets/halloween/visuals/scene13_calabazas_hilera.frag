@@ -71,6 +71,7 @@ vec4 render(vec2 uv) {
     float md = length(p - mc);
     col += vec3(1.0, 0.75, 0.45) * (1.0 - smoothstep(0.17, 0.18, md)) * (0.8 + 0.2 * plate5Wrap((p - mc) * 0.6).a);
     col += vec3(1.0, 0.6, 0.3) * exp(-max(md - 0.17, 0.0) * 4.0) * 0.25;
+    col = hkStyleMoon(col, p, mc, 0.17);
     float cl = plate5Wrap(vec2(p.x * 0.10 - t * 0.004, p.y * 0.4)).r;
     col = mix(col, vec3(0.02, 0.015, 0.03) + vec3(1.0, 0.6, 0.3) * 0.08 * exp(-md * 2.0), smoothstep(0.55, 0.75, cl) * smoothstep(0.0, 0.4, p.y) * 0.8);
     float sh = hash21(floor(p * 100.0));
@@ -103,6 +104,7 @@ vec4 render(vec2 uv) {
     vec3 fireC = mix(mix(orange, vec3(1.0, 0.95, 0.65), 0.35), vec3(1.0, 0.08, 0.02), max(hit * smoothstep(0.5, 1.0, loco), redE));
     vec3 P3 = vec3(p, 0.0);
 
+    col = hkStyleBacklight(col, p, WALL_TOP + 0.20, 0.45);   // estilo: resplandor detras del campo
     // --- campo (luna + resplandor de las calabazas) ---
     vec4 fl = plate0(rUV(p, FIELD_R));
     if (fl.a > 0.0) {
