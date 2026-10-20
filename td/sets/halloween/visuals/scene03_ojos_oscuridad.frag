@@ -57,6 +57,7 @@ vec4 render(vec2 uv) {
         if (present < 0.5) continue;
         vec2 center = vec2(float(i), float(j)) + (h - 0.5) * 0.45;
         vec2 q = (f - center) / (0.27 + uD3 * 0.14 + h.x * 0.06);
+        if (abs(q.x) > 2.6 || abs(q.y) > 1.8) continue;
         // abierto: base por Detail, mas los que despierta el golpe
         float wake = smoothstep(0.38 - uD2 * 0.35, 0.58 - uD2 * 0.35, hash21(cid + 2.7));
         float kickWake = step(hash21(cid + 4.4), hit * (0.6 + uD2 * 0.4));

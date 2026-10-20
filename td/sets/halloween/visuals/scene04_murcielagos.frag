@@ -63,7 +63,7 @@ vec4 render(vec2 uv) {
     vec3 pale = vec3(1.0, 0.93, 0.78);
     vec3 blood = hsv2rgb(vec3(fract(0.015 + hue), 0.85, 1.0));
     vec3 moonC = mix(pale, blood, uD5);
-    float crater = fbm(mp * 4.0 / moonR + 5.0, 4, 0.55);
+    float crater = mr < moonR + 0.01 ? fbm(mp * 4.0 / moonR + 5.0, 4, 0.55) : 0.5;
     float disk = 1.0 - smoothstep(moonR - 0.004, moonR + 0.004, mr);
     float limb = sqrt(max(1.0 - pow(mr / moonR, 2.0), 0.0));
     col += moonC * exp(-max(mr - moonR, 0.0) * 4.0) * (0.25 + bass * 0.45);
@@ -123,6 +123,8 @@ vec4 render(vec2 uv) {
         vec2 away = normalize(bp - mc + 1e-4);
         bp += (away + vec2(h2 - 0.5, h1 - 0.5)) * hit * (0.04 + uD4 * 0.18) * depth;
         float scale = 0.17 * depth;
+        // lejos de este murcielago: ni lo calcules (es el costo principal)
+        if (length(p - bp) > scale * 0.75) continue;
         float flap = sin(t * (9.0 + uD3 * 12.0) * (0.8 + h3 * 0.4) + fi * 2.0);
         vec2 q = (p - bp) / scale;
         q = rot2((h1 - 0.5) * 0.5) * q;
