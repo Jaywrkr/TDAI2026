@@ -613,12 +613,19 @@ def plates_header(scene_index):
     for k, f in enumerate(files):
         out.append('//   plate{}: {}'.format(k, os.path.basename(f)))
     out.append('#define N_PLATES {}'.format(len(files)))
+    out.append('#define PLATE_LOD ({})'.format(config.PLATE_LOD))
     for k in range(len(files)):
         # sin repetir en los bordes (el modo de borde del input puede ser
         # 'repeat'): uv recortado medio texel adentro y nivel 0
         out.append('vec4 plate{0}(vec2 uv) {{ vec2 o = step(vec2(0.0), uv) * step(uv, vec2(1.0)); '
                    'vec2 hs = 0.5 / vec2(textureSize(sTD2DInputs[{1}], 0)); '
-                   'return textureLod(sTD2DInputs[{1}], clamp(uv, hs, 1.0 - hs), 0.0) * (o.x * o.y); }}'
+                   'vec4 c = textureLod(sTD2DInputs[{1}], clamp(uv, hs, 1.0 - hs), PLATE_LOD) * (o.x * o.y); '
+                   # con PLATE_LOD > 0 el desenfoque llega al borde de la textura:
+                   # se desvanece arriba y a los costados (abajo no: el suelo
+                   # sigue de largo, ver plateUVGround de las escenas)
+                   'if (PLATE_LOD > 0.01) {{ float e = 0.003 * exp2(PLATE_LOD); '
+                   'c *= smoothstep(0.0, e, 1.0 - uv.y) * smoothstep(0.0, e, min(uv.x, 1.0 - uv.x)); }} '
+                   'return c; }}'
                    .format(k, base + k))
         # textureLod: con fract() la derivada salta en la costura y el
         # mipmap elegiria el nivel mas chico (linea visible)

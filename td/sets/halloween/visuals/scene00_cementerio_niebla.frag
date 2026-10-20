@@ -72,6 +72,7 @@ vec4 render(vec2 uv) {
     float dh = (uD6 - 0.5) * 0.36;
     float horizon = -0.36 + dh;
     vec3 fogTint = mix(vec3(0.62, 0.56, 0.80), vec3(0.32, 0.95, 0.40), uD5);
+    fogTint = mix(fogTint, vec3(0.80, 0.55, 0.62), uStyle * 0.6);
     float moonGain = 0.45 + uD3 * 1.05;
     float light = 0.55 + 0.45 * moonGain;      // cuanto ilumina la luna la piedra
 
@@ -96,7 +97,24 @@ vec4 render(vec2 uv) {
     if (mr < moonR * 1.02) {
         vec4 mt = plate5(mp / (moonR * 2.0) + 0.5);
         vec3 moonTint = mix(vec3(1.0, 0.92, 0.76), vec3(1.0, 0.32, 0.18), bloodMoon);
-        col = mix(col, moonTint * mt.r * moonGain * 1.15, mt.a);
+        vec2 sq = mp / moonR;
+        float sphere = 0.55 + 0.45 * clamp(dot(normalize(vec3(sq, sqrt(max(1.0 - dot(sq, sq), 0.0)))), normalize(vec3(-0.4, 0.5, 0.75))), 0.0, 1.0);
+        float mval = mix(mt.r, sphere * (0.85 + 0.15 * mt.r), uStyle * 0.85);
+        col = mix(col, moonTint * mval * moonGain * 1.15, mt.a);
+    }
+    // ESTILO: la luna como esfera de aerografo, con brillo blando y
+    // destellos en cruz
+    float sty = uStyle;
+    if (sty > 0.001) {
+        col += vec3(1.0, 0.80, 0.62) * exp(-max(mr - moonR * 0.7, 0.0) * 9.0) * 0.25 * sty * moonGain;
+        col = mix(col, col * 0.55, sty * smoothstep(moonR * 1.05, moonR * 2.2, mr) * (1.0 - smoothstep(moonR * 2.2, moonR * 5.0, mr)));   // halo mas angosto
+        vec2 gl = mp - vec2(-0.07, 0.08);
+        col += vec3(1.0, 0.95, 0.88) * hkSparkle(gl, 0.30) * 0.45 * sty * (0.8 + high * 0.6);
+        for (int k = 0; k < 3; k++) {
+            float fk = float(k);
+            vec2 sp = mc + vec2(0.12 + fk * 0.05, -0.15 + fk * 0.07) * vec2(1.0 - fk * 0.6, 1.0);
+            col += vec3(1.0, 0.9, 0.8) * exp(-dot(pS - sp, pS - sp) * 9000.0) * sty * (0.5 + 0.5 * sin(t * 3.0 + fk * 2.0));
+        }
     }
 
     // --- nubes (textura que se repite) con borde iluminado ---
@@ -119,7 +137,7 @@ vec4 render(vec2 uv) {
 
     // --- rayos de luz de la luna ---
     float rays = pS.y > horizon - 0.2 ? hkRays(pS, mc, t, 18.0) : 0.0;
-    col += vec3(0.75, 0.70, 0.85) * rays * (0.03 + uD3 * 0.42) * (1.0 - clouds * 0.5);
+    col += vec3(0.75, 0.70, 0.85) * rays * (0.03 + uD3 * 0.42) * (1.0 - clouds * 0.5) * (1.0 - sty * 0.85);
 
     // --- sierras lejanas (R luz, G cual sierra, B ventanas, A cobertura) ---
     vec4 far = plate0(plateUVGround(pF - vec2(0.0, dh), FAR_Y));
@@ -134,6 +152,16 @@ vec4 render(vec2 uv) {
     // niebla entre las sierras
     col = mix(col, fogTint * 0.30, exp(-pow((pF.y - horizon - 0.28) / 0.07, 2.0)) * 0.40);
 
+    // ESTILO: resplandor naranja-crema detras de las tumbas (como la luz
+    // que sale de abajo en un afiche de aerografo)
+    if (sty > 0.001) {
+        float gy = pT.y - horizon;
+        vec3 glowC = mix(vec3(1.0, 0.45, 0.12), vec3(1.0, 0.86, 0.70), exp(-abs(gy) * 6.0));
+        float g = exp(-pow((gy + 0.05) / (0.48 + bass * 0.08), 2.0)) * (0.35 + 0.65 * exp(-pow(pT.x / (uAspect * 0.7), 2.0)));
+        col = mix(col, col * 0.4, sty * 0.5);
+        col += glowC * g * sty * (0.95 + bass * 0.45 + flash * 0.3);
+        col += vec3(0.35, 0.12, 0.45) * exp(-pow((gy - 0.45) / 0.35, 2.0)) * sty * 0.25 * smoothstep(0.2, 1.0, abs(pT.x) / uAspect);
+    }
     // --- colinas, reja y lapidas (D2 pasa de pocas grandes a muchas) ---
     vec2 muv = plateUVGround(pT - vec2(0.0, dh), MID_Y);
     vec4 ma = plate1(muv), mb = plate2(muv);
@@ -142,7 +170,7 @@ vec4 render(vec2 uv) {
     float dMix = smoothstep(0.42, 0.58, uD2);
     vec3 mpre = mix(plateCol(ma.rgb) * ma.a, plateCol(mb.rgb) * mb.a, dMix);
     float mAlpha = mix(ma.a, mb.a, dMix);
-    vec3 midLit = mpre * light * 1.9 + mpre * flashCol * flash * 2.4;
+    vec3 midLit = mpre * light * 1.9 * mix(1.0, 0.30, sty) + mpre * flashCol * flash * 2.4;
     col = col * (1.0 - mAlpha) + midLit;
 
     // --- arbol muerto: las ramas se mecen con el viento y los medios ---
@@ -208,6 +236,7 @@ vec4 render(vec2 uv) {
     fogAmt *= (0.95 + uD1 * 0.85 + bass * 0.55) * fogAct;
     float towardMoon = exp(-abs(pT.x - mc.x) * 1.1);
     float fogGlow = (0.40 + towardMoon * 0.35 * moonGain) + bass * 0.75 + flash * 0.8;
+    fogAmt = mix(fogAmt, smoothstep(0.0, 1.4, fogAmt) * 0.8, sty);   // aerografo: niebla como velo, sin manchas
     col = mix(col, fogTint * fogGlow, clamp(fogAmt, 0.0, 0.92));
 
     // --- fuegos fatuos ---
@@ -233,7 +262,9 @@ vec4 render(vec2 uv) {
     vec4 nr = plate3(plateUV(pN, NEAR_Y));
     vec3 nc = plateCol(nr.rgb);
     float nearLight = light * 2.4 * (0.80 + 0.20 * towardMoon);
-    col = mix(col, nc * nearLight + nc * flashCol * flash * 2.6, nr.a);
+    col = mix(col, nc * nearLight * mix(1.0, 0.22, sty) + nc * flashCol * flash * 2.6, nr.a);
+    // borde de la silueta encendido por el resplandor de atras (halo naranja)
+    if (sty > 0.001) col += vec3(1.0, 0.42, 0.12) * nr.a * (1.0 - nr.a) * 1.5 * sty * 0.6;
     // la niebla baja cubre el pie de las lapidas cercanas y el suelo
     vec2 nu = vec2(pN.x * 0.07 - t * 0.010, pN.y * 0.35 + 0.5) + warp * 0.06;
     vec4 nz2 = plate4Wrap(nu);
