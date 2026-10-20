@@ -45,10 +45,11 @@ float hwHand(vec2 p, float open, float curl) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
     vec3 light = mix(hsv2rgb(vec3(fract(0.27 + hue), 0.80, 1.0)),
@@ -56,9 +57,20 @@ vec4 render(vec2 uv) {
     vec3 col = mix(light * 0.08, vec3(0.005, 0.008, 0.006), smoothstep(-0.7, 1.0, p.y));
 
     float groundY = -0.55 + 0.04 * sin(p.x * 2.3);
-    float n = 3.0 + floor(uD1 * 5.0);
+    // lapidas torcidas al fondo, recortadas por la luz
+    for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        vec2 lq = p - vec2((fi - 1.5) * uAspect * 0.55 + 0.2 * sin(fi * 3.0), groundY + 0.05);
+        lq = rot2(0.15 * sin(fi * 5.0)) * lq;
+        float st = min(hkBox(lq - vec2(0.0, 0.16), vec2(0.11, 0.16)), length(lq - vec2(0.0, 0.32)) - 0.11);
+        float sm = 1.0 - smoothstep(-0.003, 0.003, st);
+        if (sm > 0.0) col = mix(col, vec3(0.025, 0.03, 0.028) * (0.7 + 0.6 * fbm(lq * 20.0, 3)), sm * 0.9);
+        col += light * hkLine(st, 1.2) * 0.25;
+    }
+    // locura: revientan mas manos de la tierra con el golpe
+    float n = 3.0 + floor(uD1 * 5.0 + hit * loco * 4.0);
     float handsD = 1e3;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 12; i++) {
         float fi = float(i);
         if (fi >= n) break;
         float h1 = fract(sin(fi * 12.989 + 3.0) * 43758.5);
@@ -87,7 +99,7 @@ vec4 render(vec2 uv) {
     col += light * (1.0 - smoothstep(0.0, 3.0 / uResH, abs(handsD))) * step(groundY, p.y) * (0.25 + 0.35 * under);
 
     // tierra
-    float soil = fbm(p * vec2(6.0, 10.0), 4, 0.6);
+    float soil = p.y < groundY + 0.01 ? fbm(p * vec2(6.0, 10.0), 4, 0.6) : 0.5;
     float groundM = 1.0 - smoothstep(groundY - 0.004, groundY + 0.004, p.y);
     vec3 dirt = vec3(0.035, 0.025, 0.018) * (0.5 + soil);
     col = mix(col, dirt, groundM);
@@ -103,10 +115,12 @@ vec4 render(vec2 uv) {
         float alive = step(0.95 - uD6 * 0.20, hash21(id + fi * 3.0)) * step(groundY, p.y) * step(p.y, groundY + 0.35);
         col = mix(col, dirt * 2.0 + light * 0.10, (1.0 - smoothstep(0.10, 0.18, length(f))) * alive * hit);
     }
+    // locura: la tierra estalla hacia arriba
+    float blast = hit * smoothstep(0.4, 1.0, loco);
+    if (blast > 0.01) col += dirt * 3.0 * hkParticles(p - vec2(0.0, groundY), uRTime * 2.0, 0.35 * blast, vec2(0.0, 1.0), 0.06) * step(groundY, p.y) * blast;
     // niebla baja
     float fog = fbm(vec2(p.x * 1.5 - t * 0.05, p.y * 4.0), 4, 0.5);
     col = mix(col, light * 0.35, smoothstep(0.45, 0.85, fog) * exp(-pow((p.y - groundY - 0.05) / 0.15, 2.0)) * 0.6);
 
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.2, 0.5, 0.2)), 1.0);
 }

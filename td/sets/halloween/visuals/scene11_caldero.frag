@@ -15,10 +15,11 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
     vec3 potion = mix(hsv2rgb(vec3(fract(0.32 + hue), 0.95, 1.0)),
@@ -62,7 +63,7 @@ vec4 render(vec2 uv) {
 
     // superficie del liquido dentro de la boca
     float liquidM = 1.0 - smoothstep(-0.05, 0.0, mouth + 0.10);
-    float lb = 0.7 + uD3 * 0.8 + bass * 0.8;
+    float lb = 0.55 + uD3 * 0.45 + bass * 0.45;
     vec3 liquid = vec3(0.0);
     if (liquidM > 0.0) {
     float surf = fbm(mp * vec2(3.0, 1.5) + vec2(t * 0.4, 0.0), 4, 0.5);
@@ -95,6 +96,17 @@ vec4 render(vec2 uv) {
     float sAmt = smoothstep(0.38, 0.80, steam) * colMask;
     col += potion * sAmt * (0.75 + bass * 0.6 + uD3 * 0.4);
 
+    // LOCURA: la pocion erupciona en un geiser con el golpe
+    float geyser = hit * smoothstep(0.3, 0.9, loco);
+    if (geyser > 0.01) {
+        vec2 gq = p - vec2(0.0, -0.22);
+        float hgt = geyser * 1.3;
+        float w = 0.10 + 0.10 * gq.y + 0.04 * sin(gq.y * 12.0 - uRTime * 20.0);
+        float gn = fbm(vec2(gq.x * 8.0, gq.y * 3.0 - uRTime * 6.0), 3);
+        float col1 = smoothstep(w, w * 0.3, abs(gq.x)) * smoothstep(0.0, 0.05, gq.y) * smoothstep(hgt, hgt * 0.6, gq.y);
+        col += (potion * 1.1 + vec3(0.12)) * col1 * (0.5 + gn);
+        col += potion * exp(-abs(gq.x) * 5.0) * smoothstep(hgt + 0.3, 0.0, gq.y) * geyser * 0.25;
+    }
     // chispas verdes que saltan
     for (int i = 0; i < 2; i++) {
         float fi = float(i);
@@ -106,6 +118,5 @@ vec4 render(vec2 uv) {
         col += mix(potion, vec3(1.0), 0.4) * sp * 1.2;
     }
 
-    col *= vignette(uv, 0.35);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.2, 0.6, 0.2)), 1.0);
 }

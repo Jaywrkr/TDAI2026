@@ -15,12 +15,13 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
     float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
 
     vec3 orange = mix(hsv2rgb(vec3(fract(0.07 + hue), 0.95, 1.0)),
@@ -55,7 +56,9 @@ vec4 render(vec2 uv) {
         float wave = hit * smoothstep(0.0, 1.0, 1.0 - abs(u - fract(uRTime * (0.6 + uD3 * 3.0))) * (2.0 - uD3 * 1.5));
         float lit = 0.75 + band * (0.4 + uD2 * 1.4) + wave * 0.8;
         float s = cw * (0.36 + uD4 * 0.12) * (0.9 + 0.2 * hash21(vec2(i, 3.0)));
-        vec2 c = vec2(-span * 0.5 + (i + 0.5) * cw, wallTop + s * 0.82);
+        // locura: las calabazas saltan con el golpe, cada una a su tiempo
+        float hop = hit * loco * (0.15 + 0.35 * hash21(vec2(i, floor(uRTime * 2.0)))) * s;
+        vec2 c = vec2(-span * 0.5 + (i + 0.5) * cw, wallTop + s * 0.82 + hop);
         vec2 q = (p - c) / s;
         // cuerpo de gajos
         float body = 1e3, shade = 0.0;
@@ -79,6 +82,10 @@ vec4 render(vec2 uv) {
         vec3 skin = skinC * (0.25 + 0.75 * pow(shade, 0.6)) * (0.55 + 0.25 * lit);
         skin += orange * exp(-max(holeD, 0.0) * 8.0) * 0.25 * lit;
         vec3 inside = mix(orange, vec3(1.0, 0.95, 0.65), 0.35) * lit * flick * 1.3;
+        // con locura la llama se vuelve roja infernal
+        inside = mix(inside, vec3(1.0, 0.08, 0.02) * lit * 1.4, hit * smoothstep(0.5, 1.0, loco));
+        // brillo especular arriba a la izquierda de cada gajo
+        skin += vec3(1.0, 0.8, 0.5) * pow(shade, 6.0) * smoothstep(0.0, 0.4, q.y + q.x * -0.5) * 0.25;
         vec3 pc = mix(skin, inside, hole);
         col = mix(col, pc, m);
         // tallo
@@ -94,6 +101,5 @@ vec4 render(vec2 uv) {
     float fogBand = exp(-pow((p.y - wallTop + 0.05) / 0.18, 2.0));
     col = mix(col, vec3(0.45, 0.40, 0.55) * (0.4 + bass * 0.4), smoothstep(0.4, 0.85, fog) * fogBand * (0.25 + uD6 * 0.7));
 
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.8, 0.35, 0.1)), 1.0);
 }

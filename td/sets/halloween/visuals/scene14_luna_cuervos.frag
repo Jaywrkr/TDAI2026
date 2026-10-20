@@ -41,10 +41,11 @@ float hwFlyer(vec2 p, float flap) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.006);
 
     vec3 moonC = mix(hsv2rgb(vec3(fract(0.05 + hue), 0.75, 1.0)),
@@ -59,6 +60,7 @@ vec4 render(vec2 uv) {
     float pulse = 1.0 + bass * 0.25;
     col += moonC * exp(-max(mr - R, 0.0) * 3.0) * 0.30 * pulse;
     col = mix(col, moonC * (0.60 + 0.45 * crater) * (0.85 + 0.25 * pulse), disk);
+    col += moonC * hkRays(p, mc, t, 12.0) * 0.25 * (1.0 - disk);
     float cl = fbm(vec2(p.x * 0.8 - t * 0.04, p.y * 3.0), 4, 0.5);
     col = mix(col, col * 0.3, smoothstep(0.50, 0.82, cl) * (0.3 + uD6 * 0.7));
 
@@ -96,8 +98,9 @@ vec4 render(vec2 uv) {
         crows = min(crows, hwCrow(q, turn) * 0.42);
     }
     // cuervos volando
-    float nF = 2.0 + floor(uD1 * 8.0);
-    for (int i = 0; i < 10; i++) {
+    // locura: con el golpe sale volando una bandada entera
+    float nF = 2.0 + floor(uD1 * 8.0 + hit * loco * 14.0);
+    for (int i = 0; i < 24; i++) {
         float fi = float(i);
         if (fi >= nF) break;
         float h1 = fract(sin(fi * 12.98) * 43758.5);
@@ -115,6 +118,13 @@ vec4 render(vec2 uv) {
     float m = 1.0 - smoothstep(-0.002, 0.002, all);
     col = mix(col, vec3(0.006, 0.0, 0.002), m);
     col += moonC * (1.0 - smoothstep(0.0, 2.4 / uResH, abs(all))) * disk * 0.6;
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    // ojos rojos de los cuervos posados
+    for (int i = 0; i < 4; i++) {
+        float fi = float(i);
+        if (fi >= nPerch) break;
+        float turn = sign(sin(t * 0.5 + fi * 2.1));
+        vec2 ep = perch[i] + vec2(0.0, 0.14) + vec2(0.07 * turn, 0.36 * 0.42) * vec2(1.0, 1.0);
+        col += vec3(1.0, 0.05, 0.02) * exp(-dot(p - ep, p - ep) * 9000.0) * (1.0 + hit);
+    }
+    return vec4(hkFinish(col, uv, vec3(0.6, 0.05, 0.05)), 1.0);
 }

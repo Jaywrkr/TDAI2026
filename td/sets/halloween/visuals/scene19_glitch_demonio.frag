@@ -41,7 +41,8 @@ vec4 render(vec2 uv) {
     float rt = uRTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
     vec3 red = mix(hsv2rgb(vec3(fract(0.995 + hue), 0.95, 1.0)),
@@ -50,7 +51,7 @@ vec4 render(vec2 uv) {
     // bloques de glitch: cada uno se desplaza distinto con el golpe
     vec2 blk = floor(uv * vec2(6.0, 14.0));
     float bh = hash21(blk + floor(rt * 8.0));
-    float broken = step(1.0 - hit * (0.25 + uD2 * 0.7), bh);
+    float broken = step(1.0 - hit * (0.25 + uD2 * 0.7) * (1.0 + loco), bh);
     vec2 guv = uv + broken * (hash22(blk + floor(rt * 8.0)) - 0.5) * vec2(0.18, 0.03) * (0.5 + uD2);
     vec2 p = centered(guv);
     p *= 1.0 + 0.015 * sin(t * 1.3);           // respira
@@ -75,6 +76,14 @@ vec4 render(vec2 uv) {
     vec3 tint = red * dot(col, vec3(0.45, 0.2, 0.35)) + vec3(col.r - col.b, 0.0, col.b - col.r) * 0.25 * red;
     col = max(tint, 0.0);
 
+    // locura: el rostro se desdobla en dos fantasmas desplazados
+    if (hit * loco > 0.05) {
+        for (int k = -1; k <= 1; k += 2) {
+            vec2 q2 = p + vec2(float(k) * 0.35 * hit * loco, 0.05 * float(k));
+            float d2 = hwDemon(q2);
+            col += red * (1.0 - smoothstep(0.0, 3.0 / uResH, abs(d2))) * 0.6 * hit * loco;
+        }
+    }
     // ojos ardiendo
     vec2 e = vec2(abs(p.x) - 0.22, p.y - 0.10 + abs(p.x) * 0.25);
     float eye = length(e / vec2(1.0, 0.35)) - 0.11;
@@ -88,6 +97,5 @@ vec4 render(vec2 uv) {
     col *= 0.85 + 0.15 * sin(uv.y * uResH * 1.2);
     col += red * broken * 0.06;
 
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.7, 0.05, 0.1)), 1.0);
 }

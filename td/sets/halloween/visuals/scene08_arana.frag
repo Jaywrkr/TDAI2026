@@ -41,14 +41,22 @@ float hwSpider(vec2 p, float t, float curl) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
     vec3 col = mix(vec3(0.015, 0.010, 0.030), vec3(0.06, 0.04, 0.09),
                    smoothstep(1.4, 0.0, length(p - vec2(-uAspect * 0.6, 0.7))));
+    // luna detras de la tela: contraluz que hace brillar los hilos
+    vec2 moonP = vec2(-uAspect * 0.35, 0.30);
+    float mr = length(p - moonP);
+    float backlight = exp(-mr * 1.3);
+    col += vec3(0.55, 0.50, 0.70) * exp(-max(mr - 0.28, 0.0) * 5.0) * 0.25;
+    col = mix(col, vec3(0.70, 0.66, 0.78) * (0.65 + 0.35 * fbm((p - moonP) * 6.0, 4)) * (0.7 + 0.3 * sqrt(max(1.0 - pow(mr / 0.28, 2.0), 0.0))), 1.0 - smoothstep(0.275, 0.285, mr));
+    col += vec3(0.6, 0.55, 0.8) * hkRays(p, moonP, t, 16.0) * 0.20;
     vec3 silver = vec3(0.85, 0.88, 0.95);
     vec3 violet = hsv2rgb(vec3(fract(0.76 + hue), 0.55, 1.0));
     vec3 ink = mix(silver, violet, uD6);
@@ -77,7 +85,7 @@ vec4 render(vec2 uv) {
     float thread = (1.0 - smoothstep(lineW, lineW * 2.5, ringD)) +
                    (1.0 - smoothstep(lineW, lineW * 2.5, spokeD));
     thread = clamp(thread, 0.0, 1.0) * webMask;
-    col += ink * thread * 0.85;
+    col += ink * thread * (0.65 + backlight * 0.9);
     // rocio en los cruces
     vec2 cell = vec2(fract(seg + 0.5) - 0.5, fract(rr) - 0.5);
     vec2 cid = vec2(floor(seg + 0.5), floor(rr));
@@ -100,10 +108,27 @@ vec4 render(vec2 uv) {
     float spider = 1.0 - smoothstep(-0.002, 0.002, sd);
     col = mix(col, vec3(0.01, 0.005, 0.01), spider);
     col += ink * edgeLine(sd, 1.4) * 0.6;
+    // pelos de la arana: borde difuso con ruido
+    float fuzz = (1.0 - smoothstep(0.0, 0.012 + 0.01 * noise21(aq * 60.0), sd)) * (1.0 - spider);
+    col = mix(col, vec3(0.01), fuzz * 0.8);
+    // brillo del abdomen
+    col += vec3(0.5, 0.45, 0.6) * exp(-dot(aq - vec2(-0.06, -0.05), aq - vec2(-0.06, -0.05)) * 90.0) * spider * 0.6;
+    // LOCURA: un enjambre de aranitas cruza la pantalla con el golpe
+    float swarm = hit * smoothstep(0.3, 0.9, loco);
+    if (swarm > 0.01) {
+        vec2 g = p * 2.8 + vec2(uRTime * 0.9, -uRTime * 0.4);
+        vec2 gid = floor(g);
+        vec2 gf = fract(g) - 0.5 - (hash22(gid) - 0.5) * 0.5;
+        float on = step(1.0 - swarm * 0.6, hash21(gid + 4.0));
+        float r = length(gf);
+        float ang = atan(gf.y, gf.x) + sin(uRTime * 30.0 + hash21(gid) * 9.0) * 0.15;
+        float legs = (1.0 - smoothstep(0.03, 0.08, abs(sin(ang * 4.0)) * r * 2.0)) * step(r, 0.42) * step(0.10, r);
+        float bod = 1.0 - smoothstep(0.13, 0.16, length(gf / vec2(1.0, 1.3)));
+        col = mix(col, vec3(0.005), max(bod, legs * 0.9) * on);
+    }
     // ojitos rojos
     vec2 eq = vec2(abs(aq.x) - 0.045, aq.y - 0.29);
     col += vec3(1.0, 0.1, 0.05) * (1.0 - smoothstep(0.018, 0.03, length(eq))) * (0.7 + hit);
 
-    col *= vignette(uv, 0.35);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.4, 0.3, 0.7)), 1.0);
 }

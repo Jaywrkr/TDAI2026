@@ -24,16 +24,19 @@ float hwMiniSkull(vec2 q) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
 
     vec3 lightC = mix(vec3(1.0, 0.55, 0.20), hsv2rgb(vec3(fract(0.33 + hue), 0.85, 1.0)), uD5);
     float r = length(p);
     float a = atan(p.y, p.x) + t * 0.03 + mid * 0.08;
+    // locura: el tunel se retuerce con el golpe
+    a += hit * loco * 0.6 * sin(0.35 / max(r, 0.02) * 0.8 + uRTime * 3.0);
     // coordenadas del tunel: profundidad 1/r
     float depth = 0.35 / max(r, 0.02);
     float travel = t * (0.35 + uD2 * 0.8);
@@ -58,7 +61,12 @@ vec4 render(vec2 uv) {
     float ringZ = fract(uRTime * 0.8) * 8.0;
     float ring = exp(-pow((depth - (8.0 - ringZ)) * 1.5, 2.0)) * hit * (0.5 + uD3 * 1.5);
     lit += boneC * lightC * ring * 1.5;
+    // antorchas en las paredes cada tanto: bandas de luz calida
+    float ring2 = fract(z * 0.22);
+    float torchB = exp(-pow((ring2 - 0.5) * 8.0, 2.0)) * (0.6 + 0.4 * sin(t * 9.0 + floor(z * 0.22)));
+    lit += boneC * vec3(1.0, 0.55, 0.20) * torchB * 0.9;
     vec3 col = mix(vec3(0.01, 0.006, 0.004), lit, mask);
+    col += vec3(1.0, 0.5, 0.15) * torchB * 0.06 * (1.0 - mask);
     // ojos encendidos en algunas calaveras
     float eyeOn = step(0.80 - uD4 * 0.5, hash21(id + 7.0));
     float eyes = 1.0 - smoothstep(0.0, 0.05, length(vec2(abs(f.x * 1.15) - 0.14, f.y * 1.15 - 0.02)) - 0.06);
@@ -68,6 +76,5 @@ vec4 render(vec2 uv) {
     col = mix(col, fogC * 0.5, fogAmt * 0.85);
     col += lightC * exp(-r * (6.0 - bass * 2.0)) * (0.8 + bass);
 
-    col *= vignette(uv, 0.30);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.7, 0.4, 0.1)), 1.0);
 }

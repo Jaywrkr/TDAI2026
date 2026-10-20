@@ -42,10 +42,11 @@ float hwBranchy(vec2 p, float x0, float top, float bot, float seed, float branch
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float rt = uRTime;
-    float hit = clamp(max(uKick, uBeat * 0.8), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
@@ -73,6 +74,9 @@ vec4 render(vec2 uv) {
     // rayo
     float d = hwBranchy(p, bx, 0.75, -1.05, hash21(vec2(slot, 3.0)) * 50.0, floor(1.0 + uD2 * 3.0));
     float px = 2.0 / uResH;
+    // locura: hasta dos rayos mas en otros lugares
+    if (loco > 0.35) d = min(d, hwBranchy(p, bx + 0.7 * uAspect * (hash21(vec2(slot, 8.0)) - 0.5) * 2.0, 0.75, -1.05, slot * 13.0 + 1.0, 2.0));
+    if (loco > 0.70) d = min(d, hwBranchy(p, -bx * 0.8, 0.75, -1.05, slot * 29.0 + 4.0, 3.0));
     float core = 1.0 - smoothstep(px * 0.8, px * 2.2, d);
     float glow = exp(-d * 60.0) * 0.6 + exp(-d * 12.0) * 0.25;
     col += (vec3(1.0) * core + boltC * glow) * strike * (0.8 + uD4 * 1.2);
@@ -81,6 +85,7 @@ vec4 render(vec2 uv) {
     vec2 rp = p * vec2(1.0, 1.0);
     rp.x += rp.y * 0.25;
     float rain = 0.0;
+    float rainBoost = 1.0 + loco * hit * 1.5;
     for (int i = 0; i < 2; i++) {
         float fi = float(i);
         vec2 g = vec2(rp.x * (60.0 + fi * 40.0), rp.y * 2.0 + t * (2.2 + fi));
@@ -88,10 +93,18 @@ vec4 render(vec2 uv) {
         float h = hash21(id + fi * 7.0);
         float streak = smoothstep(0.0, 0.4, fract(g.y + h)) * (1.0 - smoothstep(0.4, 0.5, fract(g.y + h)));
         float lane = 1.0 - smoothstep(0.02, 0.10, abs(fract(g.x) - 0.5));
-        rain += streak * lane * step(1.0 - (0.25 + uD1 * 0.55), h) * (0.5 - fi * 0.2);
+        rain += streak * lane * step(1.0 - (0.25 + uD1 * 0.55) * rainBoost, h) * (0.5 - fi * 0.2);
     }
     col += vec3(0.55, 0.6, 0.8) * rain * (0.18 + high * 0.6 + strike * 0.5);
 
+    // suelo mojado: refleja el destello y las salpicaduras de lluvia
+    float groundY = -0.80;
+    if (p.y < groundY) {
+        float splash = step(0.93 - uD1 * 0.05, hash21(floor(vec2(p.x * 90.0, floor(uRTime * 9.0)))));
+        vec3 gc = vec3(0.01, 0.01, 0.02) + boltC * strike * 0.25 * exp(-abs(p.x - bx) * 1.5);
+        gc += vec3(0.6, 0.6, 0.8) * splash * (1.0 - smoothstep(0.0, 0.03, groundY - p.y)) * 0.4;
+        col = mix(col, gc, 0.85);
+    }
     // arbol muerto en silueta (abajo a la derecha)
     vec2 tq = p - vec2(uAspect * 0.62, -1.0);
     float trunk = abs(tq.x + 0.05 * sin(tq.y * 4.0)) - (0.05 - tq.y * 0.025);
@@ -112,6 +125,5 @@ vec4 render(vec2 uv) {
     col = mix(col, vec3(0.004, 0.003, 0.008), treeM);
     col += boltC * edgeLine(tree, 1.3) * strike * treeOn * 0.8;
 
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.3, 0.3, 0.8)), 1.0);
 }

@@ -15,11 +15,12 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
 
     vec3 flameC = mix(vec3(1.0, 0.62, 0.20), hsv2rgb(vec3(fract(0.36 + hue), 0.75, 1.0)), uD5);
@@ -60,30 +61,43 @@ vec4 render(vec2 uv) {
             float lip = (1.0 - smoothstep(0.0, 0.012, abs(p.y - top))) * step(abs(q.x), w * 1.15);
             float wax = clamp(body + drip * 0.9 + lip, 0.0, 1.0);
             float shade = 0.55 + 0.45 * cos(q.x / w * 1.4);
-            vec3 waxC = vec3(0.78, 0.72, 0.62) * shade * (0.25 + 0.30 * depth);
-            // la llama ilumina la parte de arriba de la vela
-            waxC += flameC * 0.35 * exp(-(top - p.y) * 9.0);
+            vec3 waxC = vec3(0.80, 0.72, 0.60) * shade * (0.18 + 0.25 * depth);
+            // la llama ilumina la vela desde arriba y la cera deja pasar la luz
+            float nearTop = exp(-(top - p.y) * 7.0);
+            waxC += flameC * (0.55 * nearTop + 0.48 * nearTop * nearTop) * (0.8 + 0.4 * depth);
+            if (wax > 0.0) waxC *= 0.85 + 0.15 * noise21(vec2(q.x * 200.0, p.y * 30.0));
             col = mix(col, waxC, wax);
 
             // llama
             float flick = 0.85 + 0.15 * sin(t * (9.0 + h2 * 6.0) + id) + 0.1 * noise21(vec2(t * 4.0, id));
             float jump = hit * (0.2 + uD4 * 0.8) * step(0.3, fract(h1 * 9.0 + floor(uRTime * 2.0) * 0.3));
             float fh = (0.085 + uD2 * 0.07) * depth * flick * (1.0 + jump * 0.8);
-            float lean = (mid * 0.6 + 0.15 * sin(t * 0.6 + id)) * 0.02;
+            // locura: una rafaga de viento tumba todas las llamas de golpe
+            float gust = hit * loco * (0.8 + 0.4 * h2) * (mod(floor(uRTime * 1.5), 2.0) * 2.0 - 1.0);
+            float lean = (mid * 0.6 + 0.15 * sin(t * 0.6 + id)) * 0.02 + gust * 0.05;
             vec2 fq = p - vec2(x + lean * (p.y - top) * 20.0, top + 0.012 + fh * 0.55);
             float fl = length(fq / vec2(fh * 0.32, fh * 0.75 * (fq.y > 0.0 ? 1.4 : 0.8)));
             float flame = 1.0 - smoothstep(0.6, 1.0, fl);
             float core = 1.0 - smoothstep(0.0, 0.55, fl);
-            col += flameC * flame * 1.2 * (0.8 + 0.2 * depth);
-            col += coreC * core * 0.9;
+            // llama real: base azul, zona oscura junto a la mecha, punta naranja
+            float baseBlue = (1.0 - smoothstep(0.0, 0.5, length((fq + vec2(0.0, fh * 0.45)) / vec2(fh * 0.30, fh * 0.20)))) * flame;
+            float tipT = smoothstep(-0.2, 0.9, fq.y / max(fh, 1e-3));
+            vec3 fc = mix(flameC, vec3(1.0, 0.45, 0.10), tipT * 0.6);
+            fc = mix(fc, vec3(0.35, 1.0, 0.45), hit * smoothstep(0.6, 1.0, loco));
+            col += fc * flame * 1.2 * (0.8 + 0.2 * depth);
+            col += coreC * core * 0.9 * (1.0 - baseBlue * 0.6);
+            col += vec3(0.15, 0.30, 1.0) * baseBlue * 0.6;
+            // brillo de la cera derretida en el borde
+            col += flameC * 0.5 * lip * exp(-abs(q.x) / w * 1.5);
             halo += exp(-length(p - vec2(x, top + fh * 0.5)) / (0.08 + uD3 * 0.10 + bass * 0.05) ) * depth * flick;
         }
     }
     col += flameC * halo * (0.20 + uD3 * 0.20 + bass * 0.12);
+    // reflejo calido en una mesa barnizada
+    if (p.y < -0.95) col += flameC * halo * 0.05;
     // humo tenue que sube
     float smoke = uD6 > 0.001 ? fbm(vec2(p.x * 3.0, p.y * 2.0 - t * 0.3), 4, 0.55) : 0.0;
     col += vec3(0.20, 0.18, 0.16) * smoothstep(0.55, 0.85, smoke) * uD6 * 0.35 * smoothstep(-0.7, 0.6, p.y);
 
-    col *= vignette(uv, 0.35);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.8, 0.5, 0.2)), 1.0);
 }

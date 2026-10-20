@@ -31,15 +31,19 @@ float hwRune(vec2 q, float seed) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float rt = uRTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.008);
 
     float R = 0.48 + uD1 * 0.30;
+    // calor: el aire alrededor del anillo ondula
+    float heat = exp(-abs(length(p) - R) * 6.0);
+    p += (vec2(noise21(p * 9.0 + vec2(0.0, t * 3.0)), noise21(p * 9.0 + vec2(5.0, t * 3.0))) - 0.5) * 0.025 * heat * (1.0 + loco);
     float r = length(p);
     float a = atan(p.y, p.x);
 
@@ -57,6 +61,21 @@ vec4 render(vec2 uv) {
     float insideM = 1.0 - smoothstep(R - 0.02, R + 0.01, r);
     vec3 vortex = mix(vec3(0.0), fireA * 0.18, pow(spiral, 3.0) * smoothstep(0.0, R, r));
     col = mix(col, vortex, insideM);
+    // brasas que el portal se traga en espiral
+    vec2 sp = vec2(a / TAU * 12.0 + 0.6 / (r + 0.1) + t * 0.5, log(r + 0.05) * 3.0 + t * 1.5);
+    vec2 sid = floor(sp);
+    vec2 sf = fract(sp) - 0.5;
+    float em = exp(-dot(sf, sf) * 60.0) * step(0.80, hash21(sid)) * smoothstep(R * 1.9, R * 0.9, r) * smoothstep(0.1, R * 0.6, r);
+    col += fireB * em * (0.8 + hit);
+    // LOCURA: ojos de demonio que se abren dentro del vortice
+    float eyesOn = hit * smoothstep(0.35, 0.9, loco);
+    if (eyesOn > 0.01) {
+        vec2 eq = vec2(abs(p.x) - R * 0.32, p.y - R * 0.05);
+        float almond = max(length(eq / R - vec2(0.0, -0.10)), length(eq / R - vec2(0.0, 0.10))) - 0.16;
+        float eye = 1.0 - smoothstep(-0.01, 0.01, almond / max(eyesOn, 0.2));
+        float slitE = 1.0 - smoothstep(0.012, 0.02, abs(eq.x) / R);
+        col = mix(col, mix(fireB * 1.6, vec3(0.0), slitE), eye * insideM);
+    }
 
     // anillo de fuego: llamas en polares que suben hacia afuera
     float ringD = r - R;
@@ -90,6 +109,5 @@ vec4 render(vec2 uv) {
     col += fireA * (1.0 - smoothstep(px * 0.5, px * 1.5, abs(r - Rr - 0.075))) * 0.6;
     col += fireA * (1.0 - smoothstep(px * 0.5, px * 1.5, abs(r - Rr + 0.075))) * 0.6;
 
-    col *= vignette(uv, 0.30);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.7, 0.1, 0.05)), 1.0);
 }

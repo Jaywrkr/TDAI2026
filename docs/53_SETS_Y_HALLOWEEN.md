@@ -2,9 +2,11 @@
 
 Un **set** es un show: sus escenas, su cantidad y sus ajustes. El **núcleo** (`td/vjcore/`) es uno solo para todos los sets: MIDI, audio, dashboard, transiciones, Master FX, texto, grabación, láser y failsafe son los mismos. Cualquier arreglo del núcleo les llega a todos los shows a la vez.
 
-![Halloween](img/halloween_hoja.png)
+![Halloween](img/halloween_hoja.jpg)
 
-*Las 20 escenas de Halloween, renderizadas fuera de TouchDesigner con `td/tools/render_scenes.py` (escena sola, sin bloom ni Master FX).*
+![Halloween en el golpe con locura](img/halloween_locura.jpg)
+
+*Arriba: con música y Chaos en 0.3. Abajo: en el golpe con la locura (Chaos) en 0.85. Renderizadas fuera de TouchDesigner con `td/tools/render_scenes.py` (escena sola, sin bloom ni Master FX).*
 
 ## Elegir el show
 
@@ -74,6 +76,12 @@ La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
 Con **Speed en 0** todo queda quieto. Con Speed arriba de 0 y **en silencio**, el movimiento propio sigue y solo se apagan las reacciones al audio.
 
+## Locura (perilla Chaos) y kit compartido
+
+En este set la perilla **Chaos (knob 4) es la locura**. En 0 las escenas son cinematográficas y sobrias; al subirla, cada golpe trae algo más fuerte: sacudida y zoom de impacto, relámpagos dobles, lenguas de fuego en la calabaza, un ojo gigante, murciélagos que se vienen encima, salpicaduras de sangre, VHS que rueda e invierte, fantasmas que se abalanzan gritando, un enjambre de arañitas, ojos dentro del portal, un géiser en el caldero, rayos de los ojos de la momia, calabazas que saltan, una bandada de cuervos, manos que revientan la tierra, ráfaga que tumba las velas, rayos X en el esqueleto, el túnel que se retuerce y el demonio que se desdobla.
+
+Las funciones comunes viven en `td/sets/halloween/common.glsl` (en `set.json`, `"prelude": "common.glsl"`): acabado de cine (`hkFinish`: tonemap filmico, grano, negros con color, parpadeo de proyector), `hkShake`/`hkPunch`, rayos de luz `hkRays`, niebla `hkFog`, partículas `hkParticles`, rayos `hkBolt` y SDF básicos. Editar ese archivo cambia todas las escenas del set a la vez; **Recargar Shaders** lo toma.
+
 ## Agregar escenas al set
 
 Igual que siempre, con `--set`:
@@ -92,7 +100,7 @@ python3 td/tools/render_scenes.py salida/ --set halloween       # PNG de cada es
 python3 td/tools/render_scenes.py salida/ --set halloween --audio golpe --d 0.6
 ```
 
-`render_scenes.py` dibuja el **mismo GLSL** que corre en TD (OpenGL 3.3 por software). Necesita `pip install moderngl numpy pillow` y Mesa (`libegl1 libgl1-mesa-dri` en Linux). Sirve para ver el aspecto; **no mide los FPS de tu máquina**.
+`render_scenes.py` acepta `--chaos 0.9` para ver la locura. Dibuja el **mismo GLSL** que corre en TD (OpenGL 3.3 por software). Necesita `pip install moderngl numpy pillow` y Mesa (`libegl1 libgl1-mesa-dri` en Linux). Sirve para ver el aspecto; **no mide los FPS de tu máquina**.
 
 ## No verificado
 

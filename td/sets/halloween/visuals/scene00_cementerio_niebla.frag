@@ -125,8 +125,11 @@ vec4 render(vec2 uv) {
     // piedra con textura e iluminacion desde la luna
     vec2 gn = vec2(dFdx(tombD), dFdy(tombD));
     float side = clamp(dot(normalize(gn + 1e-6), normalize(mc - p)), 0.0, 1.0);
-    float stoneTex = fbm(p * vec2(18.0, 30.0), 4, 0.6);
-    float moss = smoothstep(0.55, 0.75, fbm(p * 9.0 + 2.0, 3));
+    float stoneTex = 0.5, moss = 0.0;
+    if (tombD < 0.01) {
+        stoneTex = fbm(p * vec2(18.0, 30.0), 4, 0.6);
+        moss = smoothstep(0.55, 0.75, fbm(p * 9.0 + 2.0, 3));
+    }
     vec3 stoneC = mix(vec3(0.05, 0.048, 0.06), vec3(0.03, 0.05, 0.03), moss) * (0.6 + 0.8 * stoneTex);
     float inTomb = 1.0 - smoothstep(-0.002, 0.002, tombD);
     vec3 solidC = mix(vec3(0.010, 0.008, 0.014), stoneC * (0.5 + 0.6 * moonGain), inTomb * 0.85);
@@ -148,7 +151,8 @@ vec4 render(vec2 uv) {
         vec2 fq = vec2(p.x * (1.1 + fi * 0.5) - t * (0.05 + fi * 0.035) * (fi + 1.0),
                        p.y * (3.0 + fi) + fi * 7.0);
         fq.y += sin(p.x * 2.0 + t * 0.4 + fi) * mid * 0.25;
-        float n = hkFog(fq * 0.8, t * boil);
+        // solo la capa de adelante usa la niebla deformada (la mas cara)
+        float n = (i == 0) ? hkFog(fq * 0.8, t * boil) : fbm(fq + vec2(t * 0.02 * boil, 0.0), 4, 0.55);
         float band = exp(-pow((p.y - horizon - 0.05 - fi * 0.07) / (0.17 + fi * 0.06 + uD1 * 0.10), 2.0));
         fogAmt += smoothstep(0.35, 0.85, n) * band * (0.60 - fi * 0.13);
     }

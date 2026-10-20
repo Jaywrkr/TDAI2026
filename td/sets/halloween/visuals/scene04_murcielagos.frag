@@ -77,7 +77,7 @@ vec4 render(vec2 uv) {
     col += vec3(0.8, 0.75, 1.0) * (exp(-bd * 160.0) + exp(-bd * 20.0) * 0.3) * zap * 1.5;
     col += vec3(0.5, 0.45, 0.8) * zap * 0.15;
     // nubes finas
-    float cl = fbm(vec2(p.x * 0.9 - t * 0.03, p.y * 4.0), 4, 0.5);
+    float cl = fbm(vec2(p.x * 0.9 - t * 0.03, p.y * 4.0), 3, 0.5);
     col = mix(col, col * 0.35, smoothstep(0.55, 0.80, cl) * 0.8);
 
     // castillo
@@ -118,7 +118,7 @@ vec4 render(vec2 uv) {
     // bandada
     float nBats = 8.0 + floor(uD1 * 22.0 + uDensity * 6.0);
     float bats = 1e3;
-    for (int i = 0; i < 36; i++) {
+    for (int i = 0; i < 28; i++) {
         float fi = float(i);
         if (fi >= nBats) break;
         float h1 = fract(sin(fi * 12.989) * 43758.5);
