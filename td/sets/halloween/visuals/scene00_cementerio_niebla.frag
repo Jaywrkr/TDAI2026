@@ -54,7 +54,7 @@ vec4 render(vec2 uv) {
     vec2 mp = p - mc;
     float mr = length(mp);
     float moonR = 0.23;
-    float moonGain = 0.75 + uD3 * 0.55;
+    float moonGain = 0.45 + uD3 * 1.05;
     float disk = 1.0 - smoothstep(moonR - 0.003, moonR + 0.003, mr);
     vec3 moonTex = mix(vec3(1.0, 0.90, 0.70), vec3(1.0, 0.30, 0.18), bloodMoon);
     if (mr < moonR + 0.01) {
@@ -87,7 +87,7 @@ vec4 render(vec2 uv) {
 
     // --- rayos de luz de la luna atravesando la niebla ---
     float rays = p.y > -0.6 ? hkRays(p, mc, t, 18.0) : 0.0;
-    col += vec3(0.75, 0.70, 0.85) * rays * (0.10 + uD3 * 0.25) * (1.0 - clouds * 0.5);
+    col += vec3(0.75, 0.70, 0.85) * rays * (0.03 + uD3 * 0.42) * (1.0 - clouds * 0.5);
 
     // --- colinas lejanas en capas ---
     float horizon = -0.36 + (uD6 - 0.5) * 0.36;
@@ -131,6 +131,9 @@ vec4 render(vec2 uv) {
         q = rot2((hash21(vec2(id, 7.7)) - 0.5) * 0.35) * q;
         tombD = min(tombD, hwTomb(q, w, h, step(0.78, hash21(vec2(id, 5.5)))));
     }
+    // fuera de la zona: distancia aproximada y continua (si queda en 1e3,
+    // fwidth salta en el borde de la zona y dibuja una linea en el cielo)
+    if (!tombZone) tombD = p.y - horizon - cellW * 1.3;
     float solidD = min(min(tombD, tree), groundD);
     float solid = 1.0 - smoothstep(-0.002, 0.002, solidD);
     // piedra con textura e iluminacion desde la luna
@@ -167,6 +170,7 @@ vec4 render(vec2 uv) {
         // solo la capa de adelante usa la niebla deformada (la mas cara)
         float n = (i == 0) ? hkFog(fq * 0.8, t * boil) : fbm(fq + vec2(t * 0.02 * boil, 0.0), 4, 0.55);
         float band = exp(-pow((p.y - horizon - 0.05 - fi * 0.07) / (0.17 + fi * 0.06 + uD1 * 0.10), 2.0));
+        band *= 1.0 - smoothstep(horizon + 0.22, horizon + 0.42, p.y);   // sin borde duro arriba
         fogAmt += smoothstep(0.35, 0.85, n) * band * (0.70 - fi * 0.10);
     }
     fogAmt *= (0.95 + uD1 * 0.85 + bass * 0.55) * fogAct;
