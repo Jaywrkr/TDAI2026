@@ -634,3 +634,132 @@ PROJECT_PATH = '/project1'
 # la red por primera vez.
 SETUP_NODE_COLOR = (1.0, 0.55, 0.0)             # naranja -- hace falta si o si
 SETUP_NODE_COLOR_OPTIONAL = (0.55, 0.42, 0.85)  # violeta -- opcional (LEDs de pads)
+
+
+# ---------------------------------------------------------------
+# SETS DE VISUALES (un show = un set)
+# ---------------------------------------------------------------
+# El nucleo (vjcore/) es UNO solo para todos los shows; lo que cambia por
+# show vive en su set. 'tdai2026' es el set de siempre: sus 98 escenas
+# siguen en td/visuals/ y usa todos los valores de arriba tal cual. Otro
+# set vive en td/sets/<nombre>/ con su visuals/ y un set.json que pisa
+# solo lo que cambia (ver docs/53_SETS_Y_HALLOWEEN.md).
+#
+# Quien elige el set: RUN_ME.py (SET = '...') lo pone en la variable de
+# entorno TDAI_SET antes de importar. El build lo guarda en
+# td/config/active_set.txt, asi al reabrir el .toe sin correr RUN_ME
+# (o con "Reconstruir Todo") sigue siendo el mismo set.
+import json as _json
+import os as _os
+
+DEFAULT_SET = 'tdai2026'
+_TD_DIR = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+ACTIVE_SET_FILE = _os.path.join(_TD_DIR, 'config', 'active_set.txt')
+
+# Valores del set por defecto (los de arriba). Un set.json puede pisar:
+#   label, visuals_dir, n_scenes, media_scenes, fullres_scenes,
+#   modern_from, audio_dance, default_media_folder, thumbs_dir,
+#   presets_file
+SET_LABEL = 'TDAI2026'
+VISUALS_DIR = 'visuals'          # relativo a td/
+# Desde que indice rige la logica de las escenas "recientes": Detail con
+# mas recorrido al centro, audio cortado por la compuerta de musica y los
+# gestos de piano nuevos. En tdai2026 son las 58-97.
+MODERN_FROM = 58
+# Deformacion global de audio (audioDanceUV). Se percibe como un twirl
+# comun a todas las escenas (docs/51); un set nuevo puede apagarla y
+# hacer que el audio mueva elementos internos de cada visual.
+AUDIO_DANCE = True
+PRESETS_FILE = 'presets.json'    # dentro de td/config/
+
+
+def _read_active_set():
+    name = _os.environ.get('TDAI_SET', '').strip()
+    if name:
+        return name
+    # El archivo solo se lee DENTRO de TouchDesigner (reabrir el .toe).
+    # Afuera (td/tools/) manda TDAI_SET o el set por defecto: si no, los
+    # tests cambiarian de set segun lo ultimo que se construyo en TD.
+    # Ojo: fuera de TD, 'import td' puede encontrar la carpeta td/ del repo
+    # como paquete vacio; el modulo real de TD es el que trae op().
+    try:
+        import td as _td
+        if not hasattr(_td, 'op'):
+            return DEFAULT_SET
+    except ImportError:
+        return DEFAULT_SET
+    try:
+        with open(ACTIVE_SET_FILE, 'r', encoding='utf-8') as f:
+            name = f.read().strip()
+    except Exception:
+        name = ''
+    return name or DEFAULT_SET
+
+
+def set_dir(name=None):
+    name = name or SET_NAME
+    if name == DEFAULT_SET:
+        return _TD_DIR
+    return _os.path.join(_TD_DIR, 'sets', name)
+
+
+def _count_scenes(folder):
+    import re as _re
+    idx = []
+    try:
+        for fn in _os.listdir(folder):
+            m = _re.match(r'scene(\d+)_.*\.frag$', fn)
+            if m:
+                idx.append(int(m.group(1)))
+    except Exception:
+        return 0
+    return max(idx) + 1 if idx else 0
+
+
+def _apply_set(name):
+    g = globals()
+    if name == DEFAULT_SET:
+        return None
+    path = _os.path.join(set_dir(name), 'set.json')
+    with open(path, 'r', encoding='utf-8') as f:
+        data = _json.load(f)
+    g['SET_LABEL'] = data.get('label', name)
+    g['VISUALS_DIR'] = _os.path.join('sets', name,
+                                     data.get('visuals_dir', 'visuals'))
+    n = data.get('n_scenes')
+    if not n:
+        n = _count_scenes(_os.path.join(_TD_DIR, g['VISUALS_DIR']))
+    g['N_SCENES'] = max(1, int(n))
+    g['MEDIA_SCENES'] = set(int(i) for i in data.get('media_scenes', []))
+    g['FULLRES_SCENES'] = set(int(i) for i in data.get('fullres_scenes', []))
+    g['MODERN_FROM'] = int(data.get('modern_from', 0))
+    g['AUDIO_DANCE'] = bool(data.get('audio_dance', False))
+    if data.get('default_media_folder'):
+        g['DEFAULT_MEDIA_FOLDER'] = data['default_media_folder']
+    g['THUMBS_DIRNAME'] = _os.path.join(
+        'sets', name, data.get('thumbs_dir', 'thumbs'))
+    g['PRESETS_FILE'] = data.get('presets_file',
+                                 'presets_{}.json'.format(name))
+    g['GRID_ROWS'] = math.ceil(g['N_SCENES'] / GRID_COLS)
+    return data
+
+
+SET_NAME = _read_active_set()
+try:
+    _apply_set(SET_NAME)
+except Exception as _e:
+    # Un set mal escrito no puede dejar el rig sin arrancar: se avisa y
+    # se queda el set por defecto.
+    print('SET "{}" no se pudo cargar ({}); uso {}'.format(
+        SET_NAME, _e, DEFAULT_SET))
+    SET_NAME = DEFAULT_SET
+
+
+def save_active_set():
+    """Lo llama el build: recuerda el set para el proximo arranque."""
+    try:
+        _os.makedirs(_os.path.dirname(ACTIVE_SET_FILE), exist_ok=True)
+        with open(ACTIVE_SET_FILE, 'w', encoding='utf-8') as f:
+            f.write(SET_NAME + '\n')
+    except Exception as e:
+        print('AVISO no pude guardar active_set.txt:', e)

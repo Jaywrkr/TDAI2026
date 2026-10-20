@@ -1522,8 +1522,15 @@ PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',
 
 
 def _presets_path():
+    # Un archivo por set: los indices de escena significan otra cosa en
+    # cada set (ver config.PRESETS_FILE).
     d = _config_dir()
-    return os.path.join(d, 'presets.json') if d else ''
+    try:
+        import vjcore.config as _vjconfig
+        name = _vjconfig.PRESETS_FILE
+    except Exception:
+        name = 'presets.json'
+    return os.path.join(d, name) if d else ''
 
 
 def _presets():

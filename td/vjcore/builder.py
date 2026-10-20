@@ -371,6 +371,9 @@ def _parameters(proj):
 
     s = proj.appendCustomPage('System')
     add_string(s, 'Repopath', 'Repo td/ Path', '')
+    # Informativo: el set lo elige RUN_ME.py (SET = '...'). Cambiarlo aca
+    # no hace nada; ver docs/53_SETS_Y_HALLOWEEN.md.
+    add_string(s, 'Showset', 'Set de visuales (lo elige RUN_ME.py)', '')
     add_toggle(s, 'Safestartblackout', 'Safe Start Blackout', True)
     add_int(s, 'Fpswarning', 'FPS Warning', 55, 1, 240)
     # Bajado de 30 a 12 (~5x/seg a 60fps, ~4x/seg a 50fps): este panel
@@ -655,6 +658,10 @@ def build(verbose=True):
 
     _parameters(proj)
     safe_set(proj, 'Repopath', shader.repo_root())
+    safe_set(proj, 'Showset', config.SET_NAME)
+    config.save_active_set()
+    log('SET: {} ({} escenas en {})'.format(
+        config.SET_LABEL, config.N_SCENES, config.VISUALS_DIR))
 
     # --- runtime DATs primero: el resto los referencia ---
     ctrl_dat = proj.create(textDAT, 'control_script')
@@ -782,6 +789,9 @@ def verify(proj, channels):
     """Chequeos post-build. Vale oro porque este script no se puede
     testear fuera de TouchDesigner."""
     out = ['', '=' * 58, 'VERIFICACION DEL BUILD   [{}]'.format(config.BUILD_TAG),
+           '  set: {}  ({} escenas, {})'.format(config.SET_LABEL,
+                                                config.N_SCENES,
+                                                config.VISUALS_DIR),
            '  codigo: {}'.format(os.path.dirname(os.path.abspath(__file__))),
            '=' * 58]
     ok = True

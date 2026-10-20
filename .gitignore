@@ -9,3 +9,6 @@ td/config/presets.json
 *.tar.gz
 td/config/*.ild
 td/config/devices.json
+td/config/active_set.txt
+td/config/presets_*.json
+td/sets/*/thumbs/

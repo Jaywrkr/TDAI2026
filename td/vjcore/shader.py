@@ -309,8 +309,8 @@ void main() {
     // un no-op) -- nunca pixelaba nada de verdad. Ahora cuantiza el UV
     // antes de muestrear, que es como se pixela de verdad.
     vec2 renderUV = vUV.st;
-    if (uScene >= 58) {
-        renderUV = audioDanceUV(renderUV);
+    if (uScene >= MODERN_FROM) {
+        if (AUDIO_DANCE == 1) renderUV = audioDanceUV(renderUV);
         renderUV = pianoGestureUV(renderUV);
     }
 
@@ -338,7 +338,7 @@ void main() {
 
     // Las escenas recientes tienen deformacion y acentos de piano segun
     // su familia visual. Las anteriores conservan el anillo original.
-    if (uScene >= 58) {
+    if (uScene >= MODERN_FROM) {
         c.rgb = pianoGestureLight(vUV.st, c.rgb);
     } else if (uKeypulse > 0.0015) {
         vec2 kp = centered(vec2(mix(0.14, 0.86, uKeypos), 0.5));
@@ -534,10 +534,10 @@ def _defines(channels, scene_index=None):
         uni = uniform_name(name)
         if name in index:
             value = '_ctrl({})'.format(index[name])
-            if scene_index is not None and scene_index >= 58 and name in (
+            if scene_index is not None and scene_index >= config.MODERN_FROM and name in (
                     'd1', 'd2', 'd3', 'd4', 'd5', 'd6'):
                 value = 'detailDrive({})'.format(value)
-            if scene_index is not None and scene_index >= 58 and name in (
+            if scene_index is not None and scene_index >= config.MODERN_FROM and name in (
                     'bass', 'mid', 'high', 'kick', 'beat'):
                 value = '({} * uMusic)'.format(value)
             lines.append('#define {:<10} {}'.format(uni, value))
@@ -589,6 +589,10 @@ def make_header(scene_index, channels):
     # perilla en vivo.
     header += '#define STROBE_MAX_HZ {:.2f}\n'.format(
         max(0.5, float(config.STROBE_MAX_HZ)))
+    # Logica por set (config.MODERN_FROM / AUDIO_DANCE): el footer es
+    # comun a todos los sets y decide con estos dos #define.
+    header += '#define MODERN_FROM {}\n'.format(int(config.MODERN_FROM))
+    header += '#define AUDIO_DANCE {}\n'.format(1 if config.AUDIO_DANCE else 0)
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
     return header
@@ -600,7 +604,8 @@ def repo_root():
 
 
 def visuals_dir():
-    return os.path.join(repo_root(), VISUALS_DIRNAME)
+    """Carpeta de .frag del set activo (config.VISUALS_DIR)."""
+    return os.path.join(repo_root(), config.VISUALS_DIR)
 
 
 def find_visual(scene_index):
@@ -616,7 +621,8 @@ def find_visual(scene_index):
 
 
 def template_path():
-    return os.path.join(visuals_dir(), TEMPLATE_NAME)
+    # La plantilla es una sola para todos los sets.
+    return os.path.join(repo_root(), VISUALS_DIRNAME, TEMPLATE_NAME)
 
 
 def read_body(scene_index):
