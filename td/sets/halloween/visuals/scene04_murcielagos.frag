@@ -40,10 +40,11 @@ float hwBat(vec2 p, float flap) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.01);
 
     // cielo
@@ -68,6 +69,13 @@ vec4 render(vec2 uv) {
     float limb = sqrt(max(1.0 - pow(mr / moonR, 2.0), 0.0));
     col += moonC * exp(-max(mr - moonR, 0.0) * 4.0) * (0.25 + bass * 0.45);
     col = mix(col, moonC * (0.55 + 0.45 * limb) * (0.80 + 0.35 * crater), disk);
+    // rayos de luna y relampago de locura
+    col += moonC * hkRays(p, mc, t, 14.0) * 0.18 * (1.0 - disk);
+    float zap = hit * smoothstep(0.4, 0.9, loco);
+    float bslot = floor(uRTime * 1.5);
+    float bd = hkBolt(p, (hash21(vec2(bslot, 2.0)) - 0.5) * uAspect * 1.6, 1.05, -0.55, bslot * 5.0, 0.4);
+    col += vec3(0.8, 0.75, 1.0) * (exp(-bd * 160.0) + exp(-bd * 20.0) * 0.3) * zap * 1.5;
+    col += vec3(0.5, 0.45, 0.8) * zap * 0.15;
     // nubes finas
     float cl = fbm(vec2(p.x * 0.9 - t * 0.03, p.y * 4.0), 4, 0.5);
     col = mix(col, col * 0.35, smoothstep(0.55, 0.80, cl) * 0.8);
@@ -104,6 +112,8 @@ vec4 render(vec2 uv) {
     vec3 winC = vec3(1.0, 0.65, 0.25);
     float flick = 0.75 + 0.25 * sin(t * 9.0) - hit * 0.5 * step(0.5, hash21(vec2(floor(t * 4.0), 3.0)));
     col += winC * windows * (0.9 + uD6 * 1.2) * flick;
+    // halo de las ventanas en el aire humedo
+    col += winC * 0.04 * (0.5 + uD6) * flick * exp(-abs(p.y - ground - 0.35) * 4.0) * smoothstep(0.9, 0.2, abs(x));
 
     // bandada
     float nBats = 8.0 + floor(uD1 * 22.0 + uDensity * 6.0);
@@ -122,7 +132,8 @@ vec4 render(vec2 uv) {
         // dispersion con el golpe: cada uno se aleja de la luna a su modo
         vec2 away = normalize(bp - mc + 1e-4);
         bp += (away + vec2(h2 - 0.5, h1 - 0.5)) * hit * (0.04 + uD4 * 0.18) * depth;
-        float scale = 0.17 * depth;
+        // locura: la bandada se viene encima de la camara con el golpe
+        float scale = 0.17 * depth * (1.0 + hit * loco * 1.2 * h3);
         // lejos de este murcielago: ni lo calcules (es el costo principal)
         if (length(p - bp) > scale * 0.75) { bats = min(bats, length(p - bp) - scale * 0.55); continue; }
         float flap = sin(t * (9.0 + uD3 * 12.0) * (0.8 + h3 * 0.4) + fi * 2.0);
@@ -135,6 +146,5 @@ vec4 render(vec2 uv) {
     // borde rojizo cuando el murcielago pasa delante de la luna
     col += moonC * (1.0 - smoothstep(0.0, 2.4 / uResH, abs(bats))) * disk * 0.5;
 
-    col *= vignette(uv, 0.35);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.35, 0.3, 0.8)), 1.0);
 }

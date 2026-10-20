@@ -8,6 +8,7 @@ fuera de TouchDesigner y sin GPU.
     python3 td/tools/render_scenes.py salida/ --set halloween --scenes 0,3,7
     python3 td/tools/render_scenes.py salida/ --audio golpe --t 12.5
     python3 td/tools/render_scenes.py salida/ --d 0.8         # las 6 Detail en 0.8
+    python3 td/tools/render_scenes.py salida/ --chaos 0.9     # perilla Chaos (locura)
 
 Compone header + .frag + footer exactamente como shader.py lo hace para
 TD, inyecta lo mismo que inyecta un GLSL TOP (vUV, sTD2DInputs,
@@ -55,11 +56,11 @@ AUDIO = {
 }
 
 
-def ctrl_values(t, audio, detail):
+def ctrl_values(t, audio, detail, chaos=0.3):
     level, bass, mid, high, kick, beat, groove, music = AUDIO[audio]
     v = {name: 0.0 for name in config.CTRL_CHANNELS}
     v.update({
-        'speed': 0.5, 'density': 0.5, 'hue': 0.0, 'chaos': 0.3,
+        'speed': 0.5, 'density': 0.5, 'hue': 0.0, 'chaos': chaos,
         'bright': 1.0, 'level': level, 'bass': bass, 'mid': mid,
         'high': high, 'kick': kick, 'beat': beat, 'groove': groove,
         'music': music, 'audioamt': 1.0, 'keypos': 0.5,
@@ -144,14 +145,16 @@ def main():
         print(__doc__)
         return 1
     out = args[0]
-    opt = {'--t': '8.0', '--audio': 'musica', '--d': '0.0', '--scenes': ''}
+    opt = {'--t': '8.0', '--audio': 'musica', '--d': '0.0', '--scenes': '',
+           '--chaos': '0.3'}
     for k in opt:
         if k in args:
             opt[k] = args[args.index(k) + 1]
     os.makedirs(out, exist_ok=True)
     import moderngl
     ctx = moderngl.create_standalone_context(backend='egl', require=330)
-    values = ctrl_values(float(opt['--t']), opt['--audio'], float(opt['--d']))
+    values = ctrl_values(float(opt['--t']), opt['--audio'], float(opt['--d']),
+                         float(opt['--chaos']))
     media = media_image()
     if opt['--scenes']:
         indices = [int(s) for s in opt['--scenes'].split(',')]

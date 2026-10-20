@@ -659,7 +659,7 @@ ACTIVE_SET_FILE = _os.path.join(_TD_DIR, 'config', 'active_set.txt')
 # Valores del set por defecto (los de arriba). Un set.json puede pisar:
 #   label, visuals_dir, n_scenes, media_scenes, fullres_scenes,
 #   modern_from, audio_dance, default_media_folder, thumbs_dir,
-#   presets_file
+#   presets_file, prelude
 SET_LABEL = 'TDAI2026'
 VISUALS_DIR = 'visuals'          # relativo a td/
 # Desde que indice rige la logica de las escenas "recientes": Detail con
@@ -671,6 +671,10 @@ MODERN_FROM = 58
 # hacer que el audio mueva elementos internos de cada visual.
 AUDIO_DANCE = True
 PRESETS_FILE = 'presets.json'    # dentro de td/config/
+# GLSL comun del set, que se agrega al final del header de CADA escena
+# del set (funciones compartidas: acabado, luz, particulas...). Vacio =
+# nada. Ruta relativa a td/.
+SET_PRELUDE = ''
 
 
 def _read_active_set():
@@ -740,6 +744,8 @@ def _apply_set(name):
         'sets', name, data.get('thumbs_dir', 'thumbs'))
     g['PRESETS_FILE'] = data.get('presets_file',
                                  'presets_{}.json'.format(name))
+    if data.get('prelude'):
+        g['SET_PRELUDE'] = _os.path.join('sets', name, data['prelude'])
     g['GRID_ROWS'] = math.ceil(g['N_SCENES'] / GRID_COLS)
     return data
 

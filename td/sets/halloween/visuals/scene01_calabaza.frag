@@ -1,17 +1,20 @@
 // ===============================================================
 // HALLOWEEN 01 - JACK O'LANTERN
-// Calabaza tallada con gajos y surcos, iluminada desde adentro por una
-// llama que titila. Brasas que suben desde abajo.
-// Speed mueve la llama y las brasas. El bajo sube la luz interior; el
-// golpe aviva la llama (los huecos de la cara destellan) y suelta una
-// rafaga de brasas. El piano hace brillar los ojos.
+// Calabaza tallada con volumen real: gajos redondeados con brillo
+// especular, piel rugosa, luz de la vela que se filtra por la cascara
+// junto a los cortes, humo que sale por los ojos, piso de madera con
+// el charco de luz y brasas en el aire.
+// Speed mueve la llama, el humo y las brasas. El bajo sube la luz de
+// adentro; el golpe aviva la llama y suelta brasas. LOCURA (Chaos):
+// la cara se deforma, salen lenguas de fuego por ojos y boca, sacudida.
+// El piano enciende los ojos.
 //
 // @D1: tamano de la calabaza
 // @D2: fuerza de la llama interior
-// @D3: cantidad de brasas
+// @D3: brasas y humo
 // @D4: sonrisa (seria <-> enorme)
 // @D5: relieve de los gajos
-// @D6: aura naranja alrededor
+// @D6: aura y charco de luz
 // ===============================================================
 
 float hwTri(vec2 p, vec2 a, vec2 b, vec2 c) {
@@ -27,56 +30,63 @@ float hwTri(vec2 p, vec2 a, vec2 b, vec2 c) {
     return -sqrt(d.x) * sign(d.y);
 }
 
-// Huecos tallados (ojos, nariz, boca dentada). < 0 = hueco.
-float hwFace(vec2 q, float smile) {
-    float eyeL = hwTri(q, vec2(-0.40, 0.12), vec2(-0.12, 0.12), vec2(-0.27, 0.36));
-    float eyeR = hwTri(q, vec2(0.12, 0.12), vec2(0.40, 0.12), vec2(0.27, 0.36));
-    float nose = hwTri(q, vec2(-0.07, -0.02), vec2(0.07, -0.02), vec2(0.0, 0.10));
-    // Boca: banda entre dos curvas, con dientes que la cortan.
+float hwFace(vec2 q, float smile, float rage) {
+    float eh = 0.24 + rage * 0.08;
+    float eyeL = hwTri(q, vec2(-0.42, 0.10), vec2(-0.10, 0.10), vec2(-0.30, 0.10 + eh));
+    float eyeR = hwTri(q, vec2(0.10, 0.10), vec2(0.42, 0.10), vec2(0.30, 0.10 + eh));
+    float nose = hwTri(q, vec2(-0.07, -0.03), vec2(0.07, -0.03), vec2(0.0, 0.10));
     float x = q.x;
-    float curve = -0.20 + (0.20 + smile * 0.55) * x * x;
-    float halfH = 0.075 + smile * 0.04;
-    float band = abs(q.y - curve) - halfH * (1.0 - smoothstep(0.30, 0.52, abs(x)));
-    // Dientes: columnas alternas, arriba y abajo, que tapan la banda.
+    float curve = -0.21 + (0.20 + smile * 0.55) * x * x;
+    float halfH = 0.075 + smile * 0.04 + rage * 0.05;
+    float band = abs(q.y - curve) - halfH * (1.0 - smoothstep(0.30, 0.55, abs(x)));
     float u = fract(x * 5.0 + 0.25);
     float colUp = (abs(u - 0.75) - 0.25) / 5.0;
     float colDn = (abs(u - 0.25) - 0.25) / 5.0;
-    float toothTop = curve + halfH - 0.060;
-    float toothBot = curve - halfH + 0.060;
-    float upper = max(toothTop - q.y, colUp + 0.012);
-    float lower = max(q.y - toothBot, colDn + 0.012);
+    float upper = max(curve + halfH - 0.060 - q.y, colUp + 0.012);
+    float lower = max(q.y - (curve - halfH + 0.060), colDn + 0.012);
     float mouth = max(band, -min(upper, lower));
-    mouth = max(mouth, abs(x) - 0.50);
+    mouth = max(mouth, abs(x) - 0.52);
     return min(min(eyeL, eyeR), min(nose, mouth));
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.008);
 
-    float size = 0.80 + uD1 * 0.32;
-    vec2 q = (p - vec2(0.0, -0.06)) / size;
+    float size = 0.80 + uD1 * 0.30;
+    vec2 center = vec2(0.0, -0.10);
+    vec2 q = (p - center) / size;
+    // locura: la calabaza "respira" deformandose con el golpe
+    q.x *= 1.0 - hit * loco * 0.06 * sin(q.y * 6.0 + uRTime * 20.0);
 
-    // Llama interior: titila con el tiempo, se aviva con el golpe.
-    float flick = 0.70 + 0.18 * sin(t * 7.3) + 0.12 * sin(t * 13.1 + 1.7)
-                + 0.10 * noise21(vec2(t * 3.0, 1.0));
+    float flick = 0.70 + 0.18 * sin(t * 7.3) + 0.12 * sin(t * 13.1 + 1.7) + 0.10 * noise21(vec2(t * 3.0, 1.0));
     float inner = flick * (0.85 + uD2 * 0.70) + bass * 0.40 + hit * 0.70;
-
-    // --- fondo: oscuro con un resplandor calido ---
-    vec3 bg = mix(vec3(0.010, 0.004, 0.020), vec3(0.06, 0.018, 0.04),
-                  smoothstep(1.2, 0.0, length(p)));
-    vec3 col = bg;
-    float aura = exp(-max(length(q * vec2(0.85, 1.05)) - 0.55, 0.0) * 3.2);
     vec3 orange = hsv2rgb(vec3(fract(0.065 + hue), 0.95, 1.0));
-    col += orange * aura * (0.10 + uD6 * 0.40) * (0.6 + inner * 0.5);
+    vec3 hot = vec3(1.0, 0.86, 0.50);
 
-    // --- cuerpo: cinco gajos ---
+    // --- fondo y piso de madera ---
+    float floorY = center.y - 0.47 * size;
+    vec3 col = mix(vec3(0.012, 0.006, 0.020), vec3(0.05, 0.02, 0.035), smoothstep(1.2, 0.0, length(p - center)));
+    if (p.y < floorY) {
+        float z = 1.0 / max(floorY - p.y + 0.12, 0.05);
+        float plank = fract(p.x * z * 0.9);
+        float grain = fbm(vec2(p.x * z * 6.0, z * 0.6), 3);
+        vec3 wood = vec3(0.10, 0.05, 0.025) * (0.5 + 0.7 * grain) * (0.75 + 0.25 * smoothstep(0.0, 0.05, plank) * smoothstep(1.0, 0.95, plank));
+        float pool = exp(-length((p - vec2(center.x, floorY)) * vec2(0.9, 3.2)) * 2.2);
+        col = wood * (0.25 + pool * (1.2 + uD6) * inner) + orange * pool * 0.25 * inner * (0.5 + uD6);
+        // reflejo borroso de la calabaza en la madera barnizada
+        col += orange * 0.10 * exp(-abs(p.x - center.x) * 3.0) * smoothstep(floorY - 0.35, floorY, p.y) * inner;
+    }
+    float aura = exp(-max(length(q * vec2(0.85, 1.05)) - 0.55, 0.0) * 3.0);
+    col += orange * aura * (0.10 + uD6 * 0.35) * (0.6 + inner * 0.5);
+
+    // --- cuerpo: cinco gajos con normales de esfera ---
     float body = 1e3;
-    float lobeShade = 0.0;
-    float groove = 0.0;
+    vec3 nrm = vec3(0.0, 0.0, 1.0);
     for (int i = -2; i <= 2; i++) {
         float fi = float(i);
         vec2 c = vec2(fi * 0.21, 0.0);
@@ -85,65 +95,68 @@ vec4 render(vec2 uv) {
         float e = (length(d) - 1.0) * min(r.x, r.y);
         if (e < body) {
             body = e;
-            lobeShade = 1.0 - clamp(length(d), 0.0, 1.0);
+            float zz = sqrt(max(1.0 - dot(d, d), 0.0));
+            nrm = normalize(vec3(d * (0.6 + uD5 * 0.6), zz + 0.2));
         }
     }
-    // surcos: donde dos gajos se encuentran
-    for (int i = -2; i <= 1; i++) {
-        float gx = (float(i) + 0.5) * 0.21;
-        groove = max(groove, exp(-pow((q.x - gx) / 0.035, 2.0)));
-    }
     float bodyMask = 1.0 - smoothstep(-0.004, 0.004, body);
-
-    vec3 skinDark = hsv2rgb(vec3(fract(0.045 + hue), 1.0, 0.30));
-    vec3 skinLit = hsv2rgb(vec3(fract(0.075 + hue), 0.92, 0.95));
-    float relief = 0.45 + 0.55 * uD5;
-    float shade = mix(0.35, 1.0, pow(lobeShade, 0.6)) * (1.0 - groove * 0.6 * relief);
-    // luz de la llama que atraviesa la cascara cerca de los huecos
-    float faceD = hwFace(q, uD4);
-    float spill = exp(-max(faceD, 0.0) * 9.0);
-    vec3 skin = mix(skinDark, skinLit, shade);
-    skin *= 0.78 + 0.22 * fbm(q * vec2(3.0, 1.4) + 2.0, 3);
-    skin += orange * spill * inner * 0.45;
+    float bump = fbm(q * 14.0, 3) - 0.5;
+    nrm = normalize(nrm + vec3(bump * 0.25, bump * 0.15, 0.0));
+    vec3 L = normalize(vec3(-0.5, 0.6, 0.8));
+    float diff = clamp(dot(nrm, L), 0.0, 1.0);
+    float spec = pow(clamp(dot(reflect(-L, nrm), vec3(0.0, 0.0, 1.0)), 0.0, 1.0), 18.0);
+    vec3 skinDark = hsv2rgb(vec3(fract(0.035 + hue), 1.0, 0.10));
+    vec3 skinLit = hsv2rgb(vec3(fract(0.070 + hue), 0.97, 0.55));
+    vec3 skin = mix(skinDark, skinLit, diff * 0.85);
+    skin *= 0.80 + 0.25 * fbm(q * vec2(3.0, 1.4) + 2.0, 3);
+    skin += vec3(1.0, 0.85, 0.6) * spec * 0.25;
+    // luz que se filtra por la cascara cerca de los cortes (subsurface)
+    float rage = hit * loco;
+    float faceD = hwFace(q, uD4, rage);
+    float sss = exp(-max(faceD, 0.0) * 18.0);
+    skin += orange * sss * inner * 0.35 + hot * sss * sss * inner * 0.10;
     col = mix(col, skin, bodyMask);
 
-    // --- tallo ---
-    vec2 sq = q - vec2(0.03, 0.55);
-    sq = rot2(0.25) * sq;
-    float stem = max(abs(sq.x) - 0.045 + sq.y * 0.05, abs(sq.y) - 0.09);
+    // --- tallo con textura ---
+    vec2 sq = rot2(0.25) * (q - vec2(0.03, 0.55));
+    float stem = max(abs(sq.x) - 0.045 + sq.y * 0.06, abs(sq.y) - 0.10);
     float stemMask = 1.0 - smoothstep(-0.004, 0.004, stem);
-    col = mix(col, vec3(0.08, 0.10, 0.03) * (0.7 + 0.5 * noise21(sq * 40.0)), stemMask);
+    vec3 stemC = vec3(0.10, 0.11, 0.04) * (0.6 + 0.8 * noise21(vec2(sq.x * 80.0, sq.y * 10.0))) * (0.6 + 0.4 * smoothstep(0.05, -0.05, sq.x));
+    col = mix(col, stemC, stemMask);
 
-    // --- huecos tallados: se ve la llama ---
+    // --- cortes: se ve la llama y la pared interior ---
     float hole = (1.0 - smoothstep(-0.005, 0.005, faceD)) * bodyMask;
-    vec3 flameCore = vec3(1.0, 0.92, 0.55);
-    vec3 flameEdge = hsv2rgb(vec3(fract(0.08 + hue), 0.95, 1.0));
     float flameN = fbm(vec2(q.x * 6.0, q.y * 4.0 - t * 2.2), 3);
-    vec3 flame = mix(flameEdge, flameCore, smoothstep(0.35, 0.80, flameN)) * inner * 1.25;
-    // borde interior mas oscuro (grosor de la cascara)
-    float wall = smoothstep(-0.035, -0.004, faceD);
-    flame = mix(flame, skinDark * 0.6, wall * 0.55);
-    // piano: los ojos brillan
-    float eyes = step(0.12, q.y) * step(q.y, 0.36);
-    flame += flameCore * eyes * uKeypulse * (0.6 + uKeyvel);
+    vec3 flame = mix(orange, hot, smoothstep(0.35, 0.80, flameN)) * inner * 1.35;
+    float wall = smoothstep(-0.04, -0.004, faceD);
+    flame = mix(flame, skinDark * 1.2 + orange * 0.3, wall * 0.6);
+    float eyes = step(0.10, q.y) * step(q.y, 0.40);
+    flame += hot * eyes * uKeypulse * (0.6 + uKeyvel);
     col = mix(col, flame, hole);
-    col += flameEdge * edgeLine(faceD, 2.0) * bodyMask * inner * 0.35;
 
-    // --- brasas que suben ---
-    float nEmb = 18.0 + uD3 * 40.0 + uDensity * 12.0;
-    vec2 ep = p * vec2(1.0, 1.0);
-    for (int i = 0; i < 3; i++) {
-        float fi = float(i);
-        vec2 g = vec2(ep.x * (nEmb * 0.25 + fi * 3.0), ep.y * 3.0 - t * (0.35 + fi * 0.18) - hit * 0.3);
-        vec2 id = floor(g);
-        vec2 f = fract(g) - 0.5;
-        vec2 h = hash22(id + fi * 13.0);
-        f -= (h - 0.5) * 0.7;
-        float alive = step(0.55 - uD3 * 0.25, hash21(id + 7.0));
-        float ember = exp(-dot(f, f) * 260.0) * alive;
-        col += orange * ember * (0.9 + hit * 1.2) * smoothstep(0.9, -0.6, p.y);
+    // --- humo saliendo por los ojos ---
+    for (int s = -1; s <= 1; s += 2) {
+        vec2 sp = q - vec2(float(s) * 0.26, 0.30);
+        float rise = clamp(sp.y / 0.9, 0.0, 1.0);
+        float sm = fbm(vec2(sp.x * 5.0 + sin(sp.y * 3.0 - t), sp.y * 2.5 - t * 0.8) + float(s) * 3.0, 4, 0.55);
+        float cone = smoothstep(0.10 + rise * 0.35, 0.0, abs(sp.x)) * smoothstep(0.0, 0.08, sp.y) * (1.0 - rise);
+        col += vec3(0.30, 0.25, 0.22) * smoothstep(0.45, 0.85, sm) * cone * (0.25 + uD3 * 0.5);
     }
+    // --- locura: lenguas de fuego que salen de ojos y boca ---
+    if (rage > 0.01) {
+        for (int s = -1; s <= 1; s++) {
+            vec2 jp = (s == 0) ? q - vec2(0.0, -0.22) : q - vec2(float(s) * 0.27, 0.22);
+            vec2 dir = (s == 0) ? vec2(0.0, -1.0) : normalize(vec2(float(s) * 0.6, 1.0));
+            float along = dot(jp, dir);
+            float across = abs(dot(jp, vec2(-dir.y, dir.x)));
+            float n = fbm(vec2(across * 9.0, along * 5.0 - uRTime * 8.0), 3);
+            float jet = smoothstep(0.08 + along * 0.25, 0.0, across) * smoothstep(0.0, 0.05, along) * smoothstep(0.6 * rage + 0.05, 0.0, along);
+            col += mix(orange, hot, n) * jet * n * 2.5;
+        }
+    }
+    // --- brasas ---
+    float emb = hkParticles(p, t + hit * 0.3, 0.10 + uD3 * 0.25, vec2(0.15, 1.0), 0.05);
+    col += orange * emb * (0.8 + hit * 1.2) * smoothstep(1.0, -0.4, p.y);
 
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.9, 0.4, 0.1)), 1.0);
 }

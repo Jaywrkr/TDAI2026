@@ -45,13 +45,21 @@ vec2 hwSkull(vec2 p, float jaw) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
-    float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.01);
+    float hit = hkHit();
+    float loco = hkLoco();
+    float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.01 + hit * loco * 0.15);
 
-    vec3 col = vec3(0.006, 0.003, 0.012);
+    // muro de ladrillo humedo detras, iluminado por el neon
+    vec2 bq = vec2(p.x * 7.0 + 0.5 * mod(floor(p.y * 14.0), 2.0), p.y * 14.0);
+    vec2 bf = fract(bq);
+    float mortar = smoothstep(0.0, 0.05, bf.x) * smoothstep(1.0, 0.95, bf.x) * smoothstep(0.0, 0.08, bf.y) * smoothstep(1.0, 0.92, bf.y);
+    float brick = (0.55 + 0.45 * noise21(floor(bq) * 1.7)) * (0.7 + 0.3 * fbm(p * 20.0, 3));
+    float wet = smoothstep(0.6, 0.9, fbm(vec2(p.x * 3.0, p.y * 0.8), 3));
+    vec3 wall = vec3(0.030, 0.018, 0.022) * brick * mortar * (1.0 + wet * 0.8);
+    vec3 col = vec3(0.004, 0.002, 0.008) + wall;
     vec3 palette[3];
     palette[0] = hsv2rgb(vec3(fract(0.07 + hue), 0.95, 1.0));   // naranja
     palette[1] = hsv2rgb(vec3(fract(0.78 + hue), 0.80, 1.0));   // violeta
@@ -79,7 +87,7 @@ vec4 render(vec2 uv) {
         float tube = 1.0 - smoothstep(lineW * 0.5, lineW * 0.5 + px, abs(sk.x));
         float halo = exp(-abs(sk.x) / (px * (6.0 + uD6 * 16.0)));
         // el halo se apaga antes del borde de la celda (si no, se ven cuadros)
-        halo *= smoothstep(0.50, 0.30, max(abs(f.x), abs(f.y)));
+        halo *= smoothstep(0.50, 0.12, length(f));
         int ci = int(mod(floor(h * 7.0), 3.0));
         vec3 c = palette[0];
         float mixC = 0.30 + uD5 * 0.70;
@@ -87,14 +95,19 @@ vec4 render(vec2 uv) {
         if (ci == 2) c = mix(palette[0], palette[2], mixC);
         float fade = 1.0 / (1.0 + fl * 1.15);
         float pulse = 0.85 + 0.15 * sin(t * 2.0 + phase) + hit * 0.35;
+        // tubos con zumbido: algunos parpadean como neon gastado; con la
+        // locura parpadean todos y se apagan de golpe
+        float buzz = step(0.92 - loco * 0.5, hash21(id + floor(uRTime * (6.0 + loco * 20.0)) * 0.13));
+        pulse *= 1.0 - buzz * (0.6 + loco * 0.4) * step(0.8 - loco * 0.6, h);
         vec3 neon = c * (tube * 1.25 + halo * (0.28 + uD6 * 0.35)) * pulse;
         // ojos encendidos desde adentro
         float eyeFill = 1.0 - smoothstep(-0.02, 0.0, sk.y);
         neon += c * eyeFill * (0.15 + uD3 * 0.6) * (0.35 + bass * 1.1 + hit * 0.5);
-        col += neon * fade;
+        col += neon * fade * 0.62;
     }
+    // el neon tiñe el ladrillo que tiene cerca (mas en lo mojado)
+    col += col * wall * 6.0 * (0.5 + wet);
 
-    col *= vignette(uv, 0.35);
     col = audioLift(col, uHigh * 0.12);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.6, 0.2, 0.8)), 1.0);
 }

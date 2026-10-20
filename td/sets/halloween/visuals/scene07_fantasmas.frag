@@ -26,10 +26,11 @@ float hwGhost(vec2 p, float t, float wave, float seed) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.008);
 
     vec3 bgA = hsv2rgb(vec3(fract(0.58 + hue), 0.70, 0.10));
@@ -38,6 +39,8 @@ vec4 render(vec2 uv) {
     float fog = fbm(vec2(p.x * 1.0 - t * 0.04, p.y * 2.0 + t * 0.02), 4, 0.55);
     col += vec3(0.10, 0.12, 0.16) * smoothstep(0.35, 0.85, fog) * (0.4 + uD6 * 1.0);
 
+    // rayos de luz frios que entran desde arriba (ventana alta)
+    col += vec3(0.30, 0.40, 0.55) * hkRays(p, vec2(-uAspect * 0.3, 1.3), t, 10.0) * 0.8;
     vec3 cold = vec3(0.80, 0.90, 1.0);
     vec3 spectral = hsv2rgb(vec3(fract(0.36 + hue), 0.60, 1.0));
     vec3 gc = mix(cold, spectral, uD5);
@@ -52,7 +55,9 @@ vec4 render(vec2 uv) {
         float x = mix(-uAspect * 0.85, uAspect * 0.85, fract(h1 + t * 0.012 * (h2 - 0.5)));
         float y = -0.05 + 0.45 * (h2 - 0.5) + 0.07 * sin(t * (0.7 + h1 * 0.5) + fi * 2.3);
         float peek = hit * step(0.45, fract(h1 * 7.0 + h2 * 3.0));
-        float s = (0.62 + 0.14 * h1) * depth * (1.0 + peek * 0.10);
+        // locura: se abalanzan hacia la camara gritando
+        float rush = hit * loco * step(0.5, fract(h2 * 5.0 + floor(uRTime * 2.0) * 0.37));
+        float s = (0.62 + 0.14 * h1) * depth * (1.0 + peek * 0.10 + rush * 1.2);
         vec2 q = (p - vec2(x, y)) / s;
         if (length(q) > 1.5) continue;     // fuera del fantasma y su halo
         q.x += 0.06 * sin(q.y * 3.0 + t * 1.3 + fi);   // se mece
@@ -66,7 +71,7 @@ vec4 render(vec2 uv) {
         // ojos y boca oscuros
         vec2 ep = vec2(abs(q.x) - 0.11, q.y - 0.22);
         float eyes = 1.0 - smoothstep(0.045, 0.06, length(ep / vec2(0.8, 1.3)));
-        float mouth = 1.0 - smoothstep(0.05, 0.065, length((q - vec2(0.0, 0.04)) / vec2(0.7, 1.0 + peek * 0.8)));
+        float mouth = 1.0 - smoothstep(0.05, 0.065, length((q - vec2(0.0, 0.04)) / vec2(0.7 + rush * 0.4, 1.0 + peek * 0.8 + rush * 2.5)));
         float holes = max(eyes, mouth) * body;
         float lum = (0.85 + uD4 * 0.70 + peek * 0.9) * depth;
         vec3 g = gc * lum;
@@ -74,7 +79,6 @@ vec4 render(vec2 uv) {
         col = mix(col, col * 0.15, holes * 0.9);
         col += gc * glow * lum * (1.0 - body);
     }
-    col *= vignette(uv, 0.45);
     col = audioLift(col, uHigh * 0.10);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.3, 0.6, 0.8)), 1.0);
 }

@@ -595,7 +595,22 @@ def make_header(scene_index, channels):
     header += '#define AUDIO_DANCE {}\n'.format(1 if config.AUDIO_DANCE else 0)
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
+    header += set_prelude()
     return header
+
+
+def set_prelude():
+    """GLSL compartido del set activo (config.SET_PRELUDE), o ''.
+    Se lee de disco cada vez: 'Recargar Shaders' toma los cambios."""
+    rel = getattr(config, 'SET_PRELUDE', '')
+    if not rel:
+        return ''
+    path = os.path.join(repo_root(), rel)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return '\n// ---- prelude del set: {} ----\n'.format(rel) + f.read() + '\n'
+    except Exception as e:
+        return '\n// prelude del set no encontrado: {} ({})\n'.format(rel, e)
 
 
 def repo_root():

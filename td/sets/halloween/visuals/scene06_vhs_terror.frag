@@ -18,15 +18,18 @@ vec4 render(vec2 uv) {
     float t = uTime;
     float rt = uRTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
 
     // tracking: bandas horizontales que se corren
     float band = floor(uv.y * 40.0);
     float jitter = (noise21(vec2(band, floor(rt * 18.0))) - 0.5);
     float wobble = sin(uv.y * 30.0 + t * 3.0) * 0.002;
-    float trackAmt = (0.004 + uD2 * 0.03) + hit * (0.02 + uD2 * 0.06);
+    float trackAmt = (0.004 + uD2 * 0.03) + hit * (0.02 + uD2 * 0.06) * (1.0 + loco * 2.0);
     float tear = step(0.82 - hit * 0.5, noise21(vec2(band * 0.37, floor(rt * 6.0))));
     vec2 suv = uv;
+    // locura: la imagen rueda verticalmente y se duplica
+    suv.y = fract(suv.y + hit * loco * 0.25 * step(0.5, noise21(vec2(floor(rt * 4.0), 9.0))));
     suv.x += jitter * trackAmt * (0.3 + tear) + wobble;
     // salto vertical del golpe
     suv.y = fract(suv.y + hit * 0.04 * step(0.6, noise21(vec2(floor(rt * 10.0), 2.0))));
@@ -67,6 +70,11 @@ vec4 render(vec2 uv) {
     // mancha de golpe: cuadro casi blanco un instante
     col += vec3(0.9, 0.85, 0.85) * hit * 0.12 * tear;
 
-    col *= vignette(uv, 0.55);
-    return vec4(max(col, 0.0), 1.0);
+    // cuadro invertido de locura
+    float inv = hit * step(0.75, loco) * step(0.7, noise21(vec2(floor(rt * 12.0), 4.0)));
+    col = mix(col, vec3(1.0) - col, inv);
+    // REC: punto rojo que parpadea arriba a la izquierda
+    vec2 rp = (uv - vec2(0.06, 0.92)) * vec2(uAspect, 1.0);
+    col += vec3(1.0, 0.05, 0.05) * (1.0 - smoothstep(0.012, 0.016, length(rp))) * step(0.5, fract(rt * 0.8));
+    return vec4(hkFinish(max(col, 0.0), uv, vec3(0.5, 0.1, 0.1)), 1.0);
 }

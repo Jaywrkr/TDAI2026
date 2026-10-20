@@ -14,10 +14,11 @@
 // ===============================================================
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.7), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.006);
 
     // pared
@@ -26,6 +27,10 @@ vec4 render(vec2 uv) {
     vec3 col = vec3(0.060, 0.032, 0.036) * (0.6 + (0.5 + uD6) * wallN);
     col -= vec3(0.02) * cracks * uD6;
 
+    // linterna: un cono de luz que barre la pared despacio
+    vec2 lc = vec2(sin(t * 0.25) * uAspect * 0.5, 0.1);
+    float spot = exp(-dot((p - lc) * vec2(0.9, 1.2), (p - lc) * vec2(0.9, 1.2)) * 1.6);
+    col *= 0.45 + 1.8 * spot;
     float top = 1.0 - 0.16 - 0.04 * sin(p.x * 3.0 + 0.7) - 0.03 * noise21(vec2(p.x * 5.0, 0.0));
     float cols = 14.0 + floor(uD1 * 30.0 + uDensity * 8.0);
     float cw = 2.0 * uAspect / cols;
@@ -77,10 +82,37 @@ vec4 render(vec2 uv) {
     float depthShade = smoothstep(0.05, -0.02, d);
     vec3 bcol = bc * (0.45 + 0.55 * diff) * mix(1.0, 0.65, depthShade);
     bcol += vec3(1.0, 0.85, 0.85) * spec * (0.35 + uD4 * 1.1 + bass * 0.8);
+    bcol *= 0.55 + 1.2 * spot;
     col = mix(col, bcol, mask);
+    // charco abajo con reflejo
+    float poolY = -0.92 + 0.02 * sin(p.x * 3.0);
+    float pool = 1.0 - smoothstep(poolY - 0.004, poolY + 0.004, p.y);
+    vec3 poolC = dark * 0.8 + red * 0.25 * spot + vec3(1.0, 0.8, 0.8) * pow(spot, 3.0) * 0.4 * smoothstep(poolY - 0.06, poolY, p.y);
+    col = mix(col, poolC, pool);
+    // LOCURA: salpicaduras que estallan en la pared con el golpe
+    float splatOn = hit * smoothstep(0.3, 0.9, loco);
+    if (splatOn > 0.01) {
+        float sl = floor(uRTime * 2.0);
+        for (int i = 0; i < 3; i++) {
+            float fi = float(i);
+            vec2 sc = (hash22(vec2(sl, fi)) - 0.5) * vec2(uAspect * 1.6, 1.2);
+            vec2 sq = p - sc;
+            float ang = atan(sq.y, sq.x);
+            float spikes = 0.10 + 0.10 * pow(noise21(vec2(ang * 5.0, sl + fi)), 3.0) * 2.5;
+            float sd = length(sq) - spikes * (0.4 + splatOn * 0.8);
+            // gotitas redondas alrededor de la mancha
+            vec2 dg = sq * 22.0;
+            vec2 did = floor(dg);
+            vec2 df = fract(dg) - 0.5 - (hash22(did + sl) - 0.5) * 0.6;
+            float dr = 0.10 + 0.25 * hash21(did + fi);
+            float drops = (1.0 - smoothstep(dr - 0.05, dr, length(df))) * step(0.80, hash21(did + sl * 3.0))
+                        * smoothstep(0.40 * splatOn + 0.05, 0.10, length(sq));
+            float m = max(1.0 - smoothstep(-0.004, 0.004, sd), drops);
+            col = mix(col, red * (0.6 + 0.6 * spot), m * splatOn);
+        }
+    }
     // la sangre tiñe la pared de abajo, como reflejo
     col += red * 0.06 * exp(-max(d, 0.0) * 18.0) * (1.0 - mask);
 
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+    return vec4(hkFinish(col, uv, vec3(0.6, 0.05, 0.05)), 1.0);
 }

@@ -30,17 +30,18 @@ vec3 hwEye(vec2 q, float open, vec2 look) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p = centered(uv);
+    vec2 p = hkPunch(hkShake(centered(uv)));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
-    float hit = clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt;
+    float hit = hkHit();
+    float loco = hkLoco();
     float hue = audioHue(uHue, clamp(uMid, 0.0, 1.0) * 0.01);
 
     vec3 irisCol = mix(hsv2rgb(vec3(fract(0.13 + hue), 0.95, 1.0)),
                        hsv2rgb(vec3(fract(0.995 + hue), 1.0, 1.0)), uD5);
 
     // niebla de fondo
-    float fog = fbm(p * 1.4 + vec2(t * 0.03, -t * 0.01), 4, 0.55);
+    float fog = hkFog(p * 1.2, t);
     vec3 col = vec3(0.012, 0.008, 0.020) + vec3(0.03, 0.02, 0.05) * fog;
 
     float cells = 2.0 + floor(uD1 * 4.0 + uDensity * 2.0);
@@ -76,13 +77,40 @@ vec4 render(vec2 uv) {
             vec3 e = hwEye(eq, open, look * vec2(float(s), 1.0));
             float rad = 0.95 + uD4 * 0.6 + bass * 0.7 + hit * 0.35;
             vec3 hot = mix(irisCol, vec3(1.0, 0.95, 0.75), 0.35);
-            vec3 eyeC = mix(irisCol * 0.35, hot, e.y) * rad;
+            // iris con estrias radiales y un brillo humedo
+            float ang = atan(eq.y, eq.x);
+            float stri = 0.75 + 0.25 * noise21(vec2(ang * 9.0, length(eq) * 6.0 + h.x * 9.0));
+            vec3 eyeC = mix(irisCol * 0.30, hot, e.y) * rad * stri;
             eyeC = mix(eyeC, vec3(0.01, 0.0, 0.0), e.z * 0.92);
+            float wetSpot = exp(-dot(eq - vec2(-0.12, 0.08), eq - vec2(-0.12, 0.08)) * 260.0);
+            eyeC += vec3(1.0) * wetSpot * 0.8 * e.x;
+            // borde del parpado oscuro y carnoso
+            eyeC *= smoothstep(0.0, 0.35, e.x);
             col = mix(col, eyeC, e.x);
             glowSum += exp(-dot(eq, eq) * 1.2) * open * rad;
         }
     }
     col += irisCol * glowSum * (0.10 + uD6 * 0.25) * (0.5 + fog);
-    col *= vignette(uv, 0.40);
-    return vec4(col, 1.0);
+
+    // LOCURA: un ojo gigante se abre en el centro con el golpe
+    float giant = hit * smoothstep(0.35, 0.9, loco);
+    if (giant > 0.01) {
+        vec2 gq = p / 0.75;
+        vec3 e = hwEye(gq, giant, vec2(0.0));
+        vec2 ic = gq - vec2(0.18 * sin(uRTime * 3.0), 0.0);
+        float ir = length(ic);
+        float ang = atan(gq.y, gq.x);
+        float veins = ridge(noise21(vec2(ang * 7.0, length(gq) * 9.0)), 10.0) * smoothstep(0.2, 0.8, length(gq));
+        vec3 sclera = mix(vec3(0.88, 0.80, 0.74), vec3(0.75, 0.03, 0.03), veins);
+        sclera *= 1.0 - length(gq) * 0.55;
+        float irisM = 1.0 - smoothstep(0.21, 0.23, ir);
+        float istr = 0.6 + 0.4 * noise21(vec2(atan(ic.y, ic.x) * 14.0, ir * 20.0));
+        vec3 iris = irisCol * istr * (1.4 - ir * 2.0);
+        float pupil = 1.0 - smoothstep(0.8, 1.0, length(ic / vec2(0.035, 0.18)));
+        vec3 gc = mix(sclera, iris, irisM);
+        gc = mix(gc, vec3(0.0), pupil);
+        gc += vec3(1.0) * exp(-dot(ic - vec2(-0.08, 0.07), ic - vec2(-0.08, 0.07)) * 400.0);
+        col = mix(col, gc, e.x * giant);
+    }
+    return vec4(hkFinish(col, uv, vec3(0.6, 0.4, 0.1)), 1.0);
 }
