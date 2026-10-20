@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'speedfloor-laserlite-v6 2026-09-29'
+BUILD_TAG = 'speedfloor-pano-v7 2026-10-20'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -106,6 +106,11 @@ STROBE_MAX_HZ = 3.0
 DEFAULT_OUTPUT_W = 1280
 DEFAULT_OUTPUT_H = 720
 MAX_OUTPUT = 1280
+# Formato del PROYECTOR (casi todos son 16:9). Si un set pide una salida
+# mas ancha (p. ej. panoramica 1280x512 para una tela de 5 x 2 m), la
+# ventana al proyector la centra en un cuadro de este formato con franjas
+# negras arriba y abajo en vez de estirarla. Con salida 16:9 no cambia nada.
+PROJECTOR_ASPECT = 16.0 / 9.0
 
 # ESCALA DE RENDER DE LAS ESCENAS. Las escenas (los .frag, que es donde
 # esta casi todo el costo de GPU: fbm de 4-7 octavas por pixel) se
@@ -744,6 +749,12 @@ def _apply_set(name):
         'sets', name, data.get('thumbs_dir', 'thumbs'))
     g['PRESETS_FILE'] = data.get('presets_file',
                                  'presets_{}.json'.format(name))
+    if data.get('output'):
+        # Resolucion de salida propia del set, [ancho, alto]. Respeta el
+        # tope de la licencia Non-Commercial.
+        w, h = data['output']
+        g['DEFAULT_OUTPUT_W'] = max(320, min(int(w), MAX_OUTPUT))
+        g['DEFAULT_OUTPUT_H'] = max(240, min(int(h), MAX_OUTPUT))
     if data.get('prelude'):
         g['SET_PRELUDE'] = _os.path.join('sets', name, data['prelude'])
     g['GRID_ROWS'] = math.ceil(g['N_SCENES'] / GRID_COLS)

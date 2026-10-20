@@ -9,6 +9,7 @@ fuera de TouchDesigner y sin GPU.
     python3 td/tools/render_scenes.py salida/ --audio golpe --t 12.5
     python3 td/tools/render_scenes.py salida/ --d 0.8         # las 6 Detail en 0.8
     python3 td/tools/render_scenes.py salida/ --chaos 0.9     # perilla Chaos (locura)
+    python3 td/tools/render_scenes.py salida/ --size 1280x512 # otro formato
 
 Compone header + .frag + footer exactamente como shader.py lo hace para
 TD, inyecta lo mismo que inyecta un GLSL TOP (vUV, sTD2DInputs,
@@ -38,6 +39,10 @@ from PIL import Image, ImageDraw     # noqa: E402
 from vjcore import config, shader    # noqa: E402
 
 W, H = 640, 360
+if '--size' in sys.argv:
+    _i = sys.argv.index('--size')
+    W, H = (int(x) for x in sys.argv[_i + 1].lower().split('x'))
+    del sys.argv[_i:_i + 2]
 
 _VERT = """#version 330
 in vec2 in_pos;

@@ -847,6 +847,7 @@ def verify(proj, channels):
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))
     check('show_window existe', bool(proj.op('show_window')))
+    check('show_frame (cuadro 16:9 del proyector) existe', bool(proj.op('show_frame')))
     lz = proj.op('laser')
     check('laser (opcional) construido y apagado',
           bool(lz) and bool(lz.op('laser_points')) and not lz.allowCooking,

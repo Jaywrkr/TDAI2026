@@ -40,6 +40,7 @@ def probe(set_name):
         ' "media": sorted(config.MEDIA_SCENES), "visuals": shader.visuals_dir(),'
         ' "thumbs": config.THUMBS_DIRNAME, "presets": config.PRESETS_FILE,'
         ' "rows": config.GRID_ROWS, "header": h,'
+        ' "out": [config.DEFAULT_OUTPUT_W, config.DEFAULT_OUTPUT_H],'
         ' "found": [bool(shader.find_visual(i)) for i in range(config.N_SCENES)]}))\n'
         % TD)
     env = dict(os.environ, TDAI_SET=set_name)
@@ -58,6 +59,7 @@ def main():
     check('header lo dice', '#define MODERN_FROM 58' in d['header']
           and '#define AUDIO_DANCE 1' in d['header'])
     check('presets.json de siempre', d['presets'] == 'presets.json')
+    check('salida 1280x720 de siempre', d['out'] == [1280, 720], d['out'])
 
     sets_dir = os.path.join(TD, 'sets')
     names = sorted(n for n in os.listdir(sets_dir)
@@ -79,6 +81,9 @@ def main():
               '#define MODERN_FROM {}'.format(sj.get('modern_from', 0)) in d['header']
               and '#define AUDIO_DANCE {}'.format(1 if sj.get('audio_dance') else 0)
               in d['header'])
+        if sj.get('output'):
+            check('salida del set.json, dentro del tope 1280',
+                  d['out'] == sj['output'] and max(d['out']) <= 1280, d['out'])
         for i in sj.get('media_scenes', []):
             check('escena de media {} existe'.format(i), i < d['n'])
         vis = d['visuals']

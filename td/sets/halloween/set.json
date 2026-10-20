@@ -1,5 +1,9 @@
 {
   "label": "HALLOWEEN 2026",
+  "output": [
+    1280,
+    512
+  ],
   "visuals_dir": "visuals",
   "modern_from": 0,
   "audio_dance": false,

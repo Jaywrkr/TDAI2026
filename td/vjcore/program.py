@@ -732,11 +732,26 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
         safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")
 
+    # Cuadro del proyector: la salida (que puede ser panoramica) centrada
+    # en un cuadro 16:9 con franjas negras. Sin esto la ventana en 'fill'
+    # estiraria una salida 1280x512 a la pantalla 16:9 y todo se veria
+    # aplastado. Con salida 16:9 el Fit no hace nada.
+    frame = proj.create(fitTOP, 'show_frame')
+    frame.nodeX, frame.nodeY = 1360, -160
+    connect(frame, show)
+    safe_set(frame, 'fit', 'fitbest')
+    safe_set(frame, 'outputresolution', 'custom')
+    safe_expr(frame, 'resolutionw', "op('/project1').par.Outputwidth")
+    safe_expr(frame, 'resolutionh',
+              "max(op('/project1').par.Outputheight, "
+              "int(round(op('/project1').par.Outputwidth / {:.6f})))"
+              .format(config.PROJECTOR_ASPECT))
+
     # Ventana de salida al proyector. Se crea pero NO se abre sola: abrirla
     # es una accion de show, no de build.
     win = proj.create(windowCOMP, 'show_window')
     win.nodeX, win.nodeY = 1560, -160
-    safe_set_first(win, ['op', 'operator', 'winop'], show.path)
+    safe_set_first(win, ['op', 'operator', 'winop'], frame.path)
     safe_set(win, 'borders', False)
     safe_set_first(win, ['opensize', 'size'], 'fill')
     safe_set(win, 'monitor', 1)
@@ -748,7 +763,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     out = {'a': sw_a, 'b': sw_b, 'preview': sw_prev, 'cross': cross,
            'clean': clean, 'bloom': bloom, 'master': master, 'show': show,
            'bloom_prefilter': bloom_fx['bloom_prefilter'],
-           'window': win}
+           'frame': frame, 'window': win}
     out.update(fx)
     out.update(text_fx)
     return out

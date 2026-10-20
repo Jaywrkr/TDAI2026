@@ -48,6 +48,7 @@ td/
 | `audio_dance` | `false` | **Sin el twirl global** (`audioDanceUV`): el audio mueve elementos de cada escena, no la imagen entera |
 | `media_scenes` | `[6]` | La escena 6 (VHS de terror) usa la carpeta Media |
 | `fullres_scenes` | `[8, 9]` | Telaraña y tormenta, de líneas finas, siempre a resolución completa |
+| `output` | `[1280, 512]` | Salida **panorámica 2,5:1** para la tela de 5,0 × 2,0 m (ver abajo) |
 
 La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
@@ -135,6 +136,20 @@ Igual que siempre, con `--set`:
 python3 td/tools/add_scene.py --set halloween --slug momia respuesta.frag
 python3 td/tools/add_scene.py --set halloween --dir carpeta_de_frags/
 ```
+
+## Imagen panorámica (tela 5,0 × 2,0 m)
+
+En NILA la pared llega a unos 2,7 m y la gente tapa la parte de abajo. Para una imagen amplia hay que ganar **ancho**, no alto: tela de 5,0 × 2,0 m (2,5:1), de 0,7 m a 2,7 m del piso.
+
+- El set sale a **1280 × 512** (`output` en `set.json`). Respeta el tope de 1280 px de la licencia Non-Commercial y tiene un 29 % menos de píxeles que 1280 × 720, así que los FPS no bajan.
+- Las escenas no se estiran: `centered()` usa el formato real, así que se ve más escena a los lados con la misma altura.
+- `show_frame` (Fit TOP) centra la salida en un cuadro 16:9 (`config.PROJECTOR_ASPECT`) con franjas negras arriba y abajo. La ventana al proyector muestra ese cuadro. Con salida 16:9 no cambia nada.
+- Para volver a 16:9, borra `output` del `set.json` o cambia Output Width/Height en /project1 > Output.
+- Proyector (estimado de la foto, medir): de 10.000 a 12.000 lm ANSI, láser, 1080p, throw ratio de unos 1,1–1,3 (distancia ÷ 5,0 m), lens shift vertical, colgado invertido en la estructura.
+- Tela: 5,25 × 2,1 m de lycra de proyección gris clara mate en bastidor de aluminio, de una sola pieza y opaca, para tapar el letrero NILA.
+- Vista previa: `python3 td/tools/render_scenes.py salida/ --set halloween --size 1280x512`.
+
+Después de cambiar el formato hay que **Reconstruir Todo**.
 
 ## Verificar fuera de TouchDesigner
 
