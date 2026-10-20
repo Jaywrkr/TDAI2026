@@ -191,6 +191,10 @@ Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, c
 - **Codificación del color:** las láminas de color guardan color lineal ×2 con gamma 2.2; la escena lo decodifica con `plateCol()`.
 - **Reemplazarlas por fotos o arte:** sirve cualquier PNG con el mismo nombre y el mismo encuadre (ver las constantes `FAR_Y`, `MID_Y` y `NEAR_Y` en la escena).
 
+## Guion de la noche (sin MIDI)
+
+`guion.json` de este set lleva la noche entera sin controlador: las 20 escenas de 22:00 a 05:30, con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
+
 ## Verificar fuera de TouchDesigner
 
 ```bash

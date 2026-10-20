@@ -27,7 +27,7 @@ import sys
 
 _SUBMODULES = ['config', 'tdutil', 'shader', 'audio', 'control',
                'midi', 'scenes', 'media', 'keyboard', 'autopilot',
-               'program', 'dashboard', 'laserfx', 'laser', 'builder']
+               'program', 'dashboard', 'laserfx', 'laser', 'guion', 'builder']
 
 
 def _mod(name):

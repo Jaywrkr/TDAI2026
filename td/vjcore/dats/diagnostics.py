@@ -410,6 +410,30 @@ def update():
         lines.append('>> SETLIST ON  ({} escenas)  Next/Prev siguen ese orden'
                      .format(len(setlist)))
         lines.append('   ' + ' '.join('{:02d}'.format(i) for i in setlist[:16]))
+    gi = None
+    if ctrl:
+        try:
+            gi = ctrl.module.guionInfo()
+        except Exception:
+            gi = None
+    if gi and gi.get('error') and 'n' not in gi:
+        if bool(_par_val('Guionactivo')):
+            lines.append('')
+            lines.append('>> GUION: ' + gi['error'])
+    elif gi and gi['activo']:
+        import vjcore.guion as _g
+        lines.append('')
+        estado = 'RELOJ' if gi['reloj'] else ('PAUSA' if gi['pausa'] else 'ON')
+        if gi['pos'] < 0:
+            lines.append('>> GUION RELOJ  empieza en {}'.format(_g.fmt_time(-gi['pos'])))
+        else:
+            lines.append('>> GUION {}  {} / {}  cue {}/{}: {}'.format(
+                estado, _g.fmt_time(gi['pos']), _g.fmt_time(gi['fin']),
+                max(gi['idx'], 0), gi['n'] - 1, gi['cue']))
+        if gi['faltan'] is not None:
+            lines.append('   proximo en {}: {}'.format(_g.fmt_time(gi['faltan']), gi['proximo']))
+        if gi['avisos']:
+            lines.append('   {} aviso(s) en el archivo, ver Textport'.format(gi['avisos']))
     size = int(_par_val('Banksize', 8))
     bank = int(_par_val('Bank'))
     if bank:

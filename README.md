@@ -96,6 +96,7 @@ El contrato actual **todavía no cumple esos dos puntos**: el reloj se congela s
 | [51 — Speed y baile de escenas nuevas](docs/51_SPEED_Y_BAILE.md) | Speed lineal con empuje moderado de bajo; detalles y movimiento de escenas 58–97 |
 | [52 — **Láser ILDA opcional**](docs/52_LASER_ILDA.md) | Se habilita o deshabilita: APAGADO / SIMULADOR (sin hardware) / SALIDA DAC; seguridad y exportar `.ild` |
 | [53 — **Sets y show de Halloween**](docs/53_SETS_Y_HALLOWEEN.md) | Un núcleo, varios shows: `SET = 'halloween'` en RUN_ME; 20 escenas nuevas y cómo agregar más |
+| [54 — **Guion: el show sin MIDI**](docs/54_GUION.md) | Un JSON con cues en el tiempo (escena, perillas con rampa, efectos, texto); sigue la hora real; `td/tools/guion.py` lo revisa afuera |
 
 ## Crear una escena nueva
 
