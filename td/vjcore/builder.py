@@ -289,6 +289,25 @@ def _parameters(proj):
     add_float(nt, 'Nocheintensidad', 'Intensidad del efecto', 1.0, 0.0, 1.0)
     add_float(nt, 'Nochevalor', 'Noche (interno)', 0.0, 0.0, 1.0)
 
+    # GUION (docs/54_GUION.md): el show por archivo, sin MIDI. El archivo
+    # vive en el set (guion.json); Guionposicion/Guioncue son internos
+    # (los escribe control_script._guionTick).
+    gu = proj.appendCustomPage('Guion')
+    add_toggle(gu, 'Guionactivo', 'Guion activo', False)
+    add_pulse(gu, 'Guionplay', 'Arrancar desde 0:00')
+    add_pulse(gu, 'Guionpause', 'Pausa / seguir')
+    add_pulse(gu, 'Guionstop', 'Parar')
+    add_pulse(gu, 'Guionnext', 'Proximo cue')
+    add_pulse(gu, 'Guionprev', 'Cue anterior')
+    add_int(gu, 'Guionsalto', 'Ir al cue', 0, 0, 999)
+    add_pulse(gu, 'Guionir', 'Ir al cue elegido')
+    add_toggle(gu, 'Guionreloj', 'Seguir la hora real (inicio del guion)', False)
+    add_string(gu, 'Guionarchivo', 'Archivo (vacio = guion.json del set)', '')
+    add_pulse(gu, 'Guionrecargar', 'Recargar archivo')
+    add_toggle(gu, 'Guionpausa', 'En pausa (interno)', False)
+    add_float(gu, 'Guionposicion', 'Posicion en segundos (interno)', 0.0, 0.0, 36000.0)
+    add_int(gu, 'Guioncue', 'Cue actual (interno)', 0, 0, 999)
+
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
     # Piso propio del failsafe, separado del aviso visual (Fpswarning, 55):
@@ -485,6 +504,20 @@ def onPulse(par):
         m.mediaRescan()
     elif n == 'Fontnext':
         m.nextFont()
+    elif n == 'Guionplay':
+        m.startGuion(0.0)
+    elif n == 'Guionpause':
+        m.toggleGuionPausa()
+    elif n == 'Guionstop':
+        m.stopGuion()
+    elif n == 'Guionnext':
+        m.guionNext()
+    elif n == 'Guionprev':
+        m.guionPrev()
+    elif n == 'Guionir':
+        m.guionGo(int(p.par.Guionsalto.eval()))
+    elif n == 'Guionrecargar':
+        m.loadGuion()
     elif n == 'Laserwindow':
         import vjcore.laser as L
         L.open_simulator(p)
@@ -528,6 +561,13 @@ def onValueChange(par, prev):
         ctrl.module.mediaReshuffle()
     elif par.name == 'Mediascrub':
         ctrl.module.mediaScrubSelect(par.val)
+    elif par.name == 'Guionarchivo':
+        ctrl.module.loadGuion()
+    elif par.name == 'Guionreloj' and par.eval():
+        # Prender el reloj = el guion sigue la hora real desde ya.
+        p = op('/project1')
+        if p is not None:
+            p.par.Guionactivo = True
     elif par.name == 'Lasermode':
         import vjcore.laser as L
         L.apply_mode(op('/project1'))

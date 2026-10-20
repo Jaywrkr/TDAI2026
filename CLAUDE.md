@@ -14,6 +14,7 @@ Lee primero [docs/51_SPEED_Y_BAILE.md](docs/51_SPEED_Y_BAILE.md). Ese documento 
 - Rama de trabajo: `claude/upbeat-bell-m4iut3`. El reloj de Speed ya está corregido (ver la actualización al inicio de docs/51). El twirl de `audioDanceUV` sigue pendiente.
 - Láser ILDA opcional: docs/52_LASER_ILDA.md.
 - Show de **Halloween el 30 de octubre**: set aparte con el mismo núcleo, ver docs/53_SETS_Y_HALLOWEEN.md.
+- **Guion sin MIDI** (docs/54_GUION.md): `td/vjcore/guion.py` + sección GUION de control_script; el guion de Halloween es `td/sets/halloween/guion.json` (22:00→05:30). Pruebas: `td/tools/test_guion.py`.
 
 ## Entrega
 

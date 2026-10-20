@@ -2176,7 +2176,8 @@ def _autopilotTick():
     p = _p()
     if p:
         try:
-            if bool(p.par.Autopilot.eval()):
+            # Con el guion corriendo, el guion manda las escenas.
+            if bool(p.par.Autopilot.eval()) and not _guionOn():
                 token = int(p.fetch('autopilot_token', 0)) + 1
                 p.store('autopilot_token', token)
                 p.store('autopilot_armed', True)
@@ -2251,6 +2252,386 @@ def startAutopilot():
     _scheduleAutopilot()
 
 
+# ---------------------------------------------------------------
+# GUION: el show por archivo, sin MIDI
+# ---------------------------------------------------------------
+# Un JSON con cues en el tiempo (ver vjcore/guion.py y docs/54_GUION.md)
+# escribe lo mismo que escribiria el MIDI: escena, perillas, efectos,
+# texto. Loop propio (_guionTick) que se reagenda solo, prendido o no,
+# igual que el autopilot: revisa Guionactivo en cada tick.
+#
+# El reloj del guion vive en p.store('guion_t0'): el absTime.seconds en
+# que fue t=0. Pausa = congelar la posicion y mover t0 al reanudar. Con
+# Guionreloj prendido la posicion sale de la hora real y el "inicio" del
+# archivo (o Nocheinicio si el archivo no lo trae): abrir TD a las 22:40
+# te deja en el minuto 40 del guion, sin tocar nada.
+
+_GUION = None          # guion normalizado (vjcore.guion.normalize)
+_GUION_ERROR = ''
+_GUION_TICK_MS = 250
+
+
+def _guionPath():
+    p = _p()
+    path = ''
+    try:
+        path = str(p.par.Guionarchivo.eval() or '').strip()
+    except Exception:
+        pass
+    if path:
+        if not os.path.isabs(path):
+            try:
+                import vjcore.config as _vjconfig
+                path = os.path.join(_vjconfig.set_dir(), path)
+            except Exception:
+                pass
+        return path
+    try:
+        import vjcore.config as _vjconfig
+        import vjcore.guion as _g
+        return _g.default_path(_vjconfig.set_dir())
+    except Exception:
+        return ''
+
+
+def loadGuion():
+    """(Re)lee el archivo. Un archivo roto NO rompe nada: el guion queda
+    vacio y el panel dice por que."""
+    global _GUION, _GUION_ERROR
+    _GUION, _GUION_ERROR = None, ''
+    p = _p()
+    path = _guionPath()
+    if not path or not os.path.isfile(path):
+        _GUION_ERROR = 'sin archivo ({})'.format(path or 'ruta vacia')
+        return None
+    try:
+        import vjcore.guion as _g
+        g = _g.load(path)
+        probs = _g.validate(g, _n_scenes(), _valid)
+        for w in probs:
+            print('GUION aviso:', w)
+        _GUION = g
+        if p:
+            p.store('guion_last', -1)
+            p.store('guion_avisos', len(probs))
+        print('GUION: {} cues, dura {} ({})'.format(len(g['cues']), _g.fmt_time(_g.duration(g)), path))
+    except Exception as e:
+        _GUION_ERROR = str(e)
+        print('GUION ERROR:', e)
+    return _GUION
+
+
+def guionInfo():
+    """Resumen para el panel de estado: (dict) o None si no hay guion."""
+    g = _GUION
+    p = _p()
+    if not g or not p:
+        return {'error': _GUION_ERROR} if _GUION_ERROR else None
+    import vjcore.guion as _g
+    pos = _guionPos()
+    idx = int(p.fetch('guion_last', -1))
+    nxt, nt = _g.next_cue(g['cues'], _g.index_at(g['cues'], pos))
+    cur = g['cues'][idx] if 0 <= idx < len(g['cues']) else None
+    return {
+        'nombre': g['nombre'], 'n': len(g['cues']), 'idx': idx, 'pos': pos,
+        'cue': cur['nombre'] if cur else '', 'activo': _guionOn(),
+        'pausa': _guionPaused(), 'reloj': _guionClock(),
+        'proximo': g['cues'][nxt]['nombre'] if nxt is not None else '',
+        'faltan': (nt - pos) if nt is not None else None,
+        'fin': _g.duration(g), 'error': _GUION_ERROR,
+        'avisos': int(p.fetch('guion_avisos', 0)),
+    }
+
+
+def _guionOn():
+    p = _p()
+    try:
+        return bool(p.par.Guionactivo.eval())
+    except Exception:
+        return False
+
+
+def _guionPaused():
+    p = _p()
+    try:
+        return bool(p.par.Guionpausa.eval())
+    except Exception:
+        return False
+
+
+def _guionClock():
+    p = _p()
+    try:
+        return bool(p.par.Guionreloj.eval())
+    except Exception:
+        return False
+
+
+def _now():
+    try:
+        return float(absTime.seconds)
+    except Exception:
+        import time
+        return time.time()
+
+
+def _guionInicioHoras():
+    g = _GUION
+    if g and g.get('inicio') is not None:
+        return float(g['inicio'])
+    p = _p()
+    try:
+        return float(p.par.Nocheinicio.eval())
+    except Exception:
+        return 22.0
+
+
+def _guionPos():
+    """Posicion del guion en segundos."""
+    p = _p()
+    if not p:
+        return 0.0
+    if _guionClock():
+        import datetime
+        import vjcore.guion as _g
+        now = datetime.datetime.now()
+        h = now.hour + now.minute / 60.0 + now.second / 3600.0
+        return _g.clock_position(h, _guionInicioHoras(), _g.duration(_GUION) if _GUION else None)
+    if _guionPaused():
+        return float(p.fetch('guion_pausa_pos', 0.0))
+    t0 = p.fetch('guion_t0', None)
+    if t0 is None:
+        return 0.0
+    return max(0.0, _now() - float(t0))
+
+
+def _guionSetPos(pos):
+    """Mueve el reloj del guion a 'pos' (modo normal) o deja la pausa
+    ahi. En modo reloj no se puede mover: la hora manda."""
+    p = _p()
+    if not p:
+        return
+    p.store('guion_t0', _now() - float(pos))
+    p.store('guion_pausa_pos', float(pos))
+
+
+def startGuion(pos=0.0):
+    """Arranca (o re-arranca) el guion desde 'pos' segundos. Apaga el
+    autopilot: dos pilotos a la vez se pisan."""
+    p = _p()
+    if not p:
+        return
+    if _GUION is None:
+        loadGuion()
+    if _GUION is None:
+        print('GUION: nada que arrancar --', _GUION_ERROR)
+        return
+    try:
+        p.par.Autopilot = False
+        p.par.Guionpausa = False
+        p.par.Guionreloj = False
+        _guionSetPos(pos)
+        p.store('guion_last', -1)
+        p.store('guion_ramp_base', {})
+        p.par.Guionactivo = True
+        print('GUION: arranca en', pos)
+        _guionTick(reschedule=False)
+    except Exception as e:
+        print('startGuion ERROR:', e)
+
+
+def stopGuion():
+    p = _p()
+    if p:
+        p.par.Guionactivo = False
+        print('GUION: parado')
+
+
+def toggleGuionPausa():
+    p = _p()
+    if not p or _GUION is None:
+        return
+    try:
+        if _guionClock():
+            print('GUION: en modo reloj no hay pausa')
+            return
+        if _guionPaused():
+            _guionSetPos(float(p.fetch('guion_pausa_pos', 0.0)))
+            p.par.Guionpausa = False
+        else:
+            p.store('guion_pausa_pos', _guionPos())
+            p.par.Guionpausa = True
+    except Exception as e:
+        print('toggleGuionPausa ERROR:', e)
+
+
+def guionGo(idx):
+    """Salta al cue idx y deja TODO como si el guion hubiera corrido
+    hasta ahi: escena al aire + estado acumulado de las perillas. Los
+    efectos de un golpe y las acciones de los cues saltados no se
+    repiten (no tiene sentido disparar 40 strobes de golpe)."""
+    p = _p()
+    g = _GUION
+    if not p or not g:
+        return
+    import vjcore.guion as _g
+    cues = g['cues']
+    idx = max(0, min(len(cues) - 1, int(idx)))
+    try:
+        if _guionClock():
+            p.par.Guionreloj = False
+        was_paused = _guionPaused()
+        _guionSetPos(cues[idx]['t'])
+        if was_paused:
+            p.store('guion_pausa_pos', cues[idx]['t'])
+        _guionApplyUpTo(idx)
+        p.store('guion_last', idx - 1)
+        p.store('guion_ramp_base', {})
+        _guionFire(idx, jump=True)
+        p.store('guion_last', idx)
+        if not _guionOn():
+            p.par.Guionactivo = True
+    except Exception as e:
+        print('guionGo ERROR:', e)
+
+
+def guionNext():
+    p = _p()
+    if p and _GUION:
+        guionGo(int(p.fetch('guion_last', -1)) + 1)
+
+
+def guionPrev():
+    p = _p()
+    if p and _GUION:
+        guionGo(int(p.fetch('guion_last', -1)) - 1)
+
+
+def _guionApplyUpTo(idx):
+    """Deja el rig como si los cues 0..idx-1 ya hubieran corrido: perillas
+    en su valor final, texto, blackout y la escena que quedo al aire (si
+    el cue idx no trae escena propia)."""
+    p = _p()
+    import vjcore.guion as _g
+    cues = _GUION['cues']
+    for name, val in _g.state_before(cues, idx).items():
+        _setPar(p, name, val)
+    ex = _g.extras_before(cues, idx)
+    if ex['texto'] is not None:
+        _setPar(p, 'Textcontent', ex['texto'])
+    if ex['textovisible'] is not None:
+        _setPar(p, 'Textvisible', bool(ex['textovisible']))
+    if ex['blackout'] is not None:
+        _setPar(p, 'Blackout', bool(ex['blackout']))
+    scn, fade = _g.scene_at(cues, idx - 1)
+    if scn is not None and cues[idx]['escena'] is None:
+        _guionScene(scn, fade)
+
+
+def _guionScene(index, fade):
+    p = _p()
+    if fade is not None:
+        try:
+            p.par.Transitionseconds = float(fade)
+        except Exception:
+            pass
+    if int(p.par.Targetindex.eval()) != int(index) or int(p.par.Activeindex.eval()) != int(index):
+        selectScene(index)
+
+
+def _guionFire(idx, jump=False):
+    """Dispara el cue idx: escena, perillas (las de rampa arrancan desde
+    lo que hay AHORA en el parametro -- asi una perilla movida a mano
+    desliza desde donde la dejaste, sin saltar), efectos, acciones,
+    texto, blackout."""
+    p = _p()
+    g = _GUION
+    c = g['cues'][idx]
+    if c['escena'] is not None:
+        _guionScene(c['escena'], c['fundido'])
+    p.store('guion_ramp_open', False)
+    if c['pars']:
+        if c['rampa'] > 0.0:
+            base = {}
+            for name in c['pars']:
+                v = _parVal(p, name, None)
+                if v is not None:
+                    base[name] = float(v)
+            p.store('guion_ramp_base', base)
+            p.store('guion_ramp_open', True)
+        else:
+            for name, val in c['pars'].items():
+                _setPar(p, name, val)
+    if c['texto'] is not None:
+        _setPar(p, 'Textcontent', c['texto'])
+    if c['textovisible'] is not None:
+        _setPar(p, 'Textvisible', bool(c['textovisible']))
+    if c['blackout'] is not None:
+        _setPar(p, 'Blackout', bool(c['blackout']))
+    if not jump:
+        for fx in c['fx']:
+            _setPar(p, fx, 1.0)
+            run("op('/project1/midi_logic').module._resetEffect('{}')".format(fx), delayFrames=2)
+        for a in c['accion']:
+            fn = globals().get(a)
+            if callable(fn):
+                try:
+                    fn()
+                except Exception as e:
+                    print('GUION accion', a, 'ERROR:', e)
+    print('GUION cue {} {} {}'.format(idx, c['nombre'], '(salto)' if jump else ''))
+
+
+def _guionTick(reschedule=True):
+    p = _p()
+    try:
+        if p and _GUION and _guionOn():
+            import vjcore.guion as _g
+            cues = _GUION['cues']
+            pos = _guionPos()
+            last = int(p.fetch('guion_last', -1))
+            cur = _g.index_at(cues, pos)
+            if cur < last and cur >= 0:
+                # el reloj fue para atras (modo reloj recien prendido, o
+                # pausa movida): se reposiciona como un salto, sin
+                # repetir efectos.
+                guionGo(max(cur, 0))
+                last = int(p.fetch('guion_last', -1))
+            elif cur > last:
+                # Varios cues de golpe (TD estuvo trabado, o se prendio
+                # el reloj a mitad de la noche): solo el ultimo dispara
+                # de verdad; los del medio se aplican como estado.
+                if cur - last > 1:
+                    _guionApplyUpTo(cur)
+                _guionFire(cur, jump=(cur - last > 1))
+                p.store('guion_last', cur)
+                last = cur
+            # Rampa abierta: se escribe en cada tick y una ultima vez al
+            # terminar (el tick puede caer despues del final exacto).
+            # Despues la perilla queda libre: lo que toques a mano gana.
+            if p.fetch('guion_ramp_open', False) and 0 <= last < len(cues):
+                base = p.fetch('guion_ramp_base', {}) or {}
+                for name, val in _g.ramp_values(cues, last, pos, base).items():
+                    _setPar(p, name, val)
+                if _g.ramp_done(cues, last, pos):
+                    p.store('guion_ramp_open', False)
+            try:
+                p.par.Guionposicion = float(pos)
+                p.par.Guioncue = int(max(last, 0))
+            except Exception:
+                pass
+    except Exception as e:
+        print('_guionTick ERROR:', e)
+    if reschedule:
+        run("op('/project1/control_script').module._guionTick()",
+            delayMilliSeconds=_GUION_TICK_MS)
+
+
+def startGuionLoop():
+    loadGuion()
+    _guionTick()
+
+
 def safeStartup():
     p = _p()
     if not p:
@@ -2292,6 +2673,7 @@ def safeStartup():
         mediaRescan()
         startMediaCycles()
         startAutopilot()
+        startGuionLoop()
 
         d = op('/project1/diagnostics')
         if d:
