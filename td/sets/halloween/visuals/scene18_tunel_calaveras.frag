@@ -1,12 +1,22 @@
 // ===============================================================
 // HALLOWEEN 18 - TUNEL DE CALAVERAS
-// Catacumba infinita: un tunel cuyas paredes estan hechas de calaveras
-// apiladas, iluminado por una luz que viene desde el fondo.
-// Speed avanza por el tunel. El bajo enciende la luz del fondo; el
-// golpe ilumina un anillo de calaveras que viaja hacia la camara; los
-// medios hacen girar el tunel despacio.
+// Una catacumba de verdad: pasillo con boveda de cañon cuyas paredes
+// son hileras de calaveras apiladas con filas de puntas de femur entre
+// ellas (LAMINAS que se repiten sin costura, plates/scene18, ver
+// td/tools/bake_plates_catacumba.py), piso de losas con huesos sueltos,
+// antorchas a los costados y una luz al fondo. Se avanza por el tunel.
 //
-// @D1: calaveras por vuelta
+// BAILE (cada cosa escucha una parte distinta de la musica):
+//   bajo   -> la luz del fondo late y las antorchas crecen
+//   medios -> el tunel gira despacio
+//   agudos -> titilan los ojos encendidos
+//   golpe  -> un anillo de luz viaja por las paredes hacia la camara
+//             (D3); con Chaos el tunel se retuerce
+// Speed (y D2) avanzan por el tunel aun en silencio.
+// HISTORIA: cada ~55 s un aceleron; cada ~97 s se encienden todos los
+// ojos; cada acto el tunel gira para otro lado.
+//
+// @D1: calaveras por vuelta (tamano de las hileras)
 // @D2: velocidad de avance (encima de Speed)
 // @D3: anillo de luz con el golpe
 // @D4: ojos encendidos
@@ -14,71 +24,127 @@
 // @D6: niebla del tunel
 // ===============================================================
 
-float hwMiniSkull(vec2 q) {
-    float c = length((q - vec2(0.0, 0.08)) / vec2(1.0, 0.95)) - 0.36;
-    float jaw = length(max(abs(q - vec2(0.0, -0.22)) - vec2(0.17, 0.08), 0.0)) - 0.04;
-    float s = min(c, jaw);
-    float eye = length(vec2(abs(q.x) - 0.14, q.y - 0.02)) - 0.095;
-    float nose = max(abs(q.x) * 1.5 + (q.y + 0.12) * 0.8 - 0.05, -(q.y + 0.16));
-    return max(s, -min(eye, nose));
+const float FLOOR_Y = -0.75;
+const float ARCH_Y = 0.15;
+const float HALF_W = 1.0;
+
+vec4 t18Tex(int which, vec2 uv, float lod) {
+    // laminas que se repiten: muestreo con nivel de mip calculado a mano
+    // (con fract la derivada salta y el mip automatico dejaria una linea)
+    uv = fract(uv);
+    if (which == 0) return textureLod(sTD2DInputs[1], uv, lod);
+    if (which == 1) return textureLod(sTD2DInputs[2], uv, lod);
+    if (which == 2) return textureLod(sTD2DInputs[3], uv, lod);
+    return textureLod(sTD2DInputs[4], uv, lod);
 }
+vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
 
 vec4 render(vec2 uv) {
     vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
+    float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
     float loco = hkLoco();
-    float hue = audioHue(uHue, mid * 0.006);
 
-    vec3 lightC = mix(vec3(1.0, 0.55, 0.20), hsv2rgb(vec3(fract(0.33 + hue), 0.85, 1.0)), uD5);
-    float r = length(p);
-    float a = atan(p.y, p.x) + t * 0.03 * (hkActVal(5.0) > 0.5 ? 1.0 : -1.0) + mid * 0.08;
-    // locura: el tunel se retuerce con el golpe
-    a += hit * loco * 0.6 * sin(0.35 / max(r, 0.02) * 0.8 + uRTime * 3.0);
-    // coordenadas del tunel: profundidad 1/r
-    float depth = 0.35 / max(r, 0.02);
-    // historia: cada ~55 s 'acelerón' (el avance se adelanta sin saltar);
-    // cada ~97 s se encienden todos los ojos; cada acto gira para otro lado
+    vec3 lightC = mix(vec3(1.0, 0.55, 0.22), vec3(0.35, 1.0, 0.45), uD5);
     float rushE = hkEvent(3.0, 55.0, 6.0);
-    float travel = t * (0.35 + uD2 * 0.8) + hkEventPhase(3.0, 55.0, 6.0) * 6.0 * step(0.001, rushE);
-    float z = depth + travel;
-    float per = 10.0 + floor(uD1 * 10.0);
-    vec2 tc = vec2(a / TAU * per, z * per / TAU * 2.2);
-    vec2 id = floor(tc);
-    tc.x += 0.5 * mod(id.y, 2.0);
-    id = floor(tc);
-    vec2 f = fract(tc) - 0.5;
-    float sk = hwMiniSkull(f * 1.15);
-    float mask = 1.0 - smoothstep(-0.03, 0.03, sk);
-    float shade = 0.55 + 0.45 * hash21(id);
-    vec3 boneC = vec3(0.85, 0.78, 0.62) * shade;
-
-    // luz: mas fuerte cerca del fondo (r chico) y con niebla
-    float fogAmt = 1.0 - exp(-depth * (0.10 + uD6 * 0.25));
-    float lightFall = exp(-depth * 0.18) ;
-    vec3 lit = boneC * lightC * (0.25 + 1.6 * (1.0 - lightFall) * 0.0 + 0.9 * exp(-(depth - 0.35) * 0.08));
-    lit *= 0.35 + 0.65 * smoothstep(-0.25, 0.25, f.y);   // volumen
-    // anillo del golpe que viaja hacia la camara
-    float ringZ = fract(uRTime * 0.8) * 8.0;
-    float ring = exp(-pow((depth - (8.0 - ringZ)) * 1.5, 2.0)) * hit * (0.5 + uD3 * 1.5);
-    lit += boneC * lightC * ring * 1.5;
-    // antorchas en las paredes cada tanto: bandas de luz calida
-    float ring2 = fract(z * 0.22);
-    float torchB = exp(-pow((ring2 - 0.5) * 8.0, 2.0)) * (0.6 + 0.4 * sin(t * 9.0 + floor(z * 0.22)));
-    lit += boneC * vec3(1.0, 0.55, 0.20) * torchB * 0.9;
-    vec3 col = mix(vec3(0.01, 0.006, 0.004), lit, mask);
-    col += vec3(1.0, 0.5, 0.15) * torchB * 0.06 * (1.0 - mask);
-    // ojos encendidos en algunas calaveras
+    float travel = t * (0.6 + uD2 * 1.6) + hkEventPhase(3.0, 55.0, 6.0) * 10.0 * step(0.001, rushE);
     float eyesAll = hkEvent(4.0, 97.0, 6.0);
-    float eyeOn = max(step(0.80 - uD4 * 0.5, hash21(id + 7.0)), eyesAll);
-    float eyes = 1.0 - smoothstep(0.0, 0.05, length(vec2(abs(f.x * 1.15) - 0.14, f.y * 1.15 - 0.02)) - 0.06);
-    col += lightC * eyes * eyeOn * (0.6 + bass * 0.8 + hit * 0.4) * (1.0 - fogAmt * 0.7);
-    // niebla y luz del fondo
-    vec3 fogC = lightC * (0.35 + bass * 0.5);
-    col = mix(col, fogC * 0.5, fogAmt * 0.85);
-    col += lightC * exp(-r * (6.0 - bass * 2.0)) * (0.8 + bass);
+    float tile = mix(1.25, 0.60, uD1);
 
-    return vec4(hkFinish(col, uv, vec3(0.7, 0.4, 0.1)), 1.0);
+    // rayo de la camara (con giro lento; la locura retuerce el tunel)
+    float roll = (hkActVal(5.0) > 0.5 ? 1.0 : -1.0) * (0.06 * sin(t * 0.13) + mid * 0.05);
+    vec3 d = normalize(vec3(p * 0.62, 1.0));
+    float twist = hit * loco * 0.5 * sin(uRTime * 3.0);
+    float ca = cos(roll), sa = sin(roll);
+    d.xy = mat2(ca, sa, -sa, ca) * d.xy;
+
+    // paredes, boveda o piso
+    float tw = HALF_W / max(abs(d.x), 1e-4);
+    float yw = d.y * tw;
+    int surf;
+    float th;
+    vec2 tuv;
+    vec3 N, T, B;
+    if (yw >= FLOOR_Y && yw <= ARCH_Y) {
+        surf = 0; th = tw;
+        float z = th * d.z + travel;
+        tuv = vec2(z, yw - FLOOR_Y) / tile;
+        N = vec3(-sign(d.x), 0.0, 0.0); T = vec3(0.0, 0.0, sign(d.x)); B = vec3(0.0, 1.0, 0.0);
+    } else if (yw > ARCH_Y) {
+        surf = 1;
+        float a = dot(d.xy, d.xy), b = -2.0 * ARCH_Y * d.y, c = ARCH_Y * ARCH_Y - HALF_W * HALF_W;
+        th = (-b + sqrt(max(b * b - 4.0 * a * c, 0.0))) / (2.0 * a);
+        vec3 hp = d * th;
+        float ang = atan(hp.x, hp.y - ARCH_Y);                     // 0 arriba
+        float z = th * d.z + travel;
+        tuv = vec2(z, (ARCH_Y - FLOOR_Y) + (1.5708 - abs(ang)) * HALF_W) / tile;
+        N = -normalize(vec3(hp.x, hp.y - ARCH_Y, 0.0)); T = vec3(0.0, 0.0, 1.0); B = cross(N, T);
+    } else {
+        surf = 2;
+        th = FLOOR_Y / min(d.y, -1e-4);
+        vec3 hp = d * th;
+        tuv = vec2(hp.x, hp.z + travel) / (tile * 1.4);
+        N = vec3(0.0, 1.0, 0.0); T = vec3(1.0, 0.0, 0.0); B = vec3(0.0, 0.0, 1.0);
+    }
+    tuv.y += twist * 0.2 * sin(th * 0.8);
+    float graz = max(abs(dot(d, N)), 0.12);
+    float lod = log2(max(th * 1.24 / uResH / graz / tile * 768.0, 1.0));
+    vec3 hp = d * th;
+
+    vec4 ac = t18Tex(surf == 2 ? 2 : 0, tuv, lod);
+    vec4 an = t18Tex(surf == 2 ? 3 : 1, tuv, lod);
+    vec3 alb = plateCol(ac.rgb);
+    vec2 nxy = an.rg * 2.0 - 1.0;
+    vec3 n = normalize(T * nxy.x + B * nxy.y + N * sqrt(max(1.0 - dot(nxy, nxy), 0.05)));
+
+    // luz: antorchas a los costados (las 3 mas cercanas), fondo y anillo
+    vec3 L = vec3(0.008, 0.007, 0.006);
+    float zw = hp.z + travel;
+    float k0 = floor(zw / 3.0);
+    for (int k = -1; k <= 1; k++) {
+        float kk = k0 + float(k);
+        float side = mod(kk, 2.0) < 1.0 ? -1.0 : 1.0;
+        vec3 lp = vec3(side * 0.88, -0.05, kk * 3.0 + 1.5 - travel);
+        vec3 lv = lp - hp;
+        float d2 = dot(lv, lv);
+        float fl = 0.8 + 0.2 * noise21(vec2(t * 8.0, kk));
+        L += vec3(1.0, 0.55, 0.22) * fl * (0.8 + bass * 0.5) * max(dot(n, normalize(lv)), 0.0) * 0.55 / (0.12 + d2);
+    }
+    // luz del fondo: llega por el pasillo
+    L += lightC * (0.25 + bass * 0.5) * max(dot(n, vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5, 0.0) * exp(-max(30.0 - th, 0.0) * 0.09) * 0.3;
+    // anillo del golpe que viaja hacia la camara
+    float ringZ = mix(18.0, 0.5, fract(uRTime * 0.8));
+    L += lightC * exp(-pow((th * d.z - ringZ) * 1.2, 2.0)) * hit * (0.4 + uD3 * 2.0);
+    vec3 col = alb * L * 3.0;
+
+    // ojos que se encienden
+    if (surf < 2) {
+        vec2 cell = floor(tuv * vec2(6.0, 4.0));
+        float on = max(step(0.93 - uD4 * 0.45, hash21(cell + 7.0)), eyesAll);
+        col += lightC * an.b * on * (0.35 + bass * 0.6 + high * 0.4 * sin(t * 20.0 + cell.x)) * exp(-th * 0.10);
+    }
+    // antorchas visibles (llama y soporte)
+    for (int k = -1; k <= 2; k++) {
+        float kk = k0 + float(k);
+        float side = mod(kk, 2.0) < 1.0 ? -1.0 : 1.0;
+        vec3 lp = vec3(side * 0.88, -0.05, kk * 3.0 + 1.5 - travel);
+        if (lp.z < 0.2) continue;
+        vec2 sp = lp.xy / lp.z / 0.62;
+        vec2 sq = p - mat2(ca, -sa, sa, ca) * sp;
+        float sz = 0.10 / lp.z;
+        vec2 fq = sq / sz;
+        fq.x += (noise21(vec2(fq.y * 1.5 - t * 6.0, kk)) - 0.5) * 0.5 * max(fq.y + 0.3, 0.0);
+        float fl = 1.0 - smoothstep(0.4, 1.0, length(fq * vec2(1.0, 0.55)) + max(fq.y, 0.0) * 0.25);
+        col += mix(vec3(1.0, 0.45, 0.12), vec3(1.0, 0.9, 0.6), fl) * fl * 1.5 * step(lp.z, th + 0.3);
+        col += vec3(1.0, 0.5, 0.18) * exp(-length(sq) / (sz * 2.5)) * 0.25;
+    }
+    // niebla y resplandor del fondo
+    float fog = 1.0 - exp(-th * (0.05 + uD6 * 0.16));
+    col = mix(col, lightC * (0.10 + bass * 0.15), fog);
+    col += lightC * exp(-length(p) * (5.0 - bass * 2.0)) * (0.5 + bass);
+
+    return vec4(hkFinish(col, uv, vec3(0.6, 0.35, 0.1)), 1.0);
 }
