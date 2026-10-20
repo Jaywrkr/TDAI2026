@@ -1,10 +1,20 @@
 // ===============================================================
 // HALLOWEEN 17 - ESQUELETO BAILANDO
-// Un esqueleto de huesos brillantes (tipo rayos X / neon) que baila
-// sobre un piso que se enciende por baldosas.
-// Speed marca el paso de baile. El golpe lo hace saltar y abrir los
-// brazos (es el que mas "baila" con el bombo); el bajo enciende las
-// baldosas; los medios mueven la cadera.
+// LAMINAS horneadas (plates/scene17, ver td/tools/bake_plates_esqueleto.py):
+// una cripta con tres arcos, columnas y piso de losas, y un ATLAS de
+// huesos en relieve (craneo, caja toracica, pelvis, femur, tibia y
+// perone, humero, radio y cubito, manos y pies). El shader arma el
+// esqueleto pieza por pieza y lo hace bailar bajo un foco cenital.
+//
+// BAILE (cada cosa escucha una parte distinta de la musica):
+//   bajo   -> se encienden las losas del piso y late el foco
+//   medios -> la cadera se mueve
+//   agudos -> brillo en los huesos
+//   golpe  -> salta y abre los brazos (D4); con Chaos baile poseido y
+//             destello de rayos X
+// Speed marca el paso de baile aun en silencio.
+// HISTORIA: cada ~49 s un solo enloquecido; cada ~91 s el piso hace olas
+// de luz; cada acto cambia el estilo del baile.
 //
 // @D1: tamano
 // @D2: energia del baile
@@ -14,18 +24,50 @@
 // @D6: piso de baldosas
 // ===============================================================
 
-float hwBone(vec2 p, vec2 a, vec2 b, float r) {
-    vec2 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
-    float d = length(pa - ba * h) - r;
-    // nudos en los extremos
-    d = min(d, length(p - a) - r * 1.6);
-    d = min(d, length(p - b) - r * 1.6);
-    return d;
-}
+const vec4 CRYPT_R = vec4(-3.1, -1.2, 6.2, 2.4);
+vec2 rUV(vec2 p, vec4 r) { return (p - r.xy) / r.zw; }
+vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
 
-vec2 hwLimb(vec2 o, float len, float ang) {
-    return o + vec2(sin(ang), -cos(ang)) * len;
+// atlas de huesos (igual que el horneado): rect y ancho/largo en el mundo
+const vec4 BR[9] = vec4[9](vec4(0.50, 0.00, 0.12, 0.50), vec4(0.62, 0.00, 0.12, 0.50), vec4(0.74, 0.00, 0.12, 0.50),
+                           vec4(0.86, 0.00, 0.12, 0.50), vec4(0.00, 0.00, 0.25, 0.25), vec4(0.25, 0.00, 0.25, 0.25),
+                           vec4(0.00, 0.50, 0.50, 0.50), vec4(0.50, 0.50, 0.50, 0.50), vec4(0.00, 0.25, 0.50, 0.25));
+const vec2 BS[9] = vec2[9](vec2(0.16, 0.42), vec2(0.16, 0.40), vec2(0.13, 0.28), vec2(0.13, 0.26), vec2(0.20, 0.20),
+                           vec2(0.20, 0.20), vec2(0.26, 0.30), vec2(0.42, 0.55), vec2(0.36, 0.18));
+#define B_FEMUR 0
+#define B_TIBIA 1
+#define B_HUMERUS 2
+#define B_FOREARM 3
+#define B_HAND 4
+#define B_FOOT 5
+#define B_SKULL 6
+#define B_RIBS 7
+#define B_PELVIS 8
+
+vec2 e17Limb(vec2 o, float len, float ang) { return o + vec2(sin(ang), -cos(ang)) * len; }
+
+// pinta una pieza del atlas entre las articulaciones a (v=0) y b (v=1)
+void e17Bone(vec2 p, vec2 a, vec2 b, int id, float thick, float mirror,
+             inout vec4 hitC, inout vec2 hitN) {
+    vec2 ab = b - a;
+    float len = length(ab);
+    vec2 dir = ab / max(len, 1e-4);
+    vec2 q = p - a;
+    float v = dot(q, dir) / len;
+    if (v < -0.05 || v > 1.05) return;
+    float sc = len / BS[id].y;
+    float u = 0.5 + dot(q, vec2(-dir.y, dir.x)) / (BS[id].x * sc * thick);
+    if (u < 0.0 || u > 1.0 || v < 0.0 || v > 1.0) return;
+    if (mirror > 0.5) u = 1.0 - u;
+    vec2 tuv = BR[id].xy + vec2(u, v) * BR[id].zw;
+    vec4 c = plate2(tuv);
+    if (c.a < 0.02) return;
+    vec2 nxy = plate3(tuv).rg * 2.0 - 1.0;
+    if (mirror > 0.5) nxy.x = -nxy.x;
+    // normal del atlas -> mundo (gira con la pieza)
+    vec2 nw = nxy.x * vec2(-dir.y, dir.x) + nxy.y * dir;
+    hitC = vec4(mix(hitC.rgb, c.rgb, c.a), max(hitC.a, c.a));
+    hitN = mix(hitN, nw, c.a);
 }
 
 vec4 render(vec2 uv) {
@@ -33,103 +75,134 @@ vec4 render(vec2 uv) {
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
+    float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
     float loco = hkLoco();
-    float hue = audioHue(uHue, mid * 0.008);
 
     float soloE = hkEvent(3.0, 49.0, 7.0);
     float floorWave = hkEvent(4.0, 91.0, 9.0);
-    vec3 boneC = mix(vec3(0.95, 0.92, 0.82), hsv2rgb(vec3(fract(0.33 + hue), 0.80, 1.0)), uD5);
-    vec3 col = vec3(0.01, 0.006, 0.02);
-
-    // piso de baldosas en perspectiva
     float floorY = -0.62;
-    if (p.y < floorY) {
-        float z = 1.0 / max(floorY - p.y + 0.05, 0.02);
-        vec2 tq = vec2(p.x * z * 0.35, z * 0.6);
-        vec2 tid = floor(tq);
-        vec2 tf = fract(tq);
-        float lit = step(0.55 - bass * 0.4, hash21(tid + floor(uRTime * 2.0)));
-        lit = max(lit, floorWave * step(0.5, sin(tid.x * 0.6 + tid.y * 0.9 - uRTime * 6.0)));
-        float grid = smoothstep(0.0, 0.04, tf.x) * smoothstep(1.0, 0.96, tf.x) * smoothstep(0.0, 0.06, tf.y) * smoothstep(1.0, 0.94, tf.y);
-        vec3 tc = hsv2rgb(vec3(fract(0.80 + hue + hash21(tid) * 0.25), 0.8, 1.0));
-        col = tc * grid * (0.05 + lit * (0.35 + bass * 0.6)) * (0.35 + 0.65 * uD6) * smoothstep(-1.1, floorY, p.y) + vec3(0.01);
-    }
+    vec3 spotC = vec3(0.85, 0.82, 0.75);
+    vec3 neonC = vec3(0.35, 1.0, 0.45);
 
-    float s = 0.62 + uD1 * 0.28;
-    // locura: baile poseido, los miembros se sacuden el doble
-    // historia: cada acto cambia el estilo del baile (tempo y energia);
-    // cada ~49 s hace un solo enloquecido; cada ~91 s el piso hace olas
+    // --- rig del baile ---
+    float s = 0.50 + uD1 * 0.22;
     float e = (0.4 + uD2 * 0.9) * (1.0 + hit * loco * 1.6 + soloE * 0.9) * mix(0.8, 1.25, hkActVal(5.0));
     float beat = sin(t * 3.0);
-    float jump = hit * (0.05 + uD4 * 0.20);
-    vec2 hip = vec2(0.10 * sin(t * 1.5) * e + mid * 0.05 * sin(t * 6.0),
-                    floorY + 0.88 * s + 0.04 * abs(beat) * e + jump);
+    float jump = hit * (0.04 + uD4 * 0.14);
+    vec2 hip = vec2(0.10 * sin(t * 1.5) * e + mid * 0.05 * sin(t * 6.0), floorY + 0.92 * s + 0.04 * abs(beat) * e + jump);
     float lean = 0.10 * sin(t * 1.5) * e;
-    vec2 neck = hip + vec2(sin(lean), cos(lean)) * 0.52 * s;
-    vec2 head = neck + vec2(sin(lean * 1.5), cos(lean * 1.5)) * 0.16 * s;
-    float r = (0.018 + uD3 * 0.014) * s;
+    vec2 up = vec2(sin(lean), cos(lean));
+    vec2 neck = hip + up * 0.55 * s;
+    float thick = 0.85 + uD3 * 0.4;
 
-    float d = 1e3;
-    // columna y costillas
-    d = min(d, hwBone(p, hip, neck, r));
-    for (int i = 0; i < 4; i++) {
-        float fi = float(i);
-        vec2 c = mix(hip, neck, 0.45 + fi * 0.13);
-        float w = (0.14 - abs(fi - 1.5) * 0.02) * s;
-        vec2 pq = p - c;
-        pq = rot2(-lean) * pq;
-        float rib = abs(length(pq / vec2(1.0, 0.45)) - w) - r * 0.5;
-        rib = max(rib, -pq.y - 0.02 * s);
-        d = min(d, rib);
+    // --- cripta ---
+    vec2 cu = rUV(p, CRYPT_R);
+    vec4 ca = plate0(cu);
+    vec2 cn = plate1(cu).rg * 2.0 - 1.0;
+    vec3 n = normalize(vec3(cn, sqrt(max(1.0 - dot(cn, cn), 0.05))));
+    vec2 spot = vec2(hip.x * 0.6, 1.5);
+    vec3 ld = normalize(vec3(spot - p, 0.8));
+    float coneW = 0.35 + (1.0 - (p.y - floorY) / 2.1) * 0.55;
+    float cone = smoothstep(coneW, coneW * 0.45, abs(p.x - hip.x * 0.6));
+    float pool = exp(-pow((p.x - hip.x) / 0.7, 2.0)) * smoothstep(floorY + 0.02, floorY - 0.2, p.y);
+    float lightL = (0.04 + cone * 0.55 * (0.85 + bass * 0.3)) * (0.4 + 0.6 * max(dot(n, ld), 0.0)) + pool * 0.6;
+    // antorchas en las columnas (luz calida a los costados)
+    vec3 torchC = vec3(1.0, 0.55, 0.22);
+    vec3 torch = vec3(0.0);
+    for (int k = 0; k < 4; k++) {
+        float tx = (float(k) - 1.5) * 1.85;
+        vec2 tp = vec2(tx, 0.28);
+        float fl = 0.8 + 0.2 * noise21(vec2(t * 7.0, float(k) * 3.0));
+        torch += torchC * fl * 0.035 / (0.03 + dot(p - tp, p - tp) * 1.2);
     }
-    // pelvis
-    vec2 pv = rot2(-lean) * (p - hip);
-    d = min(d, abs(length(pv / vec2(1.0, 0.6)) - 0.10 * s) - r * 0.6);
-    // craneo
-    vec2 hq = p - head;
-    float skull = length(hq / vec2(1.0, 1.1)) - 0.11 * s;
-    float sockets = length(vec2(abs(hq.x) - 0.04 * s, hq.y + 0.005)) - 0.028 * s;
-    float jaw = max(abs(hq.x) - 0.06 * s, abs(hq.y + 0.10 * s) - 0.035 * s);
-    d = min(d, min(max(skull, -sockets), jaw));
-    float eyeGlow = 1.0 - smoothstep(0.0, 0.01, sockets);
-
-    // brazos: se abren con el golpe
-    float armUp = hit * (0.8 + uD4 * 0.8);
-    for (int sgn = -1; sgn <= 1; sgn += 2) {
-        float sd = float(sgn);
-        vec2 sh = neck + vec2(sd * 0.14 * s, -0.06 * s);
-        float a1 = sd * (0.5 + 0.5 * e * sin(t * 3.0 + sd) + armUp);
-        vec2 el = hwLimb(sh, 0.26 * s, a1);
-        float a2 = a1 + sd * (0.6 + 0.6 * e * sin(t * 3.0 + 1.2 + sd));
-        vec2 wr = hwLimb(el, 0.24 * s, a2);
-        d = min(d, hwBone(p, sh, el, r));
-        d = min(d, hwBone(p, el, wr, r * 0.9));
-        // piernas
-        vec2 hp = hip + vec2(sd * 0.08 * s, -0.02 * s);
-        float l1 = sd * 0.10 + 0.45 * e * sin(t * 3.0 + (sd > 0.0 ? 0.0 : PI)) * 0.6;
-        vec2 kn = hwLimb(hp, 0.40 * s, l1);
-        vec2 ft = hwLimb(kn, 0.38 * s, l1 - abs(l1) * 0.8 * sd + 0.05 * sd);
-        ft.y = max(ft.y, floorY);
-        d = min(d, hwBone(p, hp, kn, r * 1.1));
-        d = min(d, hwBone(p, kn, ft, r));
+    vec3 col = plateCol(ca.rgb) * (spotC * lightL * 2.2 + torch + vec3(0.02, 0.015, 0.03));
+    for (int k = 0; k < 4; k++) {
+        float tx = (float(k) - 1.5) * 1.85;
+        vec2 tq = p - vec2(tx, 0.22);
+        float holder = min(hkRBox(tq, vec2(0.025, 0.06), 0.01), hkRBox(tq - vec2(0.0, 0.06), vec2(0.045, 0.015), 0.006));
+        col = mix(col, vec3(0.03, 0.025, 0.02), 1.0 - smoothstep(0.0, 0.004, holder));
+        vec2 fq = (tq - vec2(0.0, 0.12)) / vec2(0.035, 0.07);
+        fq.x += (noise21(vec2(fq.y * 2.0 - t * 5.0, float(k))) - 0.5) * 0.6 * max(fq.y + 0.5, 0.0);
+        float fl = 1.0 - smoothstep(0.5, 1.0, length(fq * vec2(1.0, 0.7)) + max(fq.y, 0.0) * 0.3);
+        col += mix(torchC, vec3(1.0, 0.9, 0.6), fl) * fl * 1.2;
+        col += torchC * exp(-length(tq - vec2(0.0, 0.12)) * 10.0) * 0.12;
     }
-
-    // foco cenital: cono de luz con polvo y circulo en el piso
-    float coneW = 0.20 + (1.0 - (p.y - floorY) / 1.9) * 0.45;
-    float cone = smoothstep(coneW, coneW * 0.5, abs(p.x - hip.x * 0.5)) * step(floorY, p.y);
-    col += vec3(0.35, 0.40, 0.55) * cone * 0.12 * (0.7 + 0.3 * noise21(p * 4.0 + t * 0.1));
-    col += vec3(0.5, 0.55, 0.7) * exp(-pow((p.x - hip.x * 0.5) / 0.5, 2.0)) * exp(-pow((p.y - floorY + 0.03) / 0.06, 2.0)) * 0.35;
-    float bone = 1.0 - smoothstep(-0.0015, 0.0015, d);
-    float glow = exp(-max(d, 0.0) * 40.0) * 0.45 + exp(-max(d, 0.0) * 8.0) * 0.12;
-    // locura: destello de rayos X (el esqueleto se invierte un instante)
-    float xray = hit * step(0.6, loco) * step(0.6, noise21(vec2(floor(uRTime * 14.0), 5.0)));
-    vec3 bc = mix(boneC, vec3(0.6, 0.9, 1.0), xray);
-    col += bc * (bone * 1.1 + glow * (0.7 + hit * 0.6));
-    col = mix(col, vec3(1.0) - col * 0.8, xray * 0.6);
-    col += hsv2rgb(vec3(fract(0.02 + hue), 0.9, 1.0)) * eyeGlow * (0.6 + bass * 0.8);
+    // losas que se encienden (D6): la junta brilla con el bajo
+    if (p.y < floorY && uD6 > 0.02) {
+        float z = 1.0 / max(floorY - p.y + 0.06, 0.02);
+        vec2 tq = vec2(p.x * z * 0.30, z * 0.55);
+        vec2 tid = floor(tq);
+        float lit = step(0.6 - bass * 0.4, hash21(tid + floor(uRTime * 2.0)));
+        lit = max(lit, floorWave * step(0.5, sin(tid.x * 0.6 + tid.y * 0.9 - uRTime * 6.0)));
+        vec3 tc = mix(vec3(0.55, 0.25, 0.9), neonC, uD5);
+        col += tc * lit * uD6 * (0.10 + bass * 0.25) * smoothstep(-1.25, floorY, p.y) * (0.4 + 0.6 * plateCol(ca.rgb).r * 8.0);
+    }
+    // polvo en el cono del foco
+    float dust = hkParticles(p * 0.9, t * 0.3, 0.12, vec2(0.05, -0.2), 0.04);
+    col += spotC * (cone * 0.035 * (0.7 + 0.3 * noise21(p * 3.0 + t * 0.1)) + dust * cone * 0.05 * (0.4 + high));
     // sombra en el piso
-    col *= 1.0 - 0.6 * exp(-pow((p.x - hip.x) / (0.35 * s), 2.0)) * exp(-pow((p.y - floorY + 0.02) / 0.03, 2.0));
+    col *= 1.0 - 0.65 * exp(-pow((p.x - hip.x) / (0.38 * s), 2.0)) * exp(-pow((p.y - floorY + 0.03) / 0.035, 2.0));
 
-    return vec4(hkFinish(col, uv, vec3(0.3, 0.6, 0.4)), 1.0);
+    // --- esqueleto, pieza por pieza (de atras hacia adelante) ---
+    vec4 bc = vec4(0.0);
+    vec2 bn = vec2(0.0);
+    float armUp = hit * (0.8 + uD4 * 0.8);
+    if (abs(p.x - hip.x) < 1.2 * s && p.y < hip.y + 1.0 * s && p.y > floorY - 0.1) {
+        for (int k = 0; k < 2; k++) {
+            float sd = k == 0 ? -1.0 : 1.0;
+            // piernas
+            vec2 hp = hip + vec2(sd * 0.10 * s, -0.03 * s);
+            float l1 = sd * 0.10 + 0.45 * e * sin(t * 3.0 + (sd > 0.0 ? 0.0 : PI)) * 0.6;
+            vec2 kn = e17Limb(hp, 0.42 * s, l1);
+            vec2 an = e17Limb(kn, 0.40 * s, l1 - abs(l1) * 0.8 * sd + 0.05 * sd);
+            an.y = max(an.y, floorY + 0.05 * s);
+            vec2 toe = an + vec2(sd * 0.09 * s, -0.06 * s);
+            e17Bone(p, kn, hp, B_FEMUR, thick, step(0.0, sd), bc, bn);
+            e17Bone(p, an, kn, B_TIBIA, thick, step(0.0, sd), bc, bn);
+            e17Bone(p, an, toe, B_FOOT, thick, step(0.0, sd), bc, bn);
+        }
+        // pelvis y caja toracica
+        e17Bone(p, hip - up * 0.10 * s, hip + up * 0.10 * s, B_PELVIS, 1.0, 0.0, bc, bn);
+        e17Bone(p, hip + up * 0.04 * s, neck + up * 0.04 * s, B_RIBS, 1.0, 0.0, bc, bn);
+        for (int k = 0; k < 2; k++) {
+            float sd = k == 0 ? -1.0 : 1.0;
+            // brazos: se abren con el golpe
+            vec2 sh = neck + vec2(sd * 0.20 * s, -0.04 * s);
+            float a1 = sd * (0.5 + 0.5 * e * sin(t * 3.0 + sd) + armUp);
+            vec2 el = e17Limb(sh, 0.28 * s, a1);
+            float a2 = a1 + sd * (0.6 + 0.6 * e * sin(t * 3.0 + 1.2 + sd));
+            vec2 wr = e17Limb(el, 0.26 * s, a2);
+            vec2 tip = e17Limb(wr, 0.18 * s, a2 + sd * 0.2);
+            e17Bone(p, el, sh, B_HUMERUS, thick, step(0.0, sd), bc, bn);
+            e17Bone(p, wr, el, B_FOREARM, thick, step(0.0, sd), bc, bn);
+            e17Bone(p, wr, tip, B_HAND, thick, step(0.0, sd), bc, bn);
+        }
+        // craneo (cabecea con el beat)
+        float nod = lean * 1.5 + 0.12 * beat * e;
+        vec2 hup = vec2(sin(nod), cos(nod));
+        e17Bone(p, neck + hup * 0.02 * s, neck + hup * 0.32 * s, B_SKULL, 1.0, 0.0, bc, bn);
+    }
+    if (bc.a > 0.0) {
+        vec3 nb = normalize(vec3(bn, sqrt(max(1.0 - dot(bn, bn), 0.05))));
+        vec3 alb = plateCol(bc.rgb);
+        float lam = max(dot(nb, normalize(vec3(spot - p, 0.9))), 0.0);
+        float rim = pow(1.0 - nb.z, 2.0);
+        vec3 bone = alb * spotC * (0.06 + lam * 0.85 * (0.45 + cone)) * 1.5 + alb * torch * 0.8;
+        bone += spotC * pow(max(dot(nb, normalize(vec3(spot - p, 0.9) + vec3(0.0, 0.0, 1.0))), 0.0), 20.0) * (0.08 + high * 0.2);
+        // neon / rayos X
+        vec3 neon = neonC * (0.15 + rim * 1.6) + neonC * alb * 1.5;
+        float xray = hit * step(0.6, loco) * step(0.6, noise21(vec2(floor(uRTime * 14.0), 5.0)));
+        bone = mix(bone, neon, clamp(uD5 + xray, 0.0, 1.0));
+        col = mix(col, bone, bc.a);
+        col += neonC * rim * bc.a * uD5 * 0.3;
+    }
+    // ojos que arden en las cuencas
+    vec2 headC = neck + vec2(sin(lean * 1.5 + 0.12 * beat * e), cos(lean * 1.5 + 0.12 * beat * e)) * 0.19 * s;
+    for (int k = 0; k < 2; k++) {
+        float sd = k == 0 ? -1.0 : 1.0;
+        vec2 ec = headC + vec2(sd * 0.052 * s, 0.0);
+        col += mix(vec3(1.0, 0.25, 0.08), neonC, uD5) * exp(-dot(p - ec, p - ec) / (0.0004 * s * s)) * (0.5 + bass * 1.2);
+    }
+    return vec4(hkFinish(col, uv, vec3(0.3, 0.3, 0.4)), 1.0);
 }

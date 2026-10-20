@@ -1,10 +1,22 @@
 // ===============================================================
 // HALLOWEEN 16 - VELAS
-// Hileras de velas a distintas alturas en la oscuridad, con cera que
-// chorrea y llamas que titilan, cada una con su halo calido.
-// Speed hace titilar las llamas. El bajo agranda los halos; el golpe
-// hace que las llamas se estiren y den un salto (cada una con su fase);
-// un soplo de aire las inclina con los medios.
+// Matte painting con LAMINAS horneadas (plates/scene16, ver
+// td/tools/bake_plates_velas.py): una capilla a oscuras con pared de
+// piedra, un nicho de arco con ventanal gotico de vitral, y un altar
+// con mantel, libros, una calavera, candelabros y doce velas de cera
+// chorreada. Las llamas son en vivo y CADA una ilumina la piedra, la
+// calavera y la cera (que se transluce cerca de la llama).
+//
+// BAILE (cada cosa escucha una parte distinta de la musica):
+//   bajo   -> los halos crecen y la luz late en la pared
+//   medios -> una corriente de aire inclina las llamas
+//   agudos -> chispas que suben de las mechas
+//   golpe  -> las llamas se estiran y saltan (D4), cada una a su tiempo;
+//             con Chaos una rafaga las tumba y casi se apagan
+// Speed hace titilar las llamas y subir el humo aun en silencio.
+// HISTORIA: cada ~61 s una corriente apaga las velas una por una (queda
+// el humo) y se vuelven a encender; cada ~83 s la luna entra por el
+// vitral; cada acto cambia cuantas velas estan prendidas.
 //
 // @D1: cantidad de velas
 // @D2: altura de las llamas
@@ -14,102 +26,132 @@
 // @D6: humo
 // ===============================================================
 
+const vec4 WALL_R = vec4(-3.1, -0.6, 6.2, 1.8);
+const vec4 ALTAR_R = vec4(-3.1, -1.2, 6.2, 1.75);
+vec2 rUV(vec2 p, vec4 r) { return (p - r.xy) / r.zw; }
+vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
+
+const float ALTAR_Y = -0.38;
+// x, base, alto, radio: la misma lista que el horneado
+const vec4 CANDLES[12] = vec4[12](
+    vec4(-2.35, ALTAR_Y, 0.30, 0.045), vec4(-2.00, ALTAR_Y, 0.48, 0.055), vec4(-1.62, ALTAR_Y, 0.22, 0.050),
+    vec4(-1.34, ALTAR_Y, 0.62, 0.060), vec4(-0.55, ALTAR_Y, 0.40, 0.050), vec4(0.55, ALTAR_Y, 0.36, 0.050),
+    vec4(1.26, ALTAR_Y, 0.70, 0.062), vec4(1.55, ALTAR_Y, 0.26, 0.048), vec4(1.95, ALTAR_Y, 0.52, 0.055),
+    vec4(2.35, ALTAR_Y, 0.32, 0.046), vec4(-0.98, 0.16, 0.20, 0.032), vec4(0.98, 0.16, 0.20, 0.032));
+// orden en que se prenden al subir D1 (del centro hacia afuera)
+const int ORDER[12] = int[12](10, 11, 4, 5, 3, 6, 1, 8, 2, 7, 0, 9);
+
 vec4 render(vec2 uv) {
     vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
     float bass = clamp(uBass, 0.0, 1.0) * uAudioamt;
     float mid = clamp(uMid, 0.0, 1.0) * uAudioamt;
+    float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
     float loco = hkLoco();
-    float hue = audioHue(uHue, mid * 0.006);
 
-    vec3 flameC = mix(vec3(1.0, 0.62, 0.20), hsv2rgb(vec3(fract(0.36 + hue), 0.75, 1.0)), uD5);
-    vec3 coreC = mix(vec3(1.0, 0.95, 0.80), vec3(0.85, 1.0, 0.90), uD5);
-    vec3 col = vec3(0.012, 0.008, 0.006);
-    float halo = 0.0;
-    // historia: cada ~61 s una corriente apaga las velas una por una y
-    // se vuelven a encender; cada acto otra luz
-    float outE = hkEvent(3.0, 61.0, 6.0);
+    float draft = hkEvent(30.0, 61.0, 14.0);
+    float draftPh = hkEventPhase(30.0, 61.0, 14.0);
+    float moonE = hkEvent(31.0, 83.0, 12.0);
+    vec3 flameC = mix(vec3(1.0, 0.55, 0.20), vec3(0.35, 1.0, 0.55), uD5);
+    float nLit = 3.0 + floor(uD1 * 9.0 + hkActVal(4.0) * 1.5);
 
-    // tres filas (atras, medio, adelante)
-    for (int r = 0; r < 3; r++) {
-        float fr = float(r);
-        float depth = 0.55 + fr * 0.25;
-        float n = (4.0 + floor(uD1 * 5.0)) + (2.0 - fr) * 2.0;
-        float cw = 2.0 * uAspect / n;
-        float shift = fr * 0.37 * cw;
-        float cx = floor((p.x + uAspect + shift) / cw);
-        for (int k = -1; k <= 1; k++) {
-            float id = cx + float(k);
-            float h1 = hash21(vec2(id, fr + 1.0));
-            float h2 = hash21(vec2(id, fr + 7.0));
-            if (h1 < 0.15) continue;
-            float x = (id + 0.5) * cw - uAspect - shift + (h2 - 0.5) * cw * 0.3;
-            float w = 0.045 * depth * (0.8 + 0.4 * h2);
-            float base = -0.95 + fr * 0.10;
-            float top = base + (0.25 + 0.55 * h1) * depth;
-            float dxc = abs(p.x - x);
-            // lejos de esta vela: solo su halo (barato), nada de cera ni llama
-            if (dxc > w * 2.6) {
-                halo += exp(-length(p - vec2(x, top + 0.05)) / (0.08 + uD3 * 0.10 + bass * 0.05)) * depth * (1.0 - outE * 0.8);
-                continue;
-            }
-            // cuerpo de la vela con cera chorreada
-            vec2 q = p - vec2(x, 0.0);
-            float drip = 0.0;
-            bool near = abs(q.x) < w * 2.0;
-            for (int j = 0; j < 3; j++) {
-                if (!near) break;
-                float fj = float(j);
-                float dx = (hash21(vec2(id, fj + fr * 3.0)) - 0.5) * 1.6 * w;
-                float dl = 0.05 + 0.15 * hash21(vec2(id + 3.0, fj));
-                drip = max(drip, (1.0 - smoothstep(0.012 * depth, 0.020 * depth, abs(q.x - dx))) *
-                                 step(top - dl, p.y) * step(p.y, top));
-            }
-            float body = step(abs(q.x), w) * step(base, p.y) * step(p.y, top);
-            float lip = (1.0 - smoothstep(0.0, 0.012, abs(p.y - top))) * step(abs(q.x), w * 1.15);
-            float wax = clamp(body + drip * 0.9 + lip, 0.0, 1.0);
-            float shade = 0.55 + 0.45 * cos(q.x / w * 1.4);
-            vec3 waxC = vec3(0.80, 0.72, 0.60) * shade * (0.18 + 0.25 * depth);
-            // la llama ilumina la vela desde arriba y la cera deja pasar la luz
-            float nearTop = exp(-(top - p.y) * 7.0);
-            waxC += flameC * (0.55 * nearTop + 0.48 * nearTop * nearTop) * (0.8 + 0.4 * depth);
-            if (wax > 0.0) waxC *= 0.85 + 0.15 * noise21(vec2(q.x * 200.0, p.y * 30.0));
-            col = mix(col, waxC, wax);
+    // estado de cada llama: prendida (0..1), punta, tamano
+    float on[12];
+    vec2 tip[12];
+    float fsz[12];
+    for (int k = 0; k < 12; k++) {
+        int i = ORDER[k];
+        vec4 c = CANDLES[i];
+        float fi = float(i);
+        float lit = step(float(k), nLit - 1.0);
+        // la corriente las apaga de izquierda a derecha y despues vuelven
+        float pos = (c.x + 2.6) / 5.2;
+        float out_ = draft * smoothstep(pos * 0.45, pos * 0.45 + 0.05, draftPh) * (1.0 - smoothstep(0.7 + pos * 0.2, 0.75 + pos * 0.2, draftPh));
+        out_ = max(out_, hit * loco * step(0.75, loco) * step(0.5, hash21(vec2(fi, floor(uRTime * 2.0)))) * 0.9);
+        on[i] = lit * (1.0 - out_);
+        float jump = smoothstep(0.0, 0.3, hit - fract(fi * 0.37) * 0.3) * uD4;
+        fsz[i] = (0.065 + uD2 * 0.07) * (1.0 + jump * 0.8 + bass * 0.15) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
+        tip[i] = vec2(c.x, c.y + c.z + 0.02);
+    }
 
-            // llama
-            float flick = 0.85 + 0.15 * sin(t * (9.0 + h2 * 6.0) + id) + 0.1 * noise21(vec2(t * 4.0, id));
-            float jump = hit * (0.2 + uD4 * 0.8) * step(0.3, fract(h1 * 9.0 + floor(uRTime * 2.0) * 0.3));
-            float dead = outE * step(hash21(vec2(id, fr + 9.0)), outE * 1.2);
-            float fh = (0.085 + uD2 * 0.07) * depth * flick * (1.0 + jump * 0.8) * (1.0 - dead);
-            // locura: una rafaga de viento tumba todas las llamas de golpe
-            float gust = hit * loco * (0.8 + 0.4 * h2) * (mod(floor(uRTime * 1.5), 2.0) * 2.0 - 1.0);
-            float lean = (mid * 0.6 + 0.15 * sin(t * 0.6 + id)) * 0.02 + gust * 0.05;
-            vec2 fq = p - vec2(x + lean * (p.y - top) * 20.0, top + 0.012 + fh * 0.55);
-            float fl = length(fq / vec2(fh * 0.32, fh * 0.75 * (fq.y > 0.0 ? 1.4 : 0.8)));
-            float flame = 1.0 - smoothstep(0.6, 1.0, fl);
-            float core = 1.0 - smoothstep(0.0, 0.55, fl);
-            // llama real: base azul, zona oscura junto a la mecha, punta naranja
-            float baseBlue = (1.0 - smoothstep(0.0, 0.5, length((fq + vec2(0.0, fh * 0.45)) / vec2(fh * 0.30, fh * 0.20)))) * flame;
-            float tipT = smoothstep(-0.2, 0.9, fq.y / max(fh, 1e-3));
-            vec3 fc = mix(flameC, vec3(1.0, 0.45, 0.10), tipT * 0.6);
-            fc = mix(fc, vec3(0.35, 1.0, 0.45), hit * smoothstep(0.6, 1.0, loco));
-            col += fc * flame * 1.2 * (0.8 + 0.2 * depth);
-            col += coreC * core * 0.9 * (1.0 - baseBlue * 0.6);
-            col += vec3(0.15, 0.30, 1.0) * baseBlue * 0.6;
-            // brillo de la cera derretida en el borde
-            col += flameC * 0.5 * lip * exp(-abs(q.x) / w * 1.5);
-            // misma formula que el atajo de arriba: si no, se ven costuras
-            halo += exp(-length(p - vec2(x, top + 0.05)) / (0.08 + uD3 * 0.10 + bass * 0.05)) * depth * (1.0 - outE * 0.8);
+    // --- superficie: pared o altar ---
+    vec4 aa = plate2(rUV(p, ALTAR_R));
+    vec3 alb, n;
+    float wax = 0.0, glass = 0.0;
+    vec4 wa = plate0(rUV(p, WALL_R));
+    vec4 wn = plate1(rUV(p, WALL_R));
+    alb = plateCol(wa.rgb);
+    vec2 nxy = wn.rg * 2.0 - 1.0;
+    glass = wn.b;
+    if (aa.a > 0.5) {
+        vec4 an = plate3(rUV(p, ALTAR_R));
+        alb = plateCol(aa.rgb);
+        nxy = an.rg * 2.0 - 1.0;
+        wax = an.b;
+        glass = 0.0;
+    }
+    n = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy), 0.05))));
+
+    // --- luz de cada llama ---
+    vec3 L = vec3(0.006, 0.006, 0.009);
+    float sss = 0.0;
+    for (int i = 0; i < 12; i++) {
+        if (on[i] < 0.01) continue;
+        vec3 v = vec3(tip[i] - p, 0.30);
+        float d2 = dot(v, v);
+        float fl = (0.8 + 0.2 * noise21(vec2(t * 9.0, float(i) * 3.0))) * on[i];
+        float lam = max(dot(n, v * inversesqrt(d2)), 0.0);
+        L += flameC * fl * (0.6 + bass * 0.4) * (0.4 + 0.6 * lam) * 0.06 / (0.02 + d2 * 1.6);
+        if (wax > 0.5) {
+            vec2 dd = p - tip[i];
+            sss += exp(-length(dd * vec2(1.0, 0.6)) * 14.0) * fl;
         }
     }
-    col += flameC * halo * (0.20 + uD3 * 0.20 + bass * 0.12);
-    // reflejo calido en una mesa barnizada
-    if (p.y < -0.95) col += flameC * halo * 0.05;
-    // humo tenue que sube
-    float smokeAmt = max(uD6, outE);
-    float smoke = smokeAmt > 0.001 ? fbm(vec2(p.x * 3.0, p.y * 2.0 - t * 0.3), 3, 0.55) : 0.0;
-    col += vec3(0.20, 0.18, 0.16) * smoothstep(0.55, 0.85, smoke) * smokeAmt * 0.35 * smoothstep(-0.7, 0.6, p.y);
+    // la luna entra por el vitral
+    vec3 moonC = vec3(0.45, 0.55, 0.85);
+    vec3 col = alb * L * 7.0 * (1.0 - glass * 0.75);
+    col += alb * glass * (0.02 + moonE * 0.30) * vec3(1.6, 1.3, 1.5);
+    col += plateCol(wa.rgb) * glass * flameC * 0.02 * float(aa.a < 0.5);
+    col += vec3(1.0, 0.72, 0.45) * sss * 0.55 * flameC * 1.2;            // cera transluciendo
+    // haz de luna sobre el altar
+    if (moonE > 0.01) {
+        float beam = smoothstep(0.42, 0.25, abs(p.x + (p.y - 0.4) * 0.35)) * smoothstep(0.9, -0.4, p.y);
+        col += moonC * beam * moonE * 0.08 * (0.6 + 0.4 * fbm(p * 3.0 + vec2(0.0, t * 0.1), 3, 0.5));
+    }
 
-    return vec4(hkFinish(col, uv, vec3(0.8, 0.5, 0.2)), 1.0);
+    // --- llamas, halos, humo y chispas ---
+    for (int i = 0; i < 12; i++) {
+        vec2 tp = tip[i];
+        vec2 dq = p - tp;
+        if (abs(dq.x) > 0.6 || dq.y < -0.25 || dq.y > 1.2) continue;
+        float fi = float(i);
+        float s = fsz[i];
+        // humo que sube (mas cuando la llama se apago)
+        if (uD6 > 0.02 && dq.y > 0.0 && abs(dq.x) < 0.05 + dq.y * 0.3) {
+            float sm = fbm(vec2(dq.x * 6.0 + sin(dq.y * 4.0 - t * 1.2 + fi) * 0.6, dq.y * 2.0 - t * 0.5), 3, 0.5);
+            float plume = exp(-pow(dq.x / (0.02 + dq.y * 0.12), 2.0)) * smoothstep(1.1, 0.1, dq.y);
+            col += vec3(0.20, 0.19, 0.18) * smoothstep(0.45, 0.8, sm) * plume * uD6 * (0.10 + (1.0 - on[i]) * 0.5) * (L.r * 6.0 + 0.2);
+        }
+        if (on[i] < 0.01) continue;
+        // halo
+        float r = length(dq - vec2(0.0, s * 0.6));
+        col += flameC * exp(-r / (0.05 + uD3 * 0.18 + bass * 0.05)) * (0.12 + uD3 * 0.25) * on[i];
+        // llama: gota que se inclina con la corriente y titila
+        float lean = (0.15 + mid * 0.6) * sin(t * 1.3 + fi) + hit * loco * 0.8 * sin(uRTime * 9.0);
+        vec2 q = dq / s;
+        q.x -= lean * max(q.y, 0.0) * 0.35;
+        q.x += (noise21(vec2(q.y * 3.0 - t * 6.0, fi)) - 0.5) * 0.35 * max(q.y, 0.0);
+        float shape = length(vec2(q.x * (1.0 + max(q.y, 0.0) * 0.45), (q.y - 0.55) * 0.55)) - 0.42;
+        float core = length(vec2(q.x * 1.8, (q.y - 0.30) * 0.9)) - 0.20;
+        float fA = 1.0 - smoothstep(-0.05, 0.08, shape);
+        vec3 fc = mix(flameC * 1.6, vec3(1.0, 0.95, 0.80) * 2.2, 1.0 - smoothstep(-0.05, 0.08, core));
+        fc = mix(vec3(0.25, 0.35, 1.0) * 0.8, fc, smoothstep(-0.10, 0.10, q.y));    // base azul
+        col = mix(col, fc, fA * on[i]);
+        // chispas
+        float sp = hkParticles(dq * 3.0, t * 0.8, 0.05 + high * 0.15, vec2(0.0, 1.0), 0.03);
+        col += flameC * sp * smoothstep(0.8, 0.0, dq.y) * step(0.0, dq.y) * exp(-abs(dq.x) * 8.0) * (0.2 + high) * on[i];
+    }
+
+    return vec4(hkFinish(col, uv, vec3(0.45, 0.28, 0.12)), 1.0);
 }
