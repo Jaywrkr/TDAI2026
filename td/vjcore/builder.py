@@ -314,6 +314,12 @@ def _parameters(proj):
     es = proj.appendCustomPage('Estilo')
     add_float(es, 'Estilo', 'Estilo aerografo (0 = normal)', float(c.STYLE_DEFAULT[0]), 0.0, 1.0)
     add_float(es, 'Estilomarco', 'Marco de arco', float(c.STYLE_DEFAULT[1]), 0.0, 1.0)
+    # Paleta del estilo: la perilla recorre las paletas del set en orden
+    # (con fundido entre vecinas). Los nombres van en la etiqueta para
+    # que se sepa cual es cual sin abrir el codigo.
+    pal_names = list(c.STYLE_PALETTES) or ['(una sola)']
+    add_float(es, 'Estilopaleta', 'Paleta  ' + ' > '.join(pal_names), 0.0, 0.0, 1.0)
+    add_toggle(es, 'Estiloauto', 'Paleta automatica (cambia en cada acto)', False)
 
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)

@@ -103,8 +103,12 @@ Funciones del kit para imagen (en `common.glsl`, solo en escenas de Media): `hkM
 
 `/project1` → **Estilo** tiene dos perillas que valen para todo el set:
 
-- **Estilo** (0–1): lleva la imagen a un afiche pintado con aerógrafo. Las formas se ablandan (las láminas se leen desenfocadas, `set.json` → `"plate_lod": "uStyle * 3.2"`); la paleta pasa a negro → violeta → malva → naranja → durazno → crema; aparecen grano de spray, polvo y pelusas de papel. Con 0, todo queda como antes.
+- **Estilo** (0–1): lleva la imagen a un afiche pintado con aerógrafo. Las formas se ablandan (las láminas se leen desenfocadas, `set.json` → `"plate_lod": "uStyle * 3.2"`); la paleta se reduce a la paleta elegida (abajo); aparecen grano de spray, polvo y pelusas de papel. Con 0, todo queda como antes.
 - **Estilomarco** (0–1): encierra la imagen en una ventana de arco sobre negro, con un halo violeta en el borde.
+- **Estilopaleta** (0–1): elige la paleta del estilo, recorriendo 8 paletas de Halloween en este orden (con un fundido corto entre vecinas): **Calabaza** (violeta + naranja + crema), **Sangre** (ciruela, granate, rojo, hueso), **Veneno** (violeta + verde tóxico), **Fantasma** (azul noche, celeste, blanco), **Infierno** (rojo, naranja, ámbar), **Hechizo** (índigo, púrpura, magenta, lila), **Pantano** (petróleo, musgo, ocre), **Sepia**. Valores exactos: 0, 0.14, 0.29, 0.43, 0.57, 0.71, 0.86, 1.
+- **Estiloauto**: la paleta cambia sola en cada acto de la escena (~78 s), con fundido.
+
+Las paletas viven en `common.glsl` (`HK_PAL`, 6 tonos de oscuro a claro cada una) y sus nombres en `set.json` → `"style_palettes"`. Para agregar una: sumar 6 tonos, subir `HK_NPAL` y agregar el nombre.
 
 El kit lo aplica en `hkFinish` a **todas** las escenas (`hkStyle`). Cada escena puede además adaptarse: el **cementerio (00)** ya lo hace (tumbas como siluetas suaves contra un resplandor naranja-crema, luna como esfera de aerógrafo con destellos en cruz, niebla como velo, sin rayos duros). Las demás, por ahora, reciben solo la parte general. Arranca en 0; un set puede traer otro valor inicial con `"style": [estilo, marco]`.
 

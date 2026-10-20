@@ -72,7 +72,7 @@ vec4 render(vec2 uv) {
     float dh = (uD6 - 0.5) * 0.36;
     float horizon = -0.36 + dh;
     vec3 fogTint = mix(vec3(0.62, 0.56, 0.80), vec3(0.32, 0.95, 0.40), uD5);
-    fogTint = mix(fogTint, vec3(0.80, 0.55, 0.62), uStyle * 0.6);
+    fogTint = mix(fogTint, hkStyleMap(0.70), uStyle * 0.6);
     float moonGain = 0.45 + uD3 * 1.05;
     float light = 0.55 + 0.45 * moonGain;      // cuanto ilumina la luna la piedra
 
@@ -106,7 +106,7 @@ vec4 render(vec2 uv) {
     // destellos en cruz
     float sty = uStyle;
     if (sty > 0.001) {
-        col += vec3(1.0, 0.80, 0.62) * exp(-max(mr - moonR * 0.7, 0.0) * 9.0) * 0.25 * sty * moonGain;
+        col += hkStyleMap(0.82) * exp(-max(mr - moonR * 0.7, 0.0) * 9.0) * 0.25 * sty * moonGain;
         col = mix(col, col * 0.55, sty * smoothstep(moonR * 1.05, moonR * 2.2, mr) * (1.0 - smoothstep(moonR * 2.2, moonR * 5.0, mr)));   // halo mas angosto
         vec2 gl = mp - vec2(-0.07, 0.08);
         col += vec3(1.0, 0.95, 0.88) * hkSparkle(gl, 0.30) * 0.45 * sty * (0.8 + high * 0.6);
@@ -156,11 +156,11 @@ vec4 render(vec2 uv) {
     // que sale de abajo en un afiche de aerografo)
     if (sty > 0.001) {
         float gy = pT.y - horizon;
-        vec3 glowC = mix(vec3(1.0, 0.45, 0.12), vec3(1.0, 0.86, 0.70), exp(-abs(gy) * 6.0));
+        vec3 glowC = mix(hkStyleMap(0.60), hkStyleMap(0.92), exp(-abs(gy) * 6.0)) * 1.1;
         float g = exp(-pow((gy + 0.05) / (0.48 + bass * 0.08), 2.0)) * (0.35 + 0.65 * exp(-pow(pT.x / (uAspect * 0.7), 2.0)));
         col = mix(col, col * 0.4, sty * 0.5);
         col += glowC * g * sty * (0.95 + bass * 0.45 + flash * 0.3);
-        col += vec3(0.35, 0.12, 0.45) * exp(-pow((gy - 0.45) / 0.35, 2.0)) * sty * 0.25 * smoothstep(0.2, 1.0, abs(pT.x) / uAspect);
+        col += hkStyleMap(0.40) * exp(-pow((gy - 0.45) / 0.35, 2.0)) * sty * 0.25 * smoothstep(0.2, 1.0, abs(pT.x) / uAspect);
     }
     // --- colinas, reja y lapidas (D2 pasa de pocas grandes a muchas) ---
     vec2 muv = plateUVGround(pT - vec2(0.0, dh), MID_Y);
@@ -264,7 +264,7 @@ vec4 render(vec2 uv) {
     float nearLight = light * 2.4 * (0.80 + 0.20 * towardMoon);
     col = mix(col, nc * nearLight * mix(1.0, 0.22, sty) + nc * flashCol * flash * 2.6, nr.a);
     // borde de la silueta encendido por el resplandor de atras (halo naranja)
-    if (sty > 0.001) col += vec3(1.0, 0.42, 0.12) * nr.a * (1.0 - nr.a) * 1.5 * sty * 0.6;
+    if (sty > 0.001) col += hkStyleMap(0.60) * nr.a * (1.0 - nr.a) * 1.5 * sty * 0.6;
     // la niebla baja cubre el pie de las lapidas cercanas y el suelo
     vec2 nu = vec2(pN.x * 0.07 - t * 0.010, pN.y * 0.35 + 0.5) + warp * 0.06;
     vec4 nz2 = plate4Wrap(nu);

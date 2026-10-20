@@ -284,18 +284,56 @@ vec3 hkNightFrame(vec3 col, vec2 uv) {
 // sueltos donde el tono cambia), polvo y pelusas del papel, y un marco
 // de arco negro alrededor. Todo es por pixel y sin texturas: barato.
 // ---------------------------------------------------------------
+// PALETAS del estilo, de lo oscuro a lo claro (6 tonos cada una). El
+// orden es el de set.json "style_palettes" y la perilla Estilopaleta las
+// recorre: Calabaza, Sangre, Veneno, Fantasma, Infierno, Hechizo,
+// Pantano, Sepia.
+#define HK_NPAL 8
+const vec3 HK_PAL[48] = vec3[48](
+    // Calabaza: negro, violeta, malva, naranja, durazno, crema
+    vec3(0.022, 0.018, 0.024), vec3(0.15, 0.065, 0.20), vec3(0.42, 0.22, 0.42), vec3(0.88, 0.36, 0.10), vec3(0.97, 0.68, 0.46), vec3(0.97, 0.93, 0.86),
+    // Sangre: negro, ciruela, granate, rojo, rosa sucio, hueso
+    vec3(0.020, 0.010, 0.014), vec3(0.12, 0.02, 0.08), vec3(0.42, 0.04, 0.05), vec3(0.78, 0.10, 0.08), vec3(0.92, 0.45, 0.35), vec3(0.95, 0.90, 0.84),
+    // Veneno (bruja): negro, violeta oscuro, verde botella, verde toxico, lima, amarillo palido
+    vec3(0.016, 0.012, 0.020), vec3(0.12, 0.04, 0.17), vec3(0.10, 0.28, 0.16), vec3(0.36, 0.68, 0.14), vec3(0.78, 0.95, 0.40), vec3(0.94, 0.98, 0.82),
+    // Fantasma: negro, azul noche, acero, celeste, hielo, blanco
+    vec3(0.010, 0.014, 0.024), vec3(0.05, 0.08, 0.18), vec3(0.20, 0.28, 0.45), vec3(0.48, 0.62, 0.78), vec3(0.78, 0.88, 0.95), vec3(0.96, 0.98, 1.00),
+    // Infierno: negro, rojo oscuro, rojo fuego, naranja, ambar, blanco caliente
+    vec3(0.018, 0.008, 0.006), vec3(0.22, 0.03, 0.01), vec3(0.62, 0.10, 0.02), vec3(0.95, 0.40, 0.04), vec3(1.00, 0.75, 0.20), vec3(1.00, 0.96, 0.75),
+    // Hechizo: negro, indigo, purpura, magenta, rosa, lila
+    vec3(0.014, 0.008, 0.024), vec3(0.12, 0.04, 0.25), vec3(0.36, 0.10, 0.52), vec3(0.80, 0.22, 0.62), vec3(0.95, 0.60, 0.82), vec3(0.98, 0.90, 0.97),
+    // Pantano: negro, petroleo, musgo, ocre, paja, pergamino
+    vec3(0.012, 0.016, 0.014), vec3(0.04, 0.10, 0.09), vec3(0.24, 0.26, 0.10), vec3(0.50, 0.46, 0.16), vec3(0.78, 0.70, 0.40), vec3(0.94, 0.90, 0.76),
+    // Sepia: negro, tierra, sepia, tostado, arena, crema
+    vec3(0.020, 0.016, 0.012), vec3(0.12, 0.08, 0.05), vec3(0.32, 0.22, 0.13), vec3(0.58, 0.42, 0.26), vec3(0.82, 0.68, 0.50), vec3(0.96, 0.91, 0.82)
+);
+
+vec3 hkPalMap(int pi, float l) {
+    int b = clamp(pi, 0, HK_NPAL - 1) * 6;
+    vec3 c = mix(HK_PAL[b], HK_PAL[b + 1], smoothstep(0.03, 0.28, l));
+    c = mix(c, HK_PAL[b + 2], smoothstep(0.28, 0.45, l));
+    c = mix(c, HK_PAL[b + 3], smoothstep(0.45, 0.62, l));
+    c = mix(c, HK_PAL[b + 4], smoothstep(0.62, 0.80, l));
+    return mix(c, HK_PAL[b + 5], smoothstep(0.80, 0.97, l));
+}
+
+// Paleta actual: la perilla (fundido corto entre vecinas) o, en modo
+// automatico, una al azar por acto con fundido al final del acto.
 vec3 hkStyleMap(float l) {
-    vec3 c0 = vec3(0.022, 0.018, 0.024);
-    vec3 c1 = vec3(0.15, 0.065, 0.20);    // violeta
-    vec3 c2 = vec3(0.42, 0.22, 0.42);     // malva
-    vec3 c3 = vec3(0.88, 0.36, 0.10);     // naranja
-    vec3 c4 = vec3(0.97, 0.68, 0.46);     // durazno
-    vec3 c5 = vec3(0.97, 0.93, 0.86);     // crema
-    vec3 c = mix(c0, c1, smoothstep(0.03, 0.28, l));
-    c = mix(c, c2, smoothstep(0.28, 0.45, l));
-    c = mix(c, c3, smoothstep(0.45, 0.62, l));
-    c = mix(c, c4, smoothstep(0.62, 0.80, l));
-    return mix(c, c5, smoothstep(0.80, 0.97, l));
+    int i0, i1;
+    float k;
+    if (uStyleauto > 0.5) {
+        vec2 a = hkAct();
+        i0 = int(hash21(vec2(a.x, 77.0 + float(uScene))) * float(HK_NPAL));
+        i1 = int(hash21(vec2(a.x + 1.0, 77.0 + float(uScene))) * float(HK_NPAL));
+        k = smoothstep(0.85, 1.0, a.y);
+    } else {
+        float f = clamp(uStylepal, 0.0, 1.0) * float(HK_NPAL - 1);
+        i0 = int(floor(f));
+        i1 = min(i0 + 1, HK_NPAL - 1);
+        k = smoothstep(0.3, 0.7, fract(f));
+    }
+    return mix(hkPalMap(i0, l), hkPalMap(i1, l), k);
 }
 
 // Destello en cruz (las estrellitas de 4 puntas de los afiches).
@@ -349,7 +387,7 @@ vec3 hkStyle(vec3 col, vec2 uv) {
     if (uStylearch > 0.001) {
         float d = hkArchMask(uv);
         float inner = exp(-max(-d, 0.0) * 6.0) * smoothstep(0.02, -0.02, d);
-        c = mix(c, c * 0.6 + vec3(0.20, 0.08, 0.26) * 0.5, inner * uStylearch * 0.6);
+        c = mix(c, c * 0.6 + hkStyleMap(0.36) * 0.5, inner * uStylearch * 0.6);
         vec3 outside = vec3(0.028, 0.024, 0.026) * (0.85 + 0.3 * paper) + vec3(0.6) * speck * 0.3;
         c = mix(c, outside, smoothstep(-0.006, 0.006, d) * smoothstep(0.0, 0.15, uStylearch));
     }
