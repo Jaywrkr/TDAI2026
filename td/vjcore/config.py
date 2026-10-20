@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'devices-v5 2026-09-29'
+BUILD_TAG = 'laminas-v8 2026-10-20'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -106,6 +106,11 @@ STROBE_MAX_HZ = 3.0
 DEFAULT_OUTPUT_W = 1280
 DEFAULT_OUTPUT_H = 720
 MAX_OUTPUT = 1280
+# Formato del PROYECTOR (casi todos son 16:9). Si un set pide una salida
+# mas ancha (p. ej. panoramica 1280x512 para una tela de 5 x 2 m), la
+# ventana al proyector la centra en un cuadro de este formato con franjas
+# negras arriba y abajo en vez de estirarla. Con salida 16:9 no cambia nada.
+PROJECTOR_ASPECT = 16.0 / 9.0
 
 # ESCALA DE RENDER DE LAS ESCENAS. Las escenas (los .frag, que es donde
 # esta casi todo el costo de GPU: fbm de 4-7 octavas por pixel) se
@@ -125,6 +130,22 @@ DEFAULT_RENDER_SCALE = 0.75
 # el reloj visual y se cierra el detector de kick: el ruido residual de una
 # fuente en pausa no debe mover ninguna escena.
 SILENCE_RMS_THRESHOLD = 0.005
+# El reloj de los visuales YA NO se congela con este piso (pedido
+# explicito: "si Speed esta en 50 %, no puede bajar de 50 %"). Con la
+# compuerta, cada vez que el RMS rozaba el piso -- entre frases, en una
+# parte suave, con la entrada baja -- el reloj se detenia y arrancaba y
+# se veia como si fuera a 2 fps. Ahora Speed es el PISO y el bajo solo
+# suma encima. Criterio del usuario (docs/51): "si Speed fija 100, con
+# audio oscila entre 100 y ~104-108, jamas por debajo" -> +8 % maximo.
+BASS_SPEED_BOOST = 0.08
+# Tasa del reloj con Speed al maximo (antes 2.0: "en el maximo debe ser
+# bastante mas rapido"). Lineal: Speed 0.5 = la mitad de esto.
+SPEED_MAX_RATE = 4.0
+# La compuerta de musica (uMusic, deformacion de audio de las escenas, y
+# el reloj rtime de pulsos/parpadeos) sigue existiendo, pero se mantiene
+# abierta este tiempo despues del ultimo sonido, asi un hueco corto no
+# corta el baile de golpe ni hace "para, se mueve, para".
+MUSIC_HOLD_SECONDS = 2.0
 # Escenas de lineas muy finas (1-2 px): a menos resolucion se ablandan de
 # forma visible, asi que se calculan SIEMPRE a resolucion completa.
 # 23 web, 33 tormenta (rayos), 39 laseres, 41 red.
@@ -618,3 +639,181 @@ PROJECT_PATH = '/project1'
 # la red por primera vez.
 SETUP_NODE_COLOR = (1.0, 0.55, 0.0)             # naranja -- hace falta si o si
 SETUP_NODE_COLOR_OPTIONAL = (0.55, 0.42, 0.85)  # violeta -- opcional (LEDs de pads)
+
+
+# ---------------------------------------------------------------
+# SETS DE VISUALES (un show = un set)
+# ---------------------------------------------------------------
+# El nucleo (vjcore/) es UNO solo para todos los shows; lo que cambia por
+# show vive en su set. 'tdai2026' es el set de siempre: sus 98 escenas
+# siguen en td/visuals/ y usa todos los valores de arriba tal cual. Otro
+# set vive en td/sets/<nombre>/ con su visuals/ y un set.json que pisa
+# solo lo que cambia (ver docs/53_SETS_Y_HALLOWEEN.md).
+#
+# Quien elige el set: RUN_ME.py (SET = '...') lo pone en la variable de
+# entorno TDAI_SET antes de importar. El build lo guarda en
+# td/config/active_set.txt, asi al reabrir el .toe sin correr RUN_ME
+# (o con "Reconstruir Todo") sigue siendo el mismo set.
+import json as _json
+import os as _os
+
+DEFAULT_SET = 'tdai2026'
+_TD_DIR = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+ACTIVE_SET_FILE = _os.path.join(_TD_DIR, 'config', 'active_set.txt')
+
+# Valores del set por defecto (los de arriba). Un set.json puede pisar:
+#   label, visuals_dir, n_scenes, media_scenes, fullres_scenes,
+#   modern_from, audio_dance, default_media_folder, thumbs_dir,
+#   presets_file, prelude
+SET_LABEL = 'TDAI2026'
+VISUALS_DIR = 'visuals'          # relativo a td/
+# Desde que indice rige la logica de las escenas "recientes": Detail con
+# mas recorrido al centro, audio cortado por la compuerta de musica y los
+# gestos de piano nuevos. En tdai2026 son las 58-97.
+MODERN_FROM = 58
+# Deformacion global de audio (audioDanceUV). Se percibe como un twirl
+# comun a todas las escenas (docs/51); un set nuevo puede apagarla y
+# hacer que el audio mueva elementos internos de cada visual.
+AUDIO_DANCE = True
+PRESETS_FILE = 'presets.json'    # dentro de td/config/
+# GLSL comun del set, que se agrega al final del header de CADA escena
+# del set (funciones compartidas: acabado, luz, particulas...). Vacio =
+# nada. Ruta relativa a td/.
+SET_PRELUDE = ''
+
+
+def _read_active_set():
+    name = _os.environ.get('TDAI_SET', '').strip()
+    if name:
+        return name
+    # El archivo solo se lee DENTRO de TouchDesigner (reabrir el .toe).
+    # Afuera (td/tools/) manda TDAI_SET o el set por defecto: si no, los
+    # tests cambiarian de set segun lo ultimo que se construyo en TD.
+    # Ojo: fuera de TD, 'import td' puede encontrar la carpeta td/ del repo
+    # como paquete vacio; el modulo real de TD es el que trae op().
+    try:
+        import td as _td
+        if not hasattr(_td, 'op'):
+            return DEFAULT_SET
+    except ImportError:
+        return DEFAULT_SET
+    try:
+        with open(ACTIVE_SET_FILE, 'r', encoding='utf-8') as f:
+            name = f.read().strip()
+    except Exception:
+        name = ''
+    return name or DEFAULT_SET
+
+
+def set_dir(name=None):
+    name = name or SET_NAME
+    if name == DEFAULT_SET:
+        return _TD_DIR
+    return _os.path.join(_TD_DIR, 'sets', name)
+
+
+# LAMINAS: capas PNG quietas de una escena (fondo, colinas, lapidas...)
+# dibujadas con todo el detalle fuera de linea; en vivo el shader solo las
+# lee. Viven en sets/<set>/plates/sceneNN/*.png y entran al GLSL TOP de esa
+# escena despues de ctrl (y de media, si la escena usa media), en orden
+# alfabetico. {indice: [rutas absolutas]}.
+PLATES = {}
+
+
+def _find_plates(folder):
+    import re as _re
+    out = {}
+    try:
+        names = _os.listdir(folder)
+    except Exception:
+        return out
+    for d in names:
+        m = _re.match(r'scene(\d+)$', d)
+        if not m:
+            continue
+        sub = _os.path.join(folder, d)
+        files = sorted(f for f in _os.listdir(sub) if f.lower().endswith('.png'))
+        if files:
+            out[int(m.group(1))] = [_os.path.join(sub, f) for f in files]
+    return out
+
+
+def plate_base(i):
+    """Indice de sTD2DInputs donde empieza la primera lamina de la escena i."""
+    return 2 if i in MEDIA_SCENES else 1
+
+
+def scene_input_count(i):
+    """Cuantos inputs tiene el GLSL TOP de la escena i (ctrl + media + laminas)."""
+    return plate_base(i) + len(PLATES.get(i, []))
+
+
+def _count_scenes(folder):
+    import re as _re
+    idx = []
+    try:
+        for fn in _os.listdir(folder):
+            m = _re.match(r'scene(\d+)_.*\.frag$', fn)
+            if m:
+                idx.append(int(m.group(1)))
+    except Exception:
+        return 0
+    return max(idx) + 1 if idx else 0
+
+
+def _apply_set(name):
+    g = globals()
+    if name == DEFAULT_SET:
+        return None
+    path = _os.path.join(set_dir(name), 'set.json')
+    with open(path, 'r', encoding='utf-8') as f:
+        data = _json.load(f)
+    g['SET_LABEL'] = data.get('label', name)
+    g['VISUALS_DIR'] = _os.path.join('sets', name,
+                                     data.get('visuals_dir', 'visuals'))
+    n = data.get('n_scenes')
+    if not n:
+        n = _count_scenes(_os.path.join(_TD_DIR, g['VISUALS_DIR']))
+    g['N_SCENES'] = max(1, int(n))
+    g['MEDIA_SCENES'] = set(int(i) for i in data.get('media_scenes', []))
+    g['FULLRES_SCENES'] = set(int(i) for i in data.get('fullres_scenes', []))
+    g['MODERN_FROM'] = int(data.get('modern_from', 0))
+    g['AUDIO_DANCE'] = bool(data.get('audio_dance', False))
+    if data.get('default_media_folder'):
+        g['DEFAULT_MEDIA_FOLDER'] = data['default_media_folder']
+    g['THUMBS_DIRNAME'] = _os.path.join(
+        'sets', name, data.get('thumbs_dir', 'thumbs'))
+    g['PRESETS_FILE'] = data.get('presets_file',
+                                 'presets_{}.json'.format(name))
+    if data.get('output'):
+        # Resolucion de salida propia del set, [ancho, alto]. Respeta el
+        # tope de la licencia Non-Commercial.
+        w, h = data['output']
+        g['DEFAULT_OUTPUT_W'] = max(320, min(int(w), MAX_OUTPUT))
+        g['DEFAULT_OUTPUT_H'] = max(240, min(int(h), MAX_OUTPUT))
+    g['PLATES'] = _find_plates(_os.path.join(set_dir(name), data.get('plates_dir', 'plates')))
+    if data.get('prelude'):
+        g['SET_PRELUDE'] = _os.path.join('sets', name, data['prelude'])
+    g['GRID_ROWS'] = math.ceil(g['N_SCENES'] / GRID_COLS)
+    return data
+
+
+SET_NAME = _read_active_set()
+try:
+    _apply_set(SET_NAME)
+except Exception as _e:
+    # Un set mal escrito no puede dejar el rig sin arrancar: se avisa y
+    # se queda el set por defecto.
+    print('SET "{}" no se pudo cargar ({}); uso {}'.format(
+        SET_NAME, _e, DEFAULT_SET))
+    SET_NAME = DEFAULT_SET
+
+
+def save_active_set():
+    """Lo llama el build: recuerda el set para el proximo arranque."""
+    try:
+        _os.makedirs(_os.path.dirname(ACTIVE_SET_FILE), exist_ok=True)
+        with open(ACTIVE_SET_FILE, 'w', encoding='utf-8') as f:
+            f.write(SET_NAME + '\n')
+    except Exception as e:
+        print('AVISO no pude guardar active_set.txt:', e)

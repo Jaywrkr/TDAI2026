@@ -586,11 +586,13 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
     # Umbral, no "> 0": una perilla fisica rara vez queda clavada en cero
     # exacto, y sin umbral la estela quedaria cocinando para siempre por
     # un 0.003 que no se ve.
+    # music_hold (control.py) y no el RMS crudo: con el crudo, la estela
+    # se prendia y apagaba cada vez que el nivel rozaba el piso.
     safe_expr(trails_pick, 'index',
               "1 if op('/project1').par.Trails.eval() > 0.005 and "
-              "op('/project1/a_level_smooth') is not None and "
-              "(op('/project1/a_level_smooth')[0].eval() if op('/project1/a_level_smooth') is not None and op('/project1/a_level_smooth').numChans else 0.0) >= {} else 0"
-              .format(config.SILENCE_RMS_THRESHOLD))
+              "(op('/project1/music_hold')[0].eval() if "
+              "op('/project1/music_hold') is not None and "
+              "op('/project1/music_hold').numChans else 0.0) >= 0.5 else 0")
 
     log('MASTER FX: dos capas + estela (con bypass real por switch) OK')
     return {'blend': blend, 'pick': pick, 'clean': clean,
@@ -730,11 +732,26 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
         safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")
 
+    # Cuadro del proyector: la salida (que puede ser panoramica) centrada
+    # en un cuadro 16:9 con franjas negras. Sin esto la ventana en 'fill'
+    # estiraria una salida 1280x512 a la pantalla 16:9 y todo se veria
+    # aplastado. Con salida 16:9 el Fit no hace nada.
+    frame = proj.create(fitTOP, 'show_frame')
+    frame.nodeX, frame.nodeY = 1360, -160
+    connect(frame, show)
+    safe_set(frame, 'fit', 'fitbest')
+    safe_set(frame, 'outputresolution', 'custom')
+    safe_expr(frame, 'resolutionw', "op('/project1').par.Outputwidth")
+    safe_expr(frame, 'resolutionh',
+              "max(op('/project1').par.Outputheight, "
+              "int(round(op('/project1').par.Outputwidth / {:.6f})))"
+              .format(config.PROJECTOR_ASPECT))
+
     # Ventana de salida al proyector. Se crea pero NO se abre sola: abrirla
     # es una accion de show, no de build.
     win = proj.create(windowCOMP, 'show_window')
     win.nodeX, win.nodeY = 1560, -160
-    safe_set_first(win, ['op', 'operator', 'winop'], show.path)
+    safe_set_first(win, ['op', 'operator', 'winop'], frame.path)
     safe_set(win, 'borders', False)
     safe_set_first(win, ['opensize', 'size'], 'fill')
     safe_set(win, 'monitor', 1)
@@ -746,7 +763,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     out = {'a': sw_a, 'b': sw_b, 'preview': sw_prev, 'cross': cross,
            'clean': clean, 'bloom': bloom, 'master': master, 'show': show,
            'bloom_prefilter': bloom_fx['bloom_prefilter'],
-           'window': win}
+           'frame': frame, 'window': win}
     out.update(fx)
     out.update(text_fx)
     return out

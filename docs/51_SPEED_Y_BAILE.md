@@ -1,5 +1,14 @@
 # Relevo para Claude: Speed, baile, brillo y piano
 
+## Actualización 20 de octubre de 2026 — reloj de Speed corregido
+
+Implementado en `td/vjcore/control.py` y `td/vjcore/config.py` (rama `claude/upbeat-bell-m4iut3`):
+
+- **Speed es el piso y ya no depende del audio.** Tasa = `SPEED_MAX_RATE × Speed × (1 + BASS_SPEED_BOOST × bajo)`, con `SPEED_MAX_RATE = 4.0` (antes 2.0: el máximo va el doble de rápido) y `BASS_SPEED_BOOST = 0.08` (100 → hasta 108, nunca menos de 100). En silencio el movimiento propio sigue.
+- **`rtime` y la compuerta `music` usan una compuerta sostenida** (`music_hold`, Lag de 2 s, `MUSIC_HOLD_SECONDS`): se detienen tras 2 s de silencio, no en cada hueco entre frases. La estela (`trails_pick`) usa la misma.
+- Probado fuera de TD con `td/tools/test_speed_audio_motion.py` y `test_errores_red.py`. **Sin validar en el TouchDesigner del usuario.**
+- **Sigue pendiente** el Siguiente paso 1 (quitar el twirl de `audioDanceUV`, audio en elementos internos, brillo).
+
 ## Estado del repo al recibir este relevo
 
 Estado revisado el **28 de septiembre de 2026**. El proyecto tiene 98 escenas (`scene00`–`scene97`); las escenas 58–97 son las 40 más recientes. La rama local es `codex/speed-and-reactive-details`. El último commit de implementación fue `f255057` y el relevo anterior quedó en `7baf599`; desde entonces no hubo cambios de código en esta copia. Los cambios descritos aquí como **pendientes** son instrucciones para el siguiente trabajo: **no están implementados por esta actualización de documentación**. [CLAUDE.md](../CLAUDE.md) resume el punto de entrada.

@@ -309,8 +309,8 @@ void main() {
     // un no-op) -- nunca pixelaba nada de verdad. Ahora cuantiza el UV
     // antes de muestrear, que es como se pixela de verdad.
     vec2 renderUV = vUV.st;
-    if (uScene >= 58) {
-        renderUV = audioDanceUV(renderUV);
+    if (uScene >= MODERN_FROM) {
+        if (AUDIO_DANCE == 1) renderUV = audioDanceUV(renderUV);
         renderUV = pianoGestureUV(renderUV);
     }
 
@@ -338,7 +338,7 @@ void main() {
 
     // Las escenas recientes tienen deformacion y acentos de piano segun
     // su familia visual. Las anteriores conservan el anillo original.
-    if (uScene >= 58) {
+    if (uScene >= MODERN_FROM) {
         c.rgb = pianoGestureLight(vUV.st, c.rgb);
     } else if (uKeypulse > 0.0015) {
         vec2 kp = centered(vec2(mix(0.14, 0.86, uKeypos), 0.5));
@@ -534,10 +534,10 @@ def _defines(channels, scene_index=None):
         uni = uniform_name(name)
         if name in index:
             value = '_ctrl({})'.format(index[name])
-            if scene_index is not None and scene_index >= 58 and name in (
+            if scene_index is not None and scene_index >= config.MODERN_FROM and name in (
                     'd1', 'd2', 'd3', 'd4', 'd5', 'd6'):
                 value = 'detailDrive({})'.format(value)
-            if scene_index is not None and scene_index >= 58 and name in (
+            if scene_index is not None and scene_index >= config.MODERN_FROM and name in (
                     'bass', 'mid', 'high', 'kick', 'beat'):
                 value = '({} * uMusic)'.format(value)
             lines.append('#define {:<10} {}'.format(uni, value))
@@ -589,9 +589,55 @@ def make_header(scene_index, channels):
     # perilla en vivo.
     header += '#define STROBE_MAX_HZ {:.2f}\n'.format(
         max(0.5, float(config.STROBE_MAX_HZ)))
+    # Logica por set (config.MODERN_FROM / AUDIO_DANCE): el footer es
+    # comun a todos los sets y decide con estos dos #define.
+    header += '#define MODERN_FROM {}\n'.format(int(config.MODERN_FROM))
+    header += '#define AUDIO_DANCE {}\n'.format(1 if config.AUDIO_DANCE else 0)
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
+    header += plates_header(scene_index)
+    header += set_prelude()
     return header
+
+
+def plates_header(scene_index):
+    """plate0(uv) ... plateN(uv) para las laminas de la escena (ver
+    config.PLATES). Fuera de 0..1 devuelven transparente: la lamina no se
+    repite en los bordes."""
+    files = config.PLATES.get(scene_index, [])
+    if not files:
+        return ''
+    base = config.plate_base(scene_index)
+    out = ['', '// Laminas de esta escena (config.PLATES), en orden:']
+    for k, f in enumerate(files):
+        out.append('//   plate{}: {}'.format(k, os.path.basename(f)))
+    out.append('#define N_PLATES {}'.format(len(files)))
+    for k in range(len(files)):
+        # sin repetir en los bordes (el modo de borde del input puede ser
+        # 'repeat'): uv recortado medio texel adentro y nivel 0
+        out.append('vec4 plate{0}(vec2 uv) {{ vec2 o = step(vec2(0.0), uv) * step(uv, vec2(1.0)); '
+                   'vec2 hs = 0.5 / vec2(textureSize(sTD2DInputs[{1}], 0)); '
+                   'return textureLod(sTD2DInputs[{1}], clamp(uv, hs, 1.0 - hs), 0.0) * (o.x * o.y); }}'
+                   .format(k, base + k))
+        # textureLod: con fract() la derivada salta en la costura y el
+        # mipmap elegiria el nivel mas chico (linea visible)
+        out.append('vec4 plate{0}Wrap(vec2 uv) {{ return textureLod(sTD2DInputs[{1}], fract(uv), 0.0); }}'
+                   .format(k, base + k))
+    return '\n'.join(out) + '\n'
+
+
+def set_prelude():
+    """GLSL compartido del set activo (config.SET_PRELUDE), o ''.
+    Se lee de disco cada vez: 'Recargar Shaders' toma los cambios."""
+    rel = getattr(config, 'SET_PRELUDE', '')
+    if not rel:
+        return ''
+    path = os.path.join(repo_root(), rel)
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return '\n// ---- prelude del set: {} ----\n'.format(rel) + f.read() + '\n'
+    except Exception as e:
+        return '\n// prelude del set no encontrado: {} ({})\n'.format(rel, e)
 
 
 def repo_root():
@@ -600,7 +646,8 @@ def repo_root():
 
 
 def visuals_dir():
-    return os.path.join(repo_root(), VISUALS_DIRNAME)
+    """Carpeta de .frag del set activo (config.VISUALS_DIR)."""
+    return os.path.join(repo_root(), config.VISUALS_DIR)
 
 
 def find_visual(scene_index):
@@ -616,7 +663,8 @@ def find_visual(scene_index):
 
 
 def template_path():
-    return os.path.join(visuals_dir(), TEMPLATE_NAME)
+    # La plantilla es una sola para todos los sets.
+    return os.path.join(repo_root(), VISUALS_DIRNAME, TEMPLATE_NAME)
 
 
 def read_body(scene_index):

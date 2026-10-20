@@ -14,6 +14,13 @@ REPO = 'C:/TDAI2026/td'
 # REPO = project.folder + '/TDAI2026/td'
 # ----------------------------------------------------------------
 
+# --- 2. Que show: 'tdai2026' (el de siempre) o 'halloween' ----------
+SET = 'tdai2026'
+# ----------------------------------------------------------------
+
+import os
+os.environ['TDAI_SET'] = SET
+
 if REPO not in sys.path:
     sys.path.insert(0, REPO)
 

@@ -253,8 +253,10 @@ def _parameters(proj):
     add_int(lz, 'Lasermode', 'Modo laser  ' + _menu_hint(laserfx.MODES),
             laserfx.MODE_OFF, 0, len(laserfx.MODES) - 1)
     add_toggle(lz, 'Laserarm', 'ARMAR emision (solo SALIDA DAC)', False)
+    # Por defecto CIRCULO (1), no AUTO (0): AUTO tiene que leer la imagen
+    # del show desde la GPU y es el modo mas caro.
     add_int(lz, 'Laserpattern', 'Patron  ' + _menu_hint(laserfx.PATTERNS),
-            0, 0, len(laserfx.PATTERNS) - 1)
+            1, 0, len(laserfx.PATTERNS) - 1)
     add_float(lz, 'Laserthreshold', 'AUTO: umbral de brillo a trazar',
               0.35, 0.05, 0.95)
     add_float(lz, 'Laserbright', 'Brillo maximo (techo)', 0.5, 0, 1)
@@ -277,6 +279,10 @@ def _parameters(proj):
     # pasos, empezando por lo mas caro y menos esencial.
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
+    # Piso propio del failsafe, separado del aviso visual (Fpswarning, 55):
+    # el show no puede bajar de 20 fps, asi que actua por debajo de 24
+    # (margen) y no cada vez que el FPS baja de 55.
+    add_int(fs, 'Failsafefps', 'Actuar si el FPS baja de', 24, 10, 120)
     add_float(fs, 'Failsafeseconds', 'Segundos en rojo antes de actuar',
               4.0, 1.0, 30.0)
     # Tope holgado a proposito: el techo REAL de la escalera lo pone
@@ -369,6 +375,9 @@ def _parameters(proj):
 
     s = proj.appendCustomPage('System')
     add_string(s, 'Repopath', 'Repo td/ Path', '')
+    # Informativo: el set lo elige RUN_ME.py (SET = '...'). Cambiarlo aca
+    # no hace nada; ver docs/53_SETS_Y_HALLOWEEN.md.
+    add_string(s, 'Showset', 'Set de visuales (lo elige RUN_ME.py)', '')
     add_toggle(s, 'Safestartblackout', 'Safe Start Blackout', True)
     add_int(s, 'Fpswarning', 'FPS Warning', 55, 1, 240)
     # Bajado de 30 a 12 (~5x/seg a 60fps, ~4x/seg a 50fps): este panel
@@ -653,6 +662,10 @@ def build(verbose=True):
 
     _parameters(proj)
     safe_set(proj, 'Repopath', shader.repo_root())
+    safe_set(proj, 'Showset', config.SET_NAME)
+    config.save_active_set()
+    log('SET: {} ({} escenas en {})'.format(
+        config.SET_LABEL, config.N_SCENES, config.VISUALS_DIR))
 
     # --- runtime DATs primero: el resto los referencia ---
     ctrl_dat = proj.create(textDAT, 'control_script')
@@ -780,6 +793,9 @@ def verify(proj, channels):
     """Chequeos post-build. Vale oro porque este script no se puede
     testear fuera de TouchDesigner."""
     out = ['', '=' * 58, 'VERIFICACION DEL BUILD   [{}]'.format(config.BUILD_TAG),
+           '  set: {}  ({} escenas, {})'.format(config.SET_LABEL,
+                                                config.N_SCENES,
+                                                config.VISUALS_DIR),
            '  codigo: {}'.format(os.path.dirname(os.path.abspath(__file__))),
            '=' * 58]
     ok = True
@@ -831,6 +847,7 @@ def verify(proj, channels):
     check('dashboard existe', bool(proj.op('dashboard_ui')))
     check('show_out existe', bool(proj.op('show_out')))
     check('show_window existe', bool(proj.op('show_window')))
+    check('show_frame (cuadro 16:9 del proyector) existe', bool(proj.op('show_frame')))
     lz = proj.op('laser')
     check('laser (opcional) construido y apagado',
           bool(lz) and bool(lz.op('laser_points')) and not lz.allowCooking,
@@ -839,9 +856,7 @@ def verify(proj, channels):
     ld = proj.op('laser_down')
     check('laser_down conectado a show_out', bool(ld) and len(ld.inputs) == 1)
     for name in ('laser_points', 'laser_preview'):
-        node = lz.op(name) if lz else None
-        check('laser/{} con input'.format(name),
-              bool(node) and len(node.inputs) == 1)
+        check('laser/{} existe'.format(name), bool(lz and lz.op(name)))
     check('Repopath configurado', bool(proj.par.Repopath.eval()),
           proj.par.Repopath.eval())
     check('visuals/ encontrado', os.path.isdir(shader.visuals_dir()),

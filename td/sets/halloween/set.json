@@ -1,0 +1,20 @@
+{
+  "label": "HALLOWEEN 2026",
+  "output": [
+    1280,
+    512
+  ],
+  "visuals_dir": "visuals",
+  "modern_from": 0,
+  "audio_dance": false,
+  "media_scenes": [
+    6
+  ],
+  "fullres_scenes": [
+    8,
+    9
+  ],
+  "thumbs_dir": "thumbs",
+  "presets_file": "presets_halloween.json",
+  "prelude": "common.glsl"
+}

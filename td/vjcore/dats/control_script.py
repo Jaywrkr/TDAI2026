@@ -914,7 +914,7 @@ _FAILSAFE_MAX_LEVEL = len(_FAILSAFE_STEPS) + 1
 
 def failsafeStep():
     """Baja UN escalon de calidad. La llama diagnostics.py cuando el FPS
-    lleva Failsafeseconds seguidos por debajo de Fpswarning."""
+    lleva Failsafeseconds seguidos por debajo de Failsafefps."""
     p = _p()
     if not p:
         return
@@ -1522,8 +1522,15 @@ PRESET_PARS = ['Speed', 'Density', 'Hue', 'Chaos',
 
 
 def _presets_path():
+    # Un archivo por set: los indices de escena significan otra cosa en
+    # cada set (ver config.PRESETS_FILE).
     d = _config_dir()
-    return os.path.join(d, 'presets.json') if d else ''
+    try:
+        import vjcore.config as _vjconfig
+        name = _vjconfig.PRESETS_FILE
+    except Exception:
+        name = 'presets.json'
+    return os.path.join(d, name) if d else ''
 
 
 def _presets():

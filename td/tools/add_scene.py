@@ -31,6 +31,9 @@ USO
     # forzar un indice puntual (por defecto usa el siguiente libre)
     python3 td/tools/add_scene.py --slug tunel --index 40 archivo.frag
 
+    # en otro set (td/sets/<nombre>/visuals/), ej. Halloween
+    python3 td/tools/add_scene.py --set halloween --slug calaveras archivo.frag
+
 En modo --dir es todo o nada: si UN archivo no compila, no se escribe
 NINGUNO y no se toca config.py -- para no dejar N_SCENES apuntando a
 escenas a medio cargar.
@@ -46,11 +49,19 @@ TD = os.path.dirname(HERE)
 sys.path.insert(0, TD)
 sys.path.insert(0, HERE)
 
+# --set tiene que leerse ANTES de importar vjcore: config elige el set al
+# importarse (variable de entorno TDAI_SET).
+if '--set' in sys.argv:
+    _i = sys.argv.index('--set')
+    os.environ['TDAI_SET'] = sys.argv[_i + 1]
+    del sys.argv[_i:_i + 2]
+
 from vjcore import config, shader  # noqa: E402
 import validate_shaders as vs       # noqa: E402  reutiliza _compile/annotate
 import test_detail_knobs as tdk     # noqa: E402  reutiliza parse_legend
 
-VISUALS = os.path.join(TD, 'visuals')
+VISUALS = os.path.join(TD, config.VISUALS_DIR)
+IS_DEFAULT_SET = config.SET_NAME == config.DEFAULT_SET
 CONFIG_PATH = os.path.join(TD, 'vjcore', 'config.py')
 
 RENDER_SIG_RE = re.compile(r'vec4\s+render\s*\(\s*vec2\s+uv\s*\)')
@@ -110,7 +121,7 @@ def compose_for_check(index, body, channels=None):
     """Igual que validate_shaders.build_source, pero con el .frag TODAVIA
     en memoria (no escrito a disco todavia) -- para poder validar antes
     de tocar el filesystem."""
-    n_inputs = 2 if index in config.MEDIA_SCENES else 1
+    n_inputs = config.scene_input_count(index)
     src = (vs._td_prologue(n_inputs)
            + shader.make_header(index, channels or config.CTRL_CHANNELS)
            + body + shader._FOOTER)
@@ -131,7 +142,13 @@ def compile_check(index, body):
 
 
 def bump_n_scenes(new_total):
-    """Sube N_SCENES en config.py si el nuevo total es mayor. Nunca lo baja."""
+    """Sube N_SCENES en config.py si el nuevo total es mayor. Nunca lo baja.
+
+    En un set que no es el de por defecto no hay nada que escribir: su
+    N_SCENES sale de contar los .frag de su carpeta (ver config._apply_set).
+    """
+    if not IS_DEFAULT_SET:
+        return new_total, True
     with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         text = f.read()
     m = re.search(r'^N_SCENES = (\d+)', text, re.MULTILINE)
@@ -260,9 +277,12 @@ def next_free_index():
     ('46' -> '47'), Python no lo recompila. Ahora se toma el mayor entre
     N_SCENES leido del texto de config.py y la ultima sceneNN_*.frag + 1.
     """
-    with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-        m = re.search(r'^N_SCENES = (\d+)', f.read(), re.MULTILINE)
-    n = int(m.group(1)) if m else config.N_SCENES
+    n = 0
+    if IS_DEFAULT_SET:
+        with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
+            m = re.search(r'^N_SCENES = (\d+)', f.read(), re.MULTILINE)
+        n = int(m.group(1)) if m else config.N_SCENES
+    os.makedirs(VISUALS, exist_ok=True)
     used = [int(x.group(1)) for x in (re.match(r'scene(\d+)_.*\.frag$', fn)
                                        for fn in os.listdir(VISUALS)) if x]
     return max([n] + [u + 1 for u in used])

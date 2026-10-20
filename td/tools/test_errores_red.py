@@ -45,7 +45,7 @@ check('beat_light protegido si falta el canal beat',
 # op(...)[0] da None -> "'NoneType' object has no attribute 'eval'" en
 # time_scaled, time_real y music_gate.
 sys.path.insert(0, TD)
-from vjcore import control  # noqa: E402
+from vjcore import control, config  # noqa: E402
 
 
 class _Par:
@@ -70,9 +70,9 @@ ops = {'/project1': _Proj(), '/project1/a_level_smooth': _Empty(),
 try:
     v = eval(control.speed_rate_expression(),
              {'op': ops.get, 'max': max, 'min': min})
-    check('Speed sin audio conectado -> 0 (no error)', v == 0.0)
+    check('Speed 0.5 sin audio conectado -> media velocidad (no error, no se congela)', abs(v - config.SPEED_MAX_RATE * 0.5) < 1e-9)
 except Exception as e:
-    check('Speed sin audio conectado -> 0 (no error): {}'.format(e), False)
+    check('Speed sin audio conectado (no error): {}'.format(e), False)
 for name in ('audio.py', 'control.py', 'program.py', 'scenes.py'):
     raw = re.findall(r"op\('[^']+'\)\[0\]\.eval\(\)(?! if)", src(name))
     check('{}: todo op(...)[0].eval() va con guarda de canales'.format(name),
