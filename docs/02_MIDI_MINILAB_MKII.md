@@ -1,5 +1,7 @@
 # MIDI — Arturia MiniLab MkII
 
+> **Set de Halloween:** perillas 2, 4, 15, 16 y el pad 7 hacen otra cosa en ese set (paleta, estilo, noche, marco, noche on/off). Ver [53 — El MiniLab en Halloween](53_SETS_Y_HALLOWEEN.md#el-minilab-en-halloween).
+
 ## Layout v2 — el mapa actual
 
 **Qué tiene el controlador:** 16 perillas, 8 pads × 2 bancos (botón

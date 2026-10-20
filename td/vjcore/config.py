@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'paletas-v1 2026-10-21'
+BUILD_TAG = 'minilab-hw-v1 2026-10-21'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -702,6 +702,15 @@ SET_PRELUDE = ''
 PLATE_LOD = '0.0'
 # Valor de arranque de Estilo / Estilomarco (set.json "style": [estilo, marco]).
 STYLE_DEFAULT = (0.0, 0.0)
+# REDIRECCION DE CONTROLES POR SET (set.json "midi_redirect"): el mismo
+# control fisico ya aprendido hace OTRA cosa en este set, sin tocar el
+# mapeo guardado (midi_map.json) ni el set principal. Perilla -> nombre de
+# parametro de /project1 (0..1); pad -> funcion de control_script.
+# Ej. Halloween: {"Hue": "Estilopaleta", "Duallayer": "toggleNight"}.
+MIDI_REDIRECT = {}
+# Etiquetas de la pagina MIDI Mapping para los controles redirigidos.
+MIDI_REDIRECT_LABELS = {}
+
 # Nombres de las paletas del estilo, en el orden en que las recorre la
 # perilla Estilopaleta (set.json "style_palettes"; el GLSL del set las define).
 STYLE_PALETTES = []
@@ -825,6 +834,8 @@ def _apply_set(name):
     if data.get('style'):
         g['STYLE_DEFAULT'] = (float(data['style'][0]), float(data['style'][1]))
     g['STYLE_PALETTES'] = list(data.get('style_palettes', []))
+    g['MIDI_REDIRECT'] = dict(data.get('midi_redirect', {}))
+    g['MIDI_REDIRECT_LABELS'] = dict(data.get('midi_labels', {}))
     if data.get('plate_lod'):
         g['PLATE_LOD'] = str(data['plate_lod'])
     if data.get('prelude'):

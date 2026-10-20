@@ -114,6 +114,24 @@ El kit lo aplica en `hkFinish` a **todas** las escenas (`hkStyle`). Cada escena 
 
 Costo en el banco: +3–5 ms con Estilo arriba. Para que el desenfoque de las láminas funcione en TD, las escenas con láminas o media usan filtro de entrada mipmap (lo pone el build).
 
+## El MiniLab en Halloween
+
+![MiniLab en Halloween](img/minilab_halloween.png)
+
+En Halloween varias perillas casi no aportaban (Density la usan 4 de 26 escenas; Hue, Look y Paleta quedan tapados por el estilo aerógrafo), y lo nuevo del set no tenía control físico. Con `set.json` → `"midi_redirect"` el **mismo control ya aprendido** hace otra cosa **solo en este set**. No se toca `midi_map.json` ni el set principal.
+
+| Control | En Halloween | Antes / en el set principal |
+|---|---|---|
+| Perilla 2 | **Paleta del estilo** (Estilopaleta: Calabaza → … → Sepia) | Hue |
+| Perilla 4 | **Estilo aerógrafo** (Estilo) | Density |
+| Perilla 15 | **Noche, intensidad** (0 = sin efecto de noche) | Look |
+| Perilla 16 | **Marco de arco** (Estilomarco) | Paleta |
+| Pad 7 (banco A) | **Noche ON/OFF** (LED rojo = prendida) | Dos Capas |
+
+Todo lo demás queda igual: Energía, Speed, Chaos (locura), Audio, Estela, Master, Detail 1–6, Shift+1/Shift+9, tira de Mod (imagen), los pads del show y el banco B de efectos (sin cambios por ahora). La página MIDI Mapping muestra los nombres nuevos. Para volver a lo de siempre en Halloween, borrar `"midi_redirect"` del `set.json`.
+
+Ideas para más adelante (no hechas): el banco B podría pasar a efectos propios de Halloween (relámpago, sangre, apagón) y el pad 16 (Modo mezcla, que sin Dos Capas no hace nada) a **Paleta automática**.
+
 ## Locura (perilla Chaos) y kit compartido
 
 En este set la perilla **Chaos (knob 4) es la locura**. En 0 las escenas son cinematográficas y sobrias; al subirla, cada golpe trae algo más fuerte: sacudida y zoom de impacto, relámpagos dobles, lenguas de fuego en la calabaza, un ojo gigante, murciélagos que se vienen encima, salpicaduras de sangre, VHS que rueda e invierte, fantasmas que se abalanzan gritando, un enjambre de arañitas, ojos dentro del portal, un géiser en el caldero, rayos de los ojos de la momia, calabazas que saltan, una bandada de cuervos, manos que revientan la tierra, ráfaga que tumba las velas, rayos X en el esqueleto, el túnel que se retuerce y el demonio que se desdobla.
@@ -197,6 +215,7 @@ Después de cambiar el formato hay que **Reconstruir Todo**.
 La fiesta va de las 22:00 a las 05:30 y el set acompaña. El canal `night` (0..1) sale del reloj de la máquina y lo usa el kit de Halloween en `hkFinish`, así que vale para todas las escenas sin tocarlas una por una.
 
 - **Página Noche de /project1:**
+  - **Efecto NOCHE prendido:** apaga o prende todo el efecto sin perder la hora ni la intensidad. En el MiniLab: **pad 7** (LED rojo = prendido). La **perilla 15** maneja la intensidad (0 = sin efecto).
   - **Noche automática:** usa el reloj.
   - **Hora de inicio / Hora de fin:** 22 y 5,5 por defecto; la ventana puede cruzar la medianoche.
   - **Noche manual:** se usa cuando Noche automática está apagada.
