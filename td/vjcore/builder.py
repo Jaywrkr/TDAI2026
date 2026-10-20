@@ -277,6 +277,18 @@ def _parameters(proj):
     # No es un lujo: un rig que se cae a mitad del set es peor que uno
     # sin efectos. Degrada SOLO cuando el FPS lleva rato abajo, y en
     # pasos, empezando por lo mas caro y menos esencial.
+    # --- NOCHE: el set se pone mas oscuro y mas gore con la hora ---
+    # Auto: 0 a la hora de inicio, 1 a la hora de fin (cruza la medianoche),
+    # con el reloj de la maquina. Manual: la perilla manda. Nochevalor es
+    # interno (lo escribe diagnostics.updateNight) y es lo que lee el canal.
+    nt = proj.appendCustomPage('Noche')
+    add_toggle(nt, 'Nocheauto', 'Noche automatica (reloj)', True)
+    add_float(nt, 'Nocheinicio', 'Hora de inicio (h)', 22.0, 0.0, 24.0)
+    add_float(nt, 'Nochefin', 'Hora de fin (h)', 5.5, 0.0, 24.0)
+    add_float(nt, 'Nochemanual', 'Noche manual (0..1)', 0.0, 0.0, 1.0)
+    add_float(nt, 'Nocheintensidad', 'Intensidad del efecto', 1.0, 0.0, 1.0)
+    add_float(nt, 'Nochevalor', 'Noche (interno)', 0.0, 0.0, 1.0)
+
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
     # Piso propio del failsafe, separado del aviso visual (Fpswarning, 55):
@@ -494,6 +506,11 @@ def onValueChange(par, prev):
         return
     if par.name in ('Performancemode', 'Previewall'):
         ctrl.module.setSceneCooking()
+    elif par.name in ('Nocheauto', 'Nocheinicio', 'Nochefin', 'Nochemanual', 'Nocheintensidad'):
+        # la perilla manual responde en el momento (no espera el refresco)
+        d = op('/project1/diagnostics')
+        if d:
+            d.module.updateNight()
     elif par.name == 'Energy':
         # El macro escribe las perillas al MOVERSE, no por frame: esto
         # es un evento de valor, no un bucle.
