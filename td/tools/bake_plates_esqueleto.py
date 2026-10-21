@@ -131,39 +131,85 @@ float pelvisB(vec2 q, float W, float L){
   return max(d,-holeA);
 }
 
-struct S { float d; float h; vec3 alb; };
+// ---------- HUESOS CON VOLUMEN (fase 24) ----------
+// Cada pieza: silueta 2D (las de arriba) inflada como un solido (perfil
+// redondo: tubo en los huesos largos y costillas, domo en el craneo) mas
+// el detalle tallado: cuencas hondas con borde, arco de las cejas, nariz,
+// dientes uno por uno, suturas, vertebras. La normal sale de esta altura
+// en unidades del mundo (antes era casi plana: x0.01).
+float inflate(float d, float r0){
+  float k=clamp(-d/r0,0.,1.);
+  return r0*sqrt(max(1.-(1.-k)*(1.-k),0.));
+}
+// altura, distancia y color de la pieza i en q (unidades de la pieza)
+vec3 boneH(int i, vec2 q, out vec3 alb, out float ao){
+  float W=BS[i].x, L=BS[i].y;
+  float d=1e3, hole=1e3, h=0.; alb=vec3(0.); ao=1.;
+  float r0=W*0.14;
+  if(i==0){ d=longBone(q,W,L,true); r0=W*0.15; }
+  else if(i==1){ d=twoBones(q,W,L); r0=W*0.08; }
+  else if(i==2){ d=longBone(q,W,L,false); r0=W*0.15; }
+  else if(i==3){ d=twoBones(q,W,L); r0=W*0.08; }
+  else if(i==4||i==5){ d=handB(q,W,L,i==5); r0=W*0.045; }
+  else if(i==6){ d=skullB(q,W,L,hole); r0=W*0.34; }
+  else if(i==7){ d=ribsB(q,W,L); r0=W*0.035; }
+  else { d=pelvisB(q,W,L); r0=W*0.12; }
+  if(d>=0.) return vec3(d,0.,1e3);
+  h=inflate(d,r0);
+  float st=fbm(q*vec2(60.,40.)+float(i),4);
+  vec3 bone=mix(vec3(0.62,0.57,0.46),vec3(0.80,0.76,0.64),st);
+  bone=mix(bone,vec3(0.35,0.28,0.18),smoothstep(0.62,0.8,fbm(q*14.+float(i)*3.,4))*0.6);
+  h+=(st-0.5)*0.0015+(gn(q*300.)-0.5)*0.0006;                 // poros
+  if(i==6){
+    vec2 c=q-vec2(0.,L*0.55);
+    // arco de las cejas y pomulos
+    h+=0.010*exp(-pow((c.y-L*0.07)/(L*0.04),2.))*smoothstep(W*0.40,W*0.05,abs(c.x));
+    h+=0.008*exp(-dot((vec2(abs(c.x),c.y)-vec2(W*0.30,-L*0.14))/vec2(W*0.10,L*0.06),(vec2(abs(c.x),c.y)-vec2(W*0.30,-L*0.14))/vec2(W*0.10,L*0.06)));
+    // sutura del craneo
+    float sut=abs(c.x+0.004*sin(c.y*180.))-0.0012;
+    if(c.y>L*0.12){ h-=0.003*smoothstep(0.002,0.,sut); bone*=1.-0.35*smoothstep(0.002,0.,sut); }
+    // cuencas, nariz y boca: hondas, con borde que baja
+    if(hole<0.02){
+      float dep=smoothstep(0.006,-0.012,hole);
+      h-=0.045*dep;
+      bone=mix(bone,vec3(0.035,0.025,0.018),smoothstep(0.003,-0.008,hole));
+      ao=mix(1.,0.2,dep);
+    }
+    // dientes: cada uno un bulto con su separacion
+    if(abs(q.y-L*0.24)<L*0.045&&abs(q.x)<W*0.21){
+      float tx=fract(q.x/W*16.);
+      float tooth=smoothstep(0.0,0.25,tx)*smoothstep(1.0,0.75,tx);
+      float ty=1.-pow(abs(q.y-L*0.24)/(L*0.045),2.);
+      h=max(h,inflate(-0.01,0.01)+0.01*tooth*ty);
+      bone=mix(vec3(0.05,0.035,0.025),vec3(0.80,0.76,0.62),tooth*smoothstep(0.,0.3,ty));
+      ao=mix(0.4,1.,tooth);
+    }
+  }
+  if(i==7){
+    // vertebras: discos con separacion
+    if(abs(q.x)<W*0.06){ float v=fract(q.y*28.); h+=0.004*sin(v*3.14); bone*=0.8+0.2*sin(v*3.14); }
+  }
+  // oclusion general: lo fino y los bordes reciben menos luz
+  ao*=mix(0.55,1.,clamp(-d/r0,0.,1.));
+  alb=bone*ao;
+  return vec3(d,h,hole);
+}
+struct S { float d; vec3 n; vec3 alb; };
 S bones(vec2 uv){
-  S s; s.d=1e3; s.h=0.; s.alb=vec3(0.);
+  S s; s.d=1e3; s.n=vec3(0.,0.,1.); s.alb=vec3(0.);
   for(int i=0;i<9;i++){
     vec4 r=BR[i];
     if(uv.x<r.x||uv.y<r.y||uv.x>r.x+r.z||uv.y>r.y+r.w) continue;
-    vec2 lu=(uv-r.xy)/r.zw;                     // 0..1 en la pieza
+    vec2 lu=(uv-r.xy)/r.zw;
     vec2 q=vec2((lu.x-0.5)*BS[i].x, lu.y*BS[i].y);
-    float W=BS[i].x, L=BS[i].y;
-    float d=1e3, hole=1e3;
-    if(i==0) d=longBone(q,W,L,true);
-    else if(i==1) d=twoBones(q,W,L);
-    else if(i==2) d=longBone(q,W,L,false);
-    else if(i==3) d=twoBones(q,W,L);
-    else if(i==4) d=handB(q,W,L,false);
-    else if(i==5) d=handB(q,W,L,true);
-    else if(i==6) d=skullB(q,W,L,hole);
-    else if(i==7) d=ribsB(q,W,L);
-    else d=pelvisB(q,W,L);
-    s.d=d;
-    if(d<0.){
-      float dep=clamp(-d/(W*0.12),0.,1.);
-      s.h=sqrt(dep)*0.5;
-      float st=fbm(q*vec2(60.,40.)+float(i),4);
-      vec3 bone=mix(vec3(0.62,0.57,0.46),vec3(0.80,0.76,0.64),st);
-      bone=mix(bone,vec3(0.35,0.28,0.18),smoothstep(0.62,0.8,fbm(q*14.+float(i)*3.,4))*0.6);   // manchas viejas
-      s.alb=bone;
-      s.h+=st*0.04;
-      if(hole<0.){ s.alb=vec3(0.02,0.015,0.012); s.h=-0.2; }
-      if(i==6){
-        float teeth=step(abs(q.y-L*0.24),L*0.04)*step(abs(q.x),W*0.2)*step(0.25,fract(q.x/W*16.));
-        if(teeth>0.5&&hole>=0.){ s.alb=vec3(0.78,0.74,0.62); s.h=0.35; }
-      }
+    vec3 a; float ao;
+    vec3 c=boneH(i,q,a,ao);
+    s.d=c.x; s.alb=a;
+    if(c.x<0.){
+      float e=0.0012; vec3 a2; float o2;
+      float hx=boneH(i,q+vec2(e,0.),a2,o2).y-boneH(i,q-vec2(e,0.),a2,o2).y;
+      float hy=boneH(i,q+vec2(0.,e),a2,o2).y-boneH(i,q-vec2(0.,e),a2,o2).y;
+      s.n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
     }
     return s;
   }
@@ -225,11 +271,7 @@ void main(){
   S s=bones(p);
   float a=smoothstep(0.0015,-0.0015,s.d);
   if(plate==2){ fc=vec4(pow(clamp(s.alb*2.,0.,1.),vec3(1./2.2)), a); return; }
-  float e=0.0012;
-  float hx=bones(p+vec2(e,0.)).h-bones(p-vec2(e,0.)).h;
-  float hy=bones(p+vec2(0.,e)).h-bones(p-vec2(0.,e)).h;
-  vec3 n=normalize(vec3(-hx/(2.*e)*0.01,-hy/(2.*e)*0.01,1.));
-  fc=vec4(n.xy*0.5+0.5,0.,a);
+  fc=vec4(s.n.xy*0.5+0.5,0.,a);
 }
 """
 

@@ -514,3 +514,11 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 - **el resplandor de la esfera ilumina la piedra que la rodea**: en el clímax el rojo marca cada junta y el bisel.
 
 **Costo:** igual que antes en el banco de prueba. **Reconstruir Todo:** lámina nueva.
+
+## Fase 24: momia y esqueleto con volumen (escenas 12 y 17)
+
+![Antes y ahora](img/momia_esqueleto_2d_vs_3d.jpg)
+
+- **Esqueleto (17):** el atlas de huesos (`bake_plates_esqueleto.py`, láminas `3_huesos_color` y `4_huesos_relieve`) se hornea con volumen real: huesos largos y costillas redondeados como tubos, cráneo en domo con pómulos, arco de las cejas, cuencas y nariz hondas con borde, dientes uno por uno, sutura y vértebras; la oclusión va en el color. Antes el relieve era casi plano (la normal se escalaba x0,01). En vivo, además, **las baldosas encendidas lo iluminan desde abajo** (D6, el bajo y la ola del clímax).
+- **Momia (12):** cada venda es un tubo: el canto de arriba mira hacia arriba y el de abajo hacia abajo, con los cantos más oscuros; las antorchas marcan cada vuelta.
+- **Costo:** igual que antes en el banco de prueba. **Reconstruir Todo:** cambiaron las láminas de la 17.
