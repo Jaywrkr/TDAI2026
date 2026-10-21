@@ -689,3 +689,43 @@ Las escenas 00 a 05 usan el motor de la fase 30. Cada una tiene 3 estados, 7 suc
 Los FPS reales hay que mirarlos en TD.
 
 **Reconstruir Todo:** cambió `common.glsl`. Siguen la fase 32 (escenas 06–11) y las demás.
+
+## Fase 32: repertorio en las escenas 06–11
+
+![Los tres clímax de las escenas 06 a 11](img/climax_06_11.jpg)
+
+Igual que en la fase 31: 3 estados, 7 sucesos, 5 detalles y 3 clímax que rotan por escena. El clímax de antes es el **A**.
+
+| Escena | Estados | Sucesos | Detalles | Clímax B y C |
+|---|---|---|---|---|
+| 06 VHS | luz de luna, cinta gastada, a oscuras | cambio de canal, figura en el sillón, pantalla azul con PLAY, cara en la estática, la tele se apaga (línea y punto), mano en el vidrio desde adentro, alguien detrás de la persiana | reloj 00:00, banda de tracking, gato, ojos en la persiana, imagen al revés | **B** la cámara del cuarto (la pantalla muestra este cuarto y alguien parado detrás de la cámara se acerca); **C** la cinta sangra (chorrea por el mueble hasta el piso) |
+| 07 pasillo | velas encendidas, velas bajas, niebla espectral | pasa volando, la puerta se entreabre, ojos de los retratos, las velas se apagan de a una, la dama de blanco, atraviesa la pared, el pasillo se estira | los retratos guiñan, una vela titila, polvo en la luna, una puerta golpea, un fantasmita espía | **B** el baile (en parejas, en ronda; desaparecen de golpe con las velas); **C** la estampida (corren hacia la cámara y el último te atraviesa) |
+| 08 araña | noche quieta, humedad, viento | camina al centro, ráfaga, la presa (polilla atrapada), teje una vuelta, polilla en la luz, bajan aranitas, gota que corre | destello, hilo suelto, mosquito, estira las patas, polvo en la luz | **B** la invasión (decenas de aranitas cruzan la tela); **C** la tela gigante (se teje delante de la cámara y la araña enorme la cruza) |
+| 09 tormenta | tormenta, aguacero, relámpagos lejanos | el pico, ojos del espantapájaros, cuervos, rayo globular, el farol, ráfaga de hojas, relámpagos en las nubes | resplandor lejano, la ventana parpadea, cuervo en la cerca, chispas en el alambrado, gotas gruesas | **B** fuego de San Telmo (calma tensa, brillo azul en árbol, cerca y espantapájaros; un solo rayo al final); **C** el tornado |
+| 10 portal | fuego, fuego brujo, humo | runas del piso, la cara en el vórtice, el brazo, bola de fuego, el portal aspira, murciélagos, temblor | una runa brilla, chispas en el anillo, un ojo en el fondo, humo que sale, una vela se apaga | **B** el demonio (cabeza con cuernos que sube y mira); **C** lluvia de fuego |
+| 11 caldero | hervor tranquilo, hervor fuerte, niebla de poción | cara en el vapor, erupción, la mano, un frasco se enciende, el cucharón, ojos en la poción, el sapo | burbuja que revienta, chispa, gota del techo, los frascos tintinean, humo por la boca | **B** el espíritu (una figura de vapor abre los brazos); **C** el remolino (haz al techo y los frascos se encienden uno tras otro) |
+
+**Detalles:**
+- En la **06**, los sucesos del cuarto (figura en el sillón, persiana) sacan la cámara de la tele mientras duran, y la luz del cuarto sigue a la pantalla (azul, apagada, roja).
+- En la **09**, todos los rayos sueltos siguen pasando por el sorteo por casillero de la fase 29. Los relámpagos en las nubes y el rayo final del B usan ese mismo sorteo.
+- En la **10**, la cara del vórtice ahora también aparece con el golpe y Chaos alto, como decía el encabezado. Antes se calculaba pero no se dibujaba.
+
+**Pruebas fuera de TD:**
+- **Calendario:** `test_sucesos.py` da OK en las 13 escenas con repertorio.
+- **Destellos:** 0 por segundo en cada suceso, detalle y clímax de 06 a 11 (Noche 0,8, Miedo 0,5, Chaos 0,9). En el gran clímax, `test_destellos.py` sigue en 3 como máximo.
+- **Validación:** `validate_shaders` sin errores en los dos sets, y la compilación para Metal también.
+
+**Costo** (1280×512 por software, contra la fase 31):
+
+| Escena | Cambio |
+|---|---|
+| 06 | +8 % |
+| 07 | +15 % |
+| 08 | +19 % |
+| 09 | +10 % |
+| 10 | +27 % |
+| 11 | +11 % |
+
+Unos 7 ms de eso son del calendario (`hkSuceso` y `hkDetalle`). Es la misma cuenta para todos los píxeles, así que en una GPU debería pesar bastante menos que en este banco. Los FPS reales hay que mirarlos en TD, sobre todo en la 10.
+
+**Reconstruir Todo:** cambiaron los `.frag` de 06 a 11. Sigue la fase 33 (escenas 12–17).
