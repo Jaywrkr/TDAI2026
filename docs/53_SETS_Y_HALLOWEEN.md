@@ -651,3 +651,41 @@ Los nombres de cada cosa van en las líneas `@EST/@SUC/@DET/@CLX` del encabezado
 
 **Reconstruir Todo:** cambió `common.glsl` (todas las escenas lo incluyen). Las demás escenas todavía no usan el motor; siguen las fases 31–36.
 
+
+## Fase 31: repertorio en las escenas 00–05
+
+![Los tres clímax de las escenas 00 a 05](img/climax_00_05.jpg)
+
+Las escenas 00 a 05 usan el motor de la fase 30. Cada una tiene 3 estados, 7 sucesos, 5 detalles y 3 clímax que rotan. Los eventos fijos de antes (`hkEvent`) pasaron a ser sucesos o estados. El clímax de siempre es ahora el guion **A**, y el gran clímax es A con su agregado de antes.
+
+| Escena | Estados | Sucesos | Detalles | Clímax B y C |
+|---|---|---|---|---|
+| 00 cementerio | despejado, niebla espesa, tormenta seca, noche de almas | tumba y grieta, sepulturero con farol, mano de la tierra, perro negro, campanadas, lechuza, procesión de fuegos fatuos | estrella fugaz, murciélago en la luna, hoja que vuela, fuego fatuo rápido, vela de la capilla | **B** procesión de encapuchados con velas; **C** la tumba se abre, con un haz verde y almas en espiral |
+| 01 calabaza | noche quieta, tormenta afuera, noche de viento | mira a los lados, una vela se apaga, gato en la ventana, araña que baja, la chica se ríe, bruja en la luna, risa | murciélago en la ventana, humo por los ojos, chispa, relámpago lejano, polvo en el rayo | **B** la calabaza habla; **C** ronda de llamas |
+| 02 neón | llovizna, aguacero, escampa | ola de luz, chispazos, paraguas, auto que pasa, gato, cartel nuevo, cartel que cuelga | tubo que zumba, gota en el charco, relámpago lejano, vapor, rata | **B** el coro de calaveras chicas; **C** cortocircuito que recorre el cable |
+| 03 ojos | luna clara, niebla, noche cerrada | todos parpadean, par rojo, código, todos miran, llora luz, bandada de ojitos, algo en los arbustos | un par se cierra, luciérnagas, hoja que cae, búho, rayo de luna | **B** la mirada (todos siguen a la cámara); **C** la cara hecha de ojos |
+| 04 castillo | noche clara, tormenta, niebla en el valle | bandada enorme, murciélago gigante en la luna, la vela recorre el castillo, el vampiro en el puente, rayo en el pararrayos, sale el vampiro de la ventana roja, la niebla trepa | estrella fugaz, ventana que se apaga, murciélago cerca de la cámara, nube en la luna, chispa en el pararrayos | **B** el baile (ventanas de colores con la música, piedra iluminada, dos haces en el cielo); **C** el rayo (tres rayos en la torre, el fuego baja por las ventanas, humo y luna roja) |
+| 05 sangre | luz normal, tubo moribundo, sangre que sube | salpicadura, se corta la luz, mano que se arrastra, manos que golpean, sombra en la linterna, la linterna falla, el charco borbotea | gota grande, cucaracha, el tubo se apaga, la emergencia late, burbuja en el charco | **B** las manos (huellas por toda la pared, apagón y se escurren); **C** la inundación (el charco sube por la pared con olas y baja) |
+
+**Pruebas fuera de TD:**
+- **Calendario:** `timeline_sucesos.py` y `test_sucesos.py` en 3 horas, con la Noche y el Miedo en tres niveles: sin choques con el clímax, sin repetir y con todas las variantes.
+- **Destellos:** 0 por segundo en cada suceso, detalle y clímax de 00 a 05 (Noche 0,8, Miedo 0,5, Chaos 0,9). En el gran clímax, `test_destellos.py` sigue en 3 como máximo. Los rayos de la tormenta caen a lo sumo uno cada 5 s.
+- **Validación:** `validate_shaders` sin errores en los dos sets, y la compilación para Metal también.
+
+**Arreglo del motor:** `hkPick` hacía muchos hashes repetidos y ordenaba un arreglo con índice variable, que en la GPU va a memoria lenta. Ahora usa dos hashes por vuelta y cuentas en escalares. El calendario es idéntico al de antes (comparado en 4 horas, en 4 escenas). El costo del "suceso extra" de la segunda mitad del casillero bajó de +20 ms a +7 ms en el banco por software.
+
+**Costo** (1280×512 por software, promedio de 5 momentos, contra la fase 30):
+
+| Escena | Cambio |
+|---|---|
+| 00 | +5 % |
+| 01 | +19 % |
+| 02 | +6 % |
+| 03 | +14 % |
+| 04 | +2 % |
+| 05 | +19 % |
+| 26 | −2 % (por el arreglo del motor) |
+
+Los FPS reales hay que mirarlos en TD.
+
+**Reconstruir Todo:** cambió `common.glsl`. Siguen la fase 32 (escenas 06–11) y las demás.

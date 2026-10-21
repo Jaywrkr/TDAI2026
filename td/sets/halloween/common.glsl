@@ -202,49 +202,56 @@ const int HK_COP[60] = int[60](
     1, 3, 5, 7, 1, 1,
     1, 2, 4, 5, 7, 8);
 const int HK_NCOP[10] = int[10](1, 1, 1, 2, 2, 4, 2, 6, 4, 6);
-int hkPermRaw(float cyc, float seed, int i, int n) {
+// (a, b) de la permutacion del ciclo: dos hashes por ciclo, no por elemento
+ivec2 hkPermAB(float cyc, float seed, int n) {
     float h1 = hash21(vec2(cyc * 1.37, seed + float(uScene) * 3.3));
     float h2 = hash21(vec2(cyc * 2.11 + 5.0, seed + float(uScene) * 3.3));
-    int a = HK_COP[n * 6 + int(floor(h1 * float(HK_NCOP[n])))];
-    int v = a * i + int(floor(h2 * float(n)));
+    return ivec2(HK_COP[n * 6 + int(floor(h1 * float(HK_NCOP[n])))], int(floor(h2 * float(n))));
+}
+int hkPermAt(ivec2 ab, int i, int n) {
+    int v = ab.x * i + ab.y;
     return v - (v / n) * n;
 }
 // variante del casillero 'slot': recorre la permutacion de su ciclo (cada
 // variante una vez por vuelta) y en el borde entre vueltas no repite las
-// dos ultimas de la vuelta anterior (con n >= 5; con menos, la ultima)
+// dos ultimas de la vuelta anterior (con n >= 5; con menos, la ultima).
+// Todo en escalares (sin arreglos con indice variable, que en la GPU van
+// a memoria lenta).
 int hkPick(float slot, float seed, int n) {
     if (n <= 1) return 0;
     float cyc = floor(slot / float(n));
     int i = int(slot - cyc * float(n));
-    int q1 = hkPermRaw(cyc - 1.0, seed, n - 1, n);
+    ivec2 ab = hkPermAB(cyc, seed, n);
+    if (n >= 5 && i > 3) return hkPermAt(ab, i, n);
+    ivec2 pb = hkPermAB(cyc - 1.0, seed, n);
+    int q1 = hkPermAt(pb, n - 1, n);
     if (n < 5) {
-        int first = hkPermRaw(cyc, seed, 0, n);
+        int first = hkPermAt(ab, 0, n);
         if (first == q1) {
-            if (i == 0) return hkPermRaw(cyc, seed, 1, n);
+            if (i == 0) return hkPermAt(ab, 1, n);
             if (i == 1) return first;
         }
-        return hkPermRaw(cyc, seed, i, n);
+        return hkPermAt(ab, i, n);
     }
-    if (i > 3) return hkPermRaw(cyc, seed, i, n);
     // se reordenan los primeros cuatro: el 1ro no es ninguno de los 3
     // ultimos de la vuelta anterior, el 2do ninguno de los 2 ultimos y el
     // 3ro no es el ultimo (un climax puede comerse hasta dos casilleros)
-    int q2 = hkPermRaw(cyc - 1.0, seed, n - 2, n);
-    int q3 = hkPermRaw(cyc - 1.0, seed, n - 3, n);
-    int e[4];
-    for (int k = 0; k < 4; k++) e[k] = hkPermRaw(cyc, seed, k, n);
-    for (int pos = 0; pos < 3; pos++) {
-        for (int k = 0; k < 4; k++) {
-            if (k < pos) continue;
-            int x = e[k];
-            bool bad = x == q1 || (pos < 2 && x == q2) || (pos < 1 && x == q3);
-            if (!bad) {
-                int tmp = e[pos]; e[pos] = e[k]; e[k] = tmp;
-                break;
-            }
-        }
+    int q2 = hkPermAt(pb, n - 2, n), q3 = hkPermAt(pb, n - 3, n);
+    int e0 = hkPermAt(ab, 0, n), e1 = hkPermAt(ab, 1, n), e2 = hkPermAt(ab, 2, n), e3 = hkPermAt(ab, 3, n);
+    int tmp;
+    if (e0 == q1 || e0 == q2 || e0 == q3) {
+        if (!(e1 == q1 || e1 == q2 || e1 == q3)) { tmp = e0; e0 = e1; e1 = tmp; }
+        else if (!(e2 == q1 || e2 == q2 || e2 == q3)) { tmp = e0; e0 = e2; e2 = tmp; }
+        else if (!(e3 == q1 || e3 == q2 || e3 == q3)) { tmp = e0; e0 = e3; e3 = tmp; }
     }
-    return e[i];
+    if (i == 0) return e0;
+    if (e1 == q1 || e1 == q2) {
+        if (!(e2 == q1 || e2 == q2)) { tmp = e1; e1 = e2; e2 = tmp; }
+        else if (!(e3 == q1 || e3 == q2)) { tmp = e1; e1 = e3; e3 = tmp; }
+    }
+    if (i == 1) return e1;
+    if (e2 == q1) { tmp = e2; e2 = e3; e3 = tmp; }
+    return i == 2 ? e2 : e3;
 }
 
 // El climax cae cerca del MEDIO de su casillero de 4 min (+-40 s): entre
