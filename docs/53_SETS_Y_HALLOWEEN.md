@@ -490,3 +490,15 @@ La calabaza principal (que la 13 reusa en la hilera) ahora es un **sólido 3D** 
 - **Costo en el banco de prueba:** 01 igual que antes (~0,20 s); 13 sube ~20 % (0,20 → 0,245 s) porque la calabaza nueva tapa más superficie. Hay que confirmar los FPS en TD.
 - Después de hornear la 01 hay que correr `bake_plates_hilera.py` (copia la calabaza a la 13) y `build_atlas.py`.
 - **Reconstruir Todo:** cambiaron las láminas de 01 y 13.
+
+## Fase 22: mansión con relieve (escena 26)
+
+![Antes y ahora](img/mansion_2d_vs_3d.jpg)
+
+La fachada tiene ahora un **mapa de alturas** horneado (`height()` en `bake_plates_mansion.py`, lámina `4_relieve`: normal en RG, cavidad en B): tablas que sobresalen, cornisa y molduras, ventanas y puerta hundidas, persianas con tablillas, mansarda inclinada, torreón cilíndrico, conos, aguja, chimeneas de ladrillo y columnas. En vivo:
+
+- la luna ilumina desde arriba a la izquierda, con contraluz en los cantos; el torreón queda en sombra del lado opuesto;
+- el **relámpago** llega desde el lado donde cae el rayo (en el gran clímax se ve muy bien);
+- la luz de cada ventana pega más en lo que la mira: el canto de las persianas, el alféizar, el marco.
+
+**Costo:** ~20 % más que antes en el banco de prueba, al nivel de la escena más pesada del set (el bosque de faroles). Confirmar los FPS en TD. **Reconstruir Todo:** lámina nueva.
