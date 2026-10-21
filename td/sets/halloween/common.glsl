@@ -161,6 +161,227 @@ float hkOffWindow(float ph, float o, float r) {
     return smoothstep(a, a + 0.04, ph) * (1.0 - smoothstep(b, b + 0.04, ph));
 }
 
+// ---------------------------------------------------------------
+// REPERTORIO DE SUCESOS (fase 30, docs/53): que una escena aguante media
+// hora sin repetirse. Cuatro niveles, todo aritmetica sobre el reloj:
+//   DETALLE     cada ~30 s  algo chico (6-8 variantes)
+//   SUCESO      cada ~55 s  una mini historia (5-9 variantes); con la
+//               Noche avanzada y el Miedo, otro entre medio
+//   CLIMAX      cada ~4 min  uno de 3 guiones (rotan)
+//   GRAN CLIMAX uno de cada tres climax (~12 min) o con el pad Momento
+// Mas el ESTADO de la escena, que cambia cada ~5 min (clima, actividad).
+// Las variantes salen de una PERMUTACION por ciclo: en cada vuelta salen
+// todas una vez, en otro orden, y nunca la misma dos veces seguidas. Cada
+// vez trae ademas una semilla propia (que ventana, que lado, que chimenea).
+// Ningun suceso ni detalle cae encima de un climax (se calla 4 s antes y
+// vuelve 4 s despues).
+// Uso en una escena: al principio de render() hkSetClimax(semilla, largo);
+// despues hkClimaxV / hkGrandV / hkSuceso / hkDetalle / hkEstadoW.
+// ---------------------------------------------------------------
+#define HK_CLX_EVERY 240.0    // climax (s)
+#define HK_ESTADO 300.0       // estado de la escena (s)
+
+float hkCSeed = -1.0;   // climax de la escena (lo fija hkSetClimax)
+float hkCLen = 20.0;
+float hkGLen = 26.0;
+void hkSetClimax(float seed, float len, float grandLen) { hkCSeed = seed; hkCLen = len; hkGLen = grandLen; }
+
+// elemento i de una permutacion de n (n <= 9) propia del ciclo 'cyc':
+// (a*i + b) mod n con 'a' coprimo con n, los dos al azar por ciclo. Es una
+// cuenta (no un ordenamiento): el calendario cuesta casi nada por pixel.
+// coprimos de n (1..n-1) para n = 0..9, de a 6 por fila (tabla: sin bucles)
+const int HK_COP[60] = int[60](
+    1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1,
+    1, 2, 1, 1, 1, 1,
+    1, 3, 1, 1, 1, 1,
+    1, 2, 3, 4, 1, 1,
+    1, 5, 1, 1, 1, 1,
+    1, 2, 3, 4, 5, 6,
+    1, 3, 5, 7, 1, 1,
+    1, 2, 4, 5, 7, 8);
+const int HK_NCOP[10] = int[10](1, 1, 1, 2, 2, 4, 2, 6, 4, 6);
+int hkPermRaw(float cyc, float seed, int i, int n) {
+    float h1 = hash21(vec2(cyc * 1.37, seed + float(uScene) * 3.3));
+    float h2 = hash21(vec2(cyc * 2.11 + 5.0, seed + float(uScene) * 3.3));
+    int a = HK_COP[n * 6 + int(floor(h1 * float(HK_NCOP[n])))];
+    int v = a * i + int(floor(h2 * float(n)));
+    return v - (v / n) * n;
+}
+// variante del casillero 'slot': recorre la permutacion de su ciclo (cada
+// variante una vez por vuelta) y en el borde entre vueltas no repite las
+// dos ultimas de la vuelta anterior (con n >= 5; con menos, la ultima)
+int hkPick(float slot, float seed, int n) {
+    if (n <= 1) return 0;
+    float cyc = floor(slot / float(n));
+    int i = int(slot - cyc * float(n));
+    int q1 = hkPermRaw(cyc - 1.0, seed, n - 1, n);
+    if (n < 5) {
+        int first = hkPermRaw(cyc, seed, 0, n);
+        if (first == q1) {
+            if (i == 0) return hkPermRaw(cyc, seed, 1, n);
+            if (i == 1) return first;
+        }
+        return hkPermRaw(cyc, seed, i, n);
+    }
+    if (i > 3) return hkPermRaw(cyc, seed, i, n);
+    // se reordenan los primeros cuatro: el 1ro no es ninguno de los 3
+    // ultimos de la vuelta anterior, el 2do ninguno de los 2 ultimos y el
+    // 3ro no es el ultimo (un climax puede comerse hasta dos casilleros)
+    int q2 = hkPermRaw(cyc - 1.0, seed, n - 2, n);
+    int q3 = hkPermRaw(cyc - 1.0, seed, n - 3, n);
+    int e[4];
+    for (int k = 0; k < 4; k++) e[k] = hkPermRaw(cyc, seed, k, n);
+    for (int pos = 0; pos < 3; pos++) {
+        for (int k = 0; k < 4; k++) {
+            if (k < pos) continue;
+            int x = e[k];
+            bool bad = x == q1 || (pos < 2 && x == q2) || (pos < 1 && x == q3);
+            if (!bad) {
+                int tmp = e[pos]; e[pos] = e[k]; e[k] = tmp;
+                break;
+            }
+        }
+    }
+    return e[i];
+}
+
+// El climax cae cerca del MEDIO de su casillero de 4 min (+-40 s): entre
+// dos climax hay de 2.5 a 5.5 min. Uno de cada tres casilleros es el GRAN
+// climax (en vez del comun, nunca pegado a el).
+bool hkIsGrandSlot(float slot) { return mod(slot + floor(hkCSeed), 3.0) > 1.5; }
+float hkClxLenAt(float slot) { return hkIsGrandSlot(slot) ? hkGLen : hkCLen; }
+float hkClxStartSlot(float slot) {
+    float len = hkClxLenAt(slot);
+    return slot * HK_CLX_EVERY + 0.5 * (HK_CLX_EVERY - len) + (hash21(vec2(slot, hkCSeed + float(uScene))) - 0.5) * 80.0;
+}
+// hay un climax entre a y b, con 4 s de margen?
+bool hkClxNear(float a, float b) {
+    if (hkCSeed < 0.0) return false;
+    float s = floor(a / HK_CLX_EVERY);
+    for (int k = -1; k <= 1; k++) {
+        float sl = s + float(k);
+        float c0 = hkClxStartSlot(sl);
+        if (b > c0 - 4.0 && a < c0 + hkClxLenAt(sl) + 4.0) return true;
+    }
+    return false;
+}
+
+// variante del climax comun que toca ahora. Se cuentan solo los
+// casilleros comunes (los del gran climax no gastan variante), asi nunca
+// sale el mismo dos veces seguidas aunque haya un gran climax en medio.
+int hkClimaxVar(int n) {
+    float slot = floor(uRTime / HK_CLX_EVERY);
+    if (hkMomentOn()) slot += 1.0;
+    float g = floor((slot + floor(hkCSeed)) / 3.0);        // grandes ya pasados
+    float ordinal = slot - g;
+    return hkPick(ordinal, hkCSeed + 41.0, n);
+}
+// climax comun de la escena: mismo formato que hkClimax (aviso, pico,
+// secuelas, fase). En el casillero del gran climax devuelve 0.
+vec4 hkClimaxV() {
+#ifdef HK_STILL
+    return vec4(0.0);
+#endif
+    if (hkMomentOn()) return hkClimaxShape(hkMomentK(), HK_MOMENT_LEN);
+    float slot = floor(uRTime / HK_CLX_EVERY);
+    if (hkIsGrandSlot(slot)) return vec4(0.0);
+    return hkClimaxShape(uRTime - hkClxStartSlot(slot), hkCLen);
+}
+vec4 hkGrandV() {
+#ifdef HK_STILL
+    return vec4(0.0);
+#endif
+    if (hkMomentOn()) return hkClimaxShape(hkMomentK(), HK_MOMENT_LEN);
+    float slot = floor(uRTime / HK_CLX_EVERY);
+    if (!hkIsGrandSlot(slot)) return vec4(0.0);
+    return hkClimaxShape(uRTime - hkClxStartSlot(slot), hkGLen);
+}
+
+// SUCESO / DETALLE: vec4(envolvente 0..1, avance 0..1, variante, semilla
+// 0..1). Sin suceso: (0, 0, -1, 0). Un casillero de slotLen segundos trae
+// siempre uno, en su primera mitad (salvo cerca de un climax). Con
+// 'extra' > 0, la segunda mitad puede traer otro (con esa chance), de una
+// variante distinta a la de los dos casilleros vecinos.
+// envolvente del suceso que empieza en s0 (o -1 si no hay); la variante
+// se calcula afuera y solo si hace falta
+float hkHappenEnv(float s0, float len) {
+    float k = uRTime - s0;
+    if (k < 0.0 || k > len) return -1.0;
+    if (hkClxNear(s0, s0 + len)) return -1.0;
+    float env = smoothstep(0.0, min(1.2, len * 0.25), k) * (1.0 - smoothstep(len - min(1.5, len * 0.3), len, k));
+    float mk = hkMomentK();
+    if (mk >= 0.0 && mk <= HK_MOMENT_LEN + 4.0) env *= 1.0 - smoothstep(0.0, 1.0, mk);
+    return env;
+}
+vec4 hkHappen(float seed, float slotLen, float extra, int n, float len) {
+#ifdef HK_STILL
+    return vec4(0.0, 0.0, -1.0, 0.0);
+#endif
+    float slot = floor(uRTime / slotLen);
+    float hs = slotLen * 0.5;
+    float base = slot * slotLen;
+    float room = max(hs - len - 2.0, 0.0);
+    float sd = hash21(vec2(slot, seed + 19.3 + float(uScene)));
+    if (uRTime - base < hs) {
+        float s0 = base + 1.0 + hash21(vec2(slot, seed + float(uScene))) * room;
+        float env = hkHappenEnv(s0, len);
+        if (env < 0.0) return vec4(0.0, 0.0, -1.0, 0.0);
+        return vec4(env, clamp((uRTime - s0) / len, 0.0, 1.0), float(hkPick(slot, seed, n)), sd);
+    }
+    if (hash21(vec2(slot, seed + 7.7 + float(uScene))) >= extra) return vec4(0.0, 0.0, -1.0, 0.0);
+    float s0 = base + hs + 1.0 + hash21(vec2(slot, seed + 3.1 + float(uScene))) * room;
+    float env = hkHappenEnv(s0, len);
+    if (env < 0.0) return vec4(0.0, 0.0, -1.0, 0.0);
+    // distinta de los vecinos (tambien de los de al lado, por si un climax
+    // se come el casillero de al lado)
+    int a = hkPick(slot, seed, n), b = hkPick(slot + 1.0, seed, n);
+    int c = hkPick(slot + 2.0, seed, n), d = hkPick(slot - 1.0, seed, n);
+    int v = int(floor(hash21(vec2(slot, seed + 11.0 + float(uScene))) * float(n)));
+    for (int k = 0; k < 5; k++) {
+        if (v != a && v != b && (n < 5 || (v != c && v != d))) break;
+        v = int(mod(float(v + 1), float(n)));
+    }
+    return vec4(env, clamp((uRTime - s0) / len, 0.0, 1.0), float(v),
+                hash21(vec2(slot + 0.5, seed + 19.3 + float(uScene))));
+}
+// un suceso cada ~55 s; con la Noche avanzada y el Miedo, otro en medio
+#define HK_SUC_EVERY 55.0
+vec4 hkSuceso(float seed, int n, float len) {
+    float extra = clamp(0.15 + 0.35 * uNight + 0.55 * clamp(uFear, 0.0, 1.0), 0.0, 0.9);
+    return hkHappen(seed, HK_SUC_EVERY, extra, n, len);
+}
+// un detalle cada ~30 s
+#define HK_DET_EVERY 30.0
+vec4 hkDetalle(float seed, int n, float len) {
+    return hkHappen(seed + 31.0, HK_DET_EVERY, 0.0, n, len);
+}
+
+int hkEstadoIdx(float seed, int n) { return hkPick(floor(uRTime / HK_ESTADO), seed + 61.0, n); }
+
+// LINEA DE TIEMPO (td/tools/timeline_sucesos.py): la escena anota lo que
+// eligio el calendario; con HK_TIMELINE la herramienta lo lee en vez de
+// la imagen. Sin HK_TIMELINE no cuesta nada.
+vec4 hkTL0 = vec4(0.0), hkTL1 = vec4(0.0);
+void hkTimeline(vec4 suc, vec4 det, vec4 clx, int cvar, float grand, int estado) {
+    hkTL0 = vec4(suc.z, suc.x, det.z, det.x);
+    hkTL1 = vec4(clx.w > 0.0 ? float(cvar) : -1.0, clx.w, grand, float(estado));
+}
+
+// ESTADO de la escena (clima, actividad): pesos 0..1 de los estados 0..3
+// (n <= 4), con fundido de 25 s entre uno y el siguiente (suman 1).
+vec4 hkEstado(float seed, int n) {
+    float a = uRTime / HK_ESTADO;
+    float slot = floor(a);
+    int s0 = hkPick(slot, seed + 61.0, n);
+    int s1 = hkPick(slot + 1.0, seed + 61.0, n);
+    float m = smoothstep(1.0 - 25.0 / HK_ESTADO, 1.0, fract(a));
+    vec4 w = vec4(0.0);
+    for (int i = 0; i < 4; i++) w[i] = (s0 == i ? 1.0 - m : 0.0) + (s1 == i ? m : 0.0);
+    return w;
+}
+
 // Tecla del piano -> x en pantalla (grave a la izquierda), en las mismas
 // coordenadas que centered(): -aspect..aspect.
 float hkKeyX(int i) { return mix(-uAspect * 0.85, uAspect * 0.85, keyPos(i)); }

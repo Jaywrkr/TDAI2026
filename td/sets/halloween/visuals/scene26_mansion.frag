@@ -21,14 +21,31 @@
 //   se queda mirando; al soltarla se va de a poco. Un acorde llena
 //   varias ventanas a la vez.
 // Speed mueve las nubes, la niebla y las cortinas aun en silencio.
-// HISTORIA: cada acto cambia cuantas ventanas viven; cada ~61 s alguien
-//   se asoma al atico; cada ~67 s cae un relampago lejos.
-// CLIMAX (~89 s, 20 s, en tres tiempos): las ventanas se apagan de a una
-//   hasta quedar a oscuras; una luz de vela aparece arriba, en la torre,
-//   y va bajando de ventana en ventana como alguien que baja la escalera;
-//   la puerta se abre con un golpe de luz; despues la puerta se apaga y
-//   las ventanas vuelven de a una. Gran climax (~4.5 min o el pad
-//   Momento): ademas, relampagos y murcielagos que salen de la torre.
+// REPERTORIO (fase 30, motor hkSuceso del kit): nada se repite igual.
+//   ESTADOS (~5 min): noche clara, niebla espesa, tormenta lejana (rayos
+//     cada tanto) y casa activa (mas ventanas con gente).
+//   SUCESOS (~40-75 s, 9): alguien corre con una vela por el primer piso;
+//     una cortina se abre de golpe y hay una cara en el vidrio; la puerta
+//     se entreabre con luz y niebla; pasa un carruaje con farol y su luz
+//     barre la fachada; salen murcielagos y humo de una chimenea; un piso
+//     entero parpadea; una nina con una vela en el porche; una sombra
+//     enorme cruza todas las ventanas por dentro; alguien se asoma al atico.
+//   DETALLES (~25 s, 6): un murcielago cruza la luna; una cortina se mueve
+//     sola; se prende una ventana apagada; ojos en el arbol; una estrella
+//     fugaz; un chispazo en una chimenea.
+//   CLIMAX (~4 min, 22 s, rotan 3 guiones en tres tiempos):
+//     A la vela: las ventanas se apagan, una vela baja de la torre de
+//       ventana en ventana y la puerta se abre con un golpe de luz.
+//     B la fiesta: se encienden todas, hay siluetas bailando en cada una,
+//       se apagan de golpe y queda una sola cara en el atico.
+//     C la casa despierta: las buhardillas se vuelven ojos rojos que
+//       miran, la puerta es una boca roja, la casa respira y se duerme.
+//   GRAN CLIMAX (~12 min o el pad Momento): A con relampagos y murcielagos
+//     que salen de la torre.
+// @EST: noche clara | niebla espesa | tormenta lejana | casa activa
+// @SUC: corre con una vela | cortina y cara | puerta entreabierta | carruaje | chimenea con murcielagos | piso que parpadea | nina en el porche | sombra enorme | alguien en el atico
+// @DET: murcielago en la luna | cortina sola | ventana que se prende | ojos en el arbol | estrella fugaz | chispazo
+// @CLX: A la vela | B la fiesta | C la casa despierta
 //
 // @D1: ventanas que viven (se encienden de a una)
 // @D2: niebla del jardin
@@ -120,6 +137,36 @@ float mnSil(vec2 q, int kind, float blur, float t, float seed) {
     return 1.0 - smoothstep(-blur, blur, d);
 }
 
+// un murcielago (silueta) en q (unidades del murcielago); 0..1
+float mnBat(vec2 q, float flapT) {
+    if (abs(q.x) > 1.4 || abs(q.y) > 1.0) return 0.0;
+    q.x = abs(q.x);
+    float flap = sin(flapT);
+    float topE = 0.08 + q.x * (0.15 + 0.55 * flap);
+    float botE = topE - 0.40 * (1.0 - q.x / 1.25) - 0.02 + 0.12 * abs(sin(q.x * 7.5));
+    float wing = smoothstep(1.25, 1.15, q.x) * smoothstep(-0.04, 0.04, topE - q.y) * smoothstep(-0.04, 0.04, q.y - botE);
+    float body = 1.0 - smoothstep(0.16, 0.22, length(q * vec2(1.4, 0.75) - vec2(0.0, 0.02)));
+    float ears = smoothstep(0.06, 0.0, hkSeg(q, vec2(0.07, 0.18), vec2(0.11, 0.30)));
+    return max(max(wing, body), ears);
+}
+// bandada que sale de 'src' (bt = segundos desde que salen); cuanto tapa
+float mnFlock(vec2 p, vec2 src, float bt, int n, float spread, float seed) {
+    float m = 0.0;
+    for (int b = 0; b < 16; b++) {
+        if (b >= n) break;
+        float fb = float(b);
+        float h1 = hash21(vec2(fb, 2.0 + seed)), h2 = hash21(vec2(fb, 5.0 + seed));
+        float age = (bt - h2 * 4.0) * (0.16 + 0.12 * h1);
+        if (age <= 0.0 || age > 2.2) continue;
+        float a = 1.5708 + (h1 - 0.5) * spread;
+        vec2 bp = src + vec2(cos(a) * 1.5, sin(a) * 0.55 + age * 0.12) * age
+                + vec2(sin(age * 5.0 + fb) * 0.04, sin(age * 7.0 + fb * 2.0) * 0.03);
+        float sz = 0.03 + age * 0.08;
+        m = max(m, mnBat((p - bp) / sz, uRTime * 17.0 + fb * 2.3));
+    }
+    return m;
+}
+
 vec4 render(vec2 uv) {
     // la casa entera en cuadro (con la aguja), apoyada abajo
     vec2 p = hkCam(hkPunch(hkShake(centered(uv)))) * 1.12 + vec2(0.0, 0.10);
@@ -131,21 +178,48 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
 
-    vec4 G = hkGrandClimax(6.0);
-    vec4 C = hkClimaxOr(G, hkClimax(6.0, 89.0, 20.0));
-    float cph = C.w;
+    // --- calendario: climax (3 guiones), sucesos, detalles y estado ---
+    hkSetClimax(6.0, 22.0, 28.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
     float grand = G.w > 0.0 ? 1.0 : 0.0;
-    // la vela baja por la casa en el pico y la puerta se abre al final
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cph = C.w;
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;   // la vela
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;   // la fiesta
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;   // la casa despierta
+    vec4 S = hkSuceso(26.0, 9, 9.0);
+    int sv = int(S.z);
+    float se = S.x, sp = S.y, ss = S.w;
+    vec4 D = hkDetalle(26.0, 6, 3.5);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(26.0, 4);
+    float wClear = EST.x, wFog = EST.y, wStorm = EST.z, wBusy = EST.w;
+    // A: la vela baja por la casa en el pico y la puerta se abre al final
     float walk = smoothstep(0.33, 0.64, cph) * 6.0;
-    float doorB = smoothstep(0.62, 0.66, cph) * (1.0 - smoothstep(0.78, 0.94, cph));
-    float attic = hkEvent(5.0, 61.0, 7.0);
-    float bolt = max(hkEvent(8.0, 67.0, 1.2), G.y * step(0.55, fract(uRTime * 1.3)));
-    float bx = hash21(vec2(floor(uRTime / 67.0), 8.0)) * 3.6 - 1.8;      // donde cae el rayo
+    float doorB = cA * smoothstep(0.62, 0.66, cph) * (1.0 - smoothstep(0.78, 0.94, cph));
+    // suceso: la puerta se entreabre sola
+    doorB = max(doorB, (sv == 2 ? 1.0 : 0.0) * se * 0.45 * smoothstep(0.1, 0.35, sp) * (1.0 - smoothstep(0.7, 0.9, sp)));
+    // C: la puerta es una boca roja
+    float mouth = cC * C.y;
+    float attic = sv == 8 ? se : 0.0;
+    // relampagos: en el estado de tormenta, uno cada tanto (como mucho uno
+    // cada 9 s); en el gran climax, seguidos
+    float bslot = floor(uRTime / 9.0);
+    float bk = uRTime - bslot * 9.0 - 3.0 * hash21(vec2(bslot, 18.0));
+    float boltS = wStorm * step(0.45, hash21(vec2(bslot, 8.0))) * smoothstep(0.0, 0.08, bk) * (1.0 - smoothstep(0.3, 1.0, bk));
+    float bolt = max(boltS, G.y * step(0.55, fract(uRTime * 1.3)));
+    float bx = hash21(vec2(bslot, 3.0)) * 3.6 - 1.8;      // donde cae el rayo
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(26.0, 4));
+    // C: la casa respira (se hincha apenas desde el piso)
+    p = vec2(0.0, -0.6) + (p - vec2(0.0, -0.6)) * (1.0 + 0.014 * cC * C.y * sin(uRTime * 1.4));
 
     vec3 warm = vec3(1.0, 0.60, 0.26);
     vec3 spect = hsv2rgb(vec3(fract(0.36 + hue), 0.65, 1.0));
     vec3 candleC = vec3(1.0, 0.82, 0.55);
-    float moonK = (0.60 + uD3 * 0.80) * (1.0 - C.x * 0.45) + bolt * 1.6;
+    float estMoon = wClear * 1.0 + wFog * 0.6 + wStorm * 0.75 + wBusy * 0.9;
+    float dimC = 1.0 - C.x * 0.45 - cB * C.y * 0.25;
+    float moonK = (0.60 + uD3 * 0.80) * estMoon * dimC + bolt * 1.6;
 
     vec2 pu = rUV(p);
     vec4 fa = plate0(pu);
@@ -184,6 +258,18 @@ vec4 render(vec2 uv) {
             float bd = hkBolt(p, bx, 1.1, 0.0, floor(uRTime * 7.0), 0.5);
             sky += vec3(0.8, 0.85, 1.0) * bolt * (0.004 / (bd + 0.004) + 0.25);
         }
+        // detalle: estrella fugaz
+        if (dv == 4) {
+            vec2 a = vec2(-0.4 + D.w * 1.8, 0.95), b = a + vec2(-0.9, -0.35);
+            vec2 hp = mix(a, b, D.y);
+            float tr = hkSeg(p, hp, hp + normalize(a - b) * 0.18);
+            sky += vec3(0.9, 0.9, 1.0) * D.x * exp(-tr * 400.0) * smoothstep(0.0, 0.2, D.y) * (1.0 - smoothstep(0.7, 1.0, D.y));
+        }
+        // detalle: un murcielago cruza delante de la luna
+        if (dv == 0) {
+            vec2 bp = MOON + vec2(mix(-0.5, 0.5, D.y), 0.03 * sin(D.y * 9.0) + (D.w - 0.5) * 0.06);
+            sky = mix(sky, vec3(0.01), mnBat((p - bp) / 0.06, uRTime * 16.0) * D.x);
+        }
         col = mix(sky, col, fa.a);
     }
 
@@ -194,13 +280,20 @@ vec4 render(vec2 uv) {
     float difM = max(dot(nrm, vec3(-0.6236, 0.4828, 0.6150)), 0.0);
     vec3 Lb = normalize(vec3(clamp((bx - p.x) * 0.6, -1.2, 1.2), 0.8, 0.5));
     float difB = max(dot(nrm, Lb), 0.0);
-    float moonOnly = (0.60 + uD3 * 0.80) * (1.0 - C.x * 0.45);
+    float moonOnly = (0.60 + uD3 * 0.80) * estMoon * dimC;
     float rim = pow(1.0 - nrm.z, 1.5) * max(dot(normalize(nrm.xy + 1e-4), vec2(-0.79, 0.61)), 0.0);
     float keyL = mix(moonK, moonOnly * (0.30 + 1.30 * difM + rim * 0.8) + bolt * 1.6 * (0.25 + 1.8 * difB), rlOn);
     vec3 house = alb * (vec3(0.26, 0.29, 0.42) * keyL * mix(1.0, rl.b, rlOn) + vec3(0.025, 0.02, 0.025));
 
     // --- ventanas ---
-    float nLive = min(3.0 + uD1 * 15.0 + uDensity * 2.0 + hkActVal(3.0) * 2.0, 19.0);
+    float nLive = clamp(3.0 + uD1 * 15.0 + uDensity * 2.0 + hkActVal(3.0) * 2.0 + wBusy * 4.0 - wFog * 1.5, 0.0, 19.0);
+    // la sombra enorme y el que corre van de un lado al otro
+    float sweepX = mix(-1.8, 1.5, sp);
+    if (ss > 0.5) sweepX = 0.3 - sweepX;
+    int curWin = int(floor(ss * 10.0));          // la de la cortina (0..9)
+    int detWin = int(floor(D.w * 19.0));
+    int flFloor = int(floor(ss * 3.0));
+    float flick = step(0.45, hash21(vec2(floor(uRTime * 2.5), 41.0)));   // <= 2.5 por segundo
     float sel = floor(hash21(vec2(floor(uRTime * 0.9), 26.0)) * 19.0);    // la del golpe
     float silA = hit * (0.35 + uD4 * 0.75);
     vec3 spill = vec3(0.0);
@@ -231,12 +324,43 @@ vec4 render(vec2 uv) {
         float fi = float(i);
         float L = revealAt(nLive, MN_ORD[i]);
         L *= 0.82 + 0.18 * noise21(vec2(uRTime * 2.0, fi * 3.1));            // titila un poco
-        L *= 1.0 - hkOffWindow(cph, fract(fi * 0.618 + 0.1), fract(fi * 0.381 + 0.3));
-        // silueta: golpe, piano, atico, la vela del climax
+        // A: se apagan de a una y vuelven; C: se apagan salvo los ojos
+        L *= 1.0 - cA * hkOffWindow(cph, fract(fi * 0.618 + 0.1), fract(fi * 0.381 + 0.3));
+        bool eye = (i == 10 || i == 11);
+        L *= 1.0 - cC * (eye ? 1.0 : 0.85) * smoothstep(0.0, 0.5, C.x) * (1.0 - smoothstep(0.75, 0.95, cph));
+        // silueta: golpe, piano, sucesos, la vela del climax
         float S = (abs(fi - sel) < 0.5 ? silA : 0.0);
         float sharp = 0.5;
         int kind = int(mod(fi * 7.0 + floor(uRTime / HK_ACT), 4.0));
-        if (i == 10) { S = max(S, attic); L = max(L, attic * 0.8); kind = 0; }
+        if (i == 10) { S = max(S, attic); L = max(L, attic * 0.8); if (attic > 0.0) kind = 0; }
+        // B la fiesta: se encienden todas en el aviso, bailan en el pico, se
+        // apagan de golpe y queda una cara en el atico; vuelven de a una
+        float party = 0.0;
+        if (cB > 0.0) {
+            float on = smoothstep(MN_ORD[i] / 19.0 * 0.9, MN_ORD[i] / 19.0 * 0.9 + 0.08, C.x);
+            float cut = step(0.70, cph) * (1.0 - revealAt(smoothstep(0.80, 0.97, cph) * 19.0, MN_ORD[i]));
+            party = on * (1.0 - cut);
+            L = max(L * (1.0 - cut), party * 1.1);
+            S = max(S, C.y * (1.0 - cut));
+            kind = int(mod(fi + floor(uRTime * 0.8), 3.0));
+            if (i == 10 && cph > 0.70 && cph < 0.88) { S = 1.0; L = 0.9; kind = 0; sharp = 1.0; }
+        }
+        // sucesos: alguien corre con una vela por el primer piso
+        if (sv == 0 && i >= 4 && i <= 9) {
+            float run = exp(-pow((w.x - sweepX) / 0.13, 2.0)) * se;
+            if (run > 0.01) { L = max(L, run * 1.1); S = max(S, run); kind = 3; }
+        }
+        // ...una cortina se abre de golpe y hay una cara en el vidrio
+        float open = (sv == 1 && i == curWin) ? se * smoothstep(0.08, 0.18, sp) * (1.0 - smoothstep(0.75, 0.9, sp)) : 0.0;
+        if (open > 0.0) { L = max(L, open * 1.0); S = max(S, open * smoothstep(0.2, 0.3, sp)); kind = 0; sharp = 1.0; }
+        // ...un piso entero parpadea
+        float floorId = w.y < -0.1 ? 0.0 : (w.y < 0.3 ? 1.0 : 2.0);
+        if (sv == 5 && abs(floorId - float(flFloor)) < 0.5) L *= 1.0 - se * 0.85 * flick;
+        // ...la sombra enorme cruza por dentro
+        float shadowK = sv == 7 ? se * smoothstep(0.45, 0.15, abs(w.x - sweepX)) : 0.0;
+        if (shadowK > 0.0) L = max(L, 0.9 * se);     // las ventanas se prenden para que se vea pasar
+        // detalles: se prende una ventana apagada
+        if (dv == 2 && i == detWin) L = max(L, D.x * 0.9);
         for (int k = 0; k < N_KEYS; k++) {
             if (keyWin[k] == i) {
                 S = max(S, keyE[k] * (0.55 + keyVel(k) * 0.45));
@@ -246,11 +370,16 @@ vec4 render(vec2 uv) {
         }
         float wl = 0.0;
         for (int k = 0; k < 6; k++) {
-            if (MN_WALK[k] == i) wl = exp(-pow((walk - float(k)) * 1.5, 2.0)) * step(0.0, cph) * step(cph, 0.7);
+            if (MN_WALK[k] == i) wl = cA * exp(-pow((walk - float(k)) * 1.5, 2.0)) * step(0.0, cph) * step(cph, 0.7);
         }
         if (wl > 0.001) { S = max(S, wl); kind = 3; }
         vec3 wc = mix(warm, spect, clamp(uD5 + (hash21(vec2(fi, 9.0)) - 0.5) * 0.3 * uD5, 0.0, 1.0));
         wc = mix(wc, vec3(1.0, 0.35, 0.2), step(0.85, hash21(vec2(fi, 4.0))) * 0.5);   // alguna roja
+        // la fiesta: cada ventana de un color que va cambiando despacio
+        wc = mix(wc, hsv2rgb(vec3(fract(fi * 0.137 + uRTime * 0.03), 0.55, 1.0)), party * 0.8);
+        // la casa despierta: los ojos rojos
+        float eyeK = (cC > 0.0 && eye) ? smoothstep(0.0, 0.6, C.x) * (1.0 - smoothstep(0.80, 0.97, cph)) : 0.0;
+        if (eyeK > 0.0) { wc = mix(wc, vec3(1.0, 0.10, 0.04), eyeK); L = max(L, eyeK * 1.3); }
         float pulse = 0.75 + bass * 0.65;
         vec3 lc = wc * L * pulse + candleC * wl * 1.4;
         float Lt = L * pulse + wl;
@@ -267,10 +396,14 @@ vec4 render(vec2 uv) {
             vec3 room = lc * (0.28 + 0.72 * exp(-dot(q - lp, q - lp) * 1.1));
             room *= 0.88 + 0.12 * step(0.5, fract(q.x * 3.0 + 0.2 * sin(q.y * 9.0 + fi)));
             room *= mix(0.55, 1.0, smoothstep(-0.75, -0.65, q.y));            // piso
+            room *= 1.0 - 0.92 * shadowK;                                       // la sombra que pasa
             // la silueta tapa la luz del cuarto (entre las cortinas)
             if (S > 0.002) {
                 float blur = mix(0.20, 0.025, clamp(sharp, 0.0, 1.0));
-                float sm = mnSil(q * vec2(0.85, 1.0), kind, blur, uRTime, fi * 3.3) * S;
+                vec2 sq = q * vec2(0.85, 1.0);
+                if (party > 0.0) sq += vec2(0.25 * sin(uRTime * 2.2 + fi * 1.7), -0.10 * abs(sin(uRTime * 3.1 + fi)));
+                if (open > 0.0) sq *= 0.72;          // la cara, pegada al vidrio
+                float sm = mnSil(sq, kind, blur, uRTime, fi * 3.3) * S;
                 room = mix(room, room * 0.05, sm * 0.96);
                 if (kind == 3) {     // la vela que lleva
                     vec2 fq = (q - vec2(0.30, -0.08)) * vec2(1.0, 0.6);
@@ -280,8 +413,18 @@ vec4 render(vec2 uv) {
             // cortinas a los costados, recogidas con un lazo; se mecen con
             // los medios
             float sway = 0.04 * sin(t * 0.6 + fi * 1.3) + mid * 0.12 * sin(uRTime * 2.7 + fi * 1.7);
+            if (dv == 1 && i == detWin) sway += 0.30 * D.x * sin(uRTime * 3.0);     // se mueve sola
+            // los ojos: pupila que mira de un lado al otro y parpado que se cierra
+            if (eyeK > 0.0) {
+                float px = 0.45 * sin(uRTime * 0.9);
+                float pupil = smoothstep(0.16, 0.10, abs(q.x - px)) * smoothstep(0.9, 0.5, abs(q.y));
+                room = mix(room, vec3(0.03, 0.0, 0.0), pupil * eyeK);
+                // el parpado baja desde arriba al final
+                float lid = smoothstep(0.80, 0.95, cph) * 2.2;
+                room *= 1.0 - smoothstep(1.0 - lid - 0.05, 1.0 - lid + 0.05, q.y);
+            }
             float pinch = exp(-pow((q.y + 0.25) / 0.28, 2.0));
-            float wcur = 0.42 - 0.24 * pinch;
+            float wcur = (0.42 - 0.24 * pinch) * (1.0 - 0.85 * open);
             float cl = (-1.0 + wcur + sway * (1.0 - pinch)) - q.x;
             float cr = q.x - (1.0 - wcur + sway * 0.8 * (1.0 - pinch));
             float cur = max(smoothstep(-0.03, 0.03, cl), smoothstep(-0.03, 0.03, cr));
@@ -304,10 +447,52 @@ vec4 render(vec2 uv) {
         house = mix(house, ivyC, ivy * (0.55 + 0.4 * leaf));
     }
 
-    // --- la puerta: rendija y golpe de luz ---
+    // --- la puerta: rendija y golpe de luz (o la boca roja del climax C) ---
     house = mix(house, candleC * 2.2, door * doorB);
+    house = mix(house, vec3(1.0, 0.12, 0.05) * (1.4 + 0.4 * bass), door * mouth);
+    // suceso: un carruaje con farol pasa por el camino; su luz barre la casa
+    vec2 lant = vec2(mix(-2.7, 2.7, ss > 0.5 ? 1.0 - sp : sp), -0.66);
+    float carK = sv == 3 ? se : 0.0;
+    if (carK > 0.0) {
+        float face = 0.6 + 1.4 * max(dot(nrm, normalize(vec3(lant - p, 0.25))), 0.0);
+        house += alb * warm * carK * 0.9 * exp(-length((p - lant) * vec2(0.9, 1.6)) * 2.4) * mix(1.0, face, rlOn);
+    }
     col = mix(col, house, fa.a);
     col = mix(col, glass, mk.g * glassA);
+
+    // el carruaje (silueta) y su farol, detras de la reja
+    if (carK > 0.0) {
+        float dir = ss > 0.5 ? -1.0 : 1.0;
+        vec2 cq = p - lant + vec2(0.20 * dir, -0.02);
+        float body = hkRBox(cq - vec2(0.0, 0.03), vec2(0.17, 0.08), 0.03);
+        float roof = hkRBox(cq - vec2(0.0, 0.13), vec2(0.13, 0.025), 0.02);
+        float wheels = min(length(cq - vec2(-0.11, -0.07)) - 0.055, length(cq - vec2(0.11, -0.07)) - 0.055);
+        vec2 hq = cq - vec2(0.34 * dir, 0.0);
+        float horse = min(length((hq - vec2(0.0, 0.0)) * vec2(1.0, 1.7)) - 0.10,
+                          hkSeg(hq, vec2(0.07 * dir, 0.03), vec2(0.13 * dir, 0.13)) - 0.03);
+        horse = min(horse, min(hkSeg(hq, vec2(-0.06, -0.03), vec2(-0.07, -0.13)), hkSeg(hq, vec2(0.06, -0.03), vec2(0.06 + 0.02 * sin(uRTime * 9.0), -0.13))) - 0.012);
+        float m = smoothstep(0.006, -0.006, min(min(body, roof), min(wheels, horse)));
+        col = mix(col, vec3(0.01, 0.01, 0.015), m * carK * (1.0 - fore));
+        col += warm * carK * exp(-length(p - lant) * 40.0) * 1.6;
+    }
+    // suceso: una nina con una vela en el porche (palida, se desvanece)
+    if (sv == 6 && se > 0.0) {
+        vec2 gq = (p - (MN_DOOR.xy + vec2(-0.22, -0.05))) / 0.105;
+        float head = length(gq - vec2(0.0, 0.55)) - 0.22;
+        float dress = max(abs(gq.x) - (0.18 + (0.30 - gq.y) * 0.35), max(gq.y - 0.35, -gq.y - 0.75));
+        float g = smoothstep(0.05, -0.05, min(head, dress)) * se * (0.65 + 0.20 * sin(uRTime * 1.3));
+        col = mix(col, vec3(0.62, 0.66, 0.74) * moonK * 1.1 + candleC * 0.22, g * 0.80);
+        vec2 fl = (gq - vec2(0.28, 0.20)) * vec2(1.0, 0.6);
+        col += candleC * exp(-dot(fl, fl) * 40.0) * 1.4 * se;
+        col += candleC * exp(-length(gq - vec2(0.28, 0.2)) * 1.6) * 0.10 * se;
+    }
+    // detalle: ojos que brillan en el arbol de la izquierda
+    if (dv == 3) {
+        vec2 ec = vec2(-2.35 + D.w * 0.35, 0.05 + D.w * 0.3);
+        float blink = step(0.12, fract(D.y * 3.0));
+        float e2 = exp(-length((p - ec - vec2(-0.018, 0.0)) * vec2(1.0, 1.6)) * 260.0) + exp(-length((p - ec - vec2(0.018, 0.0)) * vec2(1.0, 1.6)) * 260.0);
+        col += vec3(1.0, 0.75, 0.2) * e2 * D.x * blink * 1.5;
+    }
 
     vec2 dc = MN_DOOR.xy;
     if (doorB > 0.001) {
@@ -319,50 +504,42 @@ vec4 render(vec2 uv) {
         float cone = below * exp(-abs(dq.x) / (0.10 + max(-dq.y, 0.0) * 0.75)) * exp(-max(-dq.y, 0.0) * 0.8);
         col += candleC * doorB * (rays * 0.55 + cone * 0.55 + exp(-length(dq * vec2(2.2, 1.2)) * 7.0) * 0.5);
     }
+    if (mouth > 0.001) {
+        vec2 dq = p - dc;
+        float below = smoothstep(0.02, -0.12, dq.y);
+        float cone = below * exp(-abs(dq.x) / (0.10 + max(-dq.y, 0.0) * 0.75)) * exp(-max(-dq.y, 0.0) * 0.8);
+        col += vec3(1.0, 0.10, 0.04) * mouth * (cone * 0.6 + exp(-length(dq * vec2(2.2, 1.2)) * 7.0) * 0.6);
+    }
 
     // --- chispas y humo de las chimeneas ---
     for (int i = 0; i < 3; i++) {
         vec3 ch = MN_CHIM[i];
         float dx = p.x - ch.x;
         float dy = p.y - ch.y;
-        if (dy < -0.02 || abs(dx) > 0.35) continue;
+        float thick = (sv == 4 && int(floor(ss * 3.0)) == i) ? se : 0.0;     // suceso: humo, fuego y murcielagos
+        if (dy < -0.02 || abs(dx) > 0.35 + thick * 0.45) continue;
         float sm = plate2Wrap(vec2(dx * 1.2 - t * 0.02 + float(i), dy * 0.8 - t * 0.06)).g;
-        float plume = exp(-abs(dx - dy * 0.25) / (0.05 + dy * 0.25)) * smoothstep(-0.02, 0.05, dy) * exp(-dy * 1.6);
-        col = mix(col, vec3(0.10, 0.10, 0.12) * moonK * 0.6, plume * smoothstep(0.35, 0.75, sm) * 0.6);
-        float sp = hkParticles(vec2(dx - dy * 0.2, dy) * 1.6 + float(i) * 3.0, uRTime, 0.05 + high * 0.30, vec2(0.0, 1.0), 0.035);
-        col += vec3(1.0, 0.55, 0.18) * sp * plume * (0.6 + high * 2.5);
+        float plume = exp(-abs(dx - dy * 0.25) / (0.05 + dy * (0.25 + 0.35 * thick))) * smoothstep(-0.02, 0.05, dy) * exp(-dy * (1.6 - 0.9 * thick));
+        col = mix(col, vec3(0.10, 0.10, 0.12) * moonK * 0.6, plume * smoothstep(0.35 - 0.25 * thick, 0.75, sm) * (0.6 + 0.35 * thick));
+        // con el suceso: humo espeso iluminado desde abajo por el fuego
+        col += (vec3(0.55, 0.22, 0.06) * exp(-dy * 3.0) + vec3(0.10, 0.10, 0.13) * moonK) * plume * thick * smoothstep(0.2, 0.7, sm) * 0.9;
+        float burst = (dv == 5 && int(floor(D.w * 3.0)) == i) ? D.x : 0.0;  // detalle: chispazo
+        float spk = hkParticles(vec2(dx - dy * 0.2, dy) * 1.6 + float(i) * 3.0, uRTime, 0.05 + high * 0.30 + burst * 0.5, vec2(0.0, 1.0), 0.035);
+        col += vec3(1.0, 0.55, 0.18) * spk * plume * (0.6 + high * 2.5 + burst * 3.0);
+        if (thick > 0.0) col = mix(col, vec3(0.012, 0.01, 0.015), mnFlock(p, vec2(ch.x, ch.y + 0.02), 1.0 + sp * 9.0, 9, 1.6, float(i)) * thick);
     }
 
     // --- niebla del jardin (detras de la reja y los setos) ---
     float fz = plate2Wrap(vec2(p.x * 0.18 + t * 0.010, p.y * 0.55 - t * 0.004)).g;
     float fz2 = plate2Wrap(vec2(p.x * 0.45 - t * 0.016, p.y * 1.2)).b;
-    float fogA = (0.20 + uD2 * 0.70) * smoothstep(-0.35, -0.85, p.y) * (0.45 + 0.75 * (fz * 0.6 + fz2 * 0.5));
+    float fogA = (0.20 + uD2 * 0.70 + wFog * 0.45) * smoothstep(-0.35 + wFog * 0.25, -0.85, p.y) * (0.45 + 0.75 * (fz * 0.6 + fz2 * 0.5));
+    fogA += (sv == 2 ? se * 0.35 : 0.0) * exp(-length((p - MN_DOOR.xy - vec2(0.0, -0.2)) * vec2(1.5, 3.0)) * 2.0);
     vec3 fogC = vec3(0.22, 0.24, 0.32) * moonK + spill * 0.6 + candleC * doorB * 0.35 * exp(-abs(p.x) * 2.0);
     col = mix(col, fogC, clamp(fogA, 0.0, 0.85) * (1.0 - fore * 0.65));
 
     // --- murcielagos que salen de la torre (gran climax) ---
     if (grand > 0.0 && G.w > 0.30) {
-        float bt = (G.w - 0.30) * 26.0;                 // segundos desde que salen
-        for (int b = 0; b < 16; b++) {
-            float fb = float(b);
-            float h1 = hash21(vec2(fb, 2.0)), h2 = hash21(vec2(fb, 5.0));
-            float age = (bt - h2 * 4.0) * (0.16 + 0.12 * h1);
-            if (age <= 0.0 || age > 2.2) continue;
-            float a = 1.5708 + (h1 - 0.5) * 2.8;
-            vec2 bp = vec2(0.0, 0.86) + vec2(cos(a) * 1.5, sin(a) * 0.55 + age * 0.12) * age
-                    + vec2(sin(age * 5.0 + fb) * 0.04, sin(age * 7.0 + fb * 2.0) * 0.03);
-            float sz = 0.03 + age * 0.08;
-            vec2 bq = (p - bp) / sz;
-            if (abs(bq.x) > 1.4 || abs(bq.y) > 1.0) continue;
-            bq.x = abs(bq.x);
-            float flap = sin(uRTime * 17.0 + fb * 2.3);
-            float topE = 0.08 + bq.x * (0.15 + 0.55 * flap);
-            float botE = topE - 0.40 * (1.0 - bq.x / 1.25) - 0.02 + 0.12 * abs(sin(bq.x * 7.5));
-            float wing = smoothstep(1.25, 1.15, bq.x) * smoothstep(-0.04, 0.04, topE - bq.y) * smoothstep(-0.04, 0.04, bq.y - botE);
-            float body = 1.0 - smoothstep(0.16, 0.22, length(bq * vec2(1.4, 0.75) - vec2(0.0, 0.02)));
-            float ears = smoothstep(0.06, 0.0, hkSeg(bq, vec2(0.07, 0.18), vec2(0.11, 0.30)));
-            col = mix(col, vec3(0.012, 0.01, 0.015), max(max(wing, body), ears) * 0.95);
-        }
+        col = mix(col, vec3(0.012, 0.01, 0.015), mnFlock(p, vec2(0.0, 0.86), (G.w - 0.30) * 26.0, 16, 2.8, 0.0) * 0.95);
     }
 
     col = audioLift(col, high * 0.06);
