@@ -99,12 +99,12 @@ def media_image():
     return img[::-1].copy()
 
 
-def render(ctx, index, values, media):
+def render(ctx, index, values, media, defines=''):
     body, path = shader.read_body(index)
     n_inputs = config.scene_input_count(index)
     src = ('#version 330\nuniform sampler2D sTD2DInputs[{}];\n'
            'in vec3 vUV;\nvec4 TDOutputSwizzle(vec4 c) {{ return c; }}\n'
-           .format(n_inputs)
+           .format(n_inputs) + defines
            + shader.make_header(index, config.CTRL_CHANNELS)
            + body + shader._FOOTER)
     prog = ctx.program(vertex_shader=_VERT, fragment_shader=src)

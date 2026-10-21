@@ -14,11 +14,18 @@
 //   agudos -> chispas sueltas
 //   golpe  -> llamarada: la brasa salta adelante; con Chaos se prenden
 //             focos nuevos en el medio de la foto
+// PIANO: cada tecla levanta una llamarada sobre la foto a la altura de la
+//   nota (grave a la izquierda) con un chorro de chispas; la fuerza la hace
+//   mas alta; apretada sigue ardiendo.
 // Speed marca que tan rapido avanza el fuego (y el humo) aun en silencio.
-// HISTORIA: cada vuelta el fuego empieza de un lado distinto; cada ~61 s
-// una rafaga de viento tira las cenizas al costado.
+// HISTORIA: cada vuelta (~22 s del reloj de Speed) el fuego empieza de un
+// lado distinto; cada ~61 s una rafaga de viento tira las cenizas al costado.
+// CLIMAX (~83 s, 16 s, en tres tiempos): el calor crece, sube el humo y
+//   saltan brasas; el fuego se vuelve un incendio con llamaradas enormes
+//   que iluminan toda la mesa; una rafaga se lleva las cenizas al costado.
+//   Cada ~4.5 min mas largo (gran climax).
 //
-// @D1: velocidad del fuego
+// @D1: velocidad del fuego (dentro de cada vuelta; el frente se desliza sin saltar)
 // @D2: brasa (fuerza de la linea de fuego)
 // @D3: humo
 // @D4: cenizas y chispas
@@ -37,14 +44,19 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float has = hkMediaHas();
-    float wind = hkEvent(40.0, 61.0, 6.0);
+    vec4 G = hkGrandClimax(40.0);
+    vec4 C = hkClimaxOr(G, hkClimax(40.0, 83.0, 16.0));
+    float wind = max(hkEvent(40.0, 61.0, 6.0), C.z);
+    float blaze = C.x * 0.6 * (1.0 - C.z) + C.y;                // calor del climax
 
-    // ciclo de quemado (reloj de Speed)
-    float period = mix(36.0, 12.0, uD1);
+    // ciclo de quemado (reloj de Speed). La vuelta dura SIEMPRE lo mismo:
+    // si D1 cambiara la duracion, la fase saltaria (y hasta la foto). D1
+    // decide que tan rapido avanza el frente dentro de la vuelta.
+    float period = 22.0;
     float cyc = t / period;
     float cid = floor(cyc);
     float ph = fract(cyc);
-    float b = ph * 1.35 - 0.12 + hit * 0.03;            // frente del fuego
+    float b = ph * mix(1.20, 2.00, uD1) - 0.12 + hit * 0.03;   // frente del fuego
     float drop = smoothstep(0.0, 0.05, ph);              // la copia nueva cae
 
     // la foto sobre la mesa
@@ -82,7 +94,16 @@ vec4 render(vec2 uv) {
     float fireAmt = smoothstep(-0.05, 0.05, b) * (1.0 - smoothstep(1.0, 1.2, b));
     vec3 fireC = vec3(1.0, 0.45, 0.12);
     vec3 L = vec3(0.045, 0.042, 0.040);
-    L += fireC * fireAmt * (0.5 + bass * 0.6) * (0.4 + uD2) * 0.16 / (0.12 + dot(p - frontP, p - frontP) * 1.5);
+    L += fireC * fireAmt * (0.5 + bass * 0.6 + blaze * 1.2) * (0.4 + uD2) * 0.16 / (0.12 + dot(p - frontP, p - frontP) * 1.5 / (1.0 + blaze));
+    // piano: cada llamarada tambien ilumina la mesa
+    float keyFire = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.04, 0.6);
+        if (e < 0.01) continue;
+        vec2 kp = vec2(hkKeyX(k) * 0.55, -0.15);
+        L += fireC * e * (0.4 + keyVel(k) * 0.6) * 0.10 / (0.10 + dot(p - kp, p - kp) * 2.0);
+        keyFire += e;
+    }
     vec2 cp = vec2(-uAspect + 0.55, 0.02);
     L += vec3(1.0, 0.70, 0.42) * uD6 * 0.07 / (0.05 + dot(p - cp, p - cp) * 1.2) * (0.85 + 0.15 * noise21(vec2(t * 5.0, 2.0)));
     vec3 col = wood * L * 7.0;
@@ -162,21 +183,38 @@ vec4 render(vec2 uv) {
     if (abs(burnt) < 0.25 && pd < 0.04 && fireAmt > 0.0) {
         vec2 up = q22rot(-tilt) * vec2(0.0, 1.0);
         float fl = noise21(vec2(q.x * 14.0, q.y * 6.0 - t * 4.0));
-        float tongue = smoothstep(0.55, 0.85, fl) * exp(-max(burnt, 0.0) * 30.0) * smoothstep(-0.06, 0.0, burnt);
-        col += vec3(1.0, 0.5, 0.15) * tongue * (0.5 + bass) * (0.3 + uD2) * 1.2;
+        float tongue = smoothstep(0.55 - blaze * 0.25, 0.85, fl) * exp(-max(burnt, 0.0) * 30.0 / (1.0 + blaze * 2.5)) * smoothstep(-0.06 - blaze * 0.1, 0.0, burnt);
+        col += vec3(1.0, 0.5, 0.15) * tongue * (0.5 + bass + blaze) * (0.3 + uD2) * 1.2;
+    }
+    // --- PIANO: llamaradas a la altura de la nota ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.04, 0.6);
+        if (e < 0.01) continue;
+        float vel = keyVel(k);
+        vec2 base = vec2(hkKeyX(k) * 0.55, -0.30 + 0.25 * fract(keyPos(k) * 5.3));
+        vec2 fq = p - base;
+        float hgt = (0.35 + vel * 0.55) * (0.6 + 0.4 * smoothstep(0.0, 0.4, keyAge(k)));
+        float w = 0.10 + vel * 0.06;
+        float fn = noise21(vec2(fq.x * 10.0, fq.y * 5.0 - uKclock * 7.0 + float(k) * 4.0));
+        float tongue = smoothstep(w * (1.0 - fq.y / hgt), 0.0, abs(fq.x + (fn - 0.5) * 0.12 * fq.y)) * step(-0.03, fq.y) * smoothstep(hgt, hgt * 0.3, fq.y);
+        col += mix(vec3(1.0, 0.35, 0.08), vec3(1.0, 0.85, 0.45), smoothstep(0.4, 1.0, tongue * fn * 1.4)) * tongue * (0.5 + fn) * 1.1 * e;
+        float sp = hkParticles(fq * 2.5, uKclock * 1.2, 0.20, vec2(0.0, 1.0), 0.04);
+        col += vec3(1.0, 0.6, 0.2) * sp * exp(-abs(fq.x) * 6.0) * smoothstep(-0.05, 0.6, fq.y) * e * 1.5;
     }
 
     // --- humo ---
     {
         float sm = fbm(vec2(p.x * 1.6 + sin(p.y * 2.0 + t * 0.3) * 0.4 - wind * p.y, p.y * 1.2 - t * (0.25 + mid * 0.4)), 4, 0.55);
         float col2 = exp(-pow((p.x - frontP.x - (p.y - frontP.y) * (0.2 + wind)) * 1.5, 2.0)) * smoothstep(frontP.y - 0.2, frontP.y + 0.3, p.y);
-        float smoke = smoothstep(0.45, 0.8, sm) * col2 * fireAmt * uD3;
+        float smoke = smoothstep(0.45, 0.8, sm) * col2 * fireAmt * clamp(uD3 + blaze * 0.6, 0.0, 1.2);
         col = mix(col, vec3(0.16, 0.155, 0.15) * (0.3 + L * 3.0), smoke * 0.55);
     }
     // --- cenizas y chispas que vuelan ---
     vec2 dir = normalize(vec2(0.25 + wind * 2.5, 1.0));
-    float ash = hkParticles(p - frontP * 0.3, t * 0.6, 0.05 + uD4 * 0.25, dir, 0.035);
-    col += vec3(1.0, 0.45, 0.12) * ash * (0.15 + high * 0.6 + uD4 * 0.3) * fireAmt * smoothstep(-0.8, 0.2, p.y - frontP.y);
+    float ash = hkParticles(p - frontP * 0.3, t * 0.6, 0.05 + uD4 * 0.25 + blaze * 0.2, dir, 0.035);
+    col += vec3(1.0, 0.45, 0.12) * ash * (0.15 + high * 0.6 + uD4 * 0.3 + blaze) * fireAmt * smoothstep(-0.8, 0.2, p.y - frontP.y);
+    // incendio: resplandor sobre toda la mesa
+    col += vec3(1.0, 0.40, 0.10) * C.y * 0.08 * (0.7 + 0.3 * noise21(vec2(uRTime * 6.0, 1.0))) * smoothstep(1.0, -0.8, p.y);
     float flake = hkParticles(p * 1.3 + 3.0, t * 0.3, 0.06 + uD4 * 0.15, dir, 0.05);
     col = mix(col, vec3(0.20, 0.19, 0.18) * (0.2 + L * 3.0), clamp(flake, 0.0, 1.0) * 0.5 * uD4);
 

@@ -26,3 +26,4 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 11** (rama `claude/halloween-f11-detalle-piano`): piano polifónico (6 voces, `keyEnv`), Detail con Lag y `revealAt`, clímax en tres tiempos (`hkClimax`, `hkGrandClimax`) y setlist reordenado; escenas 00–06 rehechas (docs/53). Siguen las fases 12 (07–13), 13 (14–19), 14 (20–25) y 15 (pad momento y transiciones).
 - **Fase 12** (rama `claude/halloween-f12-escenas-07-13`, sobre f11): escenas 07–13 con el mismo tratamiento.
 - **Fase 13** (rama `claude/halloween-f13-escenas-14-19`, sobre f12): escenas 14–19, y piano optimizado (`keyEnv` corta si la voz no suena).
+- **Fase 14** (rama `claude/halloween-f14-escenas-20-25`, sobre f13): escenas de imagen 20–25; miniaturas sin clímax (`HK_STILL`).

@@ -12,10 +12,16 @@
 //   agudos -> brillos en las gotas del vidrio
 //   golpe  -> el vidrio se raja desde un punto y cada pedazo corre la
 //             imagen; con Chaos se rompe mas y la imagen se invierte
+// PIANO: cada tecla raja el vidrio desde un punto a la altura de la nota
+//   (grave a la izquierda): una estrella de grietas que crece mientras la
+//   tecla siga apretada (la fuerza: mas grande) y se cierra al soltarla.
 // Speed mueve el vapor, las velas y las gotas aun en silencio.
-// HISTORIA: cada ~59 s el espejo se raja entero y vuelve; cada ~71 s
-// una mano limpia el vapor y la imagen se ve clara; cada ~47 s se corta
-// la luz y solo queda la imagen en el espejo.
+// HISTORIA: cada ~71 s una mano limpia el vapor y la imagen se ve clara;
+// cada ~47 s se corta la luz y solo queda la imagen en el espejo.
+// CLIMAX (~59 s, 20 s, en tres tiempos): el vapor cubre todo el espejo y
+//   la bombita tiembla; una mano lo limpia y la imagen aparece nitida; el
+//   espejo se raja entero y los pedazos corren la imagen. Cada ~4.5 min
+//   con apagon al final (gran climax).
 //
 // @D1: vapor en el vidrio
 // @D2: rajaduras con el golpe
@@ -55,14 +61,19 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float has = hkMediaHas();
 
-    float crackE = hkEvent(30.0, 59.0, 8.0);
-    float wipeE = hkEvent(31.0, 71.0, 12.0);
-    float wipePh = hkEventPhase(31.0, 71.0, 12.0);
-    float darkE = hkEvent(32.0, 47.0, 5.0);
+    vec4 G = hkGrandClimax(30.0);
+    vec4 C = hkClimaxOr(G, hkClimax(30.0, 59.0, 20.0));
+    float cph = C.w;
+    float fogUp = C.x * (1.0 - C.y) * (1.0 - C.z);                  // aviso: vapor
+    float crackE = C.z;                                              // secuelas: se raja
+    float wipeC = smoothstep(0.34, 0.40, cph) * (1.0 - smoothstep(0.74, 0.80, cph));
+    float wipeE = max(hkEvent(31.0, 71.0, 12.0), wipeC);
+    float wipePh = wipeC > 0.0 ? clamp((cph - 0.36) / 0.30, 0.0, 1.0) : hkEventPhase(31.0, 71.0, 12.0);
+    float darkE = max(hkEvent(32.0, 47.0, 5.0), G.z * smoothstep(0.85, 0.9, G.w));
 
     // bombita que parpadea
     float flick = step(0.12, noise21(vec2(uRTime * 9.0, 1.0))) * (0.75 + 0.25 * sin(t * 50.0));
-    float bulb = (0.55 + bass * 0.6) * mix(1.0, flick, 0.35 + loco * 0.4) * (1.0 - darkE);
+    float bulb = (0.55 + bass * 0.6) * mix(1.0, flick, 0.35 + loco * 0.4 + fogUp * 0.5) * (1.0 - darkE);
     vec2 bp = vec2(0.0, 0.98);
     float candles = uD6;
 
@@ -110,6 +121,24 @@ vec4 render(vec2 uv) {
         vec2 m = mq * 0.5 + 0.5;                       // 0..1 en el ovalo
         // rajaduras: celdas de voronoi alrededor del punto de impacto
         vec2 imp = vec2(0.35 + 0.3 * hash21(vec2(floor(uRTime / 59.0), 1.0)), 0.40 + 0.25 * hash21(vec2(floor(uRTime / 59.0), 2.0)));
+        // piano: estrellas de grietas en el punto de cada tecla
+        float keyCrack = 0.0;
+        vec2 keyShift = vec2(0.0);
+        for (int k = 0; k < N_KEYS; k++) {
+            float e = keyEnv(k, 0.03, 0.5);
+            if (e < 0.01) continue;
+            vec2 kp = vec2(mix(0.15, 0.85, keyPos(k)), 0.30 + 0.40 * fract(keyPos(k) * 7.1 + float(k) * 0.3));
+            vec2 kr = (m - kp) * vec2(MR.x / MR.y, 1.0);
+            float r = length(kr);
+            float R = min(keyAge(k) * 0.9, 0.10 + keyVel(k) * 0.25) * e;
+            if (r > R + 0.02) continue;
+            float a = atan(kr.y, kr.x);
+            float spokes = abs(sin(a * 4.5 + keyPos(k) * 31.0 + (noise21(vec2(r * 30.0, float(k))) - 0.5) * 1.2));
+            float line = (1.0 - smoothstep(0.0, 0.010 + r * 0.03, spokes * r)) * (1.0 - smoothstep(R * 0.7, R, r));
+            float ring = (1.0 - smoothstep(0.0, 0.006, abs(r - R * 0.55))) * step(0.5, fract(a * 1.6 + 0.3)) * 0.6;
+            keyCrack = max(keyCrack, max(line, ring) * e);
+            keyShift += normalize(kr + 1e-4) * 0.01 * e * (1.0 - smoothstep(0.0, R, r));
+        }
         float lvl = clamp(uD2 * (0.10 + hit * (0.6 + loco)) + crackE, 0.0, 1.0);
         vec2 rel = (m - imp) * vec2(MR.x / MR.y, 1.0);
         float rr = length(rel);
@@ -120,7 +149,7 @@ vec4 render(vec2 uv) {
         vec2 shardOff = (hash22(vr.yz) - 0.5) * 0.06 * (0.3 + uD3) * shardOn;
         // ondula como agua (medios) + pedazos corridos
         vec2 w = vec2(sin(m.y * 18.0 + t * 1.5), cos(m.x * 15.0 - t * 1.2)) * 0.004 * (0.3 + mid * 2.0);
-        vec2 mm = m + w + shardOff;
+        vec2 mm = m + w + shardOff + keyShift;
         vec2 muv = hkMediaCover(mm, MR.x / MR.y);
         // vapor: desenfoque + niebla blanca
         float wipe = 0.0;
@@ -129,7 +158,7 @@ vec4 render(vec2 uv) {
             wipe = (1.0 - smoothstep(0.10, 0.22, length(hp * vec2(1.0, 0.7)))) * wipeE;
             wipe = max(wipe, smoothstep(0.35, 0.0, abs(mm.y - 0.55 - 0.08 * sin(mm.x * 9.0))) * step(mm.x, 0.25 + wipePh * 0.5) * wipeE);
         }
-        float steam = clamp(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)) - wipe, 0.0, 1.0);
+        float steam = clamp(max(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)), fogUp * 1.1) - wipe, 0.0, 1.0);
         float fogN = fbm(mm * 5.0 + vec2(0.0, t * 0.03), 4, 0.55);
         vec3 im = hkMediaGet(muv, steam * 3.5, has);
         vec3 tint = mix(vec3(0.70, 0.82, 0.95), vec3(1.0, 0.35, 0.30), uD5);
@@ -149,7 +178,7 @@ vec4 render(vec2 uv) {
         // reflejo de las velas en el vidrio
         im += vec3(1.0, 0.6, 0.3) * candles * 0.04 * (exp(-length(p - vec2(-0.62, -0.25)) * 8.0) + exp(-length(p - vec2(0.62, -0.25)) * 8.0));
         // grietas: linea brillante + borde oscuro
-        im = mix(im, vec3(0.75, 0.78, 0.80) * (0.4 + bulb * 0.5), crackLine * 0.8);
+        im = mix(im, vec3(0.75, 0.78, 0.80) * (0.4 + bulb * 0.5), max(crackLine * 0.8, keyCrack * 0.85));
         im *= 1.0 - (1.0 - smoothstep(0.05, 0.12, vr.x)) * shardOn * 0.35;
         vec3 inv = tint * pow(1.0 - pow(clamp(im * 1.8, 0.0, 1.0), vec3(1.0 / 2.2)), vec3(2.2)) * 0.65;
         im = mix(im, inv, hit * loco * step(0.7, loco) * shardOn);

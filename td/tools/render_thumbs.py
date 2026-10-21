@@ -57,7 +57,8 @@ def main():
         if not shader.find_visual(i):
             continue
         try:
-            img, _ = rs.render(ctx, i, vals(i), media)
+            # HK_STILL: sin climax (la miniatura muestra la escena en reposo)
+            img, _ = rs.render(ctx, i, vals(i), media, '#define HK_STILL 1\n')
         except Exception as e:
             print('[!!] escena {:02d}: {}'.format(i, str(e)[:200]))
             fails += 1
