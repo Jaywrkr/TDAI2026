@@ -14,11 +14,18 @@
 //   agudos -> titilan las estrellas; los murcielagos lejanos aletean
 //   golpe  -> la bandada se dispersa (D4) y parpadean las ventanas;
 //             con Chaos: relampago y murcielagos que vienen a la camara
+// PIANO: cada tecla suelta una bandadita desde el castillo en esa posicion
+//   (la fuerza: mas grandes y rapidos); apretada, dan vueltas alrededor
+//   del punto; al soltarla salen volando hacia la camara.
 // Speed mueve la bandada, las nubes y la niebla aun en silencio.
 // HISTORIA: cada ~61 s cruza una bandada enorme, cada ~53 s relampaguea,
-// cada ~2 min la luna sangra, y cada acto cambia el color de la luna.
+// y cada acto cambia el color de la luna.
+// CLIMAX (~2 min, 22 s, en tres tiempos): los murcielagos se juntan en un
+//   remolino frente a la luna; la luna se tine de sangre; el remolino
+//   revienta y salen disparados hacia la camara. Cada ~4.5 min con
+//   tormenta de relampagos (gran climax).
 //
-// @D1: cantidad de murcielagos
+// @D1: cantidad de murcielagos (llegan de a uno, desde lejos)
 // @D2: tamano de la luna
 // @D3: velocidad del aleteo
 // @D4: cuanto se dispersan con el golpe
@@ -81,7 +88,9 @@ vec4 render(vec2 uv) {
     float mr = length(mp);
     vec3 pale = vec3(1.0, 0.93, 0.78);
     vec3 blood = hsv2rgb(vec3(fract(0.015 + hue), 0.85, 1.0));
-    float bloodE = hkEvent(4.0, 117.0, 20.0);
+    vec4 G = hkGrandClimax(4.0);
+    vec4 C = hkClimaxOr(G, hkClimax(4.0, 117.0, 22.0));
+    float bloodE = max(C.y, C.z * 0.8);
     vec3 moonC = mix(pale, blood, clamp(uD5 + hkActVal(5.0) * 0.25 + bloodE, 0.0, 1.0));
     col += moonC * exp(-max(mr - moonR, 0.0) * 4.0) * (0.22 + bass * 0.45);
     col += moonC * exp(-pow((mr - moonR * 1.6) * 12.0, 2.0)) * 0.04;
@@ -94,7 +103,7 @@ vec4 render(vec2 uv) {
     col += moonC * hkRays(pS, mc, t, 14.0) * 0.16 * (1.0 - disk) * hkStyleRays();
     col = hkStyleMoon(col, pS, mc, moonR);
     // relampago
-    float zap = max(hit * smoothstep(0.4, 0.9, loco), hkEvent(6.0, 53.0, 6.0) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))));
+    float zap = max(hit * smoothstep(0.4, 0.9, loco), max(hkEvent(6.0, 53.0, 6.0), G.y + G.z) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))));
     float bslot = floor(uRTime * 1.5);
     float bd = hkBolt(pS, (hash21(vec2(bslot, 2.0)) - 0.5) * uAspect * 1.6, 1.05, -0.35, bslot * 5.0, 0.4);
     col += vec3(0.8, 0.75, 1.0) * (exp(-bd * 160.0) + exp(-bd * 20.0) * 0.3) * zap * 1.5;
@@ -123,7 +132,10 @@ vec4 render(vec2 uv) {
         if (wid > 0.01) {
             float idq = floor(wid * 24.0 + 0.5);
             float candle = 0.75 + 0.25 * sin(t * (7.0 + idq) + idq * 3.0) + 0.15 * noise21(vec2(t * 3.0, idq));
-            float on = step(0.25, hash21(vec2(idq, floor(uRTime * 0.08 + idq * 0.3))));
+            // cada tanto una ventana se prende o se apaga, con fundido
+            float ws = uRTime * 0.08 + idq * 0.3;
+            float on = mix(step(0.25, hash21(vec2(idq, floor(ws) - 1.0))), step(0.25, hash21(vec2(idq, floor(ws)))),
+                           smoothstep(0.0, 0.12, fract(ws)));
             // el golpe hace parpadear algunas
             on *= 1.0 - hit * step(0.55, hash21(vec2(idq, floor(uRTime * 6.0))));
             vec3 wc = vec3(1.0, 0.62, 0.25) * candle * on * (0.8 + uD6 * 1.4);
@@ -153,13 +165,15 @@ vec4 render(vec2 uv) {
         vec2 cid = floor(q0 / cs);
         if (cid.y * cs < -0.75 || cid.y * cs > 1.1) continue;
         vec2 h = hash22(cid + fl * 13.0);
-        if (hash21(cid + fl * 7.0 + 0.5) > presence) continue;
+        // D1 suma murcielagos de a uno: el nuevo llega de lejos (crece)
+        float appear = smoothstep(0.0, 0.08, presence - hash21(cid + fl * 7.0 + 0.5));
+        if (appear < 0.01) continue;
         vec2 center = (cid + 0.5 + (h - 0.5) * 0.35) * cs;
         center.y += 0.06 * sin(t * (0.8 + h.x) + h.y * 9.0);
         vec2 world = center - vec2(t * (0.10 + 0.05 * fl) * depth, 0.0);
         vec2 away = normalize(world - mc + 1e-4);
         center += (away + (h - 0.5)) * hit * (0.03 + uD4 * 0.10) * depth;
-        float scale = 0.17 * depth * (1.0 + hit * loco * 0.6 * h.x + swarmE * 0.25);
+        float scale = 0.17 * depth * (1.0 + hit * loco * 0.6 * h.x + swarmE * 0.25) * mix(0.15, 1.0, appear);
         vec2 bq = (q0 - center) / scale;
         if (dot(bq, bq) > 0.6) { bats = min(bats, (length(bq) - 0.55) * scale); continue; }
         float fspd = (9.0 + uD3 * 12.0) * (0.8 + h.y * 0.4) * (1.0 + high * 0.5 * fl);
@@ -167,6 +181,46 @@ vec4 render(vec2 uv) {
         bq = rot2((h.x - 0.5) * 0.5) * bq;
         float bd2 = hwBat(bq, flap) * scale;
         bats = min(bats, bd2);
+    }
+    // --- PIANO: bandaditas que salen del castillo ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.05, 2.5);
+        if (e < 0.01) continue;
+        float vel = keyVel(k), age = keyAge(k), rel = keyRelAge(k);
+        vec2 org = vec2(hkKeyX(k) * 0.8, -0.15 + 0.25 * fract(keyPos(k) * 5.7));
+        for (int b = 0; b < 5; b++) {
+            float fb = float(b);
+            float a = fb * 1.2566 + keyPos(k) * 20.0;
+            vec2 dir = vec2(cos(a), sin(a) * 0.6 + 0.35);
+            // salen en abanico, dan vueltas mientras la tecla siga apretada,
+            // y al soltarla vuelan hacia la camara (crecen y se abren)
+            vec2 c = org + dir * min(age, 0.5) * (0.5 + vel * 0.4)
+                   + vec2(cos(a + age * 2.6), sin(a + age * 2.6) * 0.5) * 0.10 * (1.0 - smoothstep(0.0, 0.3, rel))
+                   + dir * rel * (1.0 + vel) * 1.4;
+            float sc = 0.10 * (0.8 + vel * 0.6) * (1.0 + rel * 2.5) * smoothstep(0.0, 0.15, age);
+            vec2 bq = (pS - c) / max(sc, 1e-3);
+            if (dot(bq, bq) > 0.6) continue;
+            bq = rot2(atan(dir.y, dir.x) * 0.3) * bq;
+            bats = min(bats, hwBat(bq, sin(uKclock * (14.0 + vel * 8.0) + fb * 2.0)) * sc);
+        }
+    }
+    // --- CLIMAX: remolino frente a la luna que revienta hacia la camara ---
+    if (C.w > 0.0) {
+        float gather = smoothstep(0.0, 0.40, C.w);                 // se juntan
+        float burst = clamp((C.w - 0.66) / 0.30, 0.0, 1.0);       // revientan
+        for (int b = 0; b < 26; b++) {
+            float fb = float(b);
+            float a = fb * 2.39996 + uRTime * (1.6 + 0.8 * hash21(vec2(fb, 3.0))) * (1.0 - burst);
+            float rad = mix(1.6 + hash21(vec2(fb, 4.0)), moonR * (0.75 + 0.45 * hash21(vec2(fb, 5.0))), gather);
+            rad += burst * burst * (2.5 + hash21(vec2(fb, 6.0)) * 2.0);
+            vec2 c = mc + vec2(cos(a), sin(a) * 0.62) * rad;
+            float sc = 0.105 * (1.0 + burst * burst * 6.0) * (0.7 + 0.6 * hash21(vec2(fb, 7.0))) * gather;
+            if (sc < 0.002) continue;
+            vec2 bq = (pS - c) / sc;
+            if (dot(bq, bq) > 0.6) continue;
+            bq = rot2(a + 1.57) * bq * vec2(1.0, sign(cos(a)) + 0.001);
+            bats = min(bats, hwBat(bq, sin(uRTime * 16.0 + fb * 3.0)) * sc);
+        }
     }
     float batMask = 1.0 - smoothstep(-0.0015, 0.0015, bats);
     col = mix(col, vec3(0.0), batMask);

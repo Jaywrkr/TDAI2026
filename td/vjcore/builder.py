@@ -453,6 +453,13 @@ def _parameters(proj):
     add_float(s, 'Keypos', 'Keypos (interno)', 0.5, 0, 1)
     add_float(s, 'Keyvel', 'Keyvel (interno)', 0.0, 0, 1)
     add_float(s, 'Keypulseraw', 'Keypulseraw (interno)', 0.0, 0, 1)
+    # Piano polifonico (6 voces, ver config.CTRL_CHANNELS k0pos..k5off):
+    # tiempos en segundos del reloj kclock; -1 = la voz nunca sono.
+    for _i in range(config.PIANO_VOICES):
+        add_float(s, 'K{}pos'.format(_i), 'Voz {} posicion (interno)'.format(_i), 0.5, 0, 1)
+        add_float(s, 'K{}vel'.format(_i), 'Voz {} fuerza (interno)'.format(_i), 0.0, 0, 1)
+        add_float(s, 'K{}on'.format(_i), 'Voz {} apretada en (interno)'.format(_i), -1.0)
+        add_float(s, 'K{}off'.format(_i), 'Voz {} soltada en (interno)'.format(_i), -1.0)
     # Efectos de pad (Fase 3, 8 pads del banco B del MiniLab mkII, ver
     # config.DEFAULT_MIDI) -- se escriben desde midi_logic.py
     # (EFFECT_TRIGGERS).

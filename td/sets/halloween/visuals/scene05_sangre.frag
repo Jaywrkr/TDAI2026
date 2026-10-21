@@ -14,12 +14,20 @@
 //   medios -> la linterna barre la pared
 //   agudos -> el fluorescente zumba y parpadea
 //   golpe  -> se sueltan hilos nuevos y rapidos; con Chaos: salpicaduras
+// PIANO: cada tecla suelta un chorro grueso desde arriba en esa posicion
+//   que baja por la pared (la fuerza: mas grueso y rapido); mientras la
+//   tecla siga apretada sigue manando; al soltarla el chorro se corta y
+//   cae. Un acorde suelta varios.
 // Speed hace bajar los hilos aun en silencio.
-// HISTORIA: cada ~50 s la pared sangra entera y crece el charco; cada
-// ~79 s estalla una salpicadura; cada ~67 s se corta la luz y quedan
-// solo la emergencia y la linterna.
+// HISTORIA: cada ~79 s estalla una salpicadura; cada ~67 s se corta la
+// luz y quedan solo la emergencia y la linterna.
+// CLIMAX (~97 s, 22 s, en tres tiempos): empiezan a gotear mas hilos y
+//   crecen; la pared sangra entera desde arriba como una cortina y el
+//   charco avanza; despues se corta la luz y quedan la emergencia y la
+//   linterna sobre la sangre brillante. Cada ~4.5 min con salpicaduras
+//   (gran climax).
 //
-// @D1: cantidad de hilos
+// @D1: cantidad de hilos (cada uno nuevo nace arriba y crece)
 // @D2: largo de los chorreones
 // @D3: grosor de los hilos
 // @D4: brillo humedo
@@ -44,9 +52,11 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
 
-    float bleed = hkEvent(3.0, 50.0, 10.0);
-    float splatE = hkEvent(4.0, 79.0, 2.5);
-    float powerOut = hkEvent(6.0, 67.0, 6.0);
+    vec4 G = hkGrandClimax(3.0);
+    vec4 C = hkClimaxOr(G, hkClimax(3.0, 97.0, 22.0));
+    float bleed = max(C.y, C.z * 0.7);
+    float splatE = max(hkEvent(4.0, 79.0, 2.5), G.y * step(0.6, noise21(vec2(uRTime * 3.0, 2.0))));
+    float powerOut = max(hkEvent(6.0, 67.0, 6.0), C.z);
 
     vec3 red = hsv2rgb(vec3(fract(0.995 + hue), 1.0, 0.62));
     vec3 dark = hsv2rgb(vec3(fract(0.985 + hue), 1.0, 0.22));
@@ -109,7 +119,11 @@ vec4 render(vec2 uv) {
 
     // --- sangre fresca: franja de arriba y chorreones ---
     float top = TILE_TOP - 0.02 - 0.04 * sin(p.x * 3.0 + 0.7) - 0.03 * noise21(vec2(p.x * 5.0, 0.0));
-    float cols = 14.0 + floor(uD1 * 30.0 + uDensity * 8.0 + hkActVal(5.0) * 8.0);
+    // columnas FIJAS: D1 (y el aviso del climax) decide cuantas tienen
+    // hilo, y el nuevo nace arriba y crece -- antes D1 cambiaba la cantidad
+    // de columnas y todos los hilos saltaban de lugar
+    const float cols = 40.0;
+    float amount = clamp(0.20 + uD1 * 0.62 + uDensity * 0.08 + hkActVal(5.0) * 0.10 + C.x * 0.45, 0.0, 1.05);
     float cw = 2.0 * uAspect / cols;
     float cx = floor((p.x + uAspect) / cw);
     float d = max(top - p.y, p.y - 1.00);   // franja entre la moldura y el techo
@@ -117,14 +131,17 @@ vec4 render(vec2 uv) {
         float id = cx + float(k);
         float h1 = hash21(vec2(id, 1.7));
         float h2 = hash21(vec2(id, 8.3));
-        if (h1 < 0.25 * (1.0 - bleed)) continue;
+        float present = smoothstep(0.0, 0.06, amount - hash21(vec2(id, 4.1)));
+        // cuando la cortina ya cubrio la pared, los hilos sueltos sobran
+        present *= 1.0 - smoothstep(0.50, 0.62, C.w);
+        if (present < 0.005) continue;
         float x0 = (id + 0.5) * cw - uAspect + (h2 - 0.5) * cw * 0.5;
         float speed = 0.05 + 0.10 * h2;
         float cyc = fract(t * speed + h1 * 5.0);
         float len = (0.55 + 1.3 * uD2) * (0.25 + 0.75 * h1) * smoothstep(0.0, 0.85, cyc);
-        len *= 1.0 + hit * (0.15 + 0.35 * h2) * step(0.5, h1) + bleed * 0.8;
+        len *= (1.0 + hit * (0.15 + 0.35 * h2) * step(0.5, h1) + bleed * 0.8 + C.x * 0.4) * present;
         len = min(len, top - FLOOR_Y - 0.02);
-        float w = cw * (0.05 + 0.13 * uD3) * (0.6 + 0.8 * h2);
+        float w = cw * (0.08 + 0.20 * uD3) * (0.6 + 0.8 * h2);
         float tipY = top - len;
         float yy = clamp((top - p.y) / max(len, 1e-3), 0.0, 1.0);
         float width = w * mix(1.7, 0.6, yy) * (0.8 + 0.4 * noise21(vec2(p.y * 9.0, id)));
@@ -139,8 +156,43 @@ vec4 render(vec2 uv) {
         dd = min(dd, falling);
         d = min(d, dd);
     }
+    // --- PIANO: chorros gruesos que bajan por la pared ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.02, 3.0);
+        if (e < 0.005) continue;
+        float vel = keyVel(k), age = keyAge(k), rel = keyRelAge(k);
+        float x0 = hkKeyX(k) * 0.95;
+        float w = 0.018 + vel * 0.022;
+        float len = min(age * (0.45 + vel * 0.75), top - FLOOR_Y - 0.02);
+        // al soltarla el chorro se corta arriba y cae
+        float top2 = top - rel * rel * 1.8;
+        float tipY = top - len - rel * rel * 1.8;
+        float yy = clamp((top2 - p.y) / max(top2 - tipY, 1e-3), 0.0, 1.0);
+        float wob = (noise21(vec2(p.y * 3.0, float(k) * 5.3 + keyPos(k) * 9.0)) - 0.5) * w * 1.6;
+        float width = w * mix(1.5, 0.9, yy) * (0.85 + 0.3 * noise21(vec2(p.y * 7.0 - uKclock * 2.0, float(k))));
+        float strand = max(abs(p.x - x0 - wob) - width, max(p.y - top2, tipY - p.y));
+        float drop = length((p - vec2(x0, tipY)) / vec2(1.0, 1.3)) - w * 1.5;
+        d = min(d, min(strand, drop) + (1.0 - e) * 0.02);
+    }
+    // --- CLIMAX: la pared sangra entera, como una cortina desde arriba ---
+    if (C.y > 0.0 || C.z > 0.0) {
+        float down = smoothstep(0.33, 0.68, C.w);                  // cuanto bajo la cortina
+        float edgeY = top - down * (top - FLOOR_Y + 0.05)
+                    - 0.10 * noise21(vec2(p.x * 6.0, 3.0)) - 0.05 * sin(p.x * 17.0) * noise21(vec2(p.x * 2.0, 5.0));
+        // dedos que se adelantan a la cortina
+        // (ruido suave: con cortes bruscos el brillo humedo se rompe en rayas)
+        float finger = 0.16 * pow(noise21(vec2(p.x * 9.0, 9.0)), 2.0) + 0.05 * noise21(vec2(p.x * 31.0, 4.0));
+        float sheet = max(edgeY - finger * down - p.y, p.y - 1.0);
+        // union suave: con min() el brillo salta donde se cruzan hilos y cortina
+        d = hkSmin(d, sheet + (1.0 - max(C.y, C.z)) * 0.05, 0.06);
+    }
     float mask = (1.0 - smoothstep(-0.0025, 0.0025, d)) * step(FLOOR_Y, p.y);
-    vec2 gd = vec2(dFdx(d), dFdy(d));
+    // el relieve de la sangre vive en el borde: mas adentro es plana (si no,
+    // la forma ondulada del borde de la cortina se ve como rayas de brillo)
+    float dn = max(d, -0.03);
+    // adentro de la cortina: ondas suaves que bajan (sangre que corre)
+    dn += 0.010 * noise21(vec2(p.x * 4.0, p.y * 1.5 + t * 0.35)) * smoothstep(-0.02, -0.08, d);
+    vec2 gd = vec2(dFdx(dn), dFdy(dn));
     vec3 bn = normalize(vec3(-gd * 60.0, 1.0));
     float bd1 = max(dot(bn, normalize(Pl0 - P)), 0.0), bd2 = max(dot(bn, normalize(Pl1 - P)), 0.0);
     float bs0 = pow(max(dot(reflect(-normalize(Pl0 - P), bn), V), 0.0), 40.0);
@@ -159,7 +211,7 @@ vec4 render(vec2 uv) {
         float z = 1.0 / (depth + 0.12);
         vec2 pc2 = vec2(p.x * z * 0.45, depth * 3.0);
         float edge = plate3Wrap(vec2(pc2.x * 0.08, pc2.y * 0.12)).a;
-        float r = length(vec2(p.x * 0.30, depth * 2.2 - 0.45)) - (0.25 + bleed * 0.25 + uD2 * 0.12) - (edge - 0.5) * 0.12;
+        float r = length(vec2(p.x * 0.30, depth * 2.2 - 0.45)) - (0.25 + bleed * 0.55 + uD2 * 0.12) - (edge - 0.5) * 0.12;
         float pool = smoothstep(0.01, -0.01, r);
         vec3 pref = fluoC * exp(-pow(p.x * 2.2, 2.0) - pow((depth - 0.10) * 14.0, 2.0)) * 0.35
                   + emergC * exp(-pow((p.x + 2.2) * 1.6, 2.0) - pow((depth - 0.08) * 12.0, 2.0)) * 0.35

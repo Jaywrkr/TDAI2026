@@ -23,3 +23,4 @@ Lee primero [docs/51_SPEED_Y_BAILE.md](docs/51_SPEED_Y_BAILE.md). Ese documento 
 ## Entrega
 
 Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: **solo commit y push, sin abrir PR ni hacer merge** (pedido del usuario; antes Claude hacía PR + merge). Cada fase de trabajo va en una rama nueva anidada sobre la anterior (`claude/halloween-f6-...`, `claude/halloween-f7-...`). Verificar shaders y controles fuera de TD; cualquier afirmación sobre aspecto o FPS reales requiere prueba en el TouchDesigner del usuario. Si cambian CHOPs, DATs o el header/footer, indicar **Reconstruir Todo**.
+- **Fase 11** (rama `claude/halloween-f11-detalle-piano`): piano polifónico (6 voces, `keyEnv`), Detail con Lag y `revealAt`, clímax en tres tiempos (`hkClimax`, `hkGrandClimax`) y setlist reordenado; escenas 00–06 rehechas (docs/53). Siguen las fases 12 (07–13), 13 (14–19), 14 (20–25) y 15 (pad momento y transiciones).

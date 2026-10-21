@@ -15,10 +15,18 @@
 //   agudos -> los huesos zumban y parpadean; la lluvia brilla
 //   golpe  -> la calavera muerde, las calaveritas avanzan la cadena,
 //             ondas en los charcos; con Chaos: chispas en la caja
+// PIANO: cada tecla enciende una calaverita de neon en la pared, en esa
+//   posicion (arranca con el zumbido de un tubo que prende) y alumbra el
+//   ladrillo mojado; la fuerza la hace mas grande; apretada queda prendida,
+//   al soltarla se apaga parpadeando. Un acorde prende varias.
 // Speed mueve la lluvia, el vapor y las cadenas aun en silencio.
 // HISTORIA: cada acto cambia la paleta y la lluvia; cada ~41 s una ola
-// de luz recorre los carteles; cada ~89 s apagon; cada ~67 s la caja
-// electrica chisporrotea y los carteles tiemblan.
+// de luz recorre los carteles; cada ~67 s la caja electrica chisporrotea
+// y los carteles tiemblan.
+// CLIMAX (~89 s, 16 s, en tres tiempos): los carteles fallan y se apagan
+//   de a uno; apagon total, solo la lluvia y algun relampago; vuelven en
+//   cadena con un fogonazo cada uno y chispas de la caja. Cada ~4.5 min
+//   con la ola de luz al volver (gran climax).
 //
 // @D1: tamano de la calavera grande
 // @D2: grosor del neon
@@ -107,6 +115,32 @@ vec3 hwTube(float d, vec3 c, float I, float w, float haloW) {
     return lit + glow + off;
 }
 
+// climax: el cartel se apaga en el aviso (en el punto o, parpadeando) y
+// vuelve en las secuelas (en el punto r). ph = fase del climax (0 = no hay)
+float ng2Off(float ph, float o, float r) {
+    if (ph <= 0.0) return 1.0;
+    float a = o * 0.33, b = 0.70 + r * 0.20;
+    float off = smoothstep(a, a + 0.02, ph) * (1.0 - smoothstep(b, b + 0.015, ph));
+    float flick = step(0.45, noise21(vec2(ph * 260.0, o * 17.0))) * smoothstep(a - 0.10, a, ph) * (1.0 - smoothstep(a, a + 0.02, ph));
+    return (1.0 - off) * (1.0 - flick * 0.85);
+}
+// fogonazo al volver
+float ng2Back(float ph, float r) {
+    if (ph <= 0.0) return 0.0;
+    return exp(-pow((ph - 0.71 - r * 0.20) * 45.0, 2.0)) * 1.4;
+}
+// calaverita del piano k: posicion en la pared
+vec2 ng2KeySkull(int k) { return vec2(hkKeyX(k) * 0.93, 0.66 + 0.10 * sin(keyPos(k) * 21.0)); }
+float ng2KeyOn(int k) {
+    float e = keyEnv(k, 0.05, 0.6);
+    // arranque con zumbido: los primeros 0.35 s parpadea como un tubo que prende
+    float a = keyAge(k);
+    float start = mix(step(0.4, noise21(vec2(a * 40.0, float(k)))), 1.0, smoothstep(0.15, 0.35, a));
+    // al soltar se apaga parpadeando
+    float rel = keyHeld(k) > 0.5 ? 1.0 : step(0.3, noise21(vec2(uKclock * 35.0, float(k) * 3.0)));
+    return e * start * mix(1.0, rel, 1.0 - e);
+}
+
 vec4 render(vec2 uv) {
     vec2 p0 = hkPunch(hkShake(centered(uv)));
     vec2 p = hkCam(p0);
@@ -117,12 +151,17 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.01 + hit * loco * 0.15);
-    hue += floor(hkActVal(1.0) * 4.0) * 0.18 * step(0.5, hkActVal(2.0));
+    // paleta por acto: el cambio entre actos es un fundido (hkActVal ya
+    // interpola), no un salto
+    hue += hkActVal(1.0) * 4.0 * 0.18 * smoothstep(0.35, 0.65, hkActVal(2.0));
 
     // historia
-    float waveE = hkEvent(3.0, 41.0, 6.0);
-    float blackout = hkEvent(4.0, 89.0, 5.0);
-    float sparkE = hkEvent(5.0, 67.0, 4.0);
+    vec4 G = hkGrandClimax(4.0);
+    vec4 C = hkClimaxOr(G, hkClimax(4.0, 89.0, 16.0));
+    float waveE = max(hkEvent(3.0, 41.0, 6.0), G.z);
+    float sparkE = max(hkEvent(5.0, 67.0, 4.0), C.z);
+    float blackout = 0.0;
+    float stormFlash = C.y * step(0.93, noise21(vec2(uRTime * 6.0, 9.0)));
     float rainAmt = mix(0.35, 1.0, hkActVal(6.0));
     float wavePos = mix(-uAspect - 0.5, uAspect + 0.5, fract(uRTime * 0.25));
 
@@ -141,9 +180,11 @@ vec4 render(vec2 uv) {
     float iCross = (0.95 - buzz * (0.75 + high * 0.2)) * (1.0 - tremble * 0.5);
     float iBat = (0.90 + 0.10 * sin(t * 3.0 + 1.0)) * (1.0 - tremble * 0.6);
     float bo = blackout;
-    iHero *= 1.0 - bo * step(hash21(vec2(1.0, floor(uRTime * 8.0))), 0.85 - (1.0 - bo) * 0.8);
-    iCross *= 1.0 - bo * step(hash21(vec2(2.0, floor(uRTime * 8.0))), 0.85 - (1.0 - bo) * 0.8);
-    iBat *= 1.0 - bo * step(hash21(vec2(3.0, floor(uRTime * 8.0))), 0.85 - (1.0 - bo) * 0.8);
+    // climax: cada cartel falla en su momento (o) y vuelve en el suyo (r)
+    float cph = C.w;
+    iHero = iHero * ng2Off(cph, 0.62, 0.75) + ng2Back(cph, 0.75);
+    iCross = iCross * ng2Off(cph, 0.22, 0.10) + ng2Back(cph, 0.10);
+    iBat = iBat * ng2Off(cph, 0.42, 0.45) + ng2Back(cph, 0.45);
     iHero += waveE * 1.2 * exp(-pow((HERO_C.x - wavePos) * 2.0, 2.0));
     iCross += waveE * 1.2 * exp(-pow((CROSS_C.x - wavePos) * 2.0, 2.0));
     iBat += waveE * 1.2 * exp(-pow((BAT_C.x - wavePos) * 2.0, 2.0));
@@ -167,8 +208,24 @@ vec4 render(vec2 uv) {
     Lpos[2] = vec3(BAT_C, 0.25); Lcol[2] = cBat * iBat * 0.8;
     Lpos[3] = vec3(-2.35, 0.30, 0.25); Lcol[3] = mix(palV, palO, 0.5) * 0.45;
     Lpos[4] = vec3(2.35, 0.30, 0.25); Lcol[4] = mix(palG, palO, 0.5) * 0.45;
-    vec3 diff = vec3(0.022, 0.026, 0.040);
+    float chainOn = 1.0;
+    for (int k = 0; k < 4; k++) chainOn = min(chainOn, ng2Off(cph, 0.08 + float(k) * 0.12, 0.25 + float(k) * 0.12));
+    Lcol[3] *= chainOn; Lcol[4] *= chainOn;
+    vec3 diff = vec3(0.022, 0.026, 0.040) + vec3(0.30, 0.34, 0.45) * stormFlash;
     vec3 spec = vec3(0.0);
+    // calaveritas del piano: tambien alumbran la pared
+    for (int k = 0; k < N_KEYS; k++) {
+        float on = ng2KeyOn(k);
+        if (on < 0.01) continue;
+        vec3 kc = hsv2rgb(vec3(fract(0.07 + hue + keyPos(k) * 0.7), 0.85, 1.0));
+        vec3 v = vec3(ng2KeySkull(k), 0.25) - vec3(p, 0.0);
+        float dd = dot(v, v);
+        vec3 L = v * inversesqrt(dd);
+        float att = 1.0 / (1.0 + dd * 2.6);
+        vec3 lc = kc * on * (0.5 + keyVel(k) * 0.6);
+        diff += lc * max(dot(n, L), 0.0) * att * 2.4;
+        spec += lc * pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0) * att * (0.3 + wet * 2.2);
+    }
     for (int i = 0; i < 5; i++) {
         vec3 v = Lpos[i] - vec3(p, 0.0);
         float dd = dot(v, v);
@@ -219,10 +276,22 @@ vec4 render(vec2 uv) {
             if (dot(d, d) > 0.06) continue;
             float ph = mod(chase - fk - (side > 0.0 ? 2.0 : 0.0), 4.0);
             float on = 0.18 + 0.82 * exp(-ph * ph * 1.5) + waveE * exp(-pow((c.x - wavePos) * 2.0, 2.0));
-            on *= 1.0 - bo * 0.9;
+            on = on * ng2Off(cph, 0.08 + fk * 0.12 + (side > 0.0 ? 0.04 : 0.0), 0.25 + fk * 0.12) + ng2Back(cph, 0.25 + fk * 0.12);
             vec3 cc = (k % 2 == 0) ? mix(palO, palV, mixC) : mix(palO, palG, mixC);
             col += hwTube(hwSkullS(d / 0.17) * 0.17, cc, on, w * 0.7, haloW * 0.8);
         }
+    }
+
+    // --- calaveritas de neon del piano ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float on = ng2KeyOn(k);
+        if (on < 0.01) continue;
+        vec2 c = ng2KeySkull(k);
+        float sz = 0.14 + keyVel(k) * 0.10;
+        vec2 d = p - c;
+        if (dot(d, d) > sz * sz * 4.0) continue;
+        vec3 kc = hsv2rgb(vec3(fract(0.07 + hue + keyPos(k) * 0.7), 0.85, 1.0));
+        col += hwTube(hwSkullS(d / sz) * sz, kc, on, w * 0.75, haloW * 0.9);
     }
 
     // --- chispas de la caja electrica (golpe con locura o evento) ---

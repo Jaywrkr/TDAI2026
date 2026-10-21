@@ -112,10 +112,39 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     safe_set_first(music, ['lagmethod', 'method'], 'slew')
     connect(music, music_raw)
 
+    # Reloj del piano (kclock): segundos reales, corre SIEMPRE. Las voces
+    # guardan en que kclock se apretaron/soltaron (midi_logic.py).
+    k_clock = proj.create(speedCHOP, 'key_clock')
+    k_clock.nodeX, k_clock.nodeY = -1400, -300
+    safe_set(k_clock, 'speed', 1.0)
+    k_clock_n = proj.create(renameCHOP, 'key_clock_named')
+    k_clock_n.nodeX, k_clock_n.nodeY = -1240, -300
+    safe_set(k_clock_n, 'renamefrom', '*')
+    safe_set(k_clock_n, 'renameto', 'kclock')
+    connect(k_clock_n, k_clock)
+
+    # Perillas Detail con un Lag corto: aunque se giren rapido (o salte
+    # una perilla relativa), el cambio se desliza en pantalla.
+    det_names = ' '.join('d{}'.format(i) for i in range(1, 7))
+    par_rest = proj.create(selectCHOP, 'par_ctrl_rest')
+    par_rest.nodeX, par_rest.nodeY = -1240, 300
+    safe_set_first(par_rest, ['channames', 'chan', 'channels'],
+                   '* ' + ' '.join('^d{}'.format(i) for i in range(1, 7)))
+    connect(par_rest, par_ren)
+    det_sel = proj.create(selectCHOP, 'detail_sel')
+    det_sel.nodeX, det_sel.nodeY = -1400, 300
+    safe_set_first(det_sel, ['channames', 'chan', 'channels'], det_names)
+    connect(det_sel, par_ren)
+    det_lag = proj.create(lagCHOP, 'detail_lag')
+    det_lag.nodeX, det_lag.nodeY = -1080, 300
+    safe_set(det_lag, 'lag1', config.DETAIL_LAG_SECONDS)
+    safe_set(det_lag, 'lag2', config.DETAIL_LAG_SECONDS)
+    connect(det_lag, det_sel)
+
     # --- merge ---
     merge = proj.create(mergeCHOP, 'ctrl_merge')
     merge.nodeX, merge.nodeY = -1040, 120
-    srcs = [par_ren, t_scaled_n, t_real_n, music]
+    srcs = [par_rest, det_lag, t_scaled_n, t_real_n, music, k_clock_n]
     if audio_chop is not None:
         srcs.insert(1, audio_chop)
     if key_chop is not None:

@@ -130,6 +130,7 @@ def _handlePianoKey(note, val):
         if par is not None:
             _assertRange(par, 0.0, 1.0)
             par.val = v
+    _voiceOn(p, note, pos, vel)
 
     # Modo PIANO de la carpeta de media: la tecla ELIGE la imagen (no
     # avanza a la siguiente). Se le pasa el mismo 'pos' 0..1 que acaba de
@@ -147,6 +148,67 @@ def _handlePianoKey(note, val):
     # produzca un flanco de subida nuevo y el Trigger CHOP la detecte --
     # si se quedara en 1.0, una tecla sostenida jamas volveria a disparar.
     run("op('/project1/midi_logic').module._resetKeypulse()", delayFrames=2)
+
+
+# nota MIDI que ocupa cada voz (None = libre); vive mientras el DAT viva
+_VOICE_NOTES = [None] * 6
+
+
+def _kclock():
+    c = op('/project1/key_clock')
+    try:
+        return float(c[0].eval())
+    except Exception:
+        return 0.0
+
+
+def _voiceOn(p, note, pos, vel):
+    """Asigna la tecla a una de las 6 voces del piano polifonico: la que
+    tenga la misma nota, o la soltada hace mas tiempo, o (todas
+    apretadas) la mas vieja. Escribe K{i}pos/vel/on/off (ver keyEnv en
+    shader.py)."""
+    now = _kclock()
+    notes = _VOICE_NOTES
+    best, best_key = 0, None
+    for i in range(6):
+        on = _par(p, 'K{}on'.format(i), -1.0)
+        off = _par(p, 'K{}off'.format(i), -1.0)
+        held = on > 0.0 and off < on
+        if notes[i] == note:
+            key = (-1, 0.0)
+        elif not held:
+            key = (0, off if on > 0.0 else -1e9)
+        else:
+            key = (1, on)
+        if best_key is None or key < best_key:
+            best, best_key = i, key
+    for suf, v in (('pos', pos), ('vel', vel), ('on', max(now, 1e-3)), ('off', -1.0)):
+        par = getattr(p.par, 'K{}{}'.format(best, suf), None)
+        if par is not None:
+            par.val = v
+    notes[best] = note
+
+
+def _voiceOff(note):
+    p = op('/project1')
+    if not p:
+        return
+    notes = _VOICE_NOTES
+    now = _kclock()
+    for i in range(6):
+        if notes[i] == note:
+            par = getattr(p.par, 'K{}off'.format(i), None)
+            if par is not None:
+                par.val = max(now, _par(p, 'K{}on'.format(i), 0.0) + 1e-3)
+            notes[i] = None
+
+
+def _par(p, name, default):
+    par = getattr(p.par, name, None)
+    try:
+        return float(par.eval()) if par is not None else default
+    except Exception:
+        return default
 
 
 def _resetKeypulse():
@@ -493,6 +555,11 @@ def onOffToOn(channel, sampleIndex, val, prev):
 
 
 def onOnToOff(channel, sampleIndex, val, prev):
+    # soltar una tecla del piano libera su voz (las escenas sostienen el
+    # efecto mientras la tecla siga apretada, ver keyEnv)
+    note = _piano_note(channel.name)
+    if note is not None:
+        _voiceOff(note)
     return
 
 
