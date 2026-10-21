@@ -1284,6 +1284,31 @@ def reloadShaders():
         print('  Ejecuta primero RUN_ME desde el Text DAT para poner td/ en sys.path.')
 
 
+def _glslLog(content, glsl, max_lines=12):
+    """Texto del compilador de un GLSL TOP (lo que muestra su Info DAT),
+    recortado a las lineas con 'ERROR'."""
+    out = []
+    info = None
+    try:
+        info = content.create('infoDAT', '_tmp_glslinfo')
+        info.par.op = glsl.path
+        info.cook(force=True)
+        txt = info.text if hasattr(info, 'text') else ''
+        if not txt:
+            txt = '\n'.join(' '.join(c.val for c in row) for row in info.rows())
+        lines = [ln.strip() for ln in txt.split('\n') if 'ERROR' in ln.upper()]
+        out = ['    ' + ln for ln in lines[:max_lines]] or ['    (Info DAT sin lineas de ERROR)']
+    except Exception as e:
+        out = ['    (no pude leer el Info DAT: {})'.format(e)]
+    finally:
+        if info is not None:
+            try:
+                info.destroy()
+            except Exception:
+                pass
+    return out
+
+
 def revisarShaders():
     """Compila TODAS las escenas en este TD y lista las que fallan.
 
@@ -1315,6 +1340,8 @@ def revisarShaders():
                 for kind, txt in (('ERROR', o.errors()), ('aviso', o.warnings())):
                     if txt:
                         msgs.append('{} {}: {}'.format(kind, o.name, txt.strip()))
+                if 'compile' in (o.warnings() + o.errors()):
+                    msgs.extend(_glslLog(content, o))
         sc.allowCooking = was
         if msgs:
             bad += 1

@@ -120,7 +120,9 @@ def build_scene(scenes, i, channels):
     # Laminas (config.PLATES): una imagen fija por input, despues de ctrl
     # y de media. La ruta es absoluta al repo, asi que mover la carpeta
     # td/ pide Reconstruir Todo.
-    for k, path in enumerate(config.PLATES.get(i, [])):
+    atlas = config.PLATE_ATLAS.get(i)
+    plate_files = atlas['paths'] if atlas else config.PLATES.get(i, [])
+    for k, path in enumerate(plate_files):
         pl = content.create(moviefileinTOP, 'plate{}'.format(k))
         pl.nodeX, pl.nodeY = -400, 150 - k * 110
         safe_set(pl, 'file', path.replace('\\', '/'))

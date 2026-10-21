@@ -120,8 +120,9 @@ def render(ctx, index, values, media):
         tex.build_mipmaps()
         bind.append((tex, 1))
     # laminas: PNG de 8 bits como las lee el Movie File In TOP (abajo = v 0)
-    for k, path in enumerate(config.PLATES.get(index, [])):
-        im = Image.open(path).convert('RGBA').transpose(Image.FLIP_TOP_BOTTOM)
+    atlas = config.PLATE_ATLAS.get(index)
+    for k, ppath in enumerate(atlas['paths'] if atlas else config.PLATES.get(index, [])):
+        im = Image.open(ppath).convert('RGBA').transpose(Image.FLIP_TOP_BOTTOM)
         tex = ctx.texture(im.size, 4, im.tobytes())
         tex.build_mipmaps()
         tex.filter = (ctx.LINEAR_MIPMAP_LINEAR, ctx.LINEAR)
