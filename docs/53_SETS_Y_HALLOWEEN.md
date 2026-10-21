@@ -522,3 +522,11 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 - **Esqueleto (17):** el atlas de huesos (`bake_plates_esqueleto.py`, láminas `3_huesos_color` y `4_huesos_relieve`) se hornea con volumen real: huesos largos y costillas redondeados como tubos, cráneo en domo con pómulos, arco de las cejas, cuencas y nariz hondas con borde, dientes uno por uno, sutura y vértebras; la oclusión va en el color. Antes el relieve era casi plano (la normal se escalaba x0,01). En vivo, además, **las baldosas encendidas lo iluminan desde abajo** (D6, el bajo y la ola del clímax).
 - **Momia (12):** cada venda es un tubo: el canto de arriba mira hacia arriba y el de abajo hacia abajo, con los cantos más oscuros; las antorchas marcan cada vuelta.
 - **Costo:** igual que antes en el banco de prueba. **Reconstruir Todo:** cambiaron las láminas de la 17.
+
+## Fase 25: bosque de faroles y pasillo con relieve (escenas 28 y 07)
+
+![Antes y ahora](img/bosque_pasillo_2d_vs_3d.jpg)
+
+- **Bosque (28):** la capa cercana tiene relieve (`5_cerca_relieve`): troncos cilíndricos con surcos de corteza, la rama gruesa como tubo, hojas y suelo. Cada farol ilumina el tronco del lado que lo mira. El atlas de la escena bajó a 0,84 de escala para que entre la lámina nueva.
+- **Pasillo (07):** relieve horneado como **normal en el mundo del pasillo** (`4_relieve` de `bake_plates_pasillo.py`): paneles del zócalo, tableros y marco de las puertas, marcos de los retratos, molduras, tablas del piso, borde de la alfombra y vigas. Las velas lo iluminan desde su posición real; el relieve solo suma o resta luz alrededor de la de siempre, así la luz rasante de la vela sobre su propia pared no se apaga.
+- **Costo:** 07 sube ~20 %; 28 igual. **Reconstruir Todo:** láminas nuevas.

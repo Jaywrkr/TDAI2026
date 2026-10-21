@@ -13,6 +13,8 @@ Laminas:
   2_medio   color (lineal x2, gamma 2.2), A = cobertura
   3_cerca   idem
   4_ruido   el ruido que se repite de la escena 00 (niebla)
+  5_cerca_relieve  relieve de la capa cercana (fase 25): RG normal, A = hay
+            algo; la luz de cada farol se calcula en vivo con esto
 
 uso: python3 td/tools/bake_plates_faroles.py   (despues: build_atlas.py)
 """
@@ -31,7 +33,7 @@ FRAG = os.path.join(SET, 'visuals', 'scene28_bosque_faroles.frag')
 SS = 2
 R = (-3.4, -1.25, 3.4, 1.25)
 W, H = 1280, 470
-PLATES = [('1_lejos', 0), ('2_medio', 1), ('3_cerca', 2)]
+PLATES = [('1_lejos', 0), ('2_medio', 1), ('3_cerca', 2), ('5_cerca_relieve', 3)]
 
 VERT = """#version 330
 in vec2 in_pos; out vec2 vUV;
@@ -168,9 +170,52 @@ vec4 layerNear(vec2 p){
   return vec4(c,a);
 }
 
+
+// ---------- RELIEVE de la capa cercana (fase 25) ----------
+// Troncos como cilindros con surcos de corteza, la rama gruesa como tubo,
+// las hojas que cuelgan y el suelo de hojas con su bulto: la escena saca
+// la normal y cada farol ilumina su tronco del lado que lo mira.
+float ridgeB(vec2 p, float u, float seed){
+  return 1.-abs(fract(u*4.+fbm(vec2(u*3.,p.y*0.9+seed),4)*1.6)-0.5)*2.;
+}
+float nearH(vec2 p, out float on){
+  on=0.; float h=0.;
+  float gy=flGround(2,p.x);
+  if(p.y<gy){ on=1.;
+    vec2 g=p*vec2(14.,26.); vec2 id=floor(g); vec2 f=fract(g)-0.5; vec2 hh=h22(id);
+    vec2 q=rot(hh.x*6.28)*(f-(hh-0.5)*0.4);
+    h=0.004*smoothstep(0.04,-0.04,length(q*vec2(1.,2.0))-0.40)+0.003*fbm(p*12.,3); }
+  for(int i=0;i<2;i++){
+    float x0=i==0?-2.55:2.45;
+    vec2 tr=trunk(p,x0,0.22,float(i)*7.,i==0?0.05:-0.04,flGround(2,x0));
+    if(tr.x<0.){ on=1.; float u=tr.y; float w=0.22*(1.0+1.1*exp(-(p.y-flGround(2,x0))*4.0));
+      h=sqrt(max(1.-u*u,0.))*w*0.6+0.014*ridgeB(p,u,float(i)*9.+2.)+0.004*fbm(vec2(u*14.,p.y*9.),4); }
+  }
+  float br=branch(p,2,0.035);
+  if(br<0.){ on=1.; float u=clamp((p.y-flBranch(2,p.x))/0.05,-1.,1.);
+    h=0.30+sqrt(max(1.-u*u,0.))*0.03+0.004*ridgeB(vec2(p.y*3.,p.x),u,4.); }
+  vec2 g=p*vec2(18.,22.); vec2 id=floor(g); vec2 f=fract(g)-0.5; vec2 hh=h22(id);
+  float near=abs(p.y-flBranch(2,p.x)+0.04)-0.06;
+  float lf=smoothstep(0.04,-0.04,length(rot(hh.x*6.)*(f-(hh-0.5)*0.4)*vec2(1.,2.))-0.38)*step(near,0.)*step(0.45,hh.y);
+  if(lf>0.){ on=1.; h=max(h,0.32+lf*0.005); }
+  return h;
+}
+vec4 nearRelief(vec2 p){
+  float on,o2; float h=nearH(p,on);
+  if(on<0.5) return vec4(0.5,0.5,1.,0.);
+  float e=0.0026;
+  float hx=nearH(p+vec2(e,0.),o2)-nearH(p-vec2(e,0.),o2);
+  float hy=nearH(p+vec2(0.,e),o2)-nearH(p-vec2(0.,e),o2);
+  // un salto de altura (borde de tronco sobre el fondo) no es pendiente
+  hx=clamp(hx,-0.02,0.02); hy=clamp(hy,-0.02,0.02);
+  vec3 n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
+  return vec4(n.xy*0.5+0.5,1.,1.);
+}
+
 void main(){
   vec2 p=mix(rect.xy,rect.zw,vUV);
   if(plate==0){ fc=layerFar(p); return; }
+  if(plate==3){ fc=nearRelief(p); return; }
   vec4 c=plate==1?layerMid(p):layerNear(p);
   fc=vec4(pow(clamp(c.rgb*2.,0.,1.),vec3(1./2.2)),c.a);
 }
