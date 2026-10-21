@@ -21,7 +21,7 @@ SS = 2
 PLATES = [
     ('1_lejos', 0, (-3.1, -1.0, 3.1, 0.30), 1280, 268),
     ('2_castillo', 1, (-2.2, -1.1, 1.0, 0.90), 1024, 640),
-    ('3_ventanas', 2, (-2.2, -1.1, 1.0, 0.90), 1024, 640),
+    ('3_ventanas', 2, (-2.2, -1.1, 1.0, 0.90), 1024, 640),   # RG normal del relieve, B id de ventana
     ('4_cerca', 3, (-3.1, -1.2, 3.1, 1.2), 1280, 496),
 ]
 
@@ -131,6 +131,40 @@ vec4 castleColor(vec2 p){
   return vec4(c,m);
 }
 
+// ---------- RELIEVE (fase 26) ----------
+// Torres cilindricas con sillares y almenas, techos conicos de pizarra,
+// muralla y el acantilado con estratos y grietas. La escena saca la
+// normal: el relampago entra desde su lado y la luna marca la roca.
+float castleH(vec2 p, out float on){
+  vec2 o; float d=castle(p,o);
+  on=step(d,0.);
+  if(d>0.) return 0.;
+  float h;
+  if(o.x<0.5){
+    float strata=fbm(vec2(p.x*3.,p.y*14.+fbm(p*4.,3)*2.),6);
+    float cr=smoothstep(0.985,0.997,1.-abs(fbm(p*vec2(8.,5.),5)*2.-1.));
+    h=0.05*fbm(p*vec2(6.,9.)+3.,5)+0.012*strata-0.004*cr;
+  } else {
+    vec2 bq=vec2(p.x/0.05+0.5*mod(floor(p.y/0.022),2.), p.y/0.022);
+    vec2 f=fract(bq);
+    float mortar=smoothstep(0.0,0.10,f.x)*smoothstep(1.,0.9,f.x)*smoothstep(0.0,0.14,f.y)*smoothstep(1.,0.86,f.y);
+    float u=clamp(o.y,-1.,1.);
+    h=0.06+sqrt(max(1.-u*u,0.))*0.06+0.003*mortar;
+    if(o.x>1.5) h=0.06+sqrt(max(1.-u*u,0.))*0.05+0.002*step(0.5,fract(p.y*90.));
+    h=min(h,0.06-d*2.0);           // canto redondeado en el borde de la silueta
+  }
+  return h;
+}
+vec4 castleRelief(vec2 p){
+  float on,o2; float h=castleH(p,on);
+  if(on<0.5) return vec4(0.5,0.5,1.,1.);
+  float e=0.0035;
+  float hx=castleH(p+vec2(e,0.),o2)-castleH(p-vec2(e,0.),o2);
+  float hy=castleH(p+vec2(0.,e),o2)-castleH(p-vec2(0.,e),o2);
+  vec3 n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
+  return vec4(n.xy*0.5+0.5,1.,1.);
+}
+
 vec4 castleWindows(vec2 p){
   vec2 o; float d=castle(p,o);
   float inside=step(d,0.);
@@ -151,7 +185,8 @@ vec4 castleWindows(vec2 p){
   vec2 q=vec2(fract((p.x+0.75)/0.18)-0.5, p.y+0.27)*vec2(0.18,1.);
   float wwin=sdBox(q,vec2(0.010,0.016));
   if(wwin<0. && abs(p.x+0.75)<0.88 && h21(vec2(floor((p.x+0.75)/0.18),9.))>0.4) w=max(w,0.95);
-  return vec4(w*inside, 0., 0., 1.);
+  vec4 rl=castleRelief(p);
+  return vec4(rl.xy, w*inside, 1.);
 }
 
 // ---------- montanas lejanas ----------
@@ -203,6 +238,7 @@ vec4 nearP(vec2 p){
   c=mix(c,bark,tm); a=max(a,tm);
   return vec4(c,a);
 }
+
 
 void main(){
   vec2 p = mix(rect.xy, rect.zw, vUV);

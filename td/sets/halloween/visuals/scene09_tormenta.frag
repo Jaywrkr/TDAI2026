@@ -36,6 +36,7 @@
 
 const vec4 LAND_R = vec4(-3.1, -1.2, 6.2, 1.30);
 const vec4 TREE_R = vec4(-3.1, -1.2, 6.2, 2.40);
+const vec4 TREL_R = vec4(-2.75, -0.80, 2.40, 2.00);   // relieve del arbol (recuadro del arbol)
 vec2 rUV(vec2 p, vec4 r) { return (p - r.xy) / r.zw; }
 vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
 
@@ -181,7 +182,13 @@ vec4 render(vec2 uv) {
     tu.x += (0.0015 + mid * 0.004) * sin(t * 1.2 + p.y * 2.0) * smoothstep(-0.6, 0.6, p.y);
     vec4 tr = plate1(tu);
     float treeOn = 0.35 + 0.65 * uD6;
-    vec3 tc = plateCol(tr.rgb) * (0.4 + boltC * flick * 2.5 * exp(-abs(p.x - bx) * 0.8));
+    // relieve horneado: tubos con corteza; el rayo entra por el lado donde cae
+    vec4 tn = plate3(rUV(TREE_R.xy + tu * TREE_R.zw, TREL_R));
+    vec3 trN = vec3(tn.rg * 2.0 - 1.0, 0.0);
+    trN.z = sqrt(max(1.0 - dot(trN.xy, trN.xy), 0.0));
+    vec3 Lb = normalize(vec3(clamp((bx - p.x) * 0.6, -1.2, 1.2), 0.8, 0.5));
+    float skyRel = clamp(1.0 + 0.9 * (trN.y * 0.7 - trN.x * 0.3), 0.4, 1.6);
+    vec3 tc = plateCol(tr.rgb) * tn.b * (0.4 * skyRel + boltC * flick * 2.5 * exp(-abs(p.x - bx) * 0.8) * (0.15 + 2.8 * max(dot(trN, Lb), 0.0)));
     // arde desde que le cae el rayo hasta el final del climax
     float burn = smoothstep(0.38, 0.46, C.w) * (1.0 - smoothstep(0.92, 1.0, C.w));
     if (burn > 0.0 && tr.a > 0.0) {
