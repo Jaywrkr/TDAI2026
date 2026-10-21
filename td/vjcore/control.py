@@ -129,7 +129,7 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     par_rest = proj.create(selectCHOP, 'par_ctrl_rest')
     par_rest.nodeX, par_rest.nodeY = -1240, 300
     safe_set_first(par_rest, ['channames', 'chan', 'channels'],
-                   '* ' + ' '.join('^d{}'.format(i) for i in range(1, 7)))
+                   '* ' + ' '.join('^d{}'.format(i) for i in range(1, 7)) + ' ^xfade')
     connect(par_rest, par_ren)
     det_sel = proj.create(selectCHOP, 'detail_sel')
     det_sel.nodeX, det_sel.nodeY = -1400, 300
@@ -141,10 +141,24 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     safe_set(det_lag, 'lag2', config.DETAIL_LAG_SECONDS)
     connect(det_lag, det_sel)
 
+    # Avance del fundido de escenas para las transiciones con tema
+    # (program_trans). Xfadetarget es 0/1: este Lag hace la MISMA rampa
+    # que xfade_lag de program.py (misma expresion, mismo slew).
+    xf_sel = proj.create(selectCHOP, 'xfade_sel')
+    xf_sel.nodeX, xf_sel.nodeY = -1400, -420
+    safe_set_first(xf_sel, ['channames', 'chan', 'channels'], 'xfade')
+    connect(xf_sel, par_ren)
+    xf_lag = proj.create(lagCHOP, 'xfade_ctrl_lag')
+    xf_lag.nodeX, xf_lag.nodeY = -1240, -420
+    safe_expr(xf_lag, 'lag1', config.TRANSITION_LAG_EXPR)
+    safe_expr(xf_lag, 'lag2', config.TRANSITION_LAG_EXPR)
+    safe_set_first(xf_lag, ['lagmethod', 'method'], 'slew')
+    connect(xf_lag, xf_sel)
+
     # --- merge ---
     merge = proj.create(mergeCHOP, 'ctrl_merge')
     merge.nodeX, merge.nodeY = -1040, 120
-    srcs = [par_rest, det_lag, t_scaled_n, t_real_n, music, k_clock_n]
+    srcs = [par_rest, det_lag, xf_lag, t_scaled_n, t_real_n, music, k_clock_n]
     if audio_chop is not None:
         srcs.insert(1, audio_chop)
     if key_chop is not None:

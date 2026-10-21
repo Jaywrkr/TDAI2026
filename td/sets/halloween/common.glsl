@@ -107,13 +107,7 @@ float hkEventPhase(float seed, float every, float len) {
 //   w: fase     0..1 a lo largo de todo el climax (0 fuera de el)
 // Ademas, cada ~4.5 min (hkGrand) el climax de la escena coincide con su
 // otro evento: ver hkGrand().
-vec4 hkClimax(float seed, float every, float len) {
-#ifdef HK_STILL
-    return vec4(0.0);      // miniaturas (render_thumbs.py): la escena en reposo
-#endif
-    float slot = floor(uRTime / every);
-    float start = hash21(vec2(slot, seed + float(uScene))) * (every - len - 2.0);
-    float k = uRTime - slot * every - start;
+vec4 hkClimaxShape(float k, float len) {
     float ph = clamp(k / len, 0.0, 1.0);
     float inside = step(0.0, k) * step(k, len);
     float pre = smoothstep(0.0, 0.35, ph) * (1.0 - smoothstep(0.9, 1.0, ph));
@@ -122,11 +116,40 @@ vec4 hkClimax(float seed, float every, float len) {
     return vec4(pre, peak, post, ph) * inside;
 }
 
+// MOMENTO (pad 16, control_script.triggerMoment): el climax a mano. uMoment
+// es el kclock en que se pidio (-1 = nunca). Mientras dura, hkClimax y
+// hkGrandClimax devuelven ESTE climax (el gran climax, con su otro evento)
+// y el calendario automatico se calla. Debe coincidir con MOMENT_SECONDS.
+#define HK_MOMENT_LEN 22.0
+float hkMomentK() { return uMoment > 0.0 ? uKclock - uMoment : -1.0; }
+bool hkMomentOn() { float k = hkMomentK(); return k >= 0.0 && k <= HK_MOMENT_LEN; }
+
+vec4 hkClimaxAuto(float seed, float every, float len) {
+    float slot = floor(uRTime / every);
+    float start = hash21(vec2(slot, seed + float(uScene))) * (every - len - 2.0);
+    return hkClimaxShape(uRTime - slot * every - start, len);
+}
+
+vec4 hkClimax(float seed, float every, float len) {
+#ifdef HK_STILL
+    return vec4(0.0);      // miniaturas (render_thumbs.py): la escena en reposo
+#endif
+    if (hkMomentOn()) return hkClimaxShape(hkMomentK(), HK_MOMENT_LEN);
+    return hkClimaxAuto(seed, every, len);
+}
+
 // Gran climax: una vez cada ~4.5 min (26 s), el climax principal de la
 // escena llega junto con su otro evento, mas grande. Mismo formato que
 // hkClimax. hkClimaxOr: mientras dura el gran climax, reemplaza al comun
-// (no se suman: dos climax a medias se verian como ninguno).
-vec4 hkGrandClimax(float seed) { return hkClimax(seed + 500.0, 270.0, 26.0); }
+// (no se suman: dos climax a medias se verian como ninguno). El MOMENTO
+// (pad) es siempre un gran climax.
+vec4 hkGrandClimax(float seed) {
+#ifdef HK_STILL
+    return vec4(0.0);
+#endif
+    if (hkMomentOn()) return hkClimaxShape(hkMomentK(), HK_MOMENT_LEN);
+    return hkClimaxAuto(seed + 500.0, 270.0, 26.0);
+}
 vec4 hkClimaxOr(vec4 grand, vec4 c) { return grand.w > 0.0 ? grand : c; }
 
 // Dentro de un climax de fase ph: cuanto esta "apagado" un elemento que

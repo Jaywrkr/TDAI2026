@@ -379,16 +379,62 @@ def _startFade(token):
         # nueva cargada, sin importar cuantos clicks se acumularon antes
         # de que esta func corriera.
         incoming = str(p.fetch('incoming_side', 'B') or 'B')
+        min_secs = _pickTransition(p, incoming)
         p.par.Xfadetarget = 1.0 if incoming == 'B' else 0.0
 
         fps = max(1.0, float(project.cookRate))
-        secs = max(0.02, float(p.par.Transitionseconds.eval()))
+        secs = max(0.02, float(p.par.Transitionseconds.eval()), min_secs)
         frames = max(2, int(round(secs * fps)) + 3)
         run("op('/project1/control_script').module._finishFade(args[0])",
             token, delayFrames=frames)
     except Exception as e:
         print('_startFade FAILSAFE:', e)
         abortTransition()
+
+
+def _pickTransition(p, incoming):
+    """Elige el efecto de ESTE cambio de escena (Transitionstyle) y lo
+    deja en Transitionfx/Transitionmin para program_trans y los Lag del
+    fundido. Devuelve los segundos minimos del efecto (0 = fundido)."""
+    style_par = getattr(p.par, 'Transitionstyle', None)
+    fx_par = getattr(p.par, 'Transitionfx', None)
+    min_par = getattr(p.par, 'Transitionmin', None)
+    if style_par is None or fx_par is None or min_par is None:
+        return 0.0
+    # Otro Next a mitad de un cambio: el efecto que ya corre sigue igual
+    # (cambiarlo de golpe a mitad de camino se veria como un corte).
+    try:
+        xf = op('/project1/xfade')
+        x = float(xf['Xfadetarget'].eval()) if xf else 0.0
+        if 0.001 < x < 0.999 and abs(float(fx_par.eval())) > 0.5:
+            return float(min_par.eval())
+    except Exception:
+        pass
+    try:
+        import random
+        import vjcore.config as _vjconfig
+        styles = list(_vjconfig.TRANSITION_STYLES)
+        names = [n for n, _, _ in styles]
+        name = str(style_par.eval())
+        if name == 'halloween':
+            pool = [n for n in names if n not in ('fundido', 'halloween')]
+            last = str(p.fetch('last_transition', '') or '')
+            if len(pool) > 1 and last in pool:
+                pool.remove(last)
+            name = random.choice(pool)
+        if name not in names or name == 'fundido':
+            fx_par.val = 0.0
+            min_par.val = 0.0
+            return 0.0
+        idx = names.index(name)
+        sign = 1.0 if incoming == 'B' else -1.0
+        fx_par.val = sign * (idx + random.random() * 0.9)
+        min_par.val = float(styles[idx][2])
+        p.store('last_transition', name)
+        return float(styles[idx][2])
+    except Exception as e:
+        print('transicion ERROR:', e)
+        return 0.0
 
 
 def _finishFade(token):
@@ -699,6 +745,9 @@ def padLedColors():
         import vjcore.config as _vjconfig
         if _vjconfig.MIDI_REDIRECT.get('Duallayer') == 'toggleNight':
             out[6] = 'red' if on('Nocheon') else 'off'
+        # pad 16 = MOMENTO (climax a mano): verde mientras dura.
+        if _vjconfig.MIDI_REDIRECT.get('Blendnext') == 'triggerMoment':
+            out[15] = 'green' if momentActive() else 'purple'
     except Exception:
         pass
     # NEXT late blanco con el beat mientras el autopilot anda: se ve en el
@@ -795,6 +844,49 @@ def applyEnergy():
                 par.val = lo + (hi - lo) * e
     except Exception as e:
         print('applyEnergy ERROR:', e)
+
+
+# Debe coincidir con HK_MOMENT_LEN de sets/halloween/common.glsl.
+MOMENT_SECONDS = 22.0
+
+
+def _momentClock():
+    c = op('/project1/key_clock')
+    try:
+        return float(c[0].eval())
+    except Exception:
+        return 0.0
+
+
+def momentActive():
+    p = _p()
+    if not p or getattr(p.par, 'Momenton', None) is None:
+        return False
+    t0 = float(p.par.Momenton.eval())
+    return t0 > 0.0 and 0.0 <= _momentClock() - t0 < MOMENT_SECONDS
+
+
+def triggerMoment():
+    """MOMENTO: dispara AHORA el gran climax de la escena (aviso, pico y
+    secuelas, ~22 s), en vez de esperar al calendario. Mientras dura, otra
+    pulsada no hace nada (no reinicia el climax a la mitad). Pad 16 en
+    Halloween."""
+    p = _p()
+    if not p or getattr(p.par, 'Momenton', None) is None:
+        return
+    if momentActive():
+        print('MOMENTO ya en curso')
+        return
+    p.par.Momenton = max(_momentClock(), 1e-3)
+    print('MOMENTO')
+    # LED verde mientras dura; se apaga solo al terminar.
+    try:
+        fps = max(1.0, float(project.cookRate))
+    except Exception:
+        fps = 60.0
+    refreshPadLeds(True)
+    run("op('/project1/control_script').module.refreshPadLeds(True)",
+        delayFrames=int(MOMENT_SECONDS * fps) + 5)
 
 
 def toggleNight():
@@ -1347,6 +1439,21 @@ def revisarShaders():
             bad += 1
             lines.append('--- escena {:02d} ---'.format(i))
             lines.extend(msgs)
+    # Post-proceso del program bus (dos capas, estela, transiciones).
+    proj = _p()
+    for name in ('program_blend', 'program_trails', 'program_trans'):
+        o = proj.op(name) if proj else None
+        if o is None:
+            continue
+        try:
+            o.cook(force=True)
+        except Exception as e:
+            lines.append('{}: cook {}'.format(name, e))
+        for kind, txt in (('ERROR', o.errors()), ('aviso', o.warnings())):
+            if txt:
+                lines.append('{} {}: {}'.format(kind, name, txt.strip()))
+        if 'compile' in (o.warnings() + o.errors()):
+            lines.extend(_glslLog(proj, o))
     lines.append('{} escena(s) con errores o avisos de {}'.format(bad, _n_scenes()))
     text = '\n'.join(lines)
     print(text)
@@ -2782,6 +2889,9 @@ def safeStartup():
         p.par.Activeindex = 0
         p.par.Targetindex = 0
         p.par.Xfadetarget = 0.0
+        for name in ('Transitionfx', 'Transitionmin'):
+            if getattr(p.par, name, None) is not None:
+                setattr(p.par, name, 0.0)
         for name in ('program_a', 'program_b'):
             sw = op('/project1/' + name)
             if sw:
