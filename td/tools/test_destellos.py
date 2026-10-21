@@ -24,6 +24,9 @@ Como se mide (fuera de TD, mismo GLSL que corre en TD):
     python3 td/tools/test_destellos.py                 # todo el set de Halloween
     python3 td/tools/test_destellos.py --scenes 4,9    # algunas escenas
     python3 td/tools/test_destellos.py --fps 30        # mas rapido, menos fino
+    python3 td/tools/test_destellos.py --sucesos --scenes 0,9
+        # ademas: cada suceso, detalle y climax del repertorio (la primera
+        # vez que sale cada uno en una hora, Noche 0.8, Miedo 0.5); tarda
 
 Sale con error si algo pasa de 3 por segundo.
 """
@@ -209,6 +212,36 @@ def audit_scene(ctx, index, media, fps, t0=60.0, seconds=24.0):
     return worst, os.path.splitext(os.path.basename(sc.path))[0]
 
 
+def audit_sucesos(ctx, index, media, fps):
+    """Destellos durante cada suceso, detalle y climax del repertorio de la
+    escena (la primera vez que sale cada uno). Devuelve [(peor, nombre)]."""
+    import timeline_sucesos as TS
+    body, _ = shader.read_body(index)
+    if '@SUC:' not in body:
+        return []
+    rows, _ = TS.sample(index, 60, 0.8, 0.5)
+    nm = TS.names(body)
+    # la escena se compila DESPUES de la linea de tiempo: TS.sample cambia el
+    # estado de GL y los cuadros de una escena compilada antes salen mal
+    sc = Scene(ctx, index, media)
+    ch = list(config.CTRL_CHANNELS)
+    out, seen = [], set()
+    for key, (vi, ei, w) in (('SUC', (0, 1, 0)), ('DET', (2, 3, 0)), ('CLX', (0, 1, 1))):
+        for a, b, v in TS.segments(rows, vi, ei, w):
+            if (key, v) in seen or a <= rows[0][0] + 1:
+                continue
+            seen.add((key, v))
+            series = [[] for _ in range(GRID * GRID)]
+            for k in range(int((b - a + 1.0) * fps)):
+                vals = show_values(a - 0.5 + k / fps, -1.0)
+                if 'fear' in ch:
+                    vals[ch.index('fear')] = 0.5
+                for c, val in enumerate(cells(sc.frame(vals))):
+                    series[c].append(val)
+            out.append((max(flashes_per_second(s, fps) for s in series), key + ' ' + nm[key][v]))
+    return out
+
+
 def _post(ctx, frag, n_inputs, ctrl_index, images, values):
     src = ('#version 330\nuniform sampler2D sTD2DInputs[{}];\n'.format(n_inputs)
            + 'in vec3 vUV;\nvec4 TDOutputSwizzle(vec4 c) { return c; }\n'
@@ -308,6 +341,12 @@ def main():
         print('  [{}] {:<28} {}'.format(flag, name, worst))
         if worst > MAX_PER_SECOND:
             bad.append(name)
+        if '--sucesos' in args:
+            for w2, lab in audit_sucesos(ctx, i, media, fps):
+                if w2 > MAX_PER_SECOND:
+                    print('      [!!] {:<36} {}'.format(lab, w2))
+                    bad.append('{} {}'.format(name, lab))
+            print('      repertorio revisado')
     if '--scenes' not in args:
         for worst, label, dur in audit_transitions(ctx, fps):
             flag = 'OK' if worst <= MAX_PER_SECOND else '!!'

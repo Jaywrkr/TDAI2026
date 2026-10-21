@@ -129,9 +129,13 @@ vec4 render(vec2 uv) {
     cover = clamp(cover + cA * (C.x * (1.0 - C.y) * (1.0 - C.z) * 0.9 - (C.y + C.z * 0.6) * 0.35) + cB * C.x * 0.4, 0.0, 1.3);
     // tormenta seca: un relampago cada tanto (como mucho uno cada 5 s)
     float fslot = floor(uRTime / 5.0);
-    float fk = uRTime - fslot * 5.0 - 3.5 * hash21(vec2(fslot, 9.0));
+    float fk = uRTime - fslot * 5.0 - 1.0 - 2.3 * hash21(vec2(fslot, 9.0));   // entre 1 y 3.3 s: el margen queda en el casillero
     float autoFlash = EST.z * step(0.40, hash21(vec2(fslot, 5.0))) * smoothstep(0.0, 0.06, fk) * (1.0 - smoothstep(0.15, 0.7, fk));
-    float flash = max(hit * (0.25 + uD4 * 1.0) * (1.0 + loco * 0.6), autoFlash * 0.9);
+    // limite de destellos: alrededor del relampago (1 s antes y despues) el del
+    // golpe se calla, si no se suman y pasan de 3 por segundo
+    float autoNear = EST.z * step(0.40, hash21(vec2(fslot, 5.0))) * step(-1.0, fk) * step(fk, 1.7);
+    // el del golpe va mas suave (0.45): a 128 BPM con Chaos alto pasaba de 3 destellos por segundo
+    float flash = max(0.45 * hit * (0.25 + uD4 * 1.0) * (1.0 + loco * 0.6) * (1.0 - autoNear), autoFlash * 0.9);
     vec3 flashCol = vec3(0.78, 0.72, 1.0);
 
     float dh = (uD6 - 0.5) * 0.36;
@@ -232,7 +236,7 @@ vec4 render(vec2 uv) {
     if (loco > 0.5) bd = min(bd, hkBolt(pS, bx + 0.6, 1.05, horizon + 0.30, slot * 3.0 + 2.0, 0.30));
     float bolt = exp(-bd * 180.0) + exp(-bd * 25.0) * 0.30;
     col += flashCol * flash * (0.12 + clouds * 0.75) * smoothstep(-0.5, 0.6, pS.y);
-    col += flashCol * bolt * max(hit * step(0.35, uD4 + loco * 0.5), autoFlash) * 1.6;
+    col += flashCol * bolt * max(hit * step(0.35, uD4 + loco * 0.5) * (1.0 - autoNear), autoFlash) * 1.6;
 
     // --- rayos de luz de la luna ---
     float rays = pS.y > horizon - 0.2 ? hkRays(pS, mc, t, 18.0) : 0.0;
@@ -424,7 +428,9 @@ vec4 render(vec2 uv) {
     }
     fogAmt *= (0.95 + uD1 * 0.85 + bass * 0.55) * fogAct;
     float towardMoon = exp(-abs(pT.x - mc.x) * 1.1);
-    float fogGlow = (0.40 + towardMoon * 0.35 * moonGain) + bass * 0.75 + flash * 0.8;
+    // el latido de la niebla con el bajo y el golpe es suave: cubre media pantalla y,
+    // sumado al destello, pasaba de 3 por segundo (test de destellos, peor caso)
+    float fogGlow = (0.40 + towardMoon * 0.35 * moonGain) + (bass * 0.40 + flash * 0.45) * (1.0 - EST.y * 0.5);
     fogAmt = mix(fogAmt, smoothstep(0.0, 1.4, fogAmt) * 0.8, sty);   // aerografo: niebla como velo, sin manchas
     col = mix(col, fogTint * fogGlow, clamp(fogAmt, 0.0, 0.92));
 

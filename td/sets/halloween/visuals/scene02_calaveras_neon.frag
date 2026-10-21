@@ -209,7 +209,8 @@ vec4 render(vec2 uv) {
     vec3 cBat = mix(palO, palG, mixC);
 
     // encendido de cada cartel: zumbido, ola, apagon y chispazos
-    float tremble = sparkE * step(0.5, noise21(vec2(uRTime * 25.0, 1.0)));
+    // a lo sumo dos parpadeos por segundo (limite de destellos)
+    float tremble = sparkE * step(0.5, hash21(vec2(floor(uRTime * 4.0), 1.0))) * step(0.5, fract(uRTime * 4.0));
     float iHero = (0.92 + 0.08 * sin(t * 2.0) + hit * 0.25) * (1.0 - tremble * 0.7);
     float buzz = step(0.80 - high * 0.45 - loco * 0.3, hash21(vec2(floor(uRTime * (8.0 + high * 18.0)), 3.0)));
     float iCross = (0.95 - buzz * (0.75 + high * 0.2)) * (1.0 - tremble * 0.5);
@@ -449,7 +450,7 @@ vec4 render(vec2 uv) {
         float sp = hkParticles((p - vec2(-2.05, 0.10)) * 1.4, uRTime * 1.5, 0.35 * sparkAmt, vec2(0.0, -1.0), 0.03);
         float near = exp(-length((p - vec2(-2.05, 0.20)) * vec2(1.4, 0.8)) * 3.0);
         col += vec3(1.0, 0.85, 0.5) * sp * near * 2.0;
-        col += vec3(0.7, 0.8, 1.0) * near * sparkAmt * step(0.6, noise21(vec2(uRTime * 30.0, 4.0))) * 0.3;
+        col += vec3(0.7, 0.8, 1.0) * near * sparkAmt * (0.6 + 0.4 * noise21(vec2(uRTime * 3.0, 4.0))) * 0.3;
     }
 
     // --- piso mojado: luz, reflejos de los carteles y charcos con ondas ---
