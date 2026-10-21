@@ -129,7 +129,10 @@ DEFAULT_RENDER_SCALE = 0.75
 # RMS de la entrada antes del auto-gain. Por debajo de este piso se congela
 # el reloj visual y se cierra el detector de kick: el ruido residual de una
 # fuente en pausa no debe mover ninguna escena.
-SILENCE_RMS_THRESHOLD = 0.005
+# 0.005 -> 0.002: con una entrada floja (microfono de la Mac, RMS de la
+# musica ~0.008) la compuerta se cerraba en cada parte suave y nada
+# bailaba. 0.002 (-54 dBFS) sigue arriba del ruido de una entrada quieta.
+SILENCE_RMS_THRESHOLD = 0.002
 # El reloj de los visuales YA NO se congela con este piso (pedido
 # explicito: "si Speed esta en 50 %, no puede bajar de 50 %"). Con la
 # compuerta, cada vez que el RMS rozaba el piso -- entre frases, en una

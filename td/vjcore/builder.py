@@ -73,6 +73,11 @@ def _parameters(proj):
     add_float(a, 'Kickwindow', 'Kick Window (s)', 0.35, 0.05, 2.0)
     # Kick Gain 9 -> 6 junto con la compuerta nueva (ver audio.py): con 9
     # el transitorio saturaba y el bombo quedaba "siempre prendido".
+    # Ganancia de ENTRADA, antes de todo (piso de silencio incluido). Para
+    # una entrada floja -- el microfono de la Mac, una linea con poca
+    # senal -- que si no queda pegada al piso de silencio y se corta sola.
+    # Se guarda en td/config/devices.json: sobrevive a Reconstruir Todo.
+    add_float(a, 'Inputgain', 'Ganancia de entrada (x)', 1.0, 0.1, 50.0)
     add_float(a, 'Kickgain', 'Kick Gain', 6.0, 0.1, 60)
     add_float(a, 'Kickthreshold', 'Beat Threshold', 0.30, 0.01, 1.0)
     add_float(a, 'Kickgate', 'Compuerta del bombo (sube si el bajo dispara)',
@@ -643,6 +648,9 @@ def _mark_setup_nodes(proj, midi_in, dash, show_window):
 # ninguno) y se guardan en td/config/devices.json para el proximo
 # arranque de TD tambien.
 DEVICE_NODES = ('audio1', 'midi1', 'midi_out')
+# Parametros de /project1 que dependen del EQUIPO (no del show) y se
+# guardan junto a los devices.
+PROJECT_DEVICE_PARS = ('Inputgain',)
 
 
 def _devices_path():
@@ -668,6 +676,16 @@ def _snapshot_devices(old_proj):
                 continue
         if vals:
             snap[name] = vals
+    vals = {}
+    for pname in PROJECT_DEVICE_PARS:
+        par = getattr(old_proj.par, pname, None) if old_proj else None
+        try:
+            if par is not None and not par.isDefault:
+                vals[pname] = par.eval()
+        except Exception:
+            continue
+    if vals:
+        snap['_project'] = vals
     return snap
 
 
@@ -693,6 +711,16 @@ def _save_devices(snap):
 
 def _restore_devices(proj, snap):
     for name, vals in snap.items():
+        if name == '_project':
+            for pname, v in vals.items():
+                par = getattr(proj.par, pname, None)
+                if par is not None:
+                    try:
+                        par.val = v
+                    except Exception:
+                        pass
+            log('DEVICES: /project1 {}'.format(vals))
+            continue
         node = proj.op(name)
         if node is None:
             continue

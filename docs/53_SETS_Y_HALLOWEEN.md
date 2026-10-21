@@ -289,3 +289,10 @@ python3 td/tools/render_scenes.py salida/ --set halloween --audio golpe --d 0.6
 ## No verificado
 
 Las escenas compilan y se ven bien en el render por software, pero **no se han probado en tu TouchDesigner**: falta ver los FPS reales y cómo se ven con bloom, Master FX y el proyector.
+
+## Entrada de audio floja (Mac)
+
+Si el dashboard muestra `AUDIO OK(1)`, la entrada es mono. Casi siempre es el micrófono de la MacBook: llega con poco volumen y casi sin graves, roza el piso de silencio (`SILENCE_RMS_THRESHOLD`, ahora 0.002) y en las partes suaves se corta todo el baile. En ese caso:
+
+- Mejor: entrar por línea desde la mezcladora (interfaz de audio), o por BlackHole si la música sale de la misma Mac. Elegirla en `audio1`.
+- Rápido: subir `/project1` → página Audio → **Ganancia de entrada** (`Inputgain`). Queda guardada en `td/config/devices.json` y sobrevive a Reconstruir Todo. Si la entrada está baja, el dashboard muestra `>> ENTRADA BAJA`.

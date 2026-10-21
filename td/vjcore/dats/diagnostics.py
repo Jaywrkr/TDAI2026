@@ -69,6 +69,22 @@ def _errors():
         return 0
 
 
+def _lowInput():
+    """Aviso si la entrada de audio llega tan floja que roza el piso de
+    silencio (la musica se corta sola en las partes suaves)."""
+    lv = op('/project1/a_level_smooth')
+    try:
+        rms = float(lv[0].eval())
+        import vjcore.config as _vjconfig
+        thr = _vjconfig.SILENCE_RMS_THRESHOLD
+    except Exception:
+        return ''
+    if rms <= 0.0 or rms >= thr * 4.0:
+        return ''
+    g = _par_val('Inputgain') or 1.0
+    return '>> ENTRADA BAJA (RMS {:.4f}): sube Audio > Ganancia de entrada (ahora x{:.1f})'.format(rms, g)
+
+
 def _gpu_ms():
     t = op('/project1/show_out')
     try:
@@ -368,6 +384,9 @@ def update():
         _bar(bass, 8), bass, _bar(mid, 8), mid))
     lines.append('High {} {:.2f}   Kick {} {:.2f}'.format(
         _bar(high, 8), high, _bar(kick, 8), kick))
+    low = _lowInput()
+    if low:
+        lines.append(low)
 
     if learn:
         lines.append('')
