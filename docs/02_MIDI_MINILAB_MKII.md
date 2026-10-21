@@ -47,6 +47,8 @@ verdad, ya cargado como default en `config.DEFAULT_MIDI`:
 | 16 | `ch1ctrl73` | Paleta |
 | `Shift` + 1 | `ch1ctrl23` | Mezcla 2 Capas |
 | `Shift` + 9 | `ch1ctrl24` | Transición (fundido a mano, pisa a Energía) |
+| clic de la 1 | (Learn Clic1) | Snapshot. En Halloween: **Momento** |
+| clic de la 9 | (Learn Clic9) | Take del preview. En Halloween: **lanzar la escena del navegador** |
 | tira **mod** | `ch1ctrl1` | Imagen (scrub, recorre la carpeta con el dedo) |
 | tira **pitch** | — | Zoom Estela — todavía sin aprender, ver "Lo que salió" |
 
@@ -69,13 +71,20 @@ sin el paso extra de "acumular". Si alguna vez vuelven a comportarse raro
 2. Verificá con el probador del manual (`docs/10_MANUAL_MINILAB.html`): al
    girarlas tiene que decir **✓ Modo absoluto**.
 
-**Red de seguridad en software (igual sigue activa):** `dats/midi_logic.py`
-detecta solo las perillas que SIEMPRE mandan un valor pegado a 64 (nunca un
-extremo) y las trata como relativas, acumulando en vez de quedarse mudas.
-Con las perillas 1 y 9 ya en `CC 113`/`115` (fuera de esa banda desde el
-primer mensaje) esto queda inactivo para ellas por diseño -- solo entraría
-a ayudar si algún día otra perilla (u otro controlador) vuelve a mandar en
-relativo.
+**Lectura relativa (fase 29):** ya no se adivina. Antes `dats/midi_logic.py`
+tomaba como relativa cualquier perilla cuyo PRIMER valor cayera cerca de la
+mitad (58..70). Una perilla absoluta que arrancaba ahí sumaba pasos en vez de
+tomar su posición hasta que se la llevaba a un extremo. Ahora solo se lee
+relativo un canal declarado en `config.RELATIVE_CHANNELS` (vacío por
+defecto). Ojo: el MIDI In CHOP solo avisa cuando el valor **cambia**. Una
+perilla relativa girada siempre hacia el mismo lado manda "65, 65, 65..." y
+llega como un solo paso, así que la solución real es ponerla en
+**Absolute** (pasos de arriba).
+
+**Clic de las perillas 1 y 9:** cada una manda un tercer control al
+apretarla (girar, clic y Shift+girar). El número depende de la memoria del
+MiniLab: aprenderlo con **Learn Clic1** / **Learn Clic9** apretando la
+perilla.
 
 ### Pads — banco A (`Pad 1-8`): el show
 

@@ -338,6 +338,28 @@ def _parameters(proj):
     add_float(es, 'Estilopaleta', 'Paleta  ' + ' > '.join(pal_names), 0.0, 0.0, 1.0)
     add_toggle(es, 'Estiloauto', 'Paleta automatica (cambia en cada acto)', False)
 
+    # CAPAS encima de las escenas + MIEDO + NAVEGADOR (Fase 29, docs/53).
+    # Capaon/Capasel los mueven los pads 14/15 en Halloween; Miedo es la
+    # perilla 1 y Navegador la 9 (set.json midi_redirect).
+    cp = proj.appendCustomPage('Capas')
+    add_float(cp, 'Capaon', 'Capa encima (0 = apagada)', 0.0, 0.0, 1.0)
+    add_int(cp, 'Capasel', 'Capa  ' + ' > '.join(
+        '{} {}'.format(i + 1, n) for i, n in enumerate(c.CAPAS)), 1, 1, len(c.CAPAS))
+    add_float(cp, 'Miedo', 'Miedo (calma -> terror)', 0.0, 0.0, 1.0)
+    add_float(cp, 'Navegador', 'Navegador de escenas (perilla)', 0.0, 0.0, 1.0)
+
+    # GUARDIAN DE FPS: baja la escala de render de a pasos cuando el FPS
+    # real lleva un rato bajo, y la vuelve a subir cuando sobra (con
+    # histeresis), aplicando el cambio durante un fundido si puede.
+    gd = proj.appendCustomPage('Guardian')
+    add_toggle(gd, 'Guardian', 'Guardian de FPS prendido', True)
+    add_int(gd, 'Guardianbaja', 'Bajar calidad si el FPS baja de', 40, 10, 120)
+    add_float(gd, 'Guardianbajaseg', 'Segundos seguidos abajo', 2.0, 0.5, 30.0)
+    add_int(gd, 'Guardiansube', 'Subir calidad si el FPS pasa de', 55, 10, 240)
+    add_float(gd, 'Guardiansubeseg', 'Segundos seguidos arriba', 5.0, 1.0, 60.0)
+    add_float(gd, 'Guardianmin', 'Escala minima de render', 0.5, 0.3, 1.0)
+    add_float(gd, 'Guardianfps', 'FPS medido (interno)', 0.0, 0.0, 240.0)
+
     fs = proj.appendCustomPage('Failsafe')
     add_toggle(fs, 'Failsafe', 'Failsafe automatico', True)
     # Piso propio del failsafe, separado del aviso visual (Fpswarning, 55):
@@ -606,6 +628,8 @@ def onValueChange(par, prev):
         ctrl.module.mediaReshuffle()
     elif par.name == 'Mediascrub':
         ctrl.module.mediaScrubSelect(par.val)
+    elif par.name == 'Navegador':
+        ctrl.module.navSelect(par.val)
     elif par.name == 'Guionarchivo':
         ctrl.module.loadGuion()
     elif par.name == 'Guionreloj' and par.eval():
@@ -800,6 +824,16 @@ def build(verbose=True):
     diag_dat = proj.create(textDAT, 'diagnostics')
     diag_dat.nodeX, diag_dat.nodeY = 1960, 260
     diag_dat.text = _dat_text('diagnostics')
+
+    # FPS REAL para el panel, el guardian y el failsafe (diagnostics.
+    # measuredFps). project.cookRate es la tasa pedida, no la lograda. Si
+    # esta build no tiene el canal 'fps', diagnostics mide con el reloj.
+    try:
+        perf = proj.create(performCHOP, 'perf')   # noqa: F821
+        perf.nodeX, perf.nodeY = 1960, 540
+        safe_set(perf, 'fps', True)
+    except Exception as e:
+        log('AVISO perf: sin Perform CHOP ({}) -- el FPS se mide con el reloj'.format(e))
 
     rt = proj.create(executeDAT, 'runtime_manager')
     rt.nodeX, rt.nodeY = 1960, 120

@@ -833,12 +833,14 @@ kbd { font-family: var(--font-m); font-size: 12px; background: var(--surface-2);
   // Tiene que coincidir con vjcore.config.MIDI_SLOTS (lo chequea
   // td/tools/test_manual_sync.py). El json sale COMPLETO: lo que no se
   // aprende queda vacio, asi no quedan canales viejos repetidos.
-  const MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition', 'Audioamount', 'Bassamount', 'Midamount', 'Highamount', 'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6', 'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset', 'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert', 'Mirror', 'Zoom', 'Posterize', 'Trails', 'Layermix', 'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap', 'Lookamount', 'Palettelock', 'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic', 'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock', 'Mediascrub', 'Textvisible', 'Fontnext', 'Energy', 'Autopilot', 'Retro', 'Trailszoom'];
+  const MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition', 'Audioamount', 'Bassamount', 'Midamount', 'Highamount', 'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6', 'Next', 'Prev', 'Blackout', 'Snapshot', 'Reset', 'Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert', 'Mirror', 'Zoom', 'Posterize', 'Trails', 'Layermix', 'Trailstoggle', 'Duallayer', 'Blendnext', 'Layerswap', 'Lookamount', 'Palettelock', 'Take', 'Cuemode', 'Cuenext', 'Cueprev', 'Panic', 'Medianext', 'Mediaprev', 'Mediarandom', 'Medialock', 'Mediascrub', 'Textvisible', 'Fontnext', 'Energy', 'Autopilot', 'Retro', 'Trailszoom', 'Clic1', 'Clic9'];
   const MIDI_LAYOUT = 'v2';
   const WIZ = [].concat(
     knobs.map(k => ({slot:k.id, fn:k.name, where:'Gira la perilla ' + k.n, kind:'knob'})),
     [{slot:'Layermix', fn:'Mezcla 2 capas', where:'Mantén Shift y gira la perilla 1', kind:'knob'},
      {slot:'Transition', fn:'Transición', where:'Mantén Shift y gira la perilla 9', kind:'knob'},
+     {slot:'Clic1', fn:'Clic perilla 1 (Halloween: Momento)', where:'Aprieta la perilla 1 como un botón', kind:'pad'},
+     {slot:'Clic9', fn:'Clic perilla 9 (Halloween: lanzar la escena del navegador)', where:'Aprieta la perilla 9 como un botón', kind:'pad'},
      {slot:'Trailszoom', fn:'Zoom estela', where:'Desliza la tira de pitch', kind:'strip'},
      {slot:'Mediascrub', fn:'Imagen', where:'Desliza la tira de mod', kind:'strip'}],
     padsA.map(p => ({slot:p.id, fn:p.name, where:'Banco A (botón Pad 1-8 / 9-16 apagado): toca el pad ' + p.n, kind:'pad'})),

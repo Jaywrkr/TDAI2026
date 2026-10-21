@@ -88,10 +88,13 @@ vec4 render(vec2 uv) {
     float peak = max(hkEvent(3.0, 57.0, 10.0), max(C.x * 0.7 * (1.0 - C.z), G.x));
     // el rayo cae en el arbol al llegar el pico
     float treeHit = step(0.36, C.w) * step(C.w, 0.52);
-    float ambient = max(uD3, peak) * step(0.86 - peak * 0.2 - hkActVal(4.0) * 0.08, hash21(vec2(floor(rt * 3.0), 5.0)));
-    float strike = clamp(hit + ambient, 0.0, 1.0);
-    // el destello se apaga en una fraccion de segundo, con un rebote
-    float flick = strike * (0.75 + 0.25 * step(0.5, hash21(vec2(floor(rt * 22.0), 2.0))));
+    // limite de destellos (test_destellos.py, maximo 3 por segundo): el rayo
+    // suelto se sortea al ritmo de la posicion del rayo (1.7 por segundo) y
+    // mientras dura tapa al del bombo; el temblor del destello es chico
+    // (8 %) para que no cuente como destello aparte.
+    float ambient = max(uD3, peak) * step(0.86 - peak * 0.2 - hkActVal(4.0) * 0.08, hash21(vec2(slot, 5.0)));
+    float strike = clamp(max(hit, ambient), 0.0, 1.0);
+    float flick = strike * (0.92 + 0.08 * step(0.5, hash21(vec2(floor(rt * 22.0), 2.0))));
     // piano: rayos propios, uno por tecla (luz que dejan en nubes y campo)
     float keyFlick = 0.0;
     float keyNear = 0.0;
