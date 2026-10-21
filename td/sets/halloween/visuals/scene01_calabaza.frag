@@ -302,8 +302,19 @@ vec4 render(vec2 uv) {
         if (hole > 0.0) {
             float flameN = fbm(vec2(q.x * 6.0, q.y * 4.0 - t * 2.2), 3);
             vec3 flame = mix(orange, hot, smoothstep(0.35, 0.80, flameN)) * inner * 1.35;
-            float wall = smoothstep(-0.04, -0.004, faceD);
-            flame = mix(flame, ha * 0.25 + orange * 0.35 * inner, wall * 0.6);
+            // la pared de la cascara en el borde del corte (calabaza 3D): se ve
+            // mas ancha del lado hacia donde se curva la superficie, como en
+            // una de verdad, y la vela de adentro la ilumina
+            vec2 gF = vec2(hwFace(q + vec2(0.004, 0.0), clamp(uD4 + laugh * 0.6, 0.0, 1.2), rage) - faceD,
+                           hwFace(q + vec2(0.0, 0.004), clamp(uD4 + laugh * 0.6, 0.0, 1.2), rage) - faceD);
+            float side = max(dot(normalize(gF + 1e-5), -nxy), 0.0);
+            float wallW = 0.012 + 0.075 * side;
+            float wall = smoothstep(-wallW, -wallW * 0.25, faceD);
+            float fib = 0.75 + 0.25 * noise21(q * vec2(40.0, 140.0));
+            vec3 flesh = vec3(1.0, 0.72, 0.30) * (0.35 + 0.65 * smoothstep(-wallW, 0.0, faceD)) * fib;
+            flame = mix(flame, flesh * (0.25 + inner * 1.1) + ha * 0.1, wall);
+            // canto vivo del corte del lado de la cascara: linea oscura
+            col = mix(col, col * 0.4, (1.0 - smoothstep(0.0, 0.006, faceD)) * smoothstep(-0.002, 0.0, faceD) * hc.a);
             float eyes = step(0.10, q.y) * step(q.y, 0.40);
             flame += hot * eyes * min(keyGlow, 1.5) * 0.6;
             // apagada (pico del climax): solo quedan los ojos, rojos

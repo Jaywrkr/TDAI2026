@@ -479,3 +479,14 @@ Las lápidas de la escena 00 dejaron de ser siluetas con luz pintada: se hornean
 **Costo:** +5 % frente a la versión 2D en el banco de prueba (0,206 contra 0,195 s); el relieve entra en los mismos dos atlas, sin achicar nada (la luna pasó a 256 px). Hay que confirmar los FPS en TD. Si convence, el mismo camino sirve para las demás escenas con objetos sólidos (calabaza, mansión, troncos del bosque, torre del reloj).
 
 **Reconstruir Todo:** cambiaron las láminas de la escena 00.
+
+## Fase 21: calabazas en 3D (escenas 01 y 13)
+
+![Antes y ahora](img/calabazas_2d_vs_3d.jpg)
+
+La calabaza principal (que la 13 reusa en la hilera) ahora es un **sólido 3D** hecho por trazado de rayos en `bake_plates_calabaza.py`: cuerpo achatado con 10 gajos y surcos hondos que se cierran en los polos, hundido donde nace el tallo, tallo retorcido con estrías y la cara de arriba a la vista. La lámina `5_calabaza_relieve` guarda su normal real y la oclusión de los surcos; la luz de la vela, la luna y las velas de la mesa se calcula en vivo como antes, pero ahora marca cada gajo.
+
+- **El tallado tiene grosor (01):** en el borde de cada corte se ve la pared de pulpa iluminada por la vela, más ancha del lado hacia donde se curva la calabaza, con un canto oscuro del lado de la cáscara.
+- **Costo en el banco de prueba:** 01 igual que antes (~0,20 s); 13 sube ~20 % (0,20 → 0,245 s) porque la calabaza nueva tapa más superficie. Hay que confirmar los FPS en TD.
+- Después de hornear la 01 hay que correr `bake_plates_hilera.py` (copia la calabaza a la 13) y `build_atlas.py`.
+- **Reconstruir Todo:** cambiaron las láminas de 01 y 13.

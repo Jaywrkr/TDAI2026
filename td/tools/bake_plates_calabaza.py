@@ -257,49 +257,85 @@ vec4 props(vec2 p){
 }
 
 // ---------------- calabaza principal ----------------
-float heroBody(vec2 q, out vec3 nrm, out float rib){
-  float body=1e3; nrm=vec3(0.,0.,1.); rib=1.;
-  for(int i=-2;i<=2;i++){
-    float fi=float(i);
-    vec2 c=vec2(fi*0.21,0.);
-    vec2 r=vec2(0.36-abs(fi)*0.045,0.50-abs(fi)*0.035);
-    vec2 d=(q-c)/r;
-    float e=(length(d)-1.)*min(r.x,r.y);
-    if(e<body){ body=e; float zz=sqrt(max(1.-dot(d,d),0.)); nrm=normalize(vec3(d*0.85,zz+0.15)); rib=zz; }
-  }
-  return body;
+// ---------- calabaza principal en 3D (trazado de rayos) ----------
+// Cuerpo achatado con 10 gajos y surcos hondos, hundido arriba y abajo,
+// tallo retorcido con estrias. La camara mira un poco desde arriba. Sale
+// el color SIN luz y el relieve (normal: x derecha, y arriba, z hacia el
+// publico) con la oclusion de los surcos; la luz (vela, luna, velas de la
+// mesa) la pone la escena en vivo.
+const vec3 PRD = vec3(0.0, -0.20, 0.98);
+const vec3 PR = vec3(0.70, 0.47, 0.60);       // radios del cuerpo
+float pkGroove(vec3 P){
+  float ph = atan(P.z, P.x);
+  return pow(abs(cos(ph*5.0)), 10.0);         // 1 en el surco
 }
-vec4 hero(vec2 q, int mode){
-  vec3 n; float rib;
-  float b=heroBody(q,n,rib);
-  float m=smoothstep(0.003,-0.003,b);
-  // estrias verticales finas, granos y cicatrices
-  float stri=fbm(vec2(q.x*70.,q.y*6.),4)-0.5;
-  float bump=fbm(q*36.,6)-0.5;
-  float scar=0.;
-  vec3 nn=normalize(n+vec3(stri*0.35+bump*0.25, bump*0.2, 0.)-vec3(0.,0.,scar*0.2));
-  // tallo retorcido
-  vec2 sq=rot(0.25)*(q-vec2(0.03,0.50));
-  float k=clamp(sq.y/0.22,0.,1.);
-  sq.x-=sin(k*2.0)*0.025;
-  float stem=max(abs(sq.x)-0.060*(1.-0.30*k)-0.004*sin(sq.x*400.), max(-sq.y, sq.y-0.20));
-  float sm=smoothstep(0.003,-0.003,stem);
-  if(mode==0){
-    vec3 alb=mix(vec3(0.70,0.25,0.03),vec3(0.95,0.45,0.06),fbm(q*vec2(4.,1.5),5));
-    alb*=0.85+0.25*stri;
-    alb=mix(alb,vec3(0.35,0.32,0.10),scar*0.6);
-    alb*=1.-0.3*smoothstep(0.65,0.82,fbm(q*55.,4));
-    alb*=mix(0.35,1.0,smoothstep(0.0,0.55,rib));     // surcos mas oscuros
-    alb*=0.9+0.2*smoothstep(0.6,0.95,rib);
-    vec3 stc=vec3(0.22,0.20,0.09)*(0.5+0.8*gn(vec2(sq.x*260.,sq.y*30.)))*(0.6+0.5*smoothstep(0.05,-0.05,sq.x));
-    vec3 c=mix(alb,stc,sm);
-    return vec4(pow(clamp(c,0.,1.),vec3(1./2.2)), max(m,sm));
+float pkBody(vec3 P){
+  vec3 q = P;
+  // hundido de arriba (donde nace el tallo) y de abajo
+  float rr = length(q.xz);
+  q.y -= 0.10*exp(-rr*rr/0.05)*sign(q.y)*-1.0;
+  float g = pkGroove(q);
+  // los surcos son mas hondos en el ecuador y se cierran en los polos
+  float eq = 1.0 - pow(abs(q.y)/PR.y, 4.0);
+  float sc = 1.0 - (0.085*g + 0.018*(1.0-abs(sin(atan(q.z,q.x)*5.0))))*clamp(eq,0.,1.);
+  float k = length(q/PR);
+  float d = (k - sc)*min(PR.x,min(PR.y,PR.z))*0.9;
+  if(d<0.02) d += (gn(vec2(atan(q.z,q.x)*40., q.y*30.))-0.5)*0.0028 + (gn(vec2(atan(q.z,q.x)*160., q.y*90.))-0.5)*0.0008;
+  return d;
+}
+float pkStem(vec3 P){
+  vec3 q = P - vec3(0.02, 0.36, 0.02);
+  float k = clamp(q.y/0.30, 0., 1.);
+  // se dobla y se retuerce al subir
+  q.x -= sin(k*1.9)*0.06; q.z -= sin(k*1.3)*0.02;
+  float ang = k*1.5;
+  vec2 xz = mat2(cos(ang),-sin(ang),sin(ang),cos(ang))*q.xz;
+  float a = atan(xz.y, xz.x);
+  float rad = mix(0.075, 0.045, k) * (1.0 + 0.10*abs(sin(a*3.0))) * (1.0 + 0.6*exp(-q.y*25.0));
+  float d = length(xz) - rad;
+  return max(d, max(-q.y, q.y-0.30)) * 0.8;
+}
+float pkSD(vec3 P, out float isStem){
+  float b = pkBody(P), st = pkStem(P);
+  isStem = step(st, b);
+  return min(b, st);
+}
+vec4 hero(vec2 qq, int mode){
+  vec3 ro = vec3(qq, 0.) - PRD*1.5;
+  float s = 0.; float hit = -1.; float isS = 0.; vec3 P;
+  for(int i=0;i<110;i++){
+    P = ro + PRD*s;
+    float d = pkSD(P, isS);
+    if(d<0.0004){ hit=s; break; }
+    s += max(d*0.7, 0.0008);
+    if(s>3.0) break;
   }
-  // relieve: RG normal, B oclusion de surcos, A cobertura
-  vec3 sn=normalize(vec3((gn(vec2(sq.x*260.,sq.y*30.))-0.5)*0.6, 0.0, 1.));
-  nn=normalize(mix(nn, sn, sm));
-  float ao=mix(0.35,1.0,smoothstep(0.0,0.6,rib));
-  return vec4(nn.xy*0.5+0.5, ao, max(m,sm));
+  if(hit<0.){ return mode==0 ? vec4(0.) : vec4(0.5,0.5,1.,0.); }
+  vec2 e = vec2(0.0008, 0.); float t2;
+  vec3 g = vec3(pkSD(P+e.xyy,t2)-pkSD(P-e.xyy,t2), pkSD(P+e.yxy,t2)-pkSD(P-e.yxy,t2), pkSD(P+e.yyx,t2)-pkSD(P-e.yyx,t2));
+  vec3 nw = normalize(g);
+  vec3 n = vec3(nw.x, nw.y, -nw.z);
+  float ph = atan(P.z, P.x);
+  float groove = pkGroove(P);
+  // oclusion: surcos, hundido del tallo y la base
+  float o1 = pkSD(P+nw*0.012,t2), o2 = pkSD(P+nw*0.04,t2);
+  float ao = clamp(0.35 + 0.65*(o1/0.012*0.45 + o2/0.04*0.55), 0., 1.);
+  ao *= mix(0.55, 1.0, smoothstep(-0.47, -0.20, P.y));
+  if(mode==1) return vec4(n.xy*0.5+0.5, ao, 1.);
+  vec3 c;
+  if(isS>0.5){
+    c = vec3(0.22,0.20,0.09)*(0.5+0.8*gn(vec2(ph*30., P.y*60.)))*(0.7+0.4*fbm(P.xy*40.,3));
+    c = mix(c, vec3(0.12,0.10,0.05), smoothstep(0.62,0.66,P.y));    // punta cortada, seca
+  } else {
+    vec2 uv = vec2(ph*1.6, P.y*2.0);
+    c = mix(vec3(0.66,0.20,0.02), vec3(0.92,0.40,0.04), fbm(uv*vec2(2.,1.5),5));
+    c *= 0.85 + 0.30*(fbm(vec2(ph*70., P.y*5.),4)-0.5);              // estrias a lo largo de los gajos
+    c = mix(c, vec3(0.55,0.42,0.12), smoothstep(0.70,0.85,fbm(uv*6.+3.,5))*0.5);   // manchas
+    c *= 1. - 0.3*smoothstep(0.65,0.82,fbm(uv*30.,4));
+    c *= mix(1.0, 0.55, groove);                                        // surco mas oscuro
+    c = mix(c, vec3(0.40,0.35,0.10), smoothstep(0.28,0.42,P.y)*smoothstep(0.25,0.0,length(P.xz))*0.6);   // verde cerca del tallo
+  }
+  return vec4(pow(clamp(c,0.,1.),vec3(1./2.2)), 1.);
 }
 
 void main(){
