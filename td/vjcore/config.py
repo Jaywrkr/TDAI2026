@@ -342,7 +342,21 @@ CTRL_CHANNELS = [
     # = +-(estilo + semilla*0.9): signo + = entra B, - = entra A.
     'xfade',      # 76
     'transfx',    # 77
+    # CAPAS encima de las escenas (program.py, program_capas): cual capa
+    # esta elegida (indice en config.CAPAS, 1..N; 0 = ninguna), cuanto
+    # esta prendida (0..1, con fundido) y el MIEDO del show (0..1: luz
+    # que baja, niebla, parpadeo, temblor y rojo, perilla 1 en Halloween).
+    'capa',       # 78
+    'capaon',     # 79  pasa por un Lag en control.py
+    'fear',       # 80  pasa por un Lag en control.py
 ]
+
+# Capas que se pueden poner encima de cualquier escena (pad 15 las
+# recorre en este orden; el indice que viaja en 'capa' es la posicion + 1).
+CAPAS = ['Niebla', 'Murcielagos', 'Lluvia', 'Aranas', 'Brasas', 'Cuervos']
+# Fundido de entrada/salida de una capa y suavizado del Miedo (s).
+CAPA_FADE_SECONDS = 1.5
+FEAR_LAG_SECONDS = 0.6
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
 # (nombre del parametro, nombre del canal)
@@ -391,6 +405,9 @@ PAR_CHANNELS = [
     ('Momenton', 'moment'),
     ('Xfadetarget', 'xfade'),   # pasa por un Lag en control.py (no tal cual)
     ('Transitionfx', 'transfx'),
+    ('Capasel', 'capa'),
+    ('Capaon', 'capaon'),       # Lag en control.py
+    ('Miedo', 'fear'),          # Lag en control.py
 ]
 
 # Voces del piano polifonico y su suavizado de perillas Detail
@@ -533,6 +550,9 @@ DEFAULT_MIDI = {
     'Palettelock': 'ch1ctrl73',
     'Layermix':    'ch1ctrl23',     # Shift + perilla 1
     'Transition':  'ch1ctrl24',     # Shift + perilla 9
+    # Clic de las perillas 1 y 9: cada una manda su propio CC (Arturia:
+    # girar, clic y Shift+girar = 3 controles). El numero depende de la
+    # memoria del MiniLab, asi que quedan para Learn (docs/02).
     'Mediascrub':  'ch1ctrl1',      # tira de modulacion
     # Pads banco A (el show): notas de canal 10, no CC.
     'Next':        'ch10n38',
@@ -596,7 +616,9 @@ MIDI_SLOTS = ['Speed', 'Density', 'Hue', 'Chaos', 'Brightness', 'Transition',
               # LAYOUT v2 (ver MIDI_LAYOUT_V2). Van al FINAL a proposito:
               # si un midi_map.json viejo deja el mismo canal en dos slots,
               # midiMap() se queda con el ultimo de esta lista.
-              'Energy', 'Autopilot', 'Retro', 'Trailszoom']
+              'Energy', 'Autopilot', 'Retro', 'Trailszoom',
+              # Fase 29: clic de las perillas clicables 1 y 9.
+              'Clic1', 'Clic9']
 
 # ---------------------------------------------------------------
 # COLORES DE LOS PADS (MiniLab mkII, SysEx de Arturia)
@@ -618,19 +640,25 @@ PAD_ID_FIRST = 0x70
 # Cada entrada: el slot se queda con ese canal y cualquier OTRO slot que
 # tuviera el mismo canal queda vacio (antes Transition, Bass/Mid/High
 # Amount, Snapshot, Reset, Mediaprev, Grain y Posterize).
+#
+# Fase 29: la tabla quedo VACIA a proposito. Sus canales (Energia en
+# ch1ctrl74, Autopilot en ch1ctrl27, Retro en ch10n37...) contradicen el
+# mapeo real leido del panel del usuario (DEFAULT_MIDI: ch1ctrl74 es la
+# perilla 7 = Estela, ch1ctrl27 el pad 13 = Invert, ch10n37 el pad 2 =
+# Prev): si un midi_map.json viejo sin marca llegara a cargarse, la
+# migracion desordenaba el controlador. Ahora solo se marca el json.
 MIDI_LAYOUT = 'v2'
-MIDI_LAYOUT_V2 = {
-    'Energy': 'ch1ctrl74',
-    'Trails': 'ch1ctrl19',
-    'Lookamount': 'ch1ctrl20',
-    'Palettelock': 'ch1ctrl17',
-    'Mediascrub': 'ch1ctrl1',
-    'Autopilot': 'ch1ctrl27',
-    'Textvisible': 'ch1ctrl26',
-    'Duallayer': 'ch1ctrl23',
-    'Retro': 'ch10n37',
-    'Blendnext': 'ch10n52',
-}
+MIDI_LAYOUT_V2 = {}
+
+# Canales MIDI (ej. 'ch1ctrl113') que se leen como perilla RELATIVA
+# (Arturia 'Relative #2': 65 = +1 paso, 63 = -1). Vacio = todas absolutas.
+# Antes se adivinaba solo con el primer valor, y una perilla absoluta que
+# arrancaba cerca de la mitad (58..70) quedaba leida como relativa: sumaba
+# pasos en vez de tomar la posicion. Ademas el MIDI In CHOP solo avisa
+# cuando el valor CAMBIA, asi que una relativa girada siempre hacia el
+# mismo lado (65, 65, 65...) casi no llega: la solucion real es poner la
+# perilla en Absolute en Arturia MIDI Control Center (docs/02).
+RELATIVE_CHANNELS = []
 
 # ---------------------------------------------------------------
 # PAGINA "MIDI MAPPING" DE /project1: orden y nombres = la web
@@ -653,8 +681,9 @@ MIDI_PANEL_SLOTS = [
     'Trails', 'Brightness',
     'Detail1', 'Detail2', 'Detail3', 'Detail4', 'Detail5', 'Detail6',
     'Lookamount', 'Palettelock',
-    # Shift + perilla 1 / Shift + perilla 9, justo despues de su perilla.
-    'Layermix', 'Transition',
+    # Shift + perilla 1 / Shift + perilla 9, justo despues de su perilla,
+    # y el clic de cada una.
+    'Layermix', 'Transition', 'Clic1', 'Clic9',
     # Las 2 tiras (pitch, mod).
     'Trailszoom', 'Mediascrub',
     # Pads banco A (el show), pad 1 -> pad 8.
@@ -677,6 +706,7 @@ MIDI_SLOT_LABEL_ES = {
     'Detail4': 'Detail 4', 'Detail5': 'Detail 5', 'Detail6': 'Detail 6',
     'Lookamount': 'Look', 'Palettelock': 'Paleta',
     'Layermix': 'Shift+1: Mezcla 2 Capas', 'Transition': 'Shift+9: Transicion',
+    'Clic1': 'Clic perilla 1: Snapshot', 'Clic9': 'Clic perilla 9: Take (preview)',
     'Trailszoom': 'Tira Pitch: Zoom Estela', 'Mediascrub': 'Tira Mod: Imagen',
     'Next': 'Pad 1: Next', 'Prev': 'Pad 2: Prev', 'Blackout': 'Pad 3: Blackout',
     'Autopilot': 'Pad 4: Autopilot', 'Textvisible': 'Pad 5: Texto',
@@ -761,6 +791,9 @@ STYLE_DEFAULT = (0.0, 0.0)
 MIDI_REDIRECT = {}
 # Etiquetas de la pagina MIDI Mapping para los controles redirigidos.
 MIDI_REDIRECT_LABELS = {}
+# Capas encima de las escenas (set.json "capas"/"capas_excluir").
+CAPAS_ON = False
+CAPAS_EXCLUIR = {}
 
 # Nombres de las paletas del estilo, en el orden en que las recorre la
 # perilla Estilopaleta (set.json "style_palettes"; el GLSL del set las define).
@@ -926,6 +959,11 @@ def _apply_set(name):
     if data.get('transition_style'):
         g['TRANSITION_STYLE_DEFAULT'] = str(data['transition_style'])
     g['MIDI_REDIRECT_LABELS'] = dict(data.get('midi_labels', {}))
+    # Capas encima de las escenas (program_capas): solo se arma el pase si
+    # el set las pide. "capas_excluir": {"escena": [capas 1..N que no pegan]}.
+    g['CAPAS_ON'] = bool(data.get('capas', False))
+    g['CAPAS_EXCLUIR'] = {int(k): [int(x) for x in v]
+                          for k, v in data.get('capas_excluir', {}).items()}
     if data.get('plate_lod'):
         g['PLATE_LOD'] = str(data['plate_lod'])
     if data.get('prelude'):

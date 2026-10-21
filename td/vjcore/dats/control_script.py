@@ -292,6 +292,10 @@ def selectScene(index):
             previewScene(index)
             return
 
+        # Capa encima que no pega con la escena que entra (set.json
+        # capas_excluir): se cambia sola por la proxima que si.
+        _capaCompat(index)
+
         # MODO DOS CAPAS: no hay transicion que hacer -- la escena entra
         # DIRECTO en la capa que se esta editando (Activelayer) y la otra
         # capa se queda donde estaba. El fundido cruzado no aplica aca:
@@ -748,6 +752,13 @@ def padLedColors():
         # pad 16 = MOMENTO (climax a mano): verde mientras dura.
         if _vjconfig.MIDI_REDIRECT.get('Blendnext') == 'triggerMoment':
             out[15] = 'green' if momentActive() else 'purple'
+        # pads 14/15 = CAPA encima: el 14 se prende con el color de la capa
+        # cuando esta puesta; el 15 muestra siempre cual esta elegida.
+        col = _CAPA_LED[(_capaSel(p) - 1) % len(_CAPA_LED)]
+        if _vjconfig.MIDI_REDIRECT.get('Mirror') == 'toggleCapa':
+            out[13] = col if _capaOn(p) else 'off'
+        if _vjconfig.MIDI_REDIRECT.get('Zoom') == 'nextCapa':
+            out[14] = col
     except Exception:
         pass
     # NEXT late blanco con el beat mientras el autopilot anda: se ve en el
@@ -804,6 +815,221 @@ def _endPadLedTest():
     else:
         for i in range(16):
             sendPadColor(i, 'off', force=True)
+
+
+# ---------------------------------------------------------------
+# CAPAS ENCIMA DE LAS ESCENAS (Fase 29, program_capas)
+# ---------------------------------------------------------------
+# Halloween: pad 14 = capa ON/OFF, pad 15 = siguiente capa (set.json
+# midi_redirect). Capaon pasa por un Lag (config.CAPA_FADE_SECONDS): la
+# capa entra y sale con fundido. Para CAMBIAR de capa con una prendida se
+# apaga, se espera el fundido y entra la nueva -- nunca un salto.
+
+# color del pad por capa (config.CAPAS: niebla, murcielagos, lluvia,
+# aranas, brasas, cuervos)
+_CAPA_LED = ['white', 'purple', 'blue', 'red', 'yellow', 'cyan']
+
+
+def _capaNames():
+    try:
+        import vjcore.config as _vjconfig
+        return list(_vjconfig.CAPAS)
+    except Exception:
+        return ['Niebla', 'Murcielagos', 'Lluvia', 'Aranas', 'Brasas', 'Cuervos']
+
+
+def _capaSel(p):
+    try:
+        return max(1, min(len(_capaNames()), int(p.par.Capasel.eval())))
+    except Exception:
+        return 1
+
+
+def _capaOn(p):
+    try:
+        return float(p.par.Capaon.eval()) > 0.5
+    except Exception:
+        return False
+
+
+def _capaExcluded(scene, capa):
+    try:
+        import vjcore.config as _vjconfig
+        return int(capa) in _vjconfig.CAPAS_EXCLUIR.get(int(scene), [])
+    except Exception:
+        return False
+
+
+def _capaNextFor(scene, start):
+    """Proxima capa (despues de 'start', dando la vuelta) que pega con la
+    escena. Si ninguna pega, devuelve 'start'."""
+    n = len(_capaNames())
+    for k in range(1, n + 1):
+        c = (int(start) - 1 + k) % n + 1
+        if not _capaExcluded(scene, c):
+            return c
+    return int(start)
+
+
+def _capaFadeMs():
+    try:
+        import vjcore.config as _vjconfig
+        return int(float(_vjconfig.CAPA_FADE_SECONDS) * 1000.0)
+    except Exception:
+        return 1500
+
+
+def _capaSwapTo(p, new):
+    """Cambia a la capa 'new'. Apagada: cambia directo. Prendida: fundido
+    de salida, cambio y fundido de entrada."""
+    token = int(p.fetch('capa_token', 0)) + 1
+    p.store('capa_token', token)
+    if not _capaOn(p):
+        p.par.Capasel = int(new)
+        return
+    p.par.Capaon = 0.0
+    run("op('/project1/control_script').module._capaSwapEnd({}, {})".format(int(new), token),
+        delayMilliSeconds=_capaFadeMs())
+
+
+def _capaSwapEnd(new, token):
+    p = _p()
+    if not p or int(p.fetch('capa_token', -1)) != int(token):
+        return
+    p.par.Capasel = int(new)
+    p.par.Capaon = 1.0
+    refreshPadLeds()
+
+
+def toggleCapa():
+    """Pad 14 en Halloween: prende o apaga la capa elegida (con fundido)."""
+    p = _p()
+    if not p:
+        return
+    try:
+        p.store('capa_token', int(p.fetch('capa_token', 0)) + 1)
+        if _capaOn(p):
+            p.par.Capaon = 0.0
+        else:
+            scene = int(p.par.Activeindex.eval())
+            sel = _capaSel(p)
+            if _capaExcluded(scene, sel):
+                p.par.Capasel = _capaNextFor(scene, sel)
+            p.par.Capaon = 1.0
+        print('CAPA {}: {}'.format(_capaNames()[_capaSel(p) - 1], 'ON' if _capaOn(p) else 'OFF'))
+        refreshPadLeds()
+    except Exception as e:
+        print('toggleCapa ERROR:', e)
+
+
+def nextCapa():
+    """Pad 15 en Halloween: pasa a la siguiente capa. Si estaba apagada la
+    prende; si estaba prendida, cambia con fundido."""
+    p = _p()
+    if not p:
+        return
+    try:
+        scene = int(p.par.Activeindex.eval())
+        new = _capaNextFor(scene, _capaSel(p))
+        was_on = _capaOn(p)
+        _capaSwapTo(p, new)
+        if not was_on:
+            p.par.Capaon = 1.0
+        print('CAPA -> {}'.format(_capaNames()[new - 1]))
+        refreshPadLeds()
+    except Exception as e:
+        print('nextCapa ERROR:', e)
+
+
+def _capaCompat(scene):
+    p = _p()
+    if not p or not _capaOn(p):
+        return
+    sel = _capaSel(p)
+    if _capaExcluded(scene, sel):
+        _capaSwapTo(p, _capaNextFor(scene, sel))
+
+
+# ---------------------------------------------------------------
+# NAVEGADOR DE ESCENAS (perilla 9 en Halloween, Fase 29)
+# ---------------------------------------------------------------
+# Girar = elegir una escena del setlist (o de todas, sin setlist) sin
+# tocar lo que ve el publico: aparece en el preview del dashboard. Clic
+# de la perilla = lanzarla con su transicion. La perilla es una POSICION
+# en la lista (izquierda = primera, derecha = ultima). A los 8 s sin
+# moverla el preview deja de cocinar esa escena (FPS), pero la eleccion
+# queda guardada hasta lanzarla.
+NAV_IDLE_MS = 8000
+
+
+def _navList():
+    sl = _setlist() if _usingSetlist() else []
+    if sl:
+        return sl
+    return [i for i in range(_n_scenes()) if _valid(i)]
+
+
+def navPick(pos01):
+    """Escena que corresponde a la posicion 0..1 de la perilla."""
+    lst = _navList()
+    if not lst:
+        return None
+    k = int(max(0.0, min(1.0, float(pos01))) * len(lst))
+    return lst[min(k, len(lst) - 1)]
+
+
+def navSelect(pos01):
+    p = _p()
+    if not p:
+        return
+    try:
+        idx = navPick(pos01)
+        if idx is None:
+            return
+        token = int(p.fetch('nav_token', 0)) + 1
+        p.store('nav_token', token)
+        if p.fetch('nav_sel', None) != idx:
+            p.store('nav_sel', idx)
+            previewScene(idx)
+            print('NAVEGADOR: {:02d} (clic = lanzar)'.format(idx))
+        run("op('/project1/control_script').module._navIdle({})".format(token),
+            delayMilliSeconds=NAV_IDLE_MS)
+    except Exception as e:
+        print('navSelect ERROR:', e)
+
+
+def _navIdle(token):
+    p = _p()
+    if not p or int(p.fetch('nav_token', -1)) != int(token):
+        return
+    try:
+        if not bool(p.par.Cuemode.eval()):
+            p.par.Previewindex = int(p.par.Activeindex.eval())
+            setSceneCooking()
+            updateHighlight()
+    except Exception:
+        pass
+
+
+def launchNav():
+    """Clic de la perilla 9 en Halloween: tira al aire la escena elegida
+    con el navegador (con su transicion y su preset)."""
+    p = _p()
+    if not p:
+        return
+    try:
+        idx = p.fetch('nav_sel', None)
+        if idx is None:
+            idx = int(p.par.Previewindex.eval())
+        p.store('nav_sel', None)
+        p.store('nav_token', int(p.fetch('nav_token', 0)) + 1)
+        p.store('taking', True)
+        try:
+            selectScene(int(idx))
+        finally:
+            p.store('taking', False)
+    except Exception as e:
+        print('launchNav ERROR:', e)
 
 
 # ---------------------------------------------------------------

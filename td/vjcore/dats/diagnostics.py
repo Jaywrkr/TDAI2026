@@ -93,6 +93,128 @@ def _gpu_ms():
         return -1.0
 
 
+def measuredFps():
+    """FPS REAL. project.cookRate es la tasa OBJETIVO (lo que se pidio, 60),
+    no la que se logra: con eso el panel siempre decia 60 y el failsafe
+    nunca actuaba. Fuente 1: el Perform CHOP /project1/perf (canal fps).
+    Fuente 2: frames que pasaron entre dos refrescos de este panel sobre
+    el tiempo de reloj real. Se suaviza un poco para que no salte."""
+    p = _p()
+    raw = None
+    perf = op('/project1/perf')
+    try:
+        if perf is not None and perf['fps'] is not None:
+            raw = float(perf['fps'].eval())
+    except Exception:
+        raw = None
+    if raw is None or raw <= 0.0:
+        import time
+        now = time.perf_counter()
+        try:
+            frame = int(absTime.frame)
+        except Exception:
+            frame = 0
+        last = p.fetch('fps_last', None) if p else None
+        if p:
+            p.store('fps_last', (now, frame))
+        try:
+            n = max(5, int(p.par.Diagnosticinterval.eval()))
+        except Exception:
+            n = 12
+        if last and now > last[0]:
+            raw = n / (now - last[0])
+        else:
+            try:
+                raw = float(project.cookRate)
+            except Exception:
+                raw = 0.0
+    prev = float(p.fetch('fps_smooth', raw) or raw) if p else raw
+    fps = prev + (raw - prev) * 0.5
+    if p:
+        p.store('fps_smooth', fps)
+        par = getattr(p.par, 'Guardianfps', None)
+        if par is not None:
+            try:
+                par.val = round(fps, 1)
+            except Exception:
+                pass
+    return fps
+
+
+def guardianScales(base, gmin):
+    """Escalones de la escala de render: la del equipo y despues 0.6 y 0.5
+    (sin bajar de Guardianmin ni repetir)."""
+    out = [round(float(base), 3)]
+    for x in (0.6, 0.5):
+        if x < out[-1] - 0.01 and x >= float(gmin) - 1e-6:
+            out.append(x)
+    return out
+
+
+def _guardian(fps):
+    """Guardian de FPS: con el FPS real bajo Guardianbaja durante
+    Guardianbajaseg seguidos baja UN escalon la escala de render de las
+    escenas; con el FPS sobre Guardiansube durante Guardiansubeseg lo
+    sube. El cambio se aplica durante un fundido de escena si hay uno
+    dentro de 15 s (asi no se ve el salto); si no, igual se aplica.
+    Si el failsafe ya actuo, no sube nada (eso se resetea a mano)."""
+    p = _p()
+    if not p or getattr(p.par, 'Guardian', None) is None:
+        return
+    import time
+    now = time.perf_counter()
+    if not bool(p.par.Guardian.eval()):
+        p.store('guard_low', 0.0)
+        p.store('guard_high', 0.0)
+        return
+    base = p.fetch('guard_base', None)
+    cur = float(p.par.Renderscale.eval())
+    if base is None:
+        base = cur
+        p.store('guard_base', base)
+    steps = guardianScales(base, float(p.par.Guardianmin.eval()))
+    try:
+        level = steps.index(min(steps, key=lambda x: abs(x - cur)))
+    except Exception:
+        level = 0
+    # alguien movio la escala a mano: esa pasa a ser la base
+    if abs(steps[level] - cur) > 0.02:
+        p.store('guard_base', cur)
+        p.store('guard_pending', None)
+        return
+    pending = p.fetch('guard_pending', None)
+    if pending:
+        target, since = pending
+        moving = bool(p.fetch('transitioning', False))
+        if moving or now - since > 15.0:
+            p.par.Renderscale = float(target)
+            p.store('guard_pending', None)
+            print('GUARDIAN: escala de render {:.2f} (FPS {:.1f})'.format(target, fps))
+        return
+    low_fps = float(p.par.Guardianbaja.eval())
+    high_fps = float(p.par.Guardiansube.eval())
+    if fps < low_fps:
+        p.store('guard_high', 0.0)
+        since = float(p.fetch('guard_low', 0.0) or 0.0)
+        if since <= 0.0:
+            p.store('guard_low', now)
+        elif now - since >= float(p.par.Guardianbajaseg.eval()) and level + 1 < len(steps):
+            p.store('guard_pending', (steps[level + 1], now))
+            p.store('guard_low', 0.0)
+    elif fps > high_fps:
+        p.store('guard_low', 0.0)
+        since = float(p.fetch('guard_high', 0.0) or 0.0)
+        failsafe = int(getattr(p.par, 'Failsafelevel').eval()) if getattr(p.par, 'Failsafelevel', None) is not None else 0
+        if since <= 0.0:
+            p.store('guard_high', now)
+        elif now - since >= float(p.par.Guardiansubeseg.eval()) and level > 0 and failsafe == 0:
+            p.store('guard_pending', (steps[level - 1], now))
+            p.store('guard_high', 0.0)
+    else:
+        p.store('guard_low', 0.0)
+        p.store('guard_high', 0.0)
+
+
 def _watchdog(fps, warn):
     """Failsafe: si el FPS lleva Failsafeseconds SEGUIDOS por debajo de
     Failsafefps (24 por defecto: el piso del show es 20), baja un escalon de calidad (ver control_script.failsafeStep).
@@ -300,14 +422,15 @@ def update():
     except Exception as e:
         print('updateMasterFX ERROR:', e)
 
-    try:
-        fps = float(project.cookRate)
-    except Exception:
-        fps = 0.0
+    fps = measuredFps()
     try:
         warn = int(p.par.Fpswarning.eval())
     except Exception:
         warn = 55
+    try:
+        _guardian(fps)
+    except Exception as e:
+        print('guardian ERROR:', e)
 
     midi_ch = _chans('/project1/midi1')
     audio_ch = _chans('/project1/audio1')
@@ -399,6 +522,18 @@ def update():
         lines.append('')
         lines.append('>> CUE ON  el click carga PREVIEW (escena {:02d}), '
                      'TAKE lo tira al aire'.format(int(_par_val('Previewindex'))))
+    nav = p.fetch('nav_sel', None)
+    if nav is not None:
+        lines.append('')
+        lines.append('>> NAVEGADOR {:02d} {}  (clic perilla 9 = lanzar)'.format(
+            int(nav), _sceneName(int(nav))))
+    try:
+        rs = float(_par_val('Renderscale'))
+        base = p.fetch('guard_base', None)
+        if base is not None and rs < float(base) - 0.01:
+            lines.append('>> GUARDIAN: escenas a {:.0f}% para sostener el FPS'.format(rs * 100))
+    except Exception:
+        pass
     fs_level = int(_par_val('Failsafelevel'))
     if fs_level:
         lines.append('')

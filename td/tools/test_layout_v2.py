@@ -106,37 +106,27 @@ def main():
     check('Energy toma el canal', p.par.Midienergy.val, 'ch1ctrl74')
     check('Transition lo suelta', p.par.Miditransition.val, '')
 
-    print('\n--- MIGRACION: midi_map.json viejo -> layout v2 ---')
+    print('\n--- midi_map.json viejo (sin marca): ya NO se reasigna nada ---')
+    # Fase 29: la tabla de migracion (config.MIDI_LAYOUT_V2) quedo vacia:
+    # sus canales contradecian el mapeo real del panel y un json viejo
+    # desordenaba el controlador. Un json sin marca se carga tal cual.
     d = tempfile.mkdtemp()
     old = {'Transition': 'ch1ctrl74', 'Bassamount': 'ch1ctrl19',
-           'Snapshot': 'ch1ctrl27', 'Reset': 'ch1ctrl26',
-           'Mediaprev': 'ch1ctrl23', 'Grain': 'ch10n37',
-           'Posterize': 'ch10n52', 'Speed': 'ch1ctrl75'}
+           'Snapshot': 'ch1ctrl27', 'Speed': 'ch1ctrl75'}
     path = os.path.join(d, 'midi_map.json')
     with open(path, 'w') as f:
         json.dump(old, f)
     p = project_with_midi()
     m = T.load(p)
     m.__dict__['_midi_path'] = lambda: path
+    saved = []
+    m.__dict__['saveMidiMap'] = lambda: saved.append(1)
     m.loadMidiMap()
-    for slot, chan in config.MIDI_LAYOUT_V2.items():
-        check('{} -> {}'.format(slot, chan), getattr(p.par, 'Midi' + slot.lower()).val, chan)
-    for slot in ('Transition', 'Bassamount', 'Snapshot', 'Reset',
-                 'Mediaprev', 'Grain', 'Posterize'):
-        check('{} liberado'.format(slot), getattr(p.par, 'Midi' + slot.lower()).val, '')
-    check('lo que no cambia se respeta (Speed)', p.par.Midispeed.val, 'ch1ctrl75')
-    with open(path) as f:
-        saved = json.load(f)
-    check('se guardo con la marca de layout', saved.get('_layout'), config.MIDI_LAYOUT)
-    # Un Learn posterior no se pisa al volver a cargar.
-    saved['Energy'] = 'ch1ctrl99'
-    with open(path, 'w') as f:
-        json.dump(saved, f)
-    p2 = project_with_midi()
-    m2 = T.load(p2)
-    m2.__dict__['_midi_path'] = lambda: path
-    m2.loadMidiMap()
-    check('json ya migrado: respeta el Learn nuevo', p2.par.Midienergy.val, 'ch1ctrl99')
+    check('tabla de migracion vacia', config.MIDI_LAYOUT_V2, {})
+    for slot, chan in old.items():
+        check('{} se carga tal cual ({})'.format(slot, chan),
+              getattr(p.par, 'Midi' + slot.lower()).val, chan)
+    check('no reescribe el json', len(saved), 0)
 
     print('\n--- midi_logic: Energy prende el macro, RETRO son dos efectos ---')
     p = project_with_midi(Energyactive=False, Midienergy='ch1ctrl74', Midiretro='ch10n37')
@@ -171,8 +161,8 @@ def main():
           len(config.MIDI_PANEL_SLOTS), len(set(config.MIDI_PANEL_SLOTS)))
     check('todo slot del panel existe en MIDI_SLOTS',
           all(s in config.MIDI_SLOTS for s in config.MIDI_PANEL_SLOTS), True)
-    check('16 perillas + 2 shift + 2 tiras + 16 pads = 36',
-          len(config.MIDI_PANEL_SLOTS), 36)
+    check('16 perillas + 2 shift + 2 clics + 2 tiras + 16 pads = 38',
+          len(config.MIDI_PANEL_SLOTS), 38)
     check('cada slot del panel tiene su nombre en español',
           all(s in config.MIDI_SLOT_LABEL_ES for s in config.MIDI_PANEL_SLOTS), True)
     check('Trails se muestra como Estela (no "Trails")',

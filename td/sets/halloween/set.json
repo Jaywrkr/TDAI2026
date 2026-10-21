@@ -28,13 +28,21 @@
   "plate_lod": "uStyle * 3.2",
   "style_palettes": ["Calabaza", "Sangre", "Veneno", "Fantasma", "Infierno", "Hechizo", "Pantano", "Sepia"],
   "transition_style": "halloween",
+  "capas": true,
+  "capas_excluir": {"4": [2], "5": [3, 6], "6": [3, 6], "7": [3, 6], "8": [4], "9": [3], "10": [3, 6], "11": [3, 6], "12": [3, 6], "14": [6], "16": [3, 6], "17": [3, 6], "18": [3, 6], "19": [3, 6], "20": [3, 6], "21": [3, 6], "24": [3, 6], "25": [3, 6], "29": [3, 6]},
   "midi_redirect": {
     "Hue": "Estilopaleta",
     "Density": "Estilo",
     "Lookamount": "Nocheintensidad",
     "Palettelock": "Estilomarco",
     "Duallayer": "toggleNight",
-    "Blendnext": "triggerMoment"
+    "Blendnext": "triggerMoment",
+    "Energy": "Miedo",
+    "Clic1": "triggerMoment",
+    "Detail1": "Navegador",
+    "Clic9": "launchNav",
+    "Mirror": "toggleCapa",
+    "Zoom": "nextCapa"
   },
   "midi_labels": {
     "Hue": "Perilla 2: Paleta del estilo",
@@ -42,7 +50,13 @@
     "Lookamount": "Perilla 15: Noche (intensidad)",
     "Palettelock": "Perilla 16: Marco de arco",
     "Duallayer": "Pad 7: Noche ON/OFF",
-    "Blendnext": "Pad 16: Momento (climax)"
+    "Blendnext": "Pad 16: Momento (climax)",
+    "Energy": "Perilla 1: MIEDO (calma -> terror)",
+    "Clic1": "Clic perilla 1: Momento (climax)",
+    "Detail1": "Perilla 9: Navegador de escenas",
+    "Clic9": "Clic perilla 9: Lanzar la escena elegida",
+    "Mirror": "Pad 14: Capa encima ON/OFF",
+    "Zoom": "Pad 15: Siguiente capa"
   },
   "presets_default": "presets_default.json"
 }

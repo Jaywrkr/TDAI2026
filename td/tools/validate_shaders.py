@@ -129,6 +129,9 @@ def postfx_sources(channels=None):
         ('program_blend', _td_prologue_post(3) + head + program._BLEND_FRAG),
         ('program_trails', _td_prologue_post(3) + head + program._TRAILS_FRAG),
         ('program_trans', _td_prologue_post(3) + head + program._TRANS_FRAG),
+        # Capas encima + Miedo: imagen (input 0) + control (input 1).
+        ('program_capas', _td_prologue_post(2)
+         + shader.ctrl_header(channels or config.CTRL_CHANNELS, 1) + program._CAPAS_FRAG),
         # Overlay de texto: 3 inputs (base, Text TOP, fundido 1x1), sin
         # canales de control -- el color/contorno se decide adentro del
         # shader, no via _ctrl(), asi que no necesita 'head'.

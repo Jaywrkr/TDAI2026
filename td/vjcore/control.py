@@ -129,7 +129,7 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     par_rest = proj.create(selectCHOP, 'par_ctrl_rest')
     par_rest.nodeX, par_rest.nodeY = -1240, 300
     safe_set_first(par_rest, ['channames', 'chan', 'channels'],
-                   '* ' + ' '.join('^d{}'.format(i) for i in range(1, 7)) + ' ^xfade')
+                   '* ' + ' '.join('^d{}'.format(i) for i in range(1, 7)) + ' ^xfade ^capaon ^fear')
     connect(par_rest, par_ren)
     det_sel = proj.create(selectCHOP, 'detail_sel')
     det_sel.nodeX, det_sel.nodeY = -1400, 300
@@ -155,10 +155,31 @@ def build(proj, audio_chop, key_chop=None, fx_chop=None):
     safe_set_first(xf_lag, ['lagmethod', 'method'], 'slew')
     connect(xf_lag, xf_sel)
 
+    # Capa encima (fundido de entrada/salida) y Miedo (se desliza): mismo
+    # patron que las Detail, cada uno con su tiempo.
+    cap_sel = proj.create(selectCHOP, 'capa_sel')
+    cap_sel.nodeX, cap_sel.nodeY = -1400, -540
+    safe_set_first(cap_sel, ['channames', 'chan', 'channels'], 'capaon')
+    connect(cap_sel, par_ren)
+    cap_lag = proj.create(lagCHOP, 'capa_lag')
+    cap_lag.nodeX, cap_lag.nodeY = -1240, -540
+    safe_set(cap_lag, 'lag1', config.CAPA_FADE_SECONDS)
+    safe_set(cap_lag, 'lag2', config.CAPA_FADE_SECONDS)
+    connect(cap_lag, cap_sel)
+    fear_sel = proj.create(selectCHOP, 'fear_sel')
+    fear_sel.nodeX, fear_sel.nodeY = -1400, -660
+    safe_set_first(fear_sel, ['channames', 'chan', 'channels'], 'fear')
+    connect(fear_sel, par_ren)
+    fear_lag = proj.create(lagCHOP, 'fear_lag')
+    fear_lag.nodeX, fear_lag.nodeY = -1240, -660
+    safe_set(fear_lag, 'lag1', config.FEAR_LAG_SECONDS)
+    safe_set(fear_lag, 'lag2', config.FEAR_LAG_SECONDS)
+    connect(fear_lag, fear_sel)
+
     # --- merge ---
     merge = proj.create(mergeCHOP, 'ctrl_merge')
     merge.nodeX, merge.nodeY = -1040, 120
-    srcs = [par_rest, det_lag, xf_lag, t_scaled_n, t_real_n, music, k_clock_n]
+    srcs = [par_rest, det_lag, xf_lag, cap_lag, fear_lag, t_scaled_n, t_real_n, music, k_clock_n]
     if audio_chop is not None:
         srcs.insert(1, audio_chop)
     if key_chop is not None:

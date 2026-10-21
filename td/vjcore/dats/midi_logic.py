@@ -286,6 +286,10 @@ CONTINUOUS = {
 }
 
 TRIGGERS = {
+    # Clic de las perillas 1 y 9 (Fase 29). En Halloween hacen otra cosa
+    # (set.json midi_redirect: Momento y lanzar la escena del navegador).
+    'Clic1': 'snapshotPreset',
+    'Clic9': 'takePreview',
     'Next': 'nextScene',
     'Prev': 'prevScene',
     'Blackout': 'toggleBlackout',
@@ -344,6 +348,10 @@ EFFECT_TRIGGERS = ['Grain', 'Glitch', 'Pixelate', 'Strobe', 'Invert',
 
 
 # --- MODO RELATIVO (perillas 1 y 9 de fabrica, ver docs/02) --------------
+# FASE 29: lo de abajo ya NO se aplica a cualquier canal. Solo a los que
+# figuran en config.RELATIVE_CHANNELS (vacio por defecto): la adivinanza
+# por el primer valor leia mal a las perillas ABSOLUTAS que arrancaban
+# cerca de la mitad. La deteccion de abajo sigue igual para esos canales.
 # Las perillas CLICABLES (1 y 9) del MiniLab mkII vienen en modo RELATIVO
 # de fabrica (pensado para navegar presets): en vez de mandar la posicion
 # real 0..127 como el resto de las perillas, mandan siempre un numero
@@ -377,6 +385,17 @@ def _relativePosition(p, name, val):
         return None
     key_mode = 'relmode_' + name
     key_pos = 'relpos_' + name
+    # Fase 29: solo los canales declarados en config.RELATIVE_CHANNELS. La
+    # adivinanza automatica leia mal a cualquier perilla ABSOLUTA cuyo
+    # primer valor caia cerca de la mitad (sumaba pasos en vez de tomar la
+    # posicion hasta que se la llevaba a un extremo).
+    try:
+        import vjcore.config as _vjconfig
+        declared = name in set(_vjconfig.RELATIVE_CHANNELS)
+    except Exception:
+        declared = False
+    if not declared:
+        return None
     mode = p.fetch(key_mode, None)
 
     if mode is None:

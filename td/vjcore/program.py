@@ -721,7 +721,8 @@ void main() {
         // velas; vuelve la luz titilando con la escena nueva.
         float dark = q < 0.5 ? smoothstep(0.0, 0.42, q) : 1.0 - smoothstep(0.58, 1.0, q);
         vec3 base = q < 0.5 ? oldC : newC;
-        float n = tr_n1(t * 22.0 + seed * 40.0) * 0.7 + tr_n1(t * 7.0 + seed * 11.0) * 0.5;
+        // titileo lento: como mucho ~2 cortes por segundo (test_destellos.py)
+        float n = tr_n1(t * 2.4 + seed * 40.0) * 0.7 + tr_n1(t * 1.1 + seed * 11.0) * 0.5;
         float flick = mix(1.0, step(0.45, n), sin(3.14159 * dark) * 0.85);
         float bri = (1.0 - dark) * flick;
         float candle = smoothstep(0.3, 0.8, dark);
@@ -780,6 +781,294 @@ def _build_transitions(proj, sw_a, sw_b, cross, ctrl_tex, channels):
               "0.0005 < op('/project1/xfade')['Xfadetarget'].eval() < 0.9995 else 0")
     log('TRANSICIONES: niebla/sangre/rayo/apagon (bypass real por switch) OK')
     return trans, pick
+
+
+# ---------------------------------------------------------------
+# CAPAS ENCIMA DE LAS ESCENAS + MIEDO (Fase 29, docs/53)
+# ---------------------------------------------------------------
+# Un solo pase sobre la salida del program (despues del fundido, la estela
+# y las dos capas; antes del bloom, asi las brasas brillan). Funciona igual
+# sobre las escenas de imagen (Media) y en medio de una transicion.
+#   uCapa   = capa elegida (1 niebla, 2 murcielagos, 3 lluvia, 4 aranas,
+#             5 brasas, 6 cuervos; config.CAPAS)
+#   uCapaon = 0..1 con fundido (Lag en control.py)
+#   uFear   = MIEDO 0..1: baja la luz, sube la niebla, parpadeo lento (como
+#             mucho 2 bajones por segundo: ver test_destellos), temblor y
+#             rojo, y la vineta late con el bombo.
+# Lo que mueve solo el audio va multiplicado por uMusic: en silencio queda
+# quieto. La luz de cada capa sale de la propia escena (mipmap de la
+# entrada): la niebla toma el color de lo que hay detras.
+# Bypass real por switch (capas_pick): sin capa ni miedo no cocina.
+_CAPAS_FRAG = """
+out vec4 fragColor;
+
+float cp_h1(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+float cp_h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float cp_n1(float x) {
+    float i = floor(x), f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(cp_h1(i), cp_h1(i + 1.0), f);
+}
+float cp_noise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(cp_h2(i), cp_h2(i + vec2(1.0, 0.0)), f.x),
+               mix(cp_h2(i + vec2(0.0, 1.0)), cp_h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float cp_fbm(vec2 p) {
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 4; i++) { v += a * cp_noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+    return v;
+}
+float cp_seg(vec2 p, vec2 a, vec2 b) {
+    vec2 pa = p - a, ba = b - a;
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+    return length(pa - ba * h);
+}
+float cp_lum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
+
+// silueta de murcielago en coordenadas propias (ancho ~2, alto ~1)
+float cp_bat(vec2 q, float flap) {
+    float ax = abs(q.x);
+    float body = length(q / vec2(0.13, 0.30)) - 1.0;
+    float ears = max(abs(ax - 0.06) - 0.035 * (0.30 - q.y) / 0.12, abs(q.y - 0.30) - 0.06);
+    float top = flap * ax * 0.75 + 0.10 * (1.0 - ax);
+    float scal = 0.07 * abs(sin(ax * 9.4));
+    float bot = top - 0.42 * pow(max(1.0 - ax, 0.0), 0.7) - 0.04 + scal;
+    float wing = max(max(q.y - top, bot - q.y), ax - 1.0);
+    return min(min(body * 0.13, ears), wing);
+}
+// silueta de cuervo visto desde abajo: ala ancha junto al cuerpo, borde
+// de ataque recto y cinco plumas abiertas en la punta, cola en abanico
+float cp_crow(vec2 q, float flap) {
+    float body = (length(q / vec2(0.32, 0.10)) - 1.0) * 0.10;
+    float head = length(q - vec2(0.34, 0.02)) - 0.09;
+    float beak = max(abs(q.y - 0.01) - 0.035 * clamp((0.58 - q.x) / 0.14, 0.0, 1.0), abs(q.x - 0.50) - 0.08);
+    float tx = -q.x - 0.20;
+    float tail = max(abs(q.y) - (0.05 + 0.28 * max(tx, 0.0)), max(tx - 0.32, -tx));
+    vec2 w = vec2(abs(q.x), q.y);
+    float yc = 0.03 + flap * 0.55 * w.x - 0.10 * w.x * w.x;
+    float inner = max(max(w.y - (yc + 0.06 * (1.0 - 0.4 * w.x)),
+                          (yc - 0.24 * (1.0 - 0.55 * w.x)) - w.y), w.x - 0.78);
+    float d = min(min(min(body, head), min(beak, tail)), inner);
+    // plumas primarias: cinco "dedos" que salen del extremo del ala
+    vec2 b0 = vec2(0.70, 0.03 + flap * 0.55 * 0.70 - 0.049 - 0.03);
+    for (int k = 0; k < 5; k++) {
+        float fk = float(k);
+        float a = -0.70 + fk * 0.20 + flap * 0.45;
+        vec2 e = b0 + vec2(cos(a), sin(a)) * (0.44 + 0.05 * (2.0 - abs(fk - 2.0)));
+        d = min(d, cp_seg(w, b0, e) - 0.032);
+    }
+    return d;
+}
+
+void main() {
+    float t = uRTime;
+    float asp = uResW / max(uResH, 1.0);
+    float fear = clamp(uFear, 0.0, 1.0);
+    float on = clamp(uCapaon, 0.0, 1.0);
+    int sel = int(floor(uCapa + 0.5));
+    float bass = clamp(uBass * uMusic, 0.0, 1.0);
+    float beat = clamp(uBeat * uMusic, 0.0, 1.0);
+    float night = clamp(uNight, 0.0, 1.0);
+
+    // MIEDO: temblor de camara lento (y un golpecito con el bombo)
+    vec2 uv = vUV.st;
+    vec2 shake = vec2(cp_n1(t * 1.7) - 0.5, cp_n1(t * 1.9 + 5.0) - 0.5) * 0.007 * fear;
+    shake.y += beat * fear * 0.0035;
+    vec2 suv = clamp(uv + shake, vec2(0.0), vec2(1.0));
+    vec3 col = texture(sTD2DInputs[0], suv).rgb;
+    vec3 env = textureLod(sTD2DInputs[0], uv, 5.0).rgb;      // luz de la escena alrededor
+    float envL = cp_lum(env);
+    vec2 p = vec2(uv.x * asp, uv.y);
+
+    // NIEBLA (capa 1) -- y el Miedo siempre suma algo de niebla
+    float fogAmt = (sel == 1 ? on * (0.75 + 0.35 * night) : 0.0) + fear * 0.55;
+    if (fogAmt > 0.001) {
+        vec2 dr = vec2(t * 0.045, 0.0);
+        float f1 = cp_fbm(p * 1.7 + dr);
+        float f2 = cp_fbm(p * 3.6 - dr * 1.6 + vec2(4.0, 1.0));
+        float fog = clamp(f1 * 1.1 + f2 * 0.5 - 0.30, 0.0, 1.0);
+        float low = smoothstep(0.80, 0.0, uv.y);                  // pegada al piso
+        float dens = clamp(fog * low * fogAmt * (1.0 + 0.25 * bass), 0.0, 0.80);
+        vec3 fogC = mix(vec3(0.20, 0.22, 0.24), env * 2.0 + vec3(0.04), 0.55);
+        col = mix(col, fogC + col * 0.25, dens);
+    }
+
+    // MURCIELAGOS (capa 2): los de siempre + mas con el bajo (entran con fundido)
+    if (sel == 2 && on > 0.001) {
+        float m = 0.0;
+        for (int i = 0; i < 16; i++) {
+            float fi = float(i);
+            float h1 = cp_h1(fi * 3.1 + 1.0), h2 = cp_h1(fi * 7.7 + 2.0), h3 = cp_h1(fi * 1.9 + 3.0);
+            float vis = smoothstep(h3 - 0.15, h3, 0.35 + 0.75 * bass) + (i < 6 ? 1.0 : 0.0);
+            if (vis < 0.01) continue;
+            float s = 0.030 + 0.050 * h2 * h2;                    // los grandes estan mas cerca
+            float dir = h1 < 0.5 ? 1.0 : -1.0;
+            float sp = (0.10 + 0.10 * h2) * (1.0 + 0.6 * bass);
+            float x = mix(-0.25, asp + 0.25, fract(t * sp / (asp + 0.5) + h1 * 7.0));
+            if (dir < 0.0) x = asp - x;
+            float y = 0.30 + 0.62 * h3 + 0.06 * sin(t * (1.1 + h1) + fi * 2.0);
+            vec2 q = (p - vec2(x, y)) / s;
+            if (dot(q, q) > 4.0) continue;
+            float flap = sin(t * (10.0 + 4.0 * h2) + fi * 2.3);
+            float d = cp_bat(vec2(q.x, q.y), flap);
+            m = max(m, smoothstep(0.03, -0.03, d) * min(vis, 1.0));
+        }
+        col = mix(col, vec3(0.008, 0.006, 0.01) + env * 0.06, m * on);
+    }
+
+    // LLUVIA (capa 3): dos planos de gotas, iluminadas por la escena
+    if (sel == 3 && on > 0.001) {
+        float r = 0.0;
+        for (int k = 0; k < 2; k++) {
+            float fk = float(k);
+            vec2 q = vec2(p.x + p.y * 0.18, p.y);
+            float nx = 70.0 + fk * 60.0;
+            float cx = q.x * nx;
+            float ci = floor(cx);
+            float hh = cp_h1(ci * 1.37 + fk * 11.0);
+            float y = fract(q.y * (0.9 + 0.4 * fk) + t * (1.6 + 0.8 * hh + fk * 0.6) + hh * 13.0);
+            float len = 0.10 + 0.08 * hh;
+            float streak = smoothstep(0.0, 0.02, y) * (1.0 - smoothstep(0.02, len, y));
+            float w = smoothstep(0.16, 0.0, abs(fract(cx) - 0.5)) * step(0.30, hh);
+            r += streak * w * (1.0 - 0.4 * fk);
+        }
+        col *= 1.0 - 0.12 * on;
+        col += (vec3(0.60, 0.68, 0.82) * (0.18 + 1.6 * envL) + vec3(0.05)) * r * on;
+    }
+
+    // ARANAS (capa 4): bajan de su hilo (mas con el bajo) y caminan por los bordes
+    if (sel == 4 && on > 0.001) {
+        float m = 0.0, thread = 0.0;
+        for (int i = 0; i < 6; i++) {
+            float fi = float(i);
+            float h1 = cp_h1(fi * 5.3 + 2.0);
+            vec2 c;
+            float ang = 0.0;
+            if (i < 4) {
+                float x = (0.12 + 0.25 * fi + 0.06 * (h1 - 0.5)) * asp;
+                float drop = 0.12 + 0.22 * (0.5 + 0.5 * sin(t * (0.25 + 0.1 * h1) + fi * 2.1)) + 0.12 * bass;
+                c = vec2(x + 0.004 * sin(t * 0.9 + fi), 1.0 - drop);
+                float dx = abs(p.x - c.x);
+                thread += smoothstep(0.0016, 0.0, dx) * step(c.y, p.y);
+            } else {
+                float side = i == 4 ? 0.035 : asp - 0.035;
+                c = vec2(side, fract(t * 0.025 * (1.0 + h1) + h1));
+                ang = 1.5708;
+            }
+            float s = 0.028 + 0.014 * h1;
+            vec2 q = (p - c) / s;
+            if (dot(q, q) > 9.0) continue;
+            float ca = cos(ang), sa = sin(ang);
+            q = vec2(ca * q.x + sa * q.y, -sa * q.x + ca * q.y);
+            float d = min(length(q - vec2(0.0, -0.25)) - 0.55, length(q - vec2(0.0, 0.45)) - 0.32);
+            for (int k = 0; k < 4; k++) {
+                float fk = float(k);
+                float tw = 0.12 * sin(t * 7.0 + fk * 1.7 + fi * 3.0);
+                float a = -0.75 + fk * 0.5 + tw;
+                for (int sd = -1; sd <= 1; sd += 2) {
+                    float sg = float(sd);
+                    vec2 b0 = vec2(sg * 0.25, 0.05);
+                    vec2 kn = b0 + vec2(sg * cos(a), sin(a) + 0.6) * 0.9;
+                    vec2 tp = kn + vec2(sg * 0.5, -0.9 + 0.3 * fk);
+                    d = min(d, min(cp_seg(q, b0, kn), cp_seg(q, kn, tp)) - 0.07);
+                }
+            }
+            m = max(m, smoothstep(0.08, -0.08, d));
+        }
+        vec3 dark = vec3(0.01, 0.008, 0.008) + env * 0.05;
+        col = mix(col, vec3(0.55, 0.55, 0.6) * (0.15 + 0.85 * envL) + 0.04, clamp(thread, 0.0, 1.0) * 0.35 * on);
+        col = mix(col, dark, m * on);
+    }
+
+    // BRASAS (capa 5): suben del piso con vaiven; el bajo las aviva
+    if (sel == 5 && on > 0.001) {
+        vec3 e = vec3(0.0);
+        for (int k = 0; k < 2; k++) {
+            float fk = float(k);
+            vec2 g = p * vec2(7.0 + fk * 5.0, 4.0 + fk * 3.0) + vec2(0.0, -t * (0.45 + 0.25 * fk)) + fk * 17.0;
+            vec2 id = floor(g);
+            vec2 f = fract(g);
+            float hh = cp_h2(id + fk * 3.0);
+            if (hh < 0.78 - 0.20 * bass) continue;
+            vec2 c = vec2(0.5 + 0.35 * sin(t * (1.0 + hh) + hh * 20.0), 0.5 + 0.3 * (cp_h2(id + 7.0) - 0.5));
+            vec2 d = (f - c) / vec2(1.0, 1.6);
+            float glow = exp(-dot(d, d) * (260.0 + 200.0 * fk));
+            float life = smoothstep(0.85, 0.05, uv.y);
+            float tw = 0.65 + 0.35 * sin(t * (2.0 + 2.0 * hh) + hh * 40.0);
+            e += mix(vec3(1.0, 0.35, 0.05), vec3(1.0, 0.75, 0.30), hh) * glow * life * tw * (1.2 - 0.4 * fk);
+        }
+        col += e * on * (0.9 + 1.2 * bass) * (0.8 + 0.4 * night);
+        col += vec3(0.30, 0.07, 0.01) * on * 0.10 * smoothstep(0.45, 0.0, uv.y);   // brillo del fuego abajo
+    }
+
+    // CUERVOS (capa 6): planean despacio y aletean con el bombo
+    if (sel == 6 && on > 0.001) {
+        float m = 0.0;
+        for (int i = 0; i < 5; i++) {
+            float fi = float(i);
+            float h1 = cp_h1(fi * 4.7 + 9.0), h2 = cp_h1(fi * 2.3 + 4.0);
+            float s = 0.075 + 0.055 * h2;
+            float x = mix(-0.35, asp + 0.35, fract(t * (0.035 + 0.02 * h1) + h1 * 5.0));
+            float y = 0.55 + 0.38 * h2 + 0.05 * sin(t * 0.4 + fi * 1.3);
+            vec2 q = (p - vec2(x, y)) / s;
+            if (dot(q, q) > 2.5) continue;
+            // planean y cada tanto aletean; con el bombo aletea la bandada
+            float flapOn = max(smoothstep(0.6, 0.9, sin(t * 0.7 + fi * 2.0)), beat);
+            float flap = mix(0.12, 0.6 * sin(t * 6.0 + fi), flapOn);
+            m = max(m, smoothstep(0.03, -0.03, cp_crow(q, flap)));
+        }
+        col = mix(col, vec3(0.01, 0.01, 0.015) + env * 0.05, m * on);
+    }
+
+    // MIEDO: luz que baja, contraste, rojo, vineta que late y parpadeo lento
+    if (fear > 0.001) {
+        vec2 vc = (uv - 0.5) * vec2(1.0, 1.15);
+        float vig = 1.0 - fear * (0.70 + 0.15 * beat) * smoothstep(0.22, 0.85, length(vc));
+        col = pow(max(col, 0.0), vec3(1.0 + 0.45 * fear)) * (1.0 - 0.18 * fear);
+        float l = cp_lum(col);
+        col = mix(col, l * vec3(1.30, 0.42, 0.36), 0.42 * fear);
+        // a lo sumo 2 bajones de luz por segundo (casilleros de 0.5 s)
+        float slot = floor(t * 2.0);
+        float dip = step(0.78, cp_h1(slot * 1.31)) * sin(3.14159 * fract(t * 2.0));
+        col *= vig * (1.0 - 0.32 * fear * dip);
+    }
+
+    vec3 excess = max(col - 1.0, 0.0);
+    col = col - excess + excess / (1.0 + excess);
+    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+}
+"""
+
+
+def _build_capas(proj, src_top, ctrl_tex, channels):
+    """program_capas (GLSL: imagen + control) + capas_pick: el switch deja
+    pasar la imagen tal cual cuando no hay capa ni miedo (no cocina)."""
+    dat = proj.create(textDAT, 'program_capas_frag')
+    dat.nodeX, dat.nodeY = 1160, 820
+    dat.text = shader.ctrl_header(channels, 1) + _CAPAS_FRAG
+
+    capas = proj.create(glslTOP, 'program_capas')
+    capas.nodeX, capas.nodeY = 1320, 820
+    safe_set_first(capas, ['pixeldat', 'pixelshader'], dat.path)
+    connect(capas, src_top, 0)
+    connect(capas, ctrl_tex, 1)
+    safe_set_first(capas, ['format', 'pixelformat'], 'rgba16float')
+    # mipmaps de la entrada: la luz de la escena alrededor (textureLod)
+    if not safe_set_first(capas, ['inputfiltertype', 'inputfilter'], 'mipmap'):
+        log('AVISO CAPAS: sin filtro mipmap -- la niebla toma menos el color de la escena')
+
+    pick = proj.create(switchTOP, 'capas_pick')
+    pick.nodeX, pick.nodeY = 1480, 820
+    connect(pick, src_top, 0)
+    connect(pick, capas, 1)
+    safe_set(pick, 'cooktype', 'selective')
+    safe_expr(pick, 'index',
+              "1 if (op('/project1/ctrl')['capaon'].eval() > 0.002 or "
+              "op('/project1/ctrl')['fear'].eval() > 0.002) else 0")
+    log('CAPAS: niebla/murcielagos/lluvia/aranas/brasas/cuervos + miedo (bypass real) OK')
+    return capas, pick
 
 
 def build(proj, scene_outs, ctrl_tex=None, channels=None):
@@ -877,6 +1166,10 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
         connect(clean, cross_out)
         post = clean
 
+    capas = None
+    if ctrl_tex is not None and channels and getattr(config, 'CAPAS_ON', False):
+        capas, post = _build_capas(proj, post, ctrl_tex, channels)
+
     bloom_fx = _build_bloom(proj, post, ctrl_tex, channels)
     bloom = bloom_fx['bloom']
 
@@ -917,6 +1210,8 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
                                   'trails_pick') if k in fx]
     if trans is not None:
         res_nodes += [trans, cross_out]
+    if capas is not None:
+        res_nodes += [capas, post]
     for t in res_nodes:
         safe_set(t, 'outputresolution', 'custom')
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")

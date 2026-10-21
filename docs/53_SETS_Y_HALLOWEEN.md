@@ -137,8 +137,14 @@ En Halloween varias perillas casi no aportaban (Density la usan 4 de 31 escenas;
 | Perilla 16 | **Marco de arco** (Estilomarco) | Paleta |
 | Pad 7 (banco A) | **Noche ON/OFF** (LED rojo = prendida) | Dos Capas |
 | Pad 16 (banco B) | **Momento**: dispara ya el gran clímax de la escena (LED verde mientras dura) | Modo mezcla |
+| Perilla 1 (girar) | **MIEDO**: de calma a terror en todas las escenas (fase 29) | Energía |
+| Perilla 1 (clic) | **Momento**, igual que el pad 16 | Snapshot |
+| Perilla 9 (girar) | **Navegador de escenas**: elegir la próxima sin tocar el aire | Detail 1 |
+| Perilla 9 (clic) | **Lanzar** la escena elegida con su transición | Take (preview) |
+| Pad 14 (banco B) | **Capa encima ON/OFF** (LED con el color de la capa) | Mirror |
+| Pad 15 (banco B) | **Siguiente capa** (LED = la capa elegida) | Zoom |
 
-Todo lo demás queda igual: Energía, Speed, Chaos (locura), Audio, Estela, Master, Detail 1–6, Shift+1/Shift+9, tira de Mod (imagen), los pads del show y el banco B de efectos (sin cambios por ahora). La página MIDI Mapping muestra los nombres nuevos. Para volver a lo de siempre en Halloween, borrar `"midi_redirect"` del `set.json`.
+Todo lo demás queda igual: Speed, Chaos (locura), Audio, Estela, Master, Detail 2–6, Shift+1/Shift+9, tira de Mod (imagen), los pads del show y el resto del banco B de efectos. Detail 1 queda en el preset de cada escena (se mueve desde el dashboard). Los **clics** de las perillas 1 y 9 hay que aprenderlos una vez (Learn Clic1 / Learn Clic9, apretando la perilla): cada uno manda su propio número de control según la memoria del MiniLab. La página MIDI Mapping muestra los nombres nuevos. Para volver a lo de siempre en Halloween, borrar `"midi_redirect"` del `set.json`.
 
 Idea para más adelante (no hecha): el banco B podría pasar a efectos propios de Halloween.
 
@@ -556,4 +562,48 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 - **Caldero (11):** las piedras de la pared están abombadas y tienen oclusión en las juntas. El hierro del caldero está martillado, y las asas, la leña, la viga, los frascos y los ramos de hierbas tienen volumen. La forma esférica del caldero ya estaba.
 - **Morgue (29):** las sábanas quedan como están. La lámina de marcas no tiene canal libre y el cambio pedía otra lámina por poca diferencia.
 - **Costo:** igual dentro del ruido. **Reconstruir Todo:** láminas nuevas.
+
+## Fase 29: capas encima, Miedo, navegador, guardián de FPS y límite de destellos
+
+![Capas y Miedo](img/capas_miedo.jpg)
+
+**Capas encima de las escenas** (pad 14 ON/OFF, pad 15 siguiente). Es un solo pase sobre la salida (`program_capas` en `program.py`), después del fundido y antes del bloom. Funciona en las 31 escenas, también en las de imagen y en medio de una transición. Sin capa ni Miedo, el switch `capas_pick` la saltea y no cuesta nada.
+
+| # | Capa | Con el audio |
+|---|---|---|
+| 1 | Niebla baja que se arrastra; toma el color de la escena | respira con el bajo |
+| 2 | Murciélagos que cruzan | con el bajo entran más |
+| 3 | Lluvia en dos planos, iluminada por la escena | — |
+| 4 | Arañas que bajan de su hilo y caminan por los bordes | bajan más con el bajo |
+| 5 | Brasas que suben del piso | el bajo las aviva |
+| 6 | Cuervos planeando | con el bombo aletea la bandada |
+
+- **Fundido.** La capa entra y sale en 1,5 s (`capa_lag`). Si cambias de capa con una prendida, se apaga, espera el fundido y entra la nueva.
+- **Escenas donde no pega** (`set.json` → `capas_excluir`): no hay lluvia ni cuervos en interiores (baño, VHS, pasillo, cripta, cabaña, tumba, velas, esqueleto, túnel, demonio, galería, espejo, las de imagen 24–25 y la morgue). Tampoco lluvia en la tormenta, murciélagos en el castillo, cuervos en la luna ni arañas en la araña. Al entrar a una de esas escenas, la capa cambia sola por la próxima que sí pega.
+- **Noche.** Cuanto más avanza la noche, más niebla y más brasas.
+
+**Miedo** (perilla 1). Va de calma a terror en todas las escenas: baja la luz y sube el contraste, la imagen tira a rojo, la viñeta se cierra y late con el bombo, aparece niebla, hay un temblor de cámara lento y la luz baja de golpe cada tanto (como mucho 2 veces por segundo). Se desliza (0,6 s), no salta. Lo que mueve solo el audio queda quieto en silencio.
+
+**Navegador** (perilla 9). La perilla es una **posición en el setlist**: a la izquierda la primera escena, a la derecha la última. Al girarla, la escena elegida aparece en el **preview** del dashboard y en el panel (`>> NAVEGADOR 07 ...`), sin tocar lo que ve el público. El **clic** la lanza con su transición y su preset. A los 8 s sin mover la perilla, el preview deja de calcular esa escena (para no gastar FPS), pero la elección queda guardada hasta que la lances.
+
+**Guardián de FPS** (página Guardián).
+- Si el FPS **real** pasa 2 s seguidos por debajo de **40**, baja la escala de render de las escenas un escalón (0,75 → 0,6 → 0,5). Si pasa 5 s por encima de **55**, la vuelve a subir.
+- El cambio se aplica durante el próximo fundido de escena, si hay uno en los 15 s siguientes; si no, se aplica igual.
+- No sube nada si el failsafe ya actuó (ese se resetea a mano).
+- **Arreglo de fondo:** el FPS del panel y el failsafe leían `project.cookRate`, que según la documentación de TD es la tasa **pedida** (60), no la lograda. Por eso el panel podía decir 60 con la imagen a 15, y el failsafe nunca actuaba. Ahora se mide con un Perform CHOP (`/project1/perf`, canal `fps`), con el reloj real como respaldo.
+- **Ojo:** ahora el failsafe sí puede actuar. Si el FPS queda 4 s bajo 24 aun con el guardián en 0,5, apaga la estela y las dos capas, y en último caso baja la resolución de salida.
+
+**Límite de destellos.** `td/tools/test_destellos.py` dibuja cada escena cuadro a cuadro durante su gran clímax, con bombo a 128 BPM, Chaos 0,9 y la noche avanzada. Mide también las cuatro transiciones y el Miedo, sobre una escena clara. Cuenta los destellos por segundo con el criterio WCAG 2.3.1: un cambio de luminancia de al menos 10 % con el lado oscuro bajo 80 %, en un noveno de la pantalla; el tope es **3 por segundo**. El Strobe ya tenía su tope de 3 Hz. Midiendo a 60 cuadros por segundo pasaban el tope dos cosas, ya corregidas: la **tormenta (09)**, porque el rayo suelto se sumaba al del bombo y el destello temblaba a 22 Hz, llegaba a 4 por segundo; la **transición Apagón**, porque la luz titilaba a ~22 Hz, también llegaba a 4. Ahora la tormenta da como mucho 3 y el Apagón, 1.
+
+**MIDI, dos arreglos:**
+- **Relativas.** La lectura relativa ya no se adivina. Antes, cualquier perilla absoluta cuyo primer valor caía cerca de la mitad quedaba leída como relativa: sumaba pasos en vez de tomar su posición hasta que se la llevaba a un extremo. Ahora solo se lee relativo un canal declarado en `config.RELATIVE_CHANNELS` (vacío). Además, el MIDI In CHOP solo avisa cuando el valor cambia, así que una relativa de verdad casi no llega: la solución es ponerla en Absolute en Arturia MIDI Control Center (docs/02).
+- **Migración.** Se vació la "migración al layout v2" (`config.MIDI_LAYOUT_V2`). Sus canales contradecían el mapeo real del panel: con un `midi_map.json` viejo, pasaba la Energía a la perilla 7, el autopilot al pad 13 y Retro al pad 2.
+
+**Pruebas:**
+- `td/tools/test_capas_miedo.py`
+- `td/tools/test_destellos.py`
+- `td/tools/render_capas.py` (hoja de las capas sobre escenas reales)
+- `test_perillas_relativas` y `test_layout_v2` actualizadas
+
+**Reconstruir Todo:** hay canales, CHOPs, parámetros y un GLSL nuevos.
 

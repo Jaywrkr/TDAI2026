@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""Perillas 1 y 9 (modo relativo de fabrica del MiniLab mkII): que
-_handle() no se quede mudo si el controlador nunca se paso a Absolute.
+"""Perillas absolutas y relativas en midi_logic._handle().
 
 Se prueba fuera de TD con el mismo arnes que test_layout_v2.py: se
-ejecuta midi_logic.py de verdad (sin mockear _norm01 esta vez, para que
+ejecuta midi_logic.py de verdad (sin mockear _norm01, para que
 _relativePosition vea los valores RAW 0..127 que manda un CHOP MIDI).
 
+Fase 29: la lectura relativa ya no se adivina. Antes, una perilla
+ABSOLUTA cuyo primer valor caia cerca de la mitad (58..70) quedaba leida
+como relativa y sumaba pasos en vez de tomar su posicion. Ahora solo se
+lee relativo un canal declarado en config.RELATIVE_CHANNELS.
+
 Casos:
-  1. Una perilla que manda 0..127 de verdad (absoluta, como las 14 que ya
-     funcionan) se comporta exactamente igual que antes: la posicion es
-     val/127.0.
-  2. Una perilla en modo relativo (solo manda numeros pegados a 64, nunca
-     los extremos) ACUMULA en vez de quedarse en ~0.5 para siempre: cada
-     paso hacia arriba/abajo mueve el valor.
-  3. Si esa misma perilla de golpe manda un valor bien afuera de la banda
-     angosta (alguien la paso a Absolute a mitad de show, o total nunca
-     fue relativa), se confirma absoluta para siempre y deja de acumular.
-  4. Dos canales distintos no se pisan entre si (cada uno con su propio
-     estado guardado).
+  1. Una perilla absoluta se lee val/127, aunque arranque en la mitad y
+     se mueva despacio por la zona central (el bug de antes).
+  2. Un canal declarado relativo ACUMULA pasos (65 = +1, 63 = -1).
+  3. Si ese canal manda un valor bien afuera de la banda, se confirma
+     absoluto y deja de acumular.
+  4. Dos canales distintos no se pisan entre si.
+  5. La tira de pitch nunca pasa por la lectura relativa.
 """
 import os
 import sys
@@ -67,7 +67,7 @@ def main():
         if not ok:
             fails.append(label)
 
-    print('--- Perilla NORMAL (absoluta, como siempre): sin cambios ---')
+    print('--- Perilla NORMAL (absoluta): toma su posicion ---')
     p = project_with_midi(Midienergy='ch1ctrl74')
     ml = load_midi_logic(p)
     ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 100, False)
@@ -76,36 +76,44 @@ def main():
     check('salta directo a la nueva posicion (no acumula)',
           p.par.Energy.val, 20 / 127.0)
 
-    print('\n--- Perilla 1 en modo RELATIVO de fabrica (nunca sale de 58..70) ---')
-    p = project_with_midi(Midienergy='ch1ctrl74')
+    print('\n--- Absoluta que ARRANCA en la mitad y se mueve despacio (el bug) ---')
+    p = project_with_midi(Mididetail2='ch1ctrl19', Detail2=0.0)
     ml = load_midi_logic(p)
-    # Arranca en 0.5 (centro) y cada paso +1/-1 mueve 1/127.
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
-    check('primer paso: sube', p.par.Energy.val, 0.5 + 1 / 127.0)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
-    check('varios pasos hacia arriba: acumula (no se queda mudo)',
-          p.par.Energy.val, 0.5 + 3 / 127.0)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 63, False)  # -1
-    check('un paso hacia abajo', p.par.Energy.val, 0.5 + 2 / 127.0)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 66, False)  # +2 (giro rapido)
-    check('paso mas grande girando rapido', p.par.Energy.val, 0.5 + 4 / 127.0)
+    for v in (64, 65, 66, 67, 66, 65):
+        ml._handle(types.SimpleNamespace(name='ch1ctrl19'), v, False)
+    check('queda en su posicion real (65/127), no suma pasos',
+          p.par.Detail2.val, 65 / 127.0)
 
-    print('\n--- Confirma absoluta si algun dia manda un valor lejos de 64 ---')
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 10, False)
-    check('valor bien afuera de la banda se toma tal cual', p.par.Energy.val, 10 / 127.0)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)
-    check('confirmada absoluta: ya no vuelve a acumular', p.par.Energy.val, 65 / 127.0)
+    print('\n--- Canal declarado RELATIVO (config.RELATIVE_CHANNELS) ---')
+    old = list(config.RELATIVE_CHANNELS)
+    config.RELATIVE_CHANNELS[:] = ['ch1ctrl74', 'ch1ctrl18']
+    try:
+        p = project_with_midi(Midienergy='ch1ctrl74')
+        ml = load_midi_logic(p)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)  # +1
+        check('primer paso: sube', p.par.Energy.val, 0.5 + 1 / 127.0)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)
+        check('varios pasos hacia arriba: acumula', p.par.Energy.val, 0.5 + 3 / 127.0)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 63, False)  # -1
+        check('un paso hacia abajo', p.par.Energy.val, 0.5 + 2 / 127.0)
 
-    print('\n--- Perilla 9 (Detail1) con su propio estado, no se pisa con otro canal ---')
-    p = project_with_midi(Midienergy='ch1ctrl74', Mididetail1='ch1ctrl18')
-    ml = load_midi_logic(p)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl18'), 65, False)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl18'), 65, False)
-    check('Detail1 (relativo) acumula independiente', p.par.Detail1.val, 0.5 + 2 / 127.0)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 90, False)
-    check('Energy (canal distinto) sigue absoluto sin verse afectado',
-          p.par.Energy.val, 90 / 127.0)
+        print('\n--- Confirma absoluta si algun dia manda un valor lejos de 64 ---')
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 10, False)
+        check('valor bien afuera de la banda se toma tal cual', p.par.Energy.val, 10 / 127.0)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 65, False)
+        check('confirmada absoluta: ya no vuelve a acumular', p.par.Energy.val, 65 / 127.0)
+
+        print('\n--- Dos canales relativos no se pisan ---')
+        p = project_with_midi(Midienergy='ch1ctrl74', Mididetail1='ch1ctrl18')
+        ml = load_midi_logic(p)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl18'), 65, False)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl18'), 65, False)
+        check('Detail1 (relativo) acumula independiente', p.par.Detail1.val, 0.5 + 2 / 127.0)
+        ml._handle(types.SimpleNamespace(name='ch1ctrl74'), 90, False)
+        check('Energy (otro canal) toma su valor', p.par.Energy.val, 90 / 127.0)
+    finally:
+        config.RELATIVE_CHANNELS[:] = old
 
     print('\n--- La tira de pitch (Detail6) nunca pasa por deteccion relativa ---')
     p = project_with_midi(Mididetail6='ch1pitch', Detail6=0.0)
