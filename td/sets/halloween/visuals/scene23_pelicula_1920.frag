@@ -12,10 +12,16 @@
 //   agudos -> polvo y chispas en la pelicula
 //   golpe  -> salta el cuadro (se ve la linea entre fotogramas); con
 //             Chaos la pelicula se traba y se derrite en el proyector
+// PIANO: cada tecla raya la pelicula con un rayon blanco en la posicion
+//   de la nota (grave a la izquierda) y el cuadro salta; la fuerza: mas
+//   grueso; apretada, el rayon sigue y tiembla.
 // Speed mueve el grano, las rayas y el polvo aun en silencio.
-// HISTORIA: cada ~41 s el iris se cierra y se abre; cada ~73 s la cinta
-// se quema (burbuja que crece y deja la pantalla en blanco); cada ~57 s
-// un cartel de titulo con marco; alguien del publico se da vuelta.
+// HISTORIA: cada ~41 s el iris se cierra y se abre; cada ~57 s un cartel
+// de titulo con marco; alguien del publico se da vuelta.
+// CLIMAX (~73 s, 18 s, en tres tiempos): el proyector salta y parpadea
+//   cada vez mas y el iris se cierra; se abre y la cinta se quema con una
+//   burbuja hasta quedar en blanco; vuelve con un cartel de titulo y
+//   alguien del publico se da vuelta. Cada ~4.5 min mas largo (gran climax).
 //
 // @D1: rayas y polvo
 // @D2: parpadeo
@@ -38,15 +44,25 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float has = hkMediaHas();
 
+    vec4 G = hkGrandClimax(51.0);
+    vec4 C = hkClimaxOr(G, hkClimax(51.0, 73.0, 18.0));
+    float cph = C.w;
+    float shake = C.x * (1.0 - C.y) * (1.0 - C.z);                         // aviso: saltos
     float irisE = hkEvent(50.0, 41.0, 5.0);
     float irisPh = hkEventPhase(50.0, 41.0, 5.0);
-    float burnE = hkEvent(51.0, 73.0, 7.0);
-    float burnPh = hkEventPhase(51.0, 73.0, 7.0);
-    float cardE = hkEvent(52.0, 57.0, 6.0);
-    float turnE = hkEvent(53.0, 67.0, 9.0);
+    // el iris del climax: se cierra al final del aviso y se abre al llegar el pico
+    float irisC = smoothstep(0.18, 0.33, cph) * (1.0 - smoothstep(0.36, 0.44, cph));
+    // la cinta se quema durante el pico y queda en blanco hasta el cartel
+    float burnE = smoothstep(0.44, 0.46, cph) * (1.0 - smoothstep(0.78, 0.82, cph));
+    float burnPh = clamp((cph - 0.45) / 0.22, 0.0, 1.0);
+    float cardE = max(hkEvent(52.0, 57.0, 6.0), smoothstep(0.80, 0.85, cph) * (1.0 - smoothstep(0.95, 1.0, cph)));
+    float turnE = max(hkEvent(53.0, 67.0, 9.0), C.z);
+    // piano: saltos de cuadro
+    float keyJump = 0.0;
+    for (int k = 0; k < N_KEYS; k++) keyJump = max(keyJump, keyEnv(k, 0.01, 0.3) * exp(-keyAge(k) * 5.0) * (0.5 + keyVel(k)));
 
     float fps = floor(t * 18.0);                    // la pelicula corre a 18 cuadros
-    float flick = 1.0 - (0.06 + uD2 * 0.22) * (0.5 + 0.5 * hash21(vec2(fps, 1.0))) - bass * uD2 * 0.15;
+    float flick = 1.0 - (0.06 + uD2 * 0.22 + shake * 0.30) * (0.5 + 0.5 * hash21(vec2(fps, 1.0))) - bass * uD2 * 0.15;
     vec2 SW = vec2(SH * 4.0 / 3.0, SH);
 
     // --- sala ---
@@ -85,7 +101,8 @@ vec4 render(vec2 uv) {
     // --- pantalla / pelicula ---
     vec2 sq = p - SC;
     // gate weave + salto de cuadro
-    float jump = hit * uD3 * step(0.5, hash21(vec2(fps, 2.0))) * 0.25 + hit * loco * 0.15;
+    float jump = hit * uD3 * step(0.5, hash21(vec2(fps, 2.0))) * 0.25 + hit * loco * 0.15
+               + shake * step(0.65, hash21(vec2(fps, 7.0))) * 0.20 + keyJump * 0.12;
     sq += vec2(sin(t * 3.1) * 0.003, sin(t * 2.3) * 0.004) * (0.5 + mid * 2.0);
     vec2 sc = sq / (2.0 * SW) + 0.5;                    // 0..1 de la pantalla
     vec2 fr2 = vec2(sc.x, fract(sc.y + jump));
@@ -125,9 +142,19 @@ vec4 render(vec2 uv) {
         film *= flick;
         vec2 vc = (sc - 0.5) * vec2(4.0 / 3.0, 1.0);
         film *= 1.0 - (0.25 + uD4 * 0.55) * smoothstep(0.2, 0.75, length(vc));
-        if (irisE > 0.001) {
-            float irisR = 0.9 * (1.0 - clamp(irisE * (1.0 - abs(irisPh * 2.0 - 1.0)) * 1.6, 0.0, 1.0));
+        float irisClose = max(irisE * (1.0 - abs(irisPh * 2.0 - 1.0)) * 1.6, irisC);
+        if (irisClose > 0.001) {
+            float irisR = 0.9 * (1.0 - clamp(irisClose, 0.0, 1.0));
             film *= smoothstep(irisR, irisR - 0.02, length(vc));
+        }
+        // piano: rayones blancos en la posicion de cada tecla
+        for (int k = 0; k < N_KEYS; k++) {
+            float e = keyEnv(k, 0.01, 0.5);
+            if (e < 0.01) continue;
+            float sx = mix(0.06, 0.94, keyPos(k)) + (noise21(vec2(sc.y * 6.0, uKclock * 8.0 + float(k))) - 0.5) * 0.02 * (1.0 + keyHeld(k));
+            float wsc = 0.002 + keyVel(k) * 0.006;
+            float scr = (1.0 - smoothstep(0.0, wsc, abs(sc.x - sx))) * (0.6 + 0.4 * step(0.3, noise21(vec2(sc.y * 40.0, floor(uKclock * 18.0)))));
+            film = mix(film, vec3(1.0), scr * e * 0.9);
         }
         // cartel de titulo
         if (cardE > 0.01) {

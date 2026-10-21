@@ -13,12 +13,19 @@
 //   agudos -> brilla el polvo en el aire
 //   golpe  -> los cuadros dan un tiron y la imagen "grita" (se estira y
 //             se hunde en el centro); con Chaos, se tuercen y tiemblan
+// PIANO: cada tecla hace gritar el cuadro de esa posicion (la imagen se
+//   estira y se hunde, pasa a negativo un instante) y su lampara se aviva;
+//   la fuerza: mas grito; apretada sigue gritando.
 // Speed mueve las llamas, el polvo y el balanceo aun en silencio.
 // HISTORIA: cada ~53 s apagon (solo quedan las imagenes, palidas, como
 // si brillaran solas); cada ~67 s un cuadro se suelta de un lado y
-// queda torcido; cada ~89 s todos los retratos se vuelven negativos.
+// queda torcido.
+// CLIMAX (~89 s, 18 s, en tres tiempos): apagon y los cuadros se tuercen
+//   de a uno; todos los retratos pasan a negativo a la vez y gritan;
+//   vuelven parpadeando y se enderezan. Cada ~4.5 min con un cuadro que
+//   se suelta (gran climax).
 //
-// @D1: cantidad de cuadros (3 <-> 5)
+// @D1: cantidad de cuadros (3 <-> 5; se reacomodan y el nuevo crece)
 // @D2: balanceo con el golpe
 // @D3: grito (deformacion de la imagen)
 // @D4: velas y lamparas
@@ -44,6 +51,20 @@ float g20Damask(vec2 p) {
     return 1.0 - smoothstep(0.0, 0.015, d);
 }
 
+// segundos desde la tecla mas reciente (para el destello en negativo)
+float keyAgeMin() { float a = 1e4; for (int i = 0; i < N_KEYS; i++) a = min(a, keyAge(i)); return a; }
+
+// piano: cuanto grita el cuadro k (la tecla mas cercana en posicion)
+float g20Key(float k, float nSlots) {
+    float kb = 0.0;
+    for (int i = 0; i < N_KEYS; i++) {
+        float e = keyEnv(i, 0.06, 0.6);
+        if (e < 0.01) continue;
+        if (abs(floor(keyPos(i) * nSlots * 0.999) - k) < 0.5) kb = max(kb, e * (0.5 + keyVel(i) * 0.7));
+    }
+    return kb;
+}
+
 vec4 render(vec2 uv) {
     vec2 p = hkCam(hkPunch(hkShake(centered(uv))));
     float t = uTime;
@@ -54,12 +75,18 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float has = hkMediaHas();
 
-    float dark = hkEvent(20.0, 53.0, 6.0);       // apagon
-    float fallE = hkEvent(21.0, 67.0, 14.0);     // un cuadro se suelta
-    float negE = hkEvent(22.0, 89.0, 5.0);       // todos negativos
-    float fallPh = hkEventPhase(21.0, 67.0, 14.0);
+    vec4 G = hkGrandClimax(22.0);
+    vec4 C = hkClimaxOr(G, hkClimax(22.0, 89.0, 18.0));
+    float cph = C.w;
+    float dark = max(hkEvent(20.0, 53.0, 6.0), C.x * (1.0 - C.z) * 0.9);   // apagon
+    float fallE = max(hkEvent(21.0, 67.0, 14.0), G.x);                      // un cuadro se suelta
+    // pico: todos negativos; secuelas: vuelven parpadeando
+    float negE = max(C.y, C.z * step(0.55, noise21(vec2(uRTime * 9.0, 3.0))) * (1.0 - smoothstep(0.85, 0.95, cph)));
+    float fallPh = G.w > 0.0 ? G.w : hkEventPhase(21.0, 67.0, 14.0);
 
-    float n = 3.0 + floor(uD1 * 2.99);
+    // cantidad continua de cuadros: se reacomodan sin saltar y el nuevo crece
+    float n = 3.0 + uD1 * 2.0;
+    float nSlots = ceil(n - 1e-3);
     float span = (uAspect - 0.55) * 2.0;
     float cw = span / n;
     float fh = min(0.96, cw * 1.15);             // alto del marco
@@ -68,7 +95,7 @@ vec4 render(vec2 uv) {
     fh = fw / ia;
     float cy = 0.12;
     float lampOn = (0.25 + uD4 * 0.75) * (1.0 - dark * 0.92);
-    float fallK = floor(hash21(vec2(floor(uRTime / 67.0), 4.0)) * n);
+    float fallK = floor(hash21(vec2(floor(uRTime / 67.0), 4.0)) * 3.0);
 
     // --- pared ---
     float dm = g20Damask(p);
@@ -97,7 +124,7 @@ vec4 render(vec2 uv) {
     vec3 warm = vec3(1.0, 0.74, 0.50);
     for (int k = 0; k <= 5; k++) {
         float fk = float(k);
-        if (fk > n) break;
+        if (fk > nSlots) break;
         float x = -span * 0.5 + fk * cw;
         float fl = 0.8 + 0.2 * noise21(vec2(t * 5.0, fk * 3.1));
         vec2 cp = vec2(x, cy + 0.10);
@@ -106,21 +133,25 @@ vec4 render(vec2 uv) {
     }
     for (int k = 0; k < 5; k++) {
         float fk = float(k);
-        if (fk >= n) break;
+        if (fk >= nSlots) break;
         float x = -span * 0.5 + (fk + 0.5) * cw;
         vec2 lp = vec2(x, cy + fh * 0.5 + 0.10);
         vec2 dq = pw - lp;
         float cone = smoothstep(0.9, 0.2, abs(dq.x) / max(-dq.y * 1.1 + 0.08, 0.02)) * step(dq.y, 0.0);
-        light += vec3(1.0, 0.85, 0.65) * cone * exp(dq.y * 1.4) * lampOn * (0.35 + bass * 0.45) * 0.55;
+        light += vec3(1.0, 0.85, 0.65) * cone * exp(dq.y * 1.4) * (lampOn + g20Key(fk, nSlots) * 0.8) * (0.35 + bass * 0.45) * 0.55 * revealAt(n, fk);
     }
     col *= light * 6.0;
 
     // --- cuadros ---
-    float idx = clamp(floor((pw.x + span * 0.5) / cw), 0.0, n - 1.0);
+    float idx = clamp(floor((pw.x + span * 0.5) / cw), 0.0, nSlots - 1.0);
     for (int kk = -1; kk <= 1; kk++) {
         float k = idx + float(kk);
-        if (k < 0.0 || k >= n) continue;
+        if (k < 0.0 || k >= nSlots) continue;
+        float grow = revealAt(n, k);
         float hs = hash21(vec2(k, 2.0));
+        float kb = g20Key(k, nSlots);
+        // climax: se tuercen de a uno en el aviso y se enderezan al final
+        float tilt = cph > 0.0 ? smoothstep(0.05 + k * 0.06, 0.12 + k * 0.06, cph) * (1.0 - smoothstep(0.80, 0.92, cph)) : 0.0;
         float x = -span * 0.5 + (k + 0.5) * cw;
         vec2 nail = vec2(x, cy + fh * 0.5 + 0.06);
         // balanceo: medios + tiron del golpe con retraso propio
@@ -129,7 +160,9 @@ vec4 render(vec2 uv) {
         sw += hit * loco * (hs - 0.5) * 0.25;
         float fallen = step(abs(k - fallK), 0.1) * smoothstep(0.0, 0.08, fallPh) * fallE;
         sw += fallen * (hs > 0.5 ? 0.42 : -0.42) * (1.0 + 0.03 * sin(uRTime * 3.0));
-        vec2 q = g20rot(-sw) * (pw - nail) + vec2(0.0, fh * 0.5 + 0.06);
+        sw += tilt * (hs - 0.5) * 0.55;
+        // el cuadro nuevo crece desde su clavo
+        vec2 q = g20rot(-sw) * (pw - nail) / max(grow, 0.05) + vec2(0.0, fh * 0.5 + 0.06);
         // alambre al clavo
         if (!floorPx) {
             vec2 qa = g20rot(-sw) * (pw - nail);
@@ -159,7 +192,7 @@ vec4 render(vec2 uv) {
             // la imagen como oleo viejo: craquelado, barniz amarillento
             vec2 m = (q / (vec2(fw, fh) - 2.0 * mb)) + 0.5;
             vec2 c = vec2(0.5, 0.52);
-            float scream = hit * (0.35 + uD3 * 0.65) + negE * 0.3;
+            float scream = hit * (0.35 + uD3 * 0.65) + negE * 0.3 + kb * (0.6 + uD3 * 0.6);
             vec2 dm2 = m - c;
             m = c + dm2 * (1.0 + scream * 0.35 * exp(-dot(dm2, dm2) * 9.0)) * vec2(1.0, 1.0 + scream * 0.25);
             m += (vec2(noise21(m * 6.0 + uRTime), noise21(m * 6.0 - uRTime)) - 0.5) * hit * loco * 0.03;
@@ -169,7 +202,7 @@ vec4 render(vec2 uv) {
             if (fract(k * 0.5) > 0.25) mk.x = 1.0 - mk.x;
             vec2 muv = hkMediaCover(mk, ia);
             vec3 im = hkMediaGet(muv, 0.6, has);
-            float neg = clamp(uD5 * step(0.5, fract(k * 0.5)) + uD5 * 0.35 + negE, 0.0, 1.0);
+            float neg = clamp(uD5 * step(0.5, fract(k * 0.5)) + uD5 * 0.35 + negE + kb * exp(-keyAgeMin() * 3.0), 0.0, 1.0);
             vec3 oil = hkTone(im, 0.10, vec3(1.0, 0.86, 0.62), 1.15);
             float lum = dot(oil, vec3(0.33));
             float lp = pow(clamp(lum * 1.6, 0.0, 1.0), 1.0 / 2.2);
@@ -186,7 +219,7 @@ vec4 render(vec2 uv) {
     // --- candelabros de pared (entre cuadros) ---
     if (!floorPx && uD4 > 0.02) {
         float k2 = floor((p.x + span * 0.5) / cw + 0.5);
-        if (k2 >= 0.0 && k2 <= n) {
+        if (k2 >= 0.0 && k2 <= nSlots) {
             float x = -span * 0.5 + k2 * cw;
             vec2 b = vec2(x, cy + 0.02);
             float arm = min(hkSeg(p, b + vec2(0.0, -0.10), b), hkRBox(p - (b + vec2(0.0, -0.12)), vec2(0.025, 0.02), 0.01));
@@ -197,7 +230,7 @@ vec4 render(vec2 uv) {
         }
         // lamparas de galeria (barra de bronce)
         float k3 = floor((p.x + span * 0.5) / cw);
-        if (k3 >= 0.0 && k3 < n) {
+        if (k3 >= 0.0 && k3 < nSlots && revealAt(n, k3) > 0.5) {
             float x = -span * 0.5 + (k3 + 0.5) * cw;
             vec2 lp = vec2(x, cy + fh * 0.5 + 0.10);
             float bar = hkRBox(p - lp, vec2(fw * 0.28, 0.012), 0.01);
@@ -217,7 +250,7 @@ vec4 render(vec2 uv) {
     // --- placas de bronce bajo cada cuadro ---
     if (!floorPx) {
         float k4 = floor((p.x + span * 0.5) / cw);
-        if (k4 >= 0.0 && k4 < n) {
+        if (k4 >= 0.0 && k4 < nSlots && revealAt(n, k4) > 0.5) {
             vec2 pq = p - vec2(-span * 0.5 + (k4 + 0.5) * cw, cy - fh * 0.5 - 0.07);
             float pl = hkRBox(pq, vec2(0.075, 0.022), 0.004);
             float txt = step(0.55, noise21(vec2(floor(pq.x * 160.0), k4))) * step(abs(pq.y - 0.004), 0.004) * step(abs(pq.x), 0.06)

@@ -362,3 +362,16 @@ Mismo tratamiento que la fase 11: piano propio, Detail sin saltos y clímax en t
 
 - **Optimización del piano:** `keyEnv` y las demás funciones leen cada dato de la voz por separado y cortan apenas la voz no suena. Sin teclas, un bucle de 6 voces cuesta 6 lecturas, no 24. En el render por software, la 18 bajó de 0.30 s a 0.18 s y la 19 de 0.24 s a 0.17 s.
 
+## Fase 14: escenas de imagen 20–25
+
+| Escena | Piano | Detail sin saltos | Clímax |
+|---|---|---|---|
+| 20 Galería | El cuadro de esa posición grita (negativo un instante) y su lámpara se aviva | D1 continuo: los cuadros se reacomodan y el nuevo crece | Apagón y se tuercen de a uno → todos en negativo → vuelven parpadeando |
+| 21 Espejo | Estrella de grietas que crece mientras la tecla sigue apretada | — | Vapor total → una mano limpia → se raja entero |
+| 22 Se quema | Llamarada y chispas a la altura de la nota | D1 ya no cambia la duración de la vuelta (antes saltaba el frente o la foto): ciclo fijo de 22 s y D1 = velocidad del frente | Calor → incendio con llamaradas enormes → ráfaga que se lleva las cenizas. Para que no se "des-queme" al terminar, el clímax no adelanta la quemadura |
+| 23 Película | Rayón blanco en la posición de la nota y salto de cuadro | — | Saltos e iris que se cierra → la cinta se quema hasta el blanco → cartel y alguien del público se da vuelta |
+| 24 Sangra | Chorro de sangre que brota de la imagen | D1 = cortes en una grilla fija; los pedazos sin cortar quedan pegados como una hoja | La lámpara titila → la imagen llora a chorros → se apaga y la sangre brilla sola |
+| 25 Posesión | Tirón de la tira a la altura de la nota y ojos rojos | D1 continuo | Velas y ojos → venas hasta el centro y posesión total → todo queda rojo |
+
+- **Miniaturas:** `render_thumbs.py` define `HK_STILL` y `hkClimax` devuelve 0, así cada miniatura muestra la escena en reposo y no un clímax a medias.
+

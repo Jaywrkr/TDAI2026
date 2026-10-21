@@ -14,12 +14,18 @@
 //   agudos -> estatica fina sobre la imagen
 //   golpe  -> las tiras saltan a los costados y la imagen se desdobla;
 //             con Chaos se invierte y la camara tiembla fuerte
+// PIANO: cada tecla da un tiron a la tira de la imagen a la altura de la
+//   nota (grave abajo) y hace brillar los ojos; la fuerza: mas tiron;
+//   apretada, la tira tiembla corrida.
 // Speed mueve las tiras, el humo y las llamas aun en silencio.
-// HISTORIA: cada ~43 s se encienden los ojos; cada ~89 s posesion total
-// (tiras enloquecidas, venas hasta el centro); cada ~61 s las velas se
+// HISTORIA: cada ~43 s se encienden los ojos; cada ~61 s las velas se
 // avivan todas juntas.
+// CLIMAX (~89 s, 20 s, en tres tiempos): se avivan las velas y se encienden
+//   los ojos; las venas avanzan hasta el centro y llega la posesion total
+//   con tirones, espejo e inversion; despues todo queda rojo y las venas se
+//   retiran despacio. Cada ~4.5 min mas largo (gran climax).
 //
-// @D1: cantidad de tiras
+// @D1: cantidad de tiras (sin saltos)
 // @D2: cuanto saltan con el golpe
 // @D3: espejo (simetria)
 // @D4: venas
@@ -52,10 +58,17 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float has = hkMediaHas();
-    float eyesE = hkEvent(70.0, 43.0, 7.0);
-    float possE = hkEvent(71.0, 89.0, 6.0);
-    float flareE = hkEvent(72.0, 61.0, 4.0);
+    vec4 G = hkGrandClimax(71.0);
+    vec4 C = hkClimaxOr(G, hkClimax(71.0, 89.0, 20.0));
+    float cph = C.w;
+    float eyesE = max(hkEvent(70.0, 43.0, 7.0), smoothstep(0.15, 0.28, cph) * (1.0 - smoothstep(0.88, 1.0, cph)));
+    float possE = C.y;
+    float flareE = max(hkEvent(72.0, 61.0, 4.0), C.x * (1.0 - C.y) * 0.8);
     float poss = clamp(possE + hit * loco * 0.6, 0.0, 1.0);
+    // secuelas: la imagen queda roja y las venas se retiran despacio
+    float after = C.z;
+    float keyEyes = 0.0;
+    for (int k = 0; k < N_KEYS; k++) keyEyes = max(keyEyes, keyEnv(k, 0.03, 0.8) * (0.5 + keyVel(k) * 0.6));
 
     // temblor extra en la posesion
     p += (vec2(noise21(vec2(uRTime * 30.0, 1.0)), noise21(vec2(uRTime * 30.0, 2.0))) - 0.5) * 0.04 * possE;
@@ -123,11 +136,19 @@ vec4 render(vec2 uv) {
     float edgeA = smoothstep(0.0, 0.06 + eat, ed - eat * 0.5);
     if (inside > 0.5 && edgeA > 0.0) {
         // tiras horizontales que se corren
-        float strips = 6.0 + floor(uD1 * 26.0) + poss * 20.0;
+        float strips = 6.0 + uD1 * 26.0 + poss * 20.0;
         float sid = floor(iq.y * strips);
         float hs = hash21(vec2(sid, floor(uRTime * (1.0 + poss * 8.0))));
         float drift = (noise21(vec2(sid * 0.7, t * 0.25)) - 0.5) * 0.03 * (0.3 + mid * 2.0);
         float jumpX = (hs - 0.5) * hit * uD2 * 0.25 + (hs - 0.5) * poss * 0.4;
+        // piano: tiron en la tira a la altura de cada tecla
+        for (int k = 0; k < N_KEYS; k++) {
+            float e = keyEnv(k, 0.03, 0.8);
+            if (e < 0.01) continue;
+            float band = exp(-pow((iq.y - mix(0.06, 0.94, keyPos(k))) / (0.03 + keyVel(k) * 0.05), 2.0));
+            float dir = fract(keyPos(k) * 9.1) > 0.5 ? 1.0 : -1.0;
+            jumpX += band * e * dir * (0.06 + keyVel(k) * 0.14) * (1.0 + keyHeld(k) * 0.25 * sin(uKclock * 25.0));
+        }
         vec2 m = vec2(iq.x + drift + jumpX, iq.y);
         // espejo: se vuelve simetrico desde el centro
         float mir = clamp(uD3 + poss * 0.5, 0.0, 1.0);
@@ -140,14 +161,14 @@ vec4 render(vec2 uv) {
         // desdoble con el golpe (imagen fantasma corrida)
         vec3 dbl = hkMediaGet(hkMediaCover(fract(m + vec2(0.03 + poss * 0.05, 0.0)), ia), 1.0, has);
         im = mix(im, max(im, dbl * 0.8), hit * 0.5 + poss * 0.5);
-        vec3 tint = mix(vec3(0.85, 0.85, 0.88), vec3(0.95, 0.50, 0.46), uD5);
+        vec3 tint = mix(vec3(0.85, 0.85, 0.88), vec3(0.95, 0.50, 0.46), clamp(uD5 + after * 0.7 + poss * 0.4, 0.0, 1.0));
         im = hkTone(im, 0.0, tint, 1.25);
         // ojos: lo oscuro rodeado de luz brilla rojo (contraste local)
         float lC = dot(im, vec3(0.33));
         float lB = dot(hkTone(hkMediaGet(muv, 5.5, has), 0.0, vec3(1.0), 1.25), vec3(0.33));
         float pC = pow(max(lC, 0.0), 0.4545), pB = pow(max(lB, 0.0), 0.4545);   // en escala perceptual
         float hole = smoothstep(0.10, 0.18, pB - pC) * smoothstep(0.22, 0.12, pC) * smoothstep(0.20, 0.28, pB);
-        float eyesK = clamp(eyesE + poss + hit * loco * 0.5, 0.0, 1.0);
+        float eyesK = clamp(eyesE + poss + hit * loco * 0.5 + keyEyes, 0.0, 1.0);
         // estatica fina
         im += (hash21(iq * vec2(800.0, 600.0) + fract(uRTime * 13.0) * 50.0) - 0.5) * (0.02 + high * 0.08);
         // linea separadora entre tiras corridas
@@ -165,9 +186,9 @@ vec4 render(vec2 uv) {
     {
         vec2 sq = p / vec2(uAspect, 1.0);
         float edgeD = 1.0 - max(abs(sq.x), abs(sq.y));                // 0 en el borde
-        float reach = 0.18 + uD4 * 0.35 + poss * 0.5 + bass * 0.06;
+        float reach = 0.18 + uD4 * 0.35 + poss * 0.9 + after * 0.45 + C.x * 0.25 + bass * 0.06;
         float grow = smoothstep(reach, reach - 0.25, edgeD + (noise21(p * 2.0) - 0.5) * 0.15);
-        float v = p25Veins(p * vec2(1.0, 1.4), t) * grow * smoothstep(0.0, 0.05, uD4 + poss);
+        float v = p25Veins(p * vec2(1.0, 1.4), t) * grow * smoothstep(0.0, 0.05, uD4 + poss + after + C.x);
         col = mix(col, vec3(0.008, 0.0, 0.0) + vec3(0.25, 0.0, 0.0) * bass * v * 0.3, clamp(v * 1.2, 0.0, 0.95));
     }
     // --- sombras que entran por los bordes ---

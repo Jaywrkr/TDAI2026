@@ -108,6 +108,9 @@ float hkEventPhase(float seed, float every, float len) {
 // Ademas, cada ~4.5 min (hkGrand) el climax de la escena coincide con su
 // otro evento: ver hkGrand().
 vec4 hkClimax(float seed, float every, float len) {
+#ifdef HK_STILL
+    return vec4(0.0);      // miniaturas (render_thumbs.py): la escena en reposo
+#endif
     float slot = floor(uRTime / every);
     float start = hash21(vec2(slot, seed + float(uScene))) * (every - len - 2.0);
     float k = uRTime - slot * every - start;
