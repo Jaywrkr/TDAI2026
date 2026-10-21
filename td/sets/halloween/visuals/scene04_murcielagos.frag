@@ -18,12 +18,31 @@
 //   (la fuerza: mas grandes y rapidos); apretada, dan vueltas alrededor
 //   del punto; al soltarla salen volando hacia la camara.
 // Speed mueve la bandada, las nubes y la niebla aun en silencio.
-// HISTORIA: cada ~61 s cruza una bandada enorme, cada ~53 s relampaguea,
-// y cada acto cambia el color de la luna.
-// CLIMAX (~2 min, 22 s, en tres tiempos): los murcielagos se juntan en un
-//   remolino frente a la luna; la luna se tine de sangre; el remolino
-//   revienta y salen disparados hacia la camara. Cada ~4.5 min con
-//   tormenta de relampagos (gran climax).
+// Cada acto cambia el color de la luna.
+// REPERTORIO (fase 31, motor hkSuceso del kit):
+//   ESTADOS (~5 min): noche clara, tormenta (un relampago cada tanto, a lo
+//     sumo uno cada 5 s) y niebla en el valle (sube hasta el acantilado).
+//   SUCESOS (~55 s, 7): cruza una bandada enorme; un murcielago gigante
+//     cruza la luna; alguien recorre el castillo con una vela (las
+//     ventanas se prenden a su paso); el vampiro camina por el puente
+//     contra la luna; un rayo cae en el pararrayos de la torre; de la
+//     ventana roja sale volando el vampiro hacia la camara; la niebla
+//     trepa por el acantilado.
+//   DETALLES (~30 s, 5): estrella fugaz, una ventana se apaga, un
+//     murcielago pasa muy cerca de la camara, una nube tapa la luna, chispa
+//     en el pararrayos.
+//   CLIMAX (~4 min, 22 s, rotan 3 guiones en tres tiempos):
+//     A el remolino: los murcielagos se juntan frente a la luna, la luna
+//       se tine de sangre y el remolino revienta hacia la camara.
+//     B el baile: el castillo se enciende entero por dentro, las ventanas
+//       cambian de color con la musica y dos haces barren el cielo.
+//     C el rayo: tres rayos caen en la torre y las ventanas se prenden
+//       fuego desde arriba; humo y la luna roja; despues se apaga.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con tormenta.
+// @EST: noche clara | tormenta | niebla en el valle
+// @SUC: bandada enorme | murcielago gigante | la vela recorre el castillo | el vampiro en el puente | rayo en el pararrayos | sale el vampiro | la niebla trepa
+// @DET: estrella fugaz | ventana que se apaga | murcielago cerca | nube en la luna | chispa en el pararrayos
+// @CLX: A el remolino | B el baile | C el rayo
 //
 // @D1: cantidad de murcielagos (llegan de a uno, desde lejos)
 // @D2: tamano de la luna
@@ -72,6 +91,47 @@ vec4 render(vec2 uv) {
     vec2 pS = p0 + (pc - p0) * 0.5 + dolly * 0.05;
     vec2 pF = pc + dolly * 0.25, pC = pc + dolly * 0.55, pN = pc + dolly * 1.2;
 
+    // --- calendario (fase 31) ---
+    hkSetClimax(4.0, 22.0, 26.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(4.0, 7, 9.0);
+    int sv = int(S.z);
+    float se = S.x, sp = S.y, ss = S.w;
+    vec4 D = hkDetalle(4.0, 5, 3.0);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(4.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(4.0, 3));
+    // lugares del castillo (en el espacio pC)
+    const vec2 ROD = vec2(0.60, 0.80);        // punta de la torre de la derecha (pararrayos)
+    const vec2 STRIKE = vec2(-0.57, 0.82);    // torre del medio, donde caen los rayos del C
+    const vec2 VWIN = vec2(-1.00, 0.55);      // ventana roja del vampiro
+    // B: el castillo de fiesta
+    float ball = cB * smoothstep(0.08, 0.30, C.w) * (1.0 - smoothstep(0.80, 0.96, C.w));
+    // C: tres rayos en la torre y fuego que baja por las ventanas
+    float strikeK = 0.0;
+    for (int k = 0; k < 3; k++) {
+        float d = C.w - (0.30 + float(k) * 0.11);
+        strikeK = max(strikeK, cC * smoothstep(0.0, 0.003, d) * (1.0 - smoothstep(0.003, 0.03, d)));
+    }
+    float fireOn = cC * smoothstep(0.30, 0.34, C.w) * (1.0 - smoothstep(0.84, 0.98, C.w));
+    float fireR = smoothstep(0.30, 0.72, C.w) * 2.6;
+    // suceso: rayo en el pararrayos (dos golpes seguidos)
+    float rodK = 0.0;
+    if (sv == 4) for (int k = 0; k < 2; k++) {
+        float d = sp - (0.30 + float(k) * 0.035);
+        rodK = max(rodK, se * smoothstep(0.0, 0.004, d) * (1.0 - smoothstep(0.004, 0.04, d)) * (1.0 - float(k) * 0.35));
+    }
+    // tormenta: a lo sumo un relampago cada 5 s
+    float fslot = floor(uRTime / 5.0);
+    float fk = uRTime - fslot * 5.0 - 3.5 * hash21(vec2(fslot, 9.0));
+    float stormK = EST.y * step(0.45, hash21(vec2(fslot, 5.0))) * smoothstep(0.0, 0.05, fk) * (1.0 - smoothstep(0.10, 0.55, fk));
+
     // --- cielo y estrellas (los agudos las hacen titilar) ---
     vec3 col = mix(hsv2rgb(vec3(fract(0.70 + hue), 0.75, 0.20)),
                    hsv2rgb(vec3(fract(0.66 + hue), 0.85, 0.02)),
@@ -88,9 +148,7 @@ vec4 render(vec2 uv) {
     float mr = length(mp);
     vec3 pale = vec3(1.0, 0.93, 0.78);
     vec3 blood = hsv2rgb(vec3(fract(0.015 + hue), 0.85, 1.0));
-    vec4 G = hkGrandClimax(4.0);
-    vec4 C = hkClimaxOr(G, hkClimax(4.0, 117.0, 22.0));
-    float bloodE = max(C.y, C.z * 0.8);
+    float bloodE = cA * max(C.y, C.z * 0.8) + fireOn * 0.6;
     vec3 moonC = mix(pale, blood, clamp(uD5 + hkActVal(5.0) * 0.25 + bloodE, 0.0, 1.0));
     col += moonC * exp(-max(mr - moonR, 0.0) * 4.0) * (0.22 + bass * 0.45);
     col += moonC * exp(-pow((mr - moonR * 1.6) * 12.0, 2.0)) * 0.04;
@@ -102,12 +160,28 @@ vec4 render(vec2 uv) {
     }
     col += moonC * hkRays(pS, mc, t, 14.0) * 0.16 * (1.0 - disk) * hkStyleRays();
     col = hkStyleMoon(col, pS, mc, moonR);
-    // relampago
-    float zap = max(hit * smoothstep(0.4, 0.9, loco), max(hkEvent(6.0, 53.0, 6.0), G.y + G.z) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))));
+    // detalle: estrella fugaz
+    if (dv == 0) {
+        vec2 s0 = vec2((D.w - 0.5) * 3.2, 0.95);
+        vec2 sd = normalize(vec2(ss > 0.5 ? 0.8 : -0.8, -0.35));
+        vec2 rel = pS - (s0 + sd * D.y * 1.3);
+        float along = dot(rel, sd), perp = abs(rel.x * sd.y - rel.y * sd.x);
+        col += vec3(0.9, 0.9, 1.0) * exp(-perp * 500.0) * smoothstep(-0.30, 0.0, along) * step(along, 0.0)
+             * (1.0 + along * 3.0) * D.x * 1.5;
+    }
+    // relampago: el del golpe con Chaos, la tormenta y el gran climax caen al azar;
+    // el del pararrayos y los del C caen donde corresponde
+    float zap = max(hit * smoothstep(0.4, 0.9, loco), max((G.y + G.z) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))), stormK));
+    float zapT = max(rodK, strikeK);
     float bslot = floor(uRTime * 1.5);
     float bx = (hash21(vec2(bslot, 2.0)) - 0.5) * uAspect * 1.6;
     float bd = hkBolt(pS, bx, 1.05, -0.35, bslot * 5.0, 0.4);
     col += vec3(0.8, 0.75, 1.0) * (exp(-bd * 160.0) + exp(-bd * 20.0) * 0.3) * zap * 1.5;
+    vec2 tgt = cC > 0.0 ? STRIKE : ROD;
+    float bdT = hkBolt(pC, tgt.x, 1.08, tgt.y, floor(C.w * 9.0) + floor(sp * 30.0) + 3.0, 0.22);
+    col += vec3(0.85, 0.8, 1.0) * (exp(-bdT * 180.0) + exp(-bdT * 22.0) * 0.35) * zapT * 1.6;
+    if (zapT > zap) bx = tgt.x;
+    zap = max(zap, zapT);
     col += vec3(0.5, 0.45, 0.8) * zap * 0.15;
     // nubes que cruzan la luna, con borde iluminado
     float cl = plate4Wrap(vec2(pS.x * 0.12 - t * 0.005, pS.y * 0.45 + 0.2)).r;
@@ -115,6 +189,26 @@ vec4 render(vec2 uv) {
     float crim = smoothstep(0.50, 0.58, cl) - smoothstep(0.58, 0.72, cl);
     col = mix(col, col * 0.30 + vec3(0.01, 0.01, 0.02), cm * 0.85 * smoothstep(-0.3, 0.2, pS.y));
     col += moonC * crim * exp(-max(mr - moonR * 0.8, 0.0) * 2.5) * 0.35;
+    // detalle: una nube oscura tapa la luna
+    if (dv == 3) {
+        vec2 cq = (pS - vec2(mc.x + (D.y - 0.5) * 2.6 * (ss > 0.5 ? 1.0 : -1.0), mc.y + (D.w - 0.5) * 0.4)) / vec2(0.75, 0.16);
+        float cloud = smoothstep(1.0, 0.3, length(cq) + 0.25 * noise21(pS * 6.0));
+        col = mix(col, col * 0.18 + vec3(0.01, 0.01, 0.02), cloud * D.x * 0.9);
+        col += moonC * smoothstep(0.85, 0.7, length(cq)) * (1.0 - cloud) * D.x * 0.10;
+    }
+    // B: dos haces barren el cielo desde las torres
+    if (ball > 0.0) {
+        for (int i = 0; i < 2; i++) {
+            float fi = float(i);
+            vec2 src = i == 0 ? vec2(-1.02, 0.90) : ROD;
+            float a = sin(uRTime * (0.55 + fi * 0.2) + fi * 2.0) * 0.55 + (fi - 0.5) * 1.6;
+            vec2 dir = vec2(sin(a), cos(a));
+            vec2 rel = pC - src;
+            float along = dot(rel, dir), perp = abs(rel.x * dir.y - rel.y * dir.x);
+            float beam = along > 0.0 ? exp(-perp / (along * 0.10 + 0.008)) * exp(-along * 0.45) : 0.0;
+            col += hsv2rgb(vec3(fract(0.10 + fi * 0.5 + floor(uRTime * 0.5) * 0.13), 0.55, 1.0)) * beam * ball * (0.60 + bass * 0.50);
+        }
+    }
 
     // --- montanas lejanas ---
     vec4 far = plate0(rUV(pF, FAR_R));
@@ -137,6 +231,9 @@ vec4 render(vec2 uv) {
         vec3 Lb = normalize(vec3(clamp((bx - pC.x) * 0.6, -1.2, 1.2), 0.8, 0.5));
         vec3 cc = alb * (0.9 + 0.6 * dot(moonC, vec3(0.33))) * 1.3 * moonRel * hkStyleSil();
         cc += alb * vec3(0.8, 0.75, 1.0) * zap * (0.8 + 6.0 * max(dot(cn, Lb), 0.0));
+        // B: la piedra toma la luz de la fiesta; C: la del incendio
+        cc += alb * vec3(1.0, 0.7, 0.45) * ball * (0.45 + bass * 0.35);
+        cc += alb * vec3(1.0, 0.35, 0.08) * fireOn * smoothstep(0.0, 0.5, fireR - length(pC - STRIKE)) * (1.2 + 0.4 * noise21(vec2(t * 5.0, pC.x * 3.0)));
         col = mix(col, cc, cas.a);
         float wid = cr.b;
         if (wid > 0.01) {
@@ -148,20 +245,62 @@ vec4 render(vec2 uv) {
                            smoothstep(0.0, 0.12, fract(ws)));
             // el golpe hace parpadear algunas
             on *= 1.0 - hit * step(0.55, hash21(vec2(idq, floor(uRTime * 6.0))));
-            vec3 wc = vec3(1.0, 0.62, 0.25) * candle * on * (0.8 + uD6 * 1.4);
+            // detalle: una ventana se apaga
+            if (dv == 1 && abs(idq - (1.0 + floor(D.w * 7.0) * 3.0)) < 0.5) on *= 1.0 - D.x;
+            // suceso: alguien recorre el castillo con una vela
+            float walk = sv == 2 ? se * exp(-pow((pC.x - mix(-2.0, 0.75, ss > 0.5 ? sp : 1.0 - sp)) / 0.09, 2.0)) : 0.0;
+            on = max(on, max(walk, ball));
+            vec3 wc = vec3(1.0, 0.62, 0.25) * candle * on * (0.8 + uD6 * 1.4 + walk * 1.2);
+            // B: de fiesta, cada ventana con su color, que cambia con la musica
+            vec3 party = hsv2rgb(vec3(fract(idq * 0.23 + floor(uRTime * 0.5 + idq * 0.07) * 0.31), 0.85, 1.0));
+            wc = mix(wc, party * (1.8 + bass * 1.0), ball * 0.9);
+            // C: el fuego baja desde la torre del rayo
+            float burn = fireOn * smoothstep(0.0, 0.25, fireR - length(pC - STRIKE));
+            vec3 fire = mix(vec3(1.0, 0.12, 0.02), vec3(1.0, 0.55, 0.10), noise21(vec2(t * 6.0, idq * 3.0))) * (2.2 + bass);
+            wc = mix(wc, fire, burn);
             // ventana roja del vampiro en lo alto de la torre mayor
-            if (abs(idq - 9.0) < 0.5) wc = vec3(1.0, 0.08, 0.05) * (0.8 + bass * 2.0 + hit);
+            if (abs(idq - 9.0) < 0.5) {
+                float vfl = sv == 5 ? se * (1.0 - smoothstep(0.25, 0.45, sp)) : 0.0;
+                wc = vec3(1.0, 0.08, 0.05) * (0.8 + bass * 2.0 + hit + vfl * 3.0);
+            }
             col = mix(col, wc, smoothstep(0.0, 0.02, wid));
         }
     }
     // halo de las ventanas y niebla del valle
-    col += vec3(1.0, 0.6, 0.25) * 0.05 * (0.4 + uD6) * exp(-abs(pC.y + 0.1) * 3.0) * smoothstep(1.4, 0.2, abs(pC.x + 0.6));
+    col += vec3(1.0, 0.6, 0.25) * 0.05 * (0.4 + uD6 + ball * 2.5) * exp(-abs(pC.y + 0.1) * 3.0) * smoothstep(1.4, 0.2, abs(pC.x + 0.6));
+    // C: resplandor del incendio y humo que sube
+    if (fireOn > 0.0) {
+        col += vec3(1.0, 0.35, 0.06) * fireOn * smoothstep(0.0, 0.8, fireR) * 0.40 * (0.8 + bass * 0.6)
+             * exp(-abs(pC.y - 0.2) * 1.5) * smoothstep(1.6, 0.3, abs(pC.x + 0.6));
+        float smk = plate4Wrap(vec2(pC.x * 0.5 + sin(pC.y * 2.0 + t * 0.3) * 0.05, pC.y * 0.3 - t * 0.05)).r;
+        float plume = exp(-pow((pC.x - STRIKE.x - (pC.y - STRIKE.y) * 0.35) / (0.12 + (pC.y - STRIKE.y) * 0.25), 2.0)) * step(STRIKE.y - 0.05, pC.y);
+        col = mix(col, vec3(0.05, 0.035, 0.03), smoothstep(0.35, 0.75, smk) * plume * fireOn * smoothstep(0.3, 1.2, fireR) * 0.95);
+    }
+    // la niebla del valle (con el estado niebla y el suceso, trepa por el acantilado)
+    float climb = EST.z * 0.22 + (sv == 6 ? se * smoothstep(0.0, 0.6, sp) * 0.60 : 0.0);
     float fz = plate4Wrap(vec2(pF.x * 0.10 - t * 0.006, pF.y * 0.4)).g;
-    float vfog = smoothstep(0.38, 0.78, fz) * exp(-pow((pF.y + 0.78) / 0.20, 2.0));
-    col = mix(col, moonC * 0.10 + vec3(0.03, 0.03, 0.06), vfog * 0.6);
+    float vfog = smoothstep(0.38 - climb * 0.3, 0.78, fz) * exp(-pow((pF.y + 0.78 - climb) / (0.20 + climb * 0.5), 2.0));
+    col = mix(col, moonC * 0.10 + vec3(0.03, 0.03, 0.06), min(vfog * (0.6 + climb * 0.8), 0.9));
+
+    // --- suceso: el vampiro camina por el puente contra la luna ---
+    if (sv == 3 && se > 0.0) {
+        float vx = mix(0.10, 0.50, ss > 0.5 ? sp : 1.0 - sp);
+        vec2 vq = pC - vec2(vx, -0.30);
+        float cape = 1.0 + hit * 0.5 + 0.1 * sin(t * 3.0);
+        float hgt = 0.16;
+        // capa: trapecio que se abre abajo
+        float yk = clamp(vq.y / hgt, 0.0, 1.0);
+        float body = max(abs(vq.x) - mix(0.045 * cape, 0.018, yk), max(-vq.y, vq.y - hgt));
+        // cuello alto de la capa
+        body = min(body, max(abs(vq.x) - 0.030, abs(vq.y - hgt + 0.005) - 0.018 + abs(vq.x) * 0.6));
+        float head = length(vq - vec2(0.0, hgt + 0.020)) - 0.018;
+        float vs = min(body, head);
+        col = mix(col, vec3(0.0), (1.0 - smoothstep(-0.002, 0.002, vs)) * se);
+        col += moonC * (1.0 - smoothstep(0.0, 0.004, abs(vs))) * disk * se * 0.4;
+    }
 
     // --- bandadas en tres profundidades ---
-    float swarmE = hkEvent(3.0, 61.0, 9.0);
+    float swarmE = sv == 0 ? se : 0.0;
     float presence = clamp(0.30 + uD1 * 0.45 + uDensity * 0.10 + swarmE * 0.45, 0.0, 0.95);
     float bats = 1e3;
     float batRim = 0.0;
@@ -215,7 +354,7 @@ vec4 render(vec2 uv) {
         }
     }
     // --- CLIMAX: remolino frente a la luna que revienta hacia la camara ---
-    if (C.w > 0.0) {
+    if (cA > 0.0) {
         float gather = smoothstep(0.0, 0.40, C.w);                 // se juntan
         float burst = clamp((C.w - 0.66) / 0.30, 0.0, 1.0);       // revientan
         for (int b = 0; b < 26; b++) {
@@ -232,9 +371,51 @@ vec4 render(vec2 uv) {
             bats = min(bats, hwBat(bq, sin(uRTime * 16.0 + fb * 3.0)) * sc);
         }
     }
+    // --- suceso: un murcielago gigante cruza la luna ---
+    if (sv == 1 && se > 0.0) {
+        vec2 c = mc + vec2(mix(-1.7, 1.7, ss > 0.5 ? sp : 1.0 - sp), 0.08 * sin(sp * 7.0) - 0.05);
+        float sc = 0.36;
+        vec2 bq = (pS - c) / sc;
+        if (dot(bq, bq) < 0.6) {
+            if (ss <= 0.5) bq.x = -bq.x;
+            bats = min(bats, hwBat(rot2(0.1 * sin(uRTime * 2.0)) * bq, sin(uRTime * 4.5)) * sc);
+        }
+    }
+    // --- suceso: de la ventana roja sale volando el vampiro hacia la camara ---
+    if (sv == 5 && se > 0.0) {
+        float fly = smoothstep(0.35, 1.0, sp);
+        vec2 wS = VWIN - dolly * 0.50;                      // la ventana en el espacio del cielo
+        vec2 c = mix(wS, vec2(-0.2, -0.1), fly * fly) + vec2(0.1 * sin(sp * 11.0), 0.0) * fly;
+        float sc = mix(0.035, 1.4, fly * fly * fly) * smoothstep(0.30, 0.38, sp);
+        if (sc > 0.002) {
+            vec2 bq = (pS - c) / sc;
+            if (dot(bq, bq) < 0.6) bats = min(bats, hwBat(bq, sin(uRTime * 11.0)) * sc);
+        }
+    }
+    // --- detalle: un murcielago pasa muy cerca de la camara ---
+    if (dv == 2) {
+        vec2 c = vec2(mix(-uAspect - 0.8, uAspect + 0.8, ss > 0.5 ? D.y : 1.0 - D.y), 0.15 + 0.5 * D.w + 0.12 * sin(D.y * 8.0));
+        float sc = 0.55 + 0.2 * D.w;
+        vec2 bq = (pS - c) / sc;
+        if (dot(bq, bq) < 0.6) bats = min(bats, hwBat(bq, sin(uRTime * 13.0)) * sc);
+    }
     float batMask = 1.0 - smoothstep(-0.0015, 0.0015, bats);
     col = mix(col, vec3(0.0), batMask);
     col += moonC * (1.0 - smoothstep(0.0, 2.4 / uResH, abs(bats))) * (disk * 0.6 + zap * 0.8);
+
+    // chispas en el pararrayos (detalle, y despues del rayo)
+    float spark = (dv == 4 ? D.x : 0.0) + (sv == 4 ? se * smoothstep(0.30, 0.34, sp) * (1.0 - smoothstep(0.5, 0.9, sp)) : 0.0);
+    if (spark > 0.0) {
+        vec2 rq = pC - ROD;
+        float fl = 0.6 + 0.4 * noise21(vec2(t * 18.0, 2.0));
+        col += vec3(0.7, 0.8, 1.0) * exp(-dot(rq, rq) * 900.0) * spark * fl * 1.8;
+        col += vec3(0.5, 0.6, 1.0) * exp(-length(rq) * 14.0) * spark * fl * 0.12;
+        for (int k = 0; k < 4; k++) {
+            float a = hash21(vec2(float(k), floor(t * 9.0))) * 6.2832;
+            vec2 arc = rq - vec2(cos(a), sin(a)) * 0.035 * fract(t * 9.0);
+            col += vec3(0.8, 0.9, 1.0) * exp(-dot(arc, arc) * 40000.0) * spark;
+        }
+    }
 
     // --- primer plano: rocas, pasto y el arbol que se mece ---
     vec2 nu = rUV(pN, NEAR_R);
