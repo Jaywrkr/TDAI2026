@@ -28,12 +28,16 @@ PLATES = [
     # Medio en tres laminas para que D2 sume lapidas DE A UNA (sin saltos):
     #   2_medio_base     colinas, reja, suelo y pasto, sin lapidas (modo 1)
     #   3_medio_lapidas  solo las lapidas (modo 2)
-    #   7_lapidas_orden  R = en que punto de D2 aparece cada lapida (modo 3)
+    #   7_lapidas_normal relieve 3D y, en B, en que punto de D2 aparece cada lapida
     ('1_lejos', 0, (H0 + 0.12, H0 + 0.68), 0, 0.0, 0),
     ('2_medio_base', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27, 1),
-    ('3_medio_lapidas', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27, 2),
-    ('4_cerca', 2, (-1.30, 0.40), 0, 0.0, 0),
-    ('7_lapidas_orden', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27, 3),
+    ('3_medio_lapidas', 5, (H0 - 0.40, H0 + 0.95), 0, 0.27, 0),
+    ('4_cerca', 3, (-1.30, 0.40), 0, 0.0, 0),
+    # relieve 3D (normal en RG) de las lapidas; A = hay lapida.
+    #   7_lapidas_normal  B = en que punto de D2 aparece cada lapida
+    #   8_cerca_normal    B = oclusion
+    ('7_lapidas_normal', 6, (H0 - 0.40, H0 + 0.95), 0, 0.27, 0),
+    ('8_cerca_normal', 4, (-1.30, 0.40), 0, 0.0, 0),
 ]
 W = 1280
 SS = 2  # supersampling
@@ -72,7 +76,8 @@ float tombShape(vec2 q, float w, float h, int type){
   if(type==0){ d = min(sdBox(q-vec2(0.,h*0.40),vec2(w,h*0.40)), length(q-vec2(0.,h*0.80))-w); }
   else if(type==1){ float b = sdBox(q-vec2(0.,h*0.38),vec2(w,h*0.38));
     float og = max(length(q-vec2(-w*0.9,h*0.76))-w*1.9, length(q-vec2(w*0.9,h*0.76))-w*1.9);
-    og = max(og, h*0.76-q.y-0.001); d = min(b, og); }
+    og = max(og, h*0.66-q.y);
+    float k=0.012, hh=clamp(0.5+0.5*(og-b)/k,0.,1.); d = mix(og,b,hh)-k*hh*(1.-hh); }
   else if(type==2){ float k=(q.y)/(h*0.85); float tw=w*0.55*(1.-0.35*clamp(k,0.,1.));
     float sh=max(abs(q.x)-tw, max(-q.y+h*0.12, q.y-h*0.85));
     float py=max(abs(q.x)*1.4+(q.y-h*0.85)-w*0.38, h*0.85-q.y);
@@ -327,6 +332,144 @@ vec4 plateMid(vec2 p){
   return vec4(col,a);
 }
 
+
+// ================= 3D (trazado de rayos) =================
+// Las lapidas como solidos: la silueta de siempre extruida con espesor,
+// cantos redondeados y gastados, y la cara de arriba a la vista (la
+// camara mira un poco hacia abajo). Salen el color SIN luz (albedo), el
+// relieve (normal en espacio de vista: x derecha, y arriba, z hacia el
+// que mira) y la oclusion; la luz la pone la escena en vivo.
+const vec3 RD = vec3(0.0, -0.25, 0.968);
+float solid(vec3 P, vec2 base, float tilt, float w, float h, int type, float seed, out vec2 qo){
+  vec2 q = rot(tilt)*(P.xy-base);
+  qo = q;
+  float d2 = tombShape(q,w,h,type);
+  float T = w*0.30 + 0.010;
+  float r = min(0.010, w*0.07);
+  vec2 dd = vec2(d2 + r, abs(P.z) - T + r);
+  float d = length(max(dd,0.)) + min(max(dd.x,dd.y),0.) - r;
+  // desgaste en 3D: picaduras y cantos comidos
+  if(d < 0.02) d += (gn(q*vec2(45.,45.)+P.z*31.+seed)-0.5)*0.0035 + (gn(q*140.+P.z*90.+seed)-0.5)*0.0012;
+  return d;
+}
+float nearSolid(vec3 P, out vec2 qo, out int ido){
+  float d=1e3; ido=-1; qo=vec2(0.);
+  for(int i=0;i<NN;i++){
+    vec4 a=nearA(i); vec2 b=nearB(i);
+    if(abs(P.x-a.x) > a.z*1.4+0.05) continue;
+    vec2 q; float di=solid(P,a.xy,b.y,a.z,a.w,int(b.x),float(i)*3.7+1.,q);
+    if(di<d){ d=di; ido=i; qo=q; }
+  }
+  return d;
+}
+float midSolid(vec3 P, out vec2 qo, out vec4 info){
+  float cx=floor(P.x/cellW); float d=1e3; qo=vec2(0.); info=vec4(0.);
+  for(int k=-1;k<=1;k++){
+    float id=cx+float(k);
+    if(h21(vec2(id,4.7))<0.30) continue;
+    float w=cellW*(0.16+0.12*h21(vec2(id,1.3)));
+    float h=cellW*(0.55+0.75*h21(vec2(id,9.1)));
+    float base=groundMid((id+0.5)*cellW)-0.01;
+    vec2 bxy=vec2((id+0.5+(h21(vec2(id,2.2))-0.5)*0.4)*cellW, base);
+    float r=h21(vec2(id,5.5));
+    int type = r<0.45?0:(r<0.62?1:(r<0.74?2:(r<0.90?3:4)));
+    vec2 q; float di=solid(P,bxy,(h21(vec2(id,7.7))-0.5)*0.35,w,h,type,id*1.3+7.,q);
+    if(di<d){ d=di; qo=q; info=vec4(w,h,id,float(type)); }
+  }
+  return d;
+}
+// marcha el rayo que pasa por el punto p de la lamina (en z = 0)
+// devuelve s del impacto o -1
+float march(vec2 p, int which, out vec3 P){
+  vec3 ro = vec3(p,0.) - RD*0.6;
+  float s=0.;
+  for(int i=0;i<90;i++){
+    P = ro + RD*s;
+    vec2 q; int id; vec4 inf;
+    float d = which==0 ? nearSolid(P,q,id) : midSolid(P,q,inf);
+    if(d<0.0004) return s;
+    s += max(d*0.8, 0.0006);
+    if(s>1.2) break;
+  }
+  return -1.;
+}
+vec3 normalAt(vec3 P, int which){
+  vec2 e=vec2(0.0008,0.); vec2 q; int id; vec4 inf;
+  #define SD(X) (which==0 ? nearSolid(X,q,id) : midSolid(X,q,inf))
+  vec3 n = vec3(SD(P+e.xyy)-SD(P-e.xyy), SD(P+e.yxy)-SD(P-e.yxy), SD(P+e.yyx)-SD(P-e.yyx));
+  #undef SD
+  n = normalize(n);
+  return vec3(n.x, n.y, -n.z);   // z hacia el que mira
+}
+// albedo de la piedra (sin luz) y su relieve fino (gradiente de altura)
+vec3 stoneAlbedo(vec3 P, vec2 q, vec3 n, float w, float h, float seed, int type, float detail, out vec2 bumpG){
+  // cara del frente o de arriba/costado: coordenadas de textura
+  vec2 tp = abs(n.z)>0.6 ? q : vec2(q.x + P.z*0.7, q.y*0.3 + P.z*2.0);
+  float bump = fbm(tp*70.+seed,5)*0.6 + fbm(tp*190.+seed,3)*0.4;
+  float e=0.003;
+  bumpG = vec2(fbm((tp+vec2(e,0.))*38.+seed,4)-fbm((tp-vec2(e,0.))*38.+seed,4), fbm((tp+vec2(0.,e))*38.+seed,4)-fbm((tp-vec2(0.,e))*38.+seed,4))*0.9*detail;
+  vec3 base = mix(vec3(0.42,0.41,0.44), vec3(0.47,0.44,0.38), h21(vec2(seed,1.)));
+  base *= 0.75+0.45*bump;
+  float streak = fbm(vec2(q.x*55.+seed, q.y*4.),4);
+  base *= 1.-0.35*smoothstep(0.5,0.8,streak)*smoothstep(h,0.,q.y);
+  float mossN = fbm(tp*28.+seed*3.,5);
+  // el musgo crece abajo y ARRIBA (donde junta agua), no en el frente liso
+  float topK = smoothstep(0.3,0.8,n.y);
+  float moss = smoothstep(0.45,0.70, mossN + (1.-q.y/max(h,0.01))*0.35 - 0.2 + topK*0.35)*detail;
+  base = mix(base, vec3(0.16,0.24,0.10)*(0.7+0.6*bump), moss*0.85);
+  float lich = smoothstep(0.70,0.78,fbm(tp*45.+seed*9.,4))*detail;
+  base = mix(base, vec3(0.62,0.62,0.42), lich*0.6);
+  float cr = ridgeN(fbm(tp*vec2(7.,10.)+seed*2.,5));
+  float crack = smoothstep(0.975,0.995,cr)*detail*step(0.45,h21(vec2(seed,9.)));
+  base *= 1.-crack*0.85;
+  // inscripcion grabada (solo en el frente): oscura y con relieve
+  if((type==0||type==1||type==4) && detail>0.5 && n.z>0.6){
+    for(int r=0;r<4;r++){
+      float ry = h*(0.58 - float(r)*0.09);
+      float rw = w*(r==0?0.55:0.70);
+      if(abs(q.y-ry)<h*0.022 && abs(q.x)<rw){
+        float ch = floor((q.x+rw)/(w*0.11));
+        float on = step(0.25, h21(vec2(ch+seed*3., float(r))));
+        float cx = fract((q.x+rw)/(w*0.11));
+        float yy = (q.y-ry)/(h*0.022);
+        float ins = on*smoothstep(0.15,0.25,cx)*smoothstep(0.85,0.75,cx)*(1.-smoothstep(0.6,1.0,abs(yy)));
+        if(type==4 && q.y>h*0.50) ins=0.;
+        base *= 1.-ins*0.6;
+        bumpG += vec2(0., -sign(yy)*ins*0.8);       // el surco: bordes de arriba y abajo inclinados
+      }
+    }
+  }
+  return base;
+}
+// lamina 3D: modo 0 albedo (y A cobertura), 1 normal/oclusion/orden
+vec4 plate3D(vec2 p, int which, int mode){
+  vec3 P;
+  float s = march(p, which, P);
+  if(s < 0.){
+    return vec4(0.5,0.5,1.,0.)*float(mode==1);
+  }
+  vec3 n = normalAt(P, which);
+  vec2 q; int id; vec4 inf; float w,h,seed; int type; float detail;
+  if(which==0){ nearSolid(P,q,id); vec4 A=nearA(id); vec2 B=nearB(id); w=A.z; h=A.w; seed=float(id)*3.7+1.; type=int(B.x); detail=1.; }
+  else { midSolid(P,q,inf); w=inf.x; h=inf.y; seed=inf.z*1.3+7.; type=int(inf.w); detail=0.75; }
+  vec2 bg;
+  vec3 alb = stoneAlbedo(P,q,n,w,h,seed,type,detail,bg);
+  // oclusion: cerca del suelo y en los recovecos (dos muestras a lo largo de la normal)
+  vec2 q2; int i2; vec4 inf2;
+  vec3 nw = vec3(n.x,n.y,-n.z);
+  float o1 = which==0 ? nearSolid(P+nw*0.01,q2,i2) : midSolid(P+nw*0.01,q2,inf2);
+  float o2 = which==0 ? nearSolid(P+nw*0.03,q2,i2) : midSolid(P+nw*0.03,q2,inf2);
+  float ao = clamp(0.45 + 0.55*(o1/0.01*0.4 + o2/0.03*0.6), 0., 1.);
+  ao *= mix(0.40, 1.0, smoothstep(0.0, h*0.35, q.y));
+  vec3 nb = normalize(n + vec3(-bg, 0.)*0.35);
+  if(mode==1){
+    float ord = which==1 ? h21(vec2(inf.z,31.0)) : 0.;
+    return vec4(nb.xy*0.5+0.5, which==1 ? ord : ao, 1.);   // A = hay lapida
+  }
+  // el albedo va con la oclusion de la lapida del medio (la del cercano va en B)
+  return vec4(alb*0.13*(which==1 ? ao*0.85 : 1.), 1.);
+}
+
 // ---------------- escena lejana ----------------
 // R: luz, G: 0 sierra lejana / 1 sierra de pinos, A: cobertura
 vec4 plateFar(vec2 p){
@@ -370,6 +513,21 @@ void main(){
   vec2 p = mix(rect.xy, rect.zw, vUV);
   vec4 c;
   if(plate==0){ c = plateFar(p); fc = vec4(c.rgb, c.a); return; }
+  // 3D: 3 = cercana albedo, 4 = cercana normal + oclusion,
+  //     5 = lapidas del medio albedo, 6 = su normal + orden
+  if(plate>=3){
+    int which = plate<=4 ? 0 : 1;
+    int mode = (plate==4||plate==6) ? 1 : 0;
+    c = plate3D(p, which, mode);
+    if(mode==1){ fc = c; return; }
+    if(which==0){
+      // la cercana: suelo y pasto de siempre (con su luz horneada), lapidas 3D encima
+      vec4 base = plateNear(p);
+      vec3 P; float s = march(p, 0, P);
+      if(s>=0.){ fc = vec4(pow(clamp(c.rgb*2.0,0.,1.),vec3(1./2.2)), 1.); return; }
+      c = base;
+    }
+  } else
   if(plate==1) c = plateMid(p); else c = plateNear(p);
   // codificacion: col lineal x2 con gamma 2.2 (ver plateCol() en la escena)
   fc = vec4(pow(clamp(c.rgb*2.0,0.,1.),vec3(1./2.2)), c.a);
@@ -478,7 +636,7 @@ def bake():
         print('lamina', name, im.size)
 
     src = FRAG % dict(h0=H0)
-    for old in ('2_medio_pocas', '3_medio_muchas'):
+    for old in ('2_medio_pocas', '3_medio_muchas', '7_lapidas_orden'):
         if os.path.isfile(os.path.join(OUT, old + '.png')):
             os.remove(os.path.join(OUT, old + '.png'))
     for name, pid, (y0, y1), _, cell, mode in PLATES:
@@ -487,8 +645,8 @@ def bake():
         save(down(img, SS), name)
     # textura de ruido (se repite): 1024 x 512
     save(run(NOISE_FRAG, 1024, 512, {}), '5_ruido')
-    # luna 512 x 512
-    save(down(run(MOON_FRAG, 1024, 1024, {}), 2), '6_luna')
+    # luna 256 x 256 (en pantalla mide ~120 px; deja lugar en el atlas al relieve)
+    save(down(run(MOON_FRAG, 1024, 1024, {}), 4), '6_luna')
     print('-> ' + OUT)
     for name, pid, (y0, y1), _, cell, mode in PLATES:
         print('  %s: x %.2f..%.2f  y %.3f..%.3f' % (name, X0, X1, y0, y1))

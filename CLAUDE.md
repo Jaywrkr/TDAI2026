@@ -32,3 +32,4 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 17** (rama `claude/halloween-f17-bosque-faroles`, sobre f16): escena 28 bosque de faroles (16 faroles en 3 capas con paralaje). 
 - **Fase 18** (rama `claude/halloween-f18-morgue`, sobre f17): escena 29 morgue (luz de tubos en vivo con la profundidad horneada). 
 - **Fase 19** (rama `claude/halloween-f19-carnaval`, sobre f18): escena 30 carnaval abandonado (rueda, carrusel y focos en vivo; el payaso del clímax).
+- **Fase 20** (rama `claude/halloween-f20-cementerio-3d`, sobre f19): prueba de realismo en la escena 00: lápidas horneadas como sólidos 3D con normal, luz en vivo (`stoneLight`). Comparación en docs/img/cementerio_2d_vs_3d*.jpg.
