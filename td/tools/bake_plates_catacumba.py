@@ -68,7 +68,7 @@ S wall(vec2 uv){
   // relleno entre huesos: fragmentos y tierra
   float frag=pfbm(uv*vec2(60.,60.),60.,4);
   s.alb=mix(vec3(0.02,0.018,0.015),vec3(0.22,0.19,0.14),smoothstep(0.55,0.75,frag)*0.8);
-  s.h=smoothstep(0.55,0.75,frag)*0.15;
+  s.h=smoothstep(0.55,0.75,frag)*0.07;
   float rowH=0.25;                     // alto de hilera (calavera + huesos)
   float ry=floor(uv.y/rowH);
   float ly=fract(uv.y/rowH);
@@ -104,8 +104,23 @@ S wall(vec2 uv){
     vec3 bone=mix(vec3(0.45,0.38,0.27),vec3(0.70,0.64,0.50),st);
     bone=mix(bone,vec3(0.18,0.14,0.09),smoothstep(0.6,0.8,pfbm(uv*12.+3.,12.,4))*0.7);   // mugre
     bone*=0.75+0.35*h21(vec2(mod(ci,n),mod(ry,4.))+2.);
-    s.alb=bone; s.h=sqrt(dep)*0.8+st*0.05;
-    if(hole<0.){ s.alb=vec3(0.015,0.012,0.01); s.h=-0.3; }
+    // relieve (fase 27): craneo en cupula, arco de las cejas, pomulos,
+    // cuencas hondas con borde suave y dientes uno por uno
+    vec2 qs=q*vec2(0.80,0.92);
+    float h=sqrt(dep)*0.8+st*0.05;
+    h+=0.10*exp(-pow((qs.y-0.10)/0.035,2.))*smoothstep(0.30,0.12,abs(qs.x));
+    h+=0.12*exp(-dot((vec2(abs(qs.x),qs.y)-vec2(0.21,-0.09))/0.07,(vec2(abs(qs.x),qs.y)-vec2(0.21,-0.09))/0.07));
+    float tb=abs(qs.y+0.225)-0.035;
+    if(tb<0.&&abs(qs.x)<0.15){
+      float tx=fract(qs.x/0.05+0.5)-0.5;
+      h+=0.06*(1.-tx*tx*4.)-0.02;
+      bone=mix(bone,vec3(0.06,0.05,0.04),smoothstep(0.38,0.48,abs(tx))*0.8);
+    }
+    // oclusion alrededor de los agujeros
+    bone*=0.45+0.55*smoothstep(-0.01,0.06,hole);
+    s.alb=bone;
+    s.h=mix(h,-0.35,smoothstep(0.02,-0.03,hole));
+    if(hole<0.){ s.alb=vec3(0.015,0.012,0.01); }
     if(eye<0.) s.eye=1.;
   }
   return s;
@@ -143,14 +158,14 @@ void main(){
     if(plate==0){ fc=vec4(pow(clamp(s.alb*2.,0.,1.),vec3(1./2.2)), 1.); return; }
     float hx=wall(fract(uv+vec2(e,0.))).h-wall(fract(uv-vec2(e,0.))).h;
     float hy=wall(fract(uv+vec2(0.,e))).h-wall(fract(uv-vec2(0.,e))).h;
-    vec3 n=normalize(vec3(-hx/(2.*e)*0.004,-hy/(2.*e)*0.004,1.));
+    vec3 n=normalize(vec3(-hx/(2.*e)*0.035,-hy/(2.*e)*0.035,1.));   // fase 27: relieve de verdad (antes 0.004, casi plano)
     fc=vec4(n.xy*0.5+0.5, s.eye, 1.); return;
   }
   S s=floorT(uv);
   if(plate==2){ fc=vec4(pow(clamp(s.alb*2.,0.,1.),vec3(1./2.2)), 1.); return; }
   float hx=floorT(fract(uv+vec2(e,0.))).h-floorT(fract(uv-vec2(e,0.))).h;
   float hy=floorT(fract(uv+vec2(0.,e))).h-floorT(fract(uv-vec2(0.,e))).h;
-  vec3 n=normalize(vec3(-hx/(2.*e)*0.004,-hy/(2.*e)*0.004,1.));
+  vec3 n=normalize(vec3(-hx/(2.*e)*0.02,-hy/(2.*e)*0.02,1.));
   fc=vec4(n.xy*0.5+0.5, 0., 1.);
 }
 """

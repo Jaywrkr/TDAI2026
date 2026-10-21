@@ -139,8 +139,12 @@ vec4 render(vec2 uv) {
         vec3 alb = plateCol(hc.rgb);
         // luz de la tierra desde abajo + luna arriba a la izquierda
         float below = exp(-max(p.y - hole.y, 0.0) * 1.6);
-        vec3 lit = glowC * glow * (0.20 + max(-n.y, 0.0) * 0.9) * below * 1.1;
-        lit += moonC * 0.30 * max(dot(n, normalize(vec3(-0.6, 0.5, 0.6))), 0.0);
+        // la tumba es una luz puntual abajo: ilumina lo que la mira (dedos por
+        // debajo, el canto del antebrazo); la luna marca nudillos y tendones
+        vec3 Lg = normalize(vec3((hole - p) * vec2(h1 > 0.5 ? -1.0 : 1.0, 1.0), 0.18));
+        vec3 lit = glowC * glow * (0.12 + 1.1 * max(dot(n, Lg), 0.0)) * below * 1.1;
+        lit += moonC * 0.34 * max(dot(n, normalize(vec3(-0.6, 0.5, 0.6))), 0.0);
+        lit += glowC * glow * 0.25 * pow(1.0 - n.z, 2.0) * below;                // canto
         lit += vec3(0.02);
         vec3 hcol = alb * lit;
         hcol += vec3(0.6, 0.7, 0.6) * pow(max(dot(n, normalize(vec3(-0.3, 0.4, 0.86))), 0.0), 24.0) * (0.05 + high * 0.15);   // brillo humedo

@@ -52,6 +52,7 @@ float sdBox(vec2 p, vec2 b){ vec2 d=abs(p)-b; return length(max(d,0.))+min(max(d
 mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c); }
 float seg(vec2 p, vec2 a, vec2 b){ vec2 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h); }
 vec2 cone(vec2 p, vec2 a, vec2 b, float ra, float rb){ vec2 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return vec2(length(pa-ba*h)-mix(ra,rb,h),h); }
+float infl(float d, float r0){ float k=clamp(-d/r0,0.,1.); return r0*sqrt(max(1.-(1.-k)*(1.-k),0.)); }
 float smin(float a,float b,float k){ float h=clamp(.5+.5*(b-a)/k,0.,1.); return mix(b,a,h)-k*h*(1.-h); }
 
 // agujeros de las tumbas (igual en el shader): x, y del agujero
@@ -141,9 +142,13 @@ H hand(vec2 p, float open){
   H r; r.d=1e3; r.h=0.; r.alb=vec3(0.); r.bone=0.;
   // antebrazo que sale de abajo
   vec2 fa=cone(p+vec2(0.02*sin(p.y*5.),0.),vec2(0.0,-0.25),vec2(0.02,0.58),0.115,0.085);
-  float palm=length((p-vec2(0.02,0.70))/vec2(0.15,0.15))-1.; palm*=0.14;
+  // palma: trapecio redondeado, angosto en la muñeca y ancho en los nudillos
+  float palm=cone(p,vec2(0.02,0.62),vec2(0.025,0.77),0.085,0.125).x;
   float d=smin(fa.x,palm,0.05);
   float best=d; float fh=0.;
+  // relieve (fase 27): cada pieza es un tubo con su propio volumen
+  float th3=max(infl(fa.x,0.10)*0.85, infl(palm,0.05)*1.25+0.012*infl(palm,0.10)/0.10);   // palma plana con canto redondo
+  float hard=min(fa.x,palm);                 // sin mezclar: la diferencia marca los pliegues
   // dedos: 3 falanges cada uno; en garra se doblan hacia adelante
   for(int i=0;i<5;i++){
     float fi=float(i);
@@ -165,8 +170,20 @@ H hand(vec2 p, float open){
     vec2 s1=cone(p,b0,j1,w,w*0.85), s2=cone(p,j1,j2,w*0.85,w*0.72), s3=cone(p,j2,j3,w*0.70,w*0.45);
     float fd=min(min(s1.x,s2.x),s3.x);
     // nudillos hinchados
-    fd=smin(fd,length(p-j1)-w*1.05,0.01); fd=smin(fd,length(p-j2)-w*0.9,0.01);
+    float k1=length(p-j1)-w*1.05, k2=length(p-j2)-w*0.9;
+    fd=smin(fd,k1,0.01); fd=smin(fd,k2,0.01);
     best=smin(best,fd,0.025);
+    hard=min(hard,min(min(s1.x,s2.x),min(s3.x,min(k1,k2))));
+    // en garra las falanges dobladas quedan delante de la palma
+    float lift=curl*0.05;
+    float fh1=infl(s1.x,w)+lift*0.3, fh2=infl(s2.x,w*0.85)+lift*0.8, fh3=infl(s3.x,w*0.70)+lift;
+    float kn=max(infl(k1,w*1.05)+lift*0.5, infl(k2,w*0.9)+lift*0.9);
+    // pliegues de la piel en las articulaciones
+    float crease=exp(-pow(s2.y*L*0.33/0.010,2.))*step(s2.x,0.)+exp(-pow(s3.y*L*0.25/0.008,2.))*step(s3.x,0.);
+    th3=max(th3, max(max(fh1,fh2),max(fh3,kn))-0.004*crease);
+    // tendones del dorso hacia cada dedo
+    float tend=seg(p,vec2(0.02+(fi-1.8)*0.02,0.60),b0);
+    th3+=0.006*exp(-pow(tend/0.010,2.))*step(palm,0.)*(th>0.5?0.:1.);
     // punta: hueso que asoma
     if(s3.x<0.&&s3.y>0.65) r.bone=max(r.bone,smoothstep(0.65,0.9,s3.y)*step(0.5,h21(vec2(fi,3.)))*0.7);
   }
@@ -181,10 +198,12 @@ H hand(vec2 p, float open){
     skin=mix(skin,vec3(0.08,0.10,0.12),vein*0.6);
     skin=mix(skin,vec3(0.80,0.76,0.66),r.bone);
     r.alb=skin;
-    r.h=sqrt(depth)*0.08+rot1*0.012-vein*0.006;
+    r.h=max(th3,infl(best,0.04)*1.56)+rot1*0.006-vein*0.004+0.002*gn(p*180.);
+    // oclusion entre dedos y en la muñeca: donde la mezcla rellena
+    r.alb*=1.-0.55*smoothstep(0.0,0.014,hard-best);
     // manga rota en el antebrazo
     float sleeve=p.y-(0.22+0.05*fbm(vec2(p.x*20.,1.),3)+0.03*sin(p.x*40.));
-    if(sleeve<0.){ vec3 cloth=vec3(0.05,0.045,0.05)*(0.6+0.6*fbm(p*vec2(60.,12.),4)); r.alb=cloth; r.h=sqrt(depth)*0.09+0.015*sin(p.x*90.); }
+    if(sleeve<0.){ vec3 cloth=vec3(0.05,0.045,0.05)*(0.6+0.6*fbm(p*vec2(60.,12.),4)); r.alb=cloth; r.h=infl(fa.x-0.006,0.11)*0.9+0.006*sin(p.x*90.+3.*fbm(p*8.,3))+0.01*fbm(p*vec2(30.,8.),4); }
   }
   return r;
 }
@@ -208,7 +227,7 @@ void main(){
   float e=0.003;
   float hx=hand(p+vec2(e,0.),open).h-hand(p-vec2(e,0.),open).h;
   float hy=hand(p+vec2(0.,e),open).h-hand(p-vec2(0.,e),open).h;
-  vec3 n=normalize(vec3(-hx/(2.*e)*0.5,-hy/(2.*e)*0.5,1.));
+  vec3 n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
   fc=vec4(n.xy*0.5+0.5, h.bone, a);
 }
 """

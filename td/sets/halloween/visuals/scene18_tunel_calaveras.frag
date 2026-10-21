@@ -96,7 +96,8 @@ vec4 render(vec2 uv) {
         surf = 0; th = tw;
         float z = th * d.z + travel;
         tuv = vec2(z, yw - FLOOR_Y) / tile;
-        N = vec3(-sign(d.x), 0.0, 0.0); T = vec3(0.0, 0.0, sign(d.x)); B = vec3(0.0, 1.0, 0.0);
+        // T y B = hacia donde crecen u y v de la lamina (mismo marco en las dos paredes y la boveda)
+        N = vec3(-sign(d.x), 0.0, 0.0); T = vec3(0.0, 0.0, 1.0); B = vec3(0.0, 1.0, 0.0);
     } else if (yw > ARCH_Y) {
         surf = 1;
         float a = dot(d.xy, d.xy), b = -2.0 * ARCH_Y * d.y, c = ARCH_Y * ARCH_Y - HALF_W * HALF_W;
@@ -105,7 +106,8 @@ vec4 render(vec2 uv) {
         float ang = atan(hp.x, hp.y - ARCH_Y);                     // 0 arriba
         float z = th * d.z + travel;
         tuv = vec2(z, (ARCH_Y - FLOOR_Y) + (1.5708 - abs(ang)) * HALF_W) / tile;
-        N = -normalize(vec3(hp.x, hp.y - ARCH_Y, 0.0)); T = vec3(0.0, 0.0, 1.0); B = cross(N, T);
+        N = -normalize(vec3(hp.x, hp.y - ARCH_Y, 0.0)); T = vec3(0.0, 0.0, 1.0);
+        B = sign(hp.x) * normalize(vec3(ARCH_Y - hp.y, hp.x, 0.0));     // v sube hacia la clave
     } else {
         surf = 2;
         th = FLOOR_Y / min(d.y, -1e-4);

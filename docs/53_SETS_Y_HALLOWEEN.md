@@ -539,3 +539,12 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 - **Tormenta (09):** lámina nueva `4_arbol_relieve` (solo el recuadro del árbol, 600×500): tronco y ramas inflados como tubos con surcos de corteza (B = cavidad). El rayo ilumina el lado de las ramas que lo mira. La copa del tronco ahora termina en punta (antes se cortaba plana).
 - **Costo:** igual dentro del ruido de la medición en las dos escenas. **Reconstruir Todo:** láminas y atlas nuevos.
 
+## Fase 27: manos de zombie y túnel de calaveras con relieve (escenas 15 y 18)
+
+![Antes y ahora](img/manos_tunel_2d_vs_3d.jpg)
+
+- **Manos (15):** las láminas de relieve ya existían, pero eran una sola cúpula suave. Ahora cada falange, nudillo, la palma (un trapecio plano con canto redondo, antes un círculo) y el antebrazo son tubos con volumen propio. Hay tendones en el dorso, pliegues en las articulaciones y oclusión horneada entre los dedos. En garra, las falanges dobladas quedan delante de la palma. La tumba ilumina como una luz puntual desde abajo, con un poco de luz de canto.
+- **Túnel (18):** el relieve de la pared salía casi plano (la normal se escalaba por 0,004). Ahora la calavera tiene cúpula, arco de las cejas, pómulos, cuencas hondas con borde suave y dientes uno por uno, con oclusión alrededor de los agujeros. Las antorchas la recorren de costado.
+- **Error corregido en el túnel:** en la pared izquierda y la bóveda, la base de la normal (T/B) estaba invertida. Con el relieve casi plano no se notaba; con el nuevo aparecía una costura entre la pared y la bóveda.
+- **Costo:** igual dentro del ruido. **Reconstruir Todo:** láminas nuevas.
+
