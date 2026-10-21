@@ -13,12 +13,18 @@
 //   agudos -> chispas que suben de las mechas
 //   golpe  -> las llamas se estiran y saltan (D4), cada una a su tiempo;
 //             con Chaos una rafaga las tumba y casi se apagan
+// PIANO: cada tecla aviva la vela de esa posicion (grave a la izquierda):
+//   la llama se estira, brilla mas y suelta chispas; si estaba apagada la
+//   enciende; apretada sigue avivada; un acorde aviva varias.
 // Speed hace titilar las llamas y subir el humo aun en silencio.
-// HISTORIA: cada ~61 s una corriente apaga las velas una por una (queda
-// el humo) y se vuelven a encender; cada ~83 s la luna entra por el
-// vitral; cada acto cambia cuantas velas estan prendidas.
+// HISTORIA: cada ~83 s la luna entra por el vitral; cada acto cambia
+// cuantas velas estan prendidas.
+// CLIMAX (~61 s, 20 s, en tres tiempos): entra una corriente y todas las
+//   llamas se inclinan; se apagan de a una de izquierda a derecha y queda
+//   el humo y la luna en el vitral; se vuelven a encender solas desde el
+//   centro. Cada ~4.5 min, ademas, la luna entra con fuerza (gran climax).
 //
-// @D1: cantidad de velas
+// @D1: cantidad de velas (la nueva se enciende de a poco)
 // @D2: altura de las llamas
 // @D3: halo de luz
 // @D4: salto de las llamas con el golpe
@@ -50,28 +56,40 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    float draft = hkEvent(30.0, 61.0, 14.0);
-    float draftPh = hkEventPhase(30.0, 61.0, 14.0);
-    float moonE = hkEvent(31.0, 83.0, 12.0);
+    vec4 G = hkGrandClimax(30.0);
+    vec4 C = hkClimaxOr(G, hkClimax(30.0, 61.0, 20.0));
+    float cph = C.w;
+    float gustK = C.x * (1.0 - C.y) * (1.0 - C.z);       // aviso: la corriente las inclina
+    float moonE = max(hkEvent(31.0, 83.0, 12.0), max(C.y, G.x * 1.2));
     vec3 flameC = mix(vec3(1.0, 0.55, 0.20), vec3(0.35, 1.0, 0.55), uD5);
-    float nLit = 3.0 + floor(uD1 * 9.0 + hkActVal(4.0) * 1.5);
+    float nLit = min(3.0 + uD1 * 9.0 + hkActVal(4.0) * 1.5, 12.0);
 
     // estado de cada llama: prendida (0..1), punta, tamano
     float on[12];
     vec2 tip[12];
     float fsz[12];
+    float boost[12];
     for (int k = 0; k < 12; k++) {
         int i = ORDER[k];
         vec4 c = CANDLES[i];
         float fi = float(i);
-        float lit = step(float(k), nLit - 1.0);
-        // la corriente las apaga de izquierda a derecha y despues vuelven
+        float lit = revealAt(nLit, float(k));
+        // piano: la vela mas cercana a la tecla se aviva (y se enciende)
+        float kb = 0.0;
+        for (int kk = 0; kk < N_KEYS; kk++) {
+            if (abs(hkKeyX(kk) * 1.0 - c.x) < 0.22) kb = max(kb, keyEnv(kk, 0.04, 0.7) * (0.5 + keyVel(kk) * 0.7));
+        }
+        boost[i] = kb;
+        lit = max(lit, kb);
+        // climax: se apagan de izquierda a derecha en el pico y se vuelven a
+        // encender desde el centro en las secuelas
         float pos = (c.x + 2.6) / 5.2;
-        float out_ = draft * smoothstep(pos * 0.45, pos * 0.45 + 0.05, draftPh) * (1.0 - smoothstep(0.7 + pos * 0.2, 0.75 + pos * 0.2, draftPh));
+        float back = abs(c.x) / 2.6;
+        float out_ = cph > 0.0 ? smoothstep(0.32 + pos * 0.26, 0.36 + pos * 0.26, cph) * (1.0 - smoothstep(0.71 + back * 0.20, 0.75 + back * 0.20, cph)) : 0.0;
         out_ = max(out_, hit * loco * step(0.75, loco) * step(0.5, hash21(vec2(fi, floor(uRTime * 2.0)))) * 0.9);
         on[i] = lit * (1.0 - out_);
         float jump = smoothstep(0.0, 0.3, hit - fract(fi * 0.37) * 0.3) * uD4;
-        fsz[i] = (0.065 + uD2 * 0.07) * (1.0 + jump * 0.8 + bass * 0.15) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
+        fsz[i] = (0.065 + uD2 * 0.07) * (1.0 + jump * 0.8 + bass * 0.15 + kb * 0.9) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
         tip[i] = vec2(c.x, c.y + c.z + 0.02);
     }
 
@@ -100,7 +118,7 @@ vec4 render(vec2 uv) {
         if (on[i] < 0.01) continue;
         vec3 v = vec3(tip[i] - p, 0.30);
         float d2 = dot(v, v);
-        float fl = (0.8 + 0.2 * noise21(vec2(t * 9.0, float(i) * 3.0))) * on[i];
+        float fl = (0.8 + 0.2 * noise21(vec2(t * 9.0, float(i) * 3.0))) * on[i] * (1.0 + boost[i] * 0.8);
         float lam = max(dot(n, v * inversesqrt(d2)), 0.0);
         L += flameC * fl * (0.6 + bass * 0.4) * (0.4 + 0.6 * lam) * 0.06 / (0.02 + d2 * 1.6);
         if (wax > 0.5) {
@@ -138,7 +156,8 @@ vec4 render(vec2 uv) {
         float r = length(dq - vec2(0.0, s * 0.6));
         col += flameC * exp(-r / (0.05 + uD3 * 0.18 + bass * 0.05)) * (0.12 + uD3 * 0.25) * on[i];
         // llama: gota que se inclina con la corriente y titila
-        float lean = (0.15 + mid * 0.6) * sin(t * 1.3 + fi) + hit * loco * 0.8 * sin(uRTime * 9.0);
+        float lean = (0.15 + mid * 0.6) * sin(t * 1.3 + fi) + hit * loco * 0.8 * sin(uRTime * 9.0)
+                   + gustK * (1.5 + 0.6 * sin(uRTime * 11.0 + fi));
         vec2 q = dq / s;
         q.x -= lean * max(q.y, 0.0) * 0.35;
         q.x += (noise21(vec2(q.y * 3.0 - t * 6.0, fi)) - 0.5) * 0.35 * max(q.y, 0.0);
@@ -151,8 +170,8 @@ vec4 render(vec2 uv) {
         // estilo: destello en cruz en cada llama
         if (uStyle > 0.001) col += hkStyleMap(0.97) * hkSparkle(dq - vec2(0.0, s * 0.45), s * 4.0) * 0.25 * uStyle * on[i];
         // chispas
-        float sp = hkParticles(dq * 3.0, t * 0.8, 0.05 + high * 0.15, vec2(0.0, 1.0), 0.03);
-        col += flameC * sp * smoothstep(0.8, 0.0, dq.y) * step(0.0, dq.y) * exp(-abs(dq.x) * 8.0) * (0.2 + high) * on[i];
+        float sp = hkParticles(dq * 3.0, t * 0.8, 0.05 + high * 0.15 + boost[i] * 0.3, vec2(0.0, 1.0), 0.03);
+        col += flameC * sp * smoothstep(0.8, 0.0, dq.y) * step(0.0, dq.y) * exp(-abs(dq.x) * 8.0) * (0.2 + high + boost[i] * 2.0) * on[i];
     }
 
     return vec4(hkFinish(col, uv, vec3(0.45, 0.28, 0.12)), 1.0);

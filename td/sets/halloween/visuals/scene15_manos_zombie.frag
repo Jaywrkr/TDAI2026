@@ -15,11 +15,19 @@
 //   agudos -> brillo humedo en la piel y en la niebla
 //   golpe  -> estiron (D4), cada mano con su retraso, y saltan terrones;
 //             con Chaos salen casi enteras y tiemblan
+// PIANO: cada tecla hace salir con fuerza la mano de la tumba mas cercana
+//   (grave a la izquierda), que se estira y cierra la garra mientras la
+//   tecla siga apretada, con terrones que saltan; al soltarla vuelve a
+//   hundirse. Un acorde saca varias.
 // Speed mueve la niebla, las nubes y el ritmo de los dedos en silencio.
-// HISTORIA: cada ~69 s una horda: salen todas a la vez; cada acto cambia
-// cuantas manos hay; cada ~53 s un relampago lejano recorta el fondo.
+// HISTORIA: cada acto cambia cuantas manos hay; cada ~53 s un relampago
+// lejano recorta el fondo.
+// CLIMAX (~69 s, 18 s, en tres tiempos): la tierra tiembla, cae un rayo y
+//   sale una mano sola; despues salen todas en ola de izquierda a derecha;
+//   se quedan arriba arañando el aire mientras la luz de la tierra baja.
+//   Cada ~4.5 min con relampagos seguidos (gran climax).
 //
-// @D1: cantidad de manos
+// @D1: cantidad de manos (cada una nueva sale de la tierra)
 // @D2: cuanto salen de la tierra
 // @D3: cuanto se abren los dedos
 // @D4: estiron con el golpe
@@ -49,10 +57,18 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    float horde = hkEvent(20.0, 69.0, 10.0);
-    float boltE = hkEvent(21.0, 53.0, 3.0) * step(0.75, noise21(vec2(uRTime * 8.0, 2.0)));
+    vec4 G = hkGrandClimax(20.0);
+    vec4 C = hkClimaxOr(G, hkClimax(20.0, 69.0, 18.0));
+    float cph = C.w;
+    float horde = 0.0;
+    // aviso: tiembla la tierra; un rayo cerca del final del aviso
+    float quake = C.x * (1.0 - C.y) * (1.0 - C.z);
+    float boltE = max(hkEvent(21.0, 53.0, 3.0), max(step(0.24, cph) * step(cph, 0.30), G.y)) * step(0.75, noise21(vec2(uRTime * 8.0, 2.0)));
+    // ola de izquierda a derecha en el pico
+    float waveX = mix(-2.8, 2.8, clamp((cph - 0.36) / 0.28, 0.0, 1.0));
+    float inWave = step(0.36, cph) * (1.0 - smoothstep(0.92, 1.0, cph));
     vec3 glowC = mix(vec3(0.35, 1.0, 0.30), vec3(1.0, 0.18, 0.08), uD5);
-    float glow = 0.55 + bass * 0.9 + hit * 0.3;
+    float glow = 0.55 + bass * 0.9 + hit * 0.3 + C.x * 0.4 * (1.0 - C.z) + C.y * 0.6;
     vec3 moonC = vec3(0.55, 0.62, 0.75);
 
     // --- cielo, luna y nubes ---
@@ -77,19 +93,30 @@ vec4 render(vec2 uv) {
     col = mix(col, glowC * 0.10 + moonC * 0.06, smoothstep(0.4, 0.8, fz) * exp(-pow((p.y + 0.45) / 0.15, 2.0)) * 0.6);
 
     // --- manos ---
-    float nH = 3.0 + floor(uD1 * 4.0 + hkActVal(3.0) * 2.0) + horde * 9.0;
+    vec2 quakeOff = (vec2(noise21(vec2(uRTime * 30.0, 1.0)), noise21(vec2(uRTime * 30.0, 5.0))) - 0.5) * 0.02 * quake;
+    p += quakeOff;
+    float nH = 2.0 + uD1 * 6.0 + hkActVal(3.0) * 1.0;
     for (int kk = 0; kk < 9; kk++) {
-        if (float(kk) >= nH) break;
         int i = ORDER[kk];
         vec2 hole = HOLES[i];
         if (abs(p.x - hole.x) > 0.65) continue;
+        // presencia: D1 de a una + la mano sola del aviso + la ola del pico + el piano
+        float kb = 0.0;
+        for (int k = 0; k < N_KEYS; k++) {
+            if (abs(hkKeyX(k) * 1.05 - hole.x) < 0.38) kb = max(kb, keyEnv(k, 0.12, 0.8) * (0.5 + keyVel(k) * 0.7));
+        }
+        float lone = kk == 0 ? smoothstep(0.26, 0.34, cph) : 0.0;
+        float emerge = max(max(revealAt(nH, float(kk)), kb), max(lone, inWave * smoothstep(hole.x + 0.3, hole.x - 0.1, waveX)));
+        if (emerge < 0.01) continue;
         float fi = float(i);
         float h1 = hash21(vec2(fi, 4.0));
         float s = (0.56 + 0.08 * h1) * (i >= 7 ? 0.8 : 1.0);
         // cuanto sale: D2 + ola propia + estiron del golpe con retraso
         float lag = fract(h1 * 5.0) * 0.3;
-        float stretch = smoothstep(0.0, 0.25, hit - lag) * uD4 * 0.5;
-        float rise = clamp(0.40 + uD2 * 0.60 + 0.08 * sin(t * (0.6 + h1 * 0.5) + fi * 2.0) + stretch + horde * 0.35 + hit * loco * 0.3, 0.0, 1.15);
+        float stretch = smoothstep(0.0, 0.25, hit - lag) * uD4 * 0.5 + kb * 0.45;
+        float rise = clamp(0.40 + uD2 * 0.60 + 0.08 * sin(t * (0.6 + h1 * 0.5) + fi * 2.0) + stretch + C.y * 0.35 + hit * loco * 0.3, 0.0, 1.15);
+        // sale de la tierra: con emerge = 0 queda bajo tierra
+        rise = mix(-0.15, rise, emerge);
         float sway = (0.06 + mid * 0.18) * sin(t * (0.8 + h1) + fi * 1.7) + hit * loco * 0.08 * sin(uRTime * 30.0 + fi);
         vec2 base = hole + vec2(0.0, (rise - 0.95) * s * 1.2);
         vec2 q = p - base;
@@ -99,6 +126,8 @@ vec4 render(vec2 uv) {
         vec2 hu = rUV(q, HAND_R);
         // abre y cierra los dedos: mezcla de las dos poses
         float open = clamp(0.5 + 0.5 * sin(t * (1.1 + h1) + fi * 3.0) * (0.4 + mid) + (uD3 - 0.5) * 1.2 + stretch, 0.0, 1.0);
+        // garra: con el piano apretado o arañando el aire despues de la ola
+        open = mix(open, 0.5 + 0.5 * sin(uRTime * 7.0 + fi), max(kb, C.z) * 0.8);
         vec4 ho = plate3(hu), hg = plate5(hu);
         float k = smoothstep(0.35, 0.65, open);
         vec4 hc = mix(hg, ho, k);
@@ -128,23 +157,25 @@ vec4 render(vec2 uv) {
         vec3 alb = plateCol(ga.rgb);
         float gl = 0.0;
         for (int kk = 0; kk < 9; kk++) {
-            if (float(kk) >= nH) break;
             vec2 d = (p - HOLES[ORDER[kk]]) * vec2(1.0, 2.0);
-            gl += exp(-dot(d, d) * 9.0);
+            gl += exp(-dot(d, d) * 9.0) * max(revealAt(nH, float(kk)), max(inWave, C.x * 0.5));
         }
         vec3 lit = vec3(0.025) + moonC * 0.30 * max(dot(n, normalize(vec3(-0.6, 0.6, 0.5))), 0.0) + glowC * glow * gl * 0.45;
         col = mix(col, alb * lit * 2.2, ga.a);
     }
     // resplandor de los agujeros en el aire
     for (int kk = 0; kk < 9; kk++) {
-        if (float(kk) >= nH) break;
         vec2 hole = HOLES[ORDER[kk]];
         vec2 d = (p - hole - vec2(0.0, 0.12)) * vec2(1.4, 0.9);
-        col += glowC * exp(-dot(d, d) * 14.0) * glow * 0.10;
+        col += glowC * exp(-dot(d, d) * 14.0) * glow * 0.10 * max(revealAt(nH, float(kk)), max(inWave, C.x * 0.5));
     }
 
     // --- terrones que saltan con el golpe ---
-    if (uD6 > 0.02 && hit > 0.02) {
+    // piano: tambien saltan terrones donde sale la mano
+    float dirtAmt = max(uD6 * hit, 0.0);
+    for (int k = 0; k < N_KEYS; k++) dirtAmt = max(dirtAmt, keyEnv(k, 0.05, 0.5) * exp(-keyAge(k) * 1.5) * 0.8);
+    dirtAmt = max(dirtAmt, quake * 0.5);
+    if (dirtAmt > 0.02) {
         float ph = fract(uRTime * 1.3);
         for (int kk = 0; kk < 4; kk++) {
             vec2 hole = HOLES[ORDER[kk]];
@@ -154,7 +185,7 @@ vec4 render(vec2 uv) {
                 vec2 v = (hash22(vec2(float(kk) * 7.0 + fj, floor(uRTime * 1.3))) - vec2(0.5, 0.0)) * vec2(0.9, 1.3);
                 vec2 cp = hole + v * ph * 0.6 + vec2(0.0, -1.6 * ph * ph * 0.5);
                 float r = 0.012 + 0.012 * hash21(vec2(fj, float(kk)));
-                col = mix(col, vec3(0.06, 0.045, 0.03) + glowC * 0.05, (1.0 - smoothstep(r, r + 0.004, length(p - cp))) * uD6 * hit);
+                col = mix(col, vec3(0.06, 0.045, 0.03) + glowC * 0.05, (1.0 - smoothstep(r, r + 0.004, length(p - cp))) * dirtAmt);
             }
         }
     }

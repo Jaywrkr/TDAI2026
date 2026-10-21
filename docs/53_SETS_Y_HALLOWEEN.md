@@ -349,3 +349,16 @@ Mismo tratamiento que la fase 11: piano propio, Detail sin saltos y clímax en t
 | 12 | Vendas que flamean a la altura de la nota; la momia mira la tecla | D1 continuo (las vendas se aprietan) | Las antorchas se apagan → jeroglíficos, giro de cabeza y rayos de los ojos → llamarada |
 | 13 | Prende con todo la calabaza de esa posición, con lengua de fuego | D1 continuo: la fila se acomoda y la nueva crece; ventanas con fundido | Persecución cada vez más rápida → todas al rojo escupiendo fuego → el cuervo vuela |
 
+## Fase 13: escenas 14–19
+
+| Escena | Piano | Detail sin saltos | Clímax |
+|---|---|---|---|
+| 14 | Un cuervo levanta vuelo de la rama | D1: voladores de a uno, separados de la bandada; D4: 8 lugares fijos y el nuevo llega volando | Giran la cabeza y empieza el eclipse → la bandada cruza la luna → ramas vacías y vuelven de a uno |
+| 15 | La mano de la tumba más cercana sale, se estira y araña | D1: cada mano sale de la tierra | Temblor y rayo, sale una mano → ola de manos de izquierda a derecha → arañan el aire |
+| 16 | Aviva o enciende la vela de esa posición | D1: la vela nueva se enciende de a poco | Corriente que las inclina → se apagan de izquierda a derecha → se encienden desde el centro |
+| 17 | Un paso por zona del teclado: patada izquierda, brazos arriba, cabeceo, patada derecha | — | Olas de luz en el piso → dos esqueletos más bailan el solo → se van |
+| 18 | Anillo de ojos rojos a la profundidad de la nota | Ojos de D4 con fundido; se quitó el acelerón que saltaba hacia atrás al terminar | Acelerón → ola de ojos hacia la cámara → frenada con sacudida y polvo |
+| 19 | Ojos que arden y franja de glitch a la altura de la nota | — | Interferencia y se derrite → posesión en bloques con copias → vuelve con los ojos ardiendo |
+
+- **Optimización del piano:** `keyEnv` y las demás funciones leen cada dato de la voz por separado y cortan apenas la voz no suena. Sin teclas, un bucle de 6 voces cuesta 6 lecturas, no 24. En el render por software, la 18 bajó de 0.30 s a 0.18 s y la 19 de 0.24 s a 0.17 s.
+

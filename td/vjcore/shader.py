@@ -64,27 +64,26 @@ float revealAt(float n, float i) {{ return smoothstep(0.0, 1.0, n - i); }}
 //            la tecla siga apretada y cae en 'caida' s al soltarla.
 // Corre con su propio reloj (kclock): el piano responde aun en silencio.
 #define N_KEYS 6
-vec4 _key(int i) {{
-    if (i == 0) return vec4(uK0pos, uK0vel, uK0on, uK0off);
-    if (i == 1) return vec4(uK1pos, uK1vel, uK1on, uK1off);
-    if (i == 2) return vec4(uK2pos, uK2vel, uK2on, uK2off);
-    if (i == 3) return vec4(uK3pos, uK3vel, uK3on, uK3off);
-    if (i == 4) return vec4(uK4pos, uK4vel, uK4on, uK4off);
-    return vec4(uK5pos, uK5vel, uK5on, uK5off);
-}}
-float keyPos(int i) {{ return _key(i).x; }}
-float keyVel(int i) {{ return _key(i).y; }}
-float keyHeld(int i) {{ vec4 k = _key(i); return (k.w < k.z && k.z > 0.0) ? 1.0 : 0.0; }}
-float keyAge(int i) {{ vec4 k = _key(i); return k.z > 0.0 ? max(uKclock - k.z, 0.0) : 1e4; }}
+// Cada dato de la voz se lee por separado (una lectura de textura cada
+// uno): keyEnv solo lee cuando se apreto y se solto, y si la voz no suena
+// corta ahi -- sin teclas, un bucle de 6 voces cuesta 6 lecturas.
+float _kon(int i) {{ return i == 0 ? uK0on : i == 1 ? uK1on : i == 2 ? uK2on : i == 3 ? uK3on : i == 4 ? uK4on : uK5on; }}
+float _koff(int i) {{ return i == 0 ? uK0off : i == 1 ? uK1off : i == 2 ? uK2off : i == 3 ? uK3off : i == 4 ? uK4off : uK5off; }}
+float keyPos(int i) {{ return i == 0 ? uK0pos : i == 1 ? uK1pos : i == 2 ? uK2pos : i == 3 ? uK3pos : i == 4 ? uK4pos : uK5pos; }}
+float keyVel(int i) {{ return i == 0 ? uK0vel : i == 1 ? uK1vel : i == 2 ? uK2vel : i == 3 ? uK3vel : i == 4 ? uK4vel : uK5vel; }}
+float keyHeld(int i) {{ float on = _kon(i); return (on > 0.0 && _koff(i) < on) ? 1.0 : 0.0; }}
+float keyAge(int i) {{ float on = _kon(i); return on > 0.0 ? max(uKclock - on, 0.0) : 1e4; }}
 // segundos desde que se SOLTO (0 mientras siga apretada)
-float keyRelAge(int i) {{ vec4 k = _key(i); return (k.z > 0.0 && k.w >= k.z) ? max(uKclock - k.w, 0.0) : 0.0; }}
+float keyRelAge(int i) {{ float on = _kon(i); float off = _koff(i); return (on > 0.0 && off >= on) ? max(uKclock - off, 0.0) : 0.0; }}
 float keyEnv(int i, float att, float rel) {{
-    vec4 k = _key(i);
-    if (k.z <= 0.0) return 0.0;
-    float held = (k.w < k.z) ? 1.0 : 0.0;
-    float upTo = held > 0.5 ? uKclock : k.w;      // hasta cuando estuvo apretada
-    float a = smoothstep(0.0, max(att, 1e-3), upTo - k.z);
-    float r = held > 0.5 ? 1.0 : 1.0 - smoothstep(0.0, max(rel, 1e-3), uKclock - k.w);
+    float on = _kon(i);
+    if (on <= 0.0) return 0.0;
+    float off = _koff(i);
+    bool held = off < on;
+    if (!held && uKclock - off > rel) return 0.0;
+    float upTo = held ? uKclock : off;           // hasta cuando estuvo apretada
+    float a = smoothstep(0.0, max(att, 1e-3), upTo - on);
+    float r = held ? 1.0 : 1.0 - smoothstep(0.0, max(rel, 1e-3), uKclock - off);
     return a * r;
 }}
 
