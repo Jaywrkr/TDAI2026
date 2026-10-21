@@ -502,3 +502,15 @@ La fachada tiene ahora un **mapa de alturas** horneado (`height()` en `bake_plat
 - la luz de cada ventana pega más en lo que la mira: el canto de las persianas, el alféizar, el marco.
 
 **Costo:** ~20 % más que antes en el banco de prueba, al nivel de la escena más pesada del set (el bosque de faroles). Confirmar los FPS en TD. **Reconstruir Todo:** lámina nueva.
+
+## Fase 23: reloj con relieve (escena 27)
+
+![Antes y ahora](img/reloj_2d_vs_3d.jpg)
+
+Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relieve`): sillares con juntas hundidas, pilastras, cornisas, campanario hundido con persianas, gárgolas con volumen, dovelas del arco y, en la esfera, el bisel, el aro de hierro, los números y las tracerías en relieve. En vivo:
+
+- la luna desde la derecha con contraluz en los cantos;
+- el relámpago del gran clímax desde el lado del rayo;
+- **el resplandor de la esfera ilumina la piedra que la rodea**: en el clímax el rojo marca cada junta y el bisel.
+
+**Costo:** igual que antes en el banco de prueba. **Reconstruir Todo:** lámina nueva.
