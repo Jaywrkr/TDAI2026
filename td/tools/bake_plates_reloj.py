@@ -20,6 +20,8 @@ Laminas:
              B grietas de la esfera: cuando llegan (0.02..1; 0 = nunca;
              D6 las abre desde el centro), A = 1 siempre
   3_ruido    el ruido que se repite de la escena 00 (nubes, niebla)
+  4_relieve  relieve de la torre y la esfera (fase 23): RG normal, B
+             cavidad, A = hay relieve
 
 uso: python3 td/tools/bake_plates_reloj.py   (despues: build_atlas.py)
 """
@@ -38,7 +40,7 @@ FRAG = os.path.join(SET, 'visuals', 'scene27_reloj.frag')
 SS = 2
 R = (-3.4, -1.25, 3.4, 1.25)
 W, H = 1280, 470
-PLATES = [('1_torre', 0), ('2_marcas', 1)]
+PLATES = [('1_torre', 0), ('2_marcas', 1), ('4_relieve', 2)]
 
 VERT = """#version 330
 in vec2 in_pos; out vec2 vUV;
@@ -264,8 +266,102 @@ S shade(vec2 p){
   return o;
 }
 
+
+// ---------- RELIEVE (fase 23) ----------
+// Altura de cada punto de la torre: sillares con juntas hundidas y caras
+// un poco abombadas, pilastras y cornisas salientes, campanario hundido
+// con persianas inclinadas, gargolas con volumen, dovelas del arco, y en
+// la esfera el bisel de piedra, el aro de hierro, los numeros y las
+// tracerias en relieve sobre el vidrio. La escena saca la normal y hace
+// la luz en vivo (luna, relampago y el resplandor de la esfera).
+float height(vec2 p, out float on){
+  on=0.; float h=0.;
+  vec2 dc=RJ_DIAL.xy; float RO=RJ_DIAL.z;
+  float tw=RJ_TOWER;
+  bool tower=abs(p.x)<tw+0.10*smoothstep(-0.2,-1.2,p.y);
+  if(tower){
+    on=1.;
+    vec2 s2=p*vec2(7.,13.); float row=floor(s2.y);
+    s2.x+=mod(row,2.)*0.5+h21(vec2(row,3.))*0.3;
+    vec2 f=fract(s2);
+    float j=min(min(f.x,1.-f.x)*1.85,min(f.y,1.-f.y));
+    h=0.010*smoothstep(0.02,0.09,j)+0.004*sin(f.x*3.14)*sin(f.y*3.14)+0.002*(fbm(p*30.,3)-0.5);
+    float pil=abs(abs(p.x)-tw+0.07)-0.07;
+    if(pil<0.) h+=0.035;
+    for(int k=0;k<3;k++){
+      float cy=k==0?-0.25:(k==1?0.95:-0.98);
+      if(abs(p.y-cy)<0.03) h=0.06+(p.y-cy)*0.4;
+    }
+    for(int k=-1;k<=1;k++){
+      vec2 q=p-vec2(float(k)*0.30,1.14);
+      float arch=max(abs(q.x)-0.09,q.y-0.14);
+      arch=min(arch,length(q-vec2(0.,0.14))-0.09);
+      arch=max(arch,-q.y-0.14);
+      if(arch<0.) h=-0.05+0.012*fract((q.y+0.2)*22.);
+      else if(arch<0.02) h=0.02;
+    }
+  }
+  for(int s=0;s<2;s++){
+    float sg=s==0?-1.:1.;
+    vec2 q=(p-vec2(sg*(tw+0.02),0.80))*vec2(sg,1.);
+    float body=length((q-vec2(0.10,0.0))*vec2(0.9,1.6))-0.09;
+    float head=length(q-vec2(0.22,0.02))-0.05;
+    float snout=sdSeg(q,vec2(0.22,0.02),vec2(0.30,-0.01))-0.022;
+    float wing=sdTri(q,vec2(0.02,0.02),vec2(0.14,0.04),vec2(0.04,0.17));
+    float horn=sdSeg(q,vec2(0.21,0.06),vec2(0.19,0.12))-0.008;
+    float d=min(min(min(body,head),min(snout,wing)),horn);
+    if(d<0.){ on=1.; h=0.08+sqrt(min(-d,0.06))*0.25+0.004*(fbm(q*60.,3)-0.5); }
+  }
+  {
+    vec2 q=p-RJ_ARCH.xy; float d=rjArchD(p);
+    if(d<0.){ on=0.; return 0.; }
+    if(d<0.035){ on=1.; float ang=atan(q.y,q.x); h=0.03*smoothstep(0.035,0.012,d)*(0.7+0.3*step(0.08,abs(fract(ang*5.)-0.5)*2.)); }
+  }
+  vec2 q=p-dc; float r=length(q); float ang=atan(q.x,q.y);
+  if(r<RO+0.05){
+    on=1.;
+    if(r>RO) h=0.05+(RO+0.05-r)*0.8*0.0+0.04*smoothstep(RO+0.05,RO,r);
+    else if(r>RO-0.035){ float b=(r-(RO-0.035))/0.035; h=0.06+sin(b*3.14)*0.02; }
+    else if(r>RJ_RIN){
+      h=0.0;
+      float mA=fract(ang/6.2831853*60.+0.5)-0.5;
+      if(r>RO-0.065&&abs(mA)<0.08) h=0.006;
+      float seg=ang/6.2831853*12.; float ni=floor(seg+0.5); float a0=ni/12.*6.2831853;
+      vec2 nc=vec2(sin(a0),cos(a0))*RJ_RNUM;
+      vec2 rad=vec2(sin(a0),cos(a0)), tan2=vec2(cos(a0),-sin(a0));
+      vec2 l=vec2(dot(q-nc,tan2),dot(q-nc,rad))/0.085;
+      int n=int(mod(ni+11.,12.))+1;
+      if(abs(l.x)<1.2&&abs(l.y)<0.8){ float d=roman(l,n); if(d<0.) h=0.008+min(-d,0.04)*0.1; }
+      if(r<RJ_RIN+0.012) h=0.012;
+    }
+    else if(r>RJ_RCUT){
+      float spoke=abs(fract(ang/6.2831853*12.)-0.5)*r*6.2831853/12.;
+      float tr=min(spoke-0.006, abs(r-(RJ_RCUT+RJ_RIN)*0.5)-0.006);
+      float fa=fract(ang/6.2831853*12.)-0.5;
+      float lob=abs(length(vec2(fa*r*6.2831853/12.,r-(RJ_RIN-0.045)))-0.045)-0.005;
+      lob=max(lob,-(r-(RJ_RIN-0.045)));
+      h=(tr<0.||lob<0.)?0.010:0.0;
+    }
+    else if(r>RJ_RCUT-0.02) h=0.02;
+    else { on=0.; h=0.; }
+  }
+  return h;
+}
+vec4 relief(vec2 p){
+  float on,o2; float h=height(p,on);
+  if(on<0.5) return vec4(0.5,0.5,1.,0.);
+  float e=0.0026;
+  float hx=height(p+vec2(e,0.),o2)-height(p-vec2(e,0.),o2);
+  float hy=height(p+vec2(0.,e),o2)-height(p-vec2(0.,e),o2);
+  vec3 n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
+  float avg=0.; for(int k=0;k<4;k++){ float a=float(k)*1.5708; avg+=height(p+vec2(cos(a),sin(a))*0.012,o2); }
+  float ao=clamp(1.-max(avg*0.25-h,0.)*14.,0.45,1.);
+  return vec4(n.xy*0.5+0.5,ao,1.);
+}
+
 void main(){
   vec2 p=mix(rect.xy,rect.zw,vUV);
+  if(plate==2){ fc=relief(p); return; }
   S o=shade(p);
   if(plate==1){ fc=vec4(o.mk.rgb,1.); return; }
   fc=vec4(pow(clamp(o.c*2.,0.,1.),vec3(1./2.2)),o.a);
@@ -300,7 +396,7 @@ def bake():
         img = np.frombuffer(fbo.read(components=4, dtype='f4'), 'f4').reshape(H * SS, W * SS, 4)[::-1]
         fbo.release()
         r = img.reshape(H, SS, W, SS, 4)
-        if pid == 0:
+        if pid in (0, 2):
             a = img[..., 3:4]
             pm = np.concatenate([img[..., :3] * a, a], -1).reshape(H, SS, W, SS, 4).mean((1, 3))
             rgb = pm[..., :3] / np.maximum(pm[..., 3:4], 1e-5)

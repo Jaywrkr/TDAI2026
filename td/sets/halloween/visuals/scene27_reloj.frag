@@ -122,6 +122,7 @@ vec4 render(vec2 uv) {
     float flock = hkEvent(4.0, 53.0, 9.0);
     float cloudE = hkEvent(9.0, 73.0, 10.0);
     float bolt = G.y * step(0.6, fract(uRTime * 1.1 + 0.3)) * step(0.5, hash21(vec2(floor(uRTime * 1.1), 3.0)));
+    float bx = hash21(vec2(floor(uRTime * 1.1), 8.0)) > 0.5 ? -1.6 : 1.3;    // donde cae el rayo
 
     vec3 bronze = vec3(0.62, 0.42, 0.22);
     vec3 verd = vec3(0.28, 0.55, 0.45);
@@ -135,6 +136,11 @@ vec4 render(vec2 uv) {
     vec2 pu = rUV(p);
     vec4 tw = plate0(pu);
     vec4 mk = plate1(pu);
+    // relieve horneado de la torre y la esfera (fase 23)
+    vec4 rl = plate3(pu);
+    float rlOn = rl.a;
+    vec3 nrm = vec3(rl.rg * 2.0 - 1.0, 0.0);
+    nrm.z = sqrt(max(1.0 - dot(nrm.xy, nrm.xy), 0.0));
     vec2 dc = RJ_DIAL.xy;
     vec2 q = p - dc;
     float r = length(q);
@@ -155,7 +161,6 @@ vec4 render(vec2 uv) {
     sky = mix(sky, vec3(0.04, 0.04, 0.08) + vec3(0.3, 0.32, 0.42) * exp(-mr * 1.7) * moonK * 0.5, cov * 0.88);
     sky += vec3(0.10, 0.08, 0.16) * grand * G.x * smoothstep(-0.2, 0.9, p.y);
     if (bolt > 0.01) {
-        float bx = hash21(vec2(floor(uRTime * 1.1), 8.0)) > 0.5 ? -1.6 : 1.3;
         float bd = hkBolt(p, bx, 1.2, -0.4, floor(uRTime * 1.1), 0.6);
         sky += vec3(0.8, 0.85, 1.0) * bolt * (0.004 / (bd + 0.004) + 0.3);
     }
@@ -176,7 +181,18 @@ vec4 render(vec2 uv) {
 
     // --- la torre a la luz de la luna ---
     vec3 alb = plateCol(tw.rgb);
-    vec3 stone = alb * (vec3(0.42, 0.44, 0.58) * moonK + vec3(0.03));
+    // con relieve: la luna desde la derecha (contraluz en los cantos), el
+    // relampago desde su lado y el resplandor de la esfera sobre la piedra
+    // que la rodea (el bisel, los sillares de alrededor)
+    float difM = max(dot(nrm, vec3(0.6365, 0.4620, 0.6176)), 0.0);
+    float rimM = pow(1.0 - nrm.z, 1.5) * max(dot(normalize(nrm.xy + 1e-4), vec2(0.81, 0.59)), 0.0);
+    float difB = max(dot(nrm, normalize(vec3(clamp((bx - p.x) * 0.6, -1.2, 1.2), 0.8, 0.5))), 0.0);
+    float moonOnly = (0.55 + uD3 * 0.6) * (1.0 - cloudE * 0.5) * (1.0 - C.x * 0.35);
+    float keyL = mix(moonK, moonOnly * (0.30 + 1.30 * difM + rimM * 0.9) + bolt * 1.4 * (0.25 + 1.8 * difB), rlOn);
+    vec3 toDial = vec3(dc - p, 0.12);
+    float glowD = max(dot(nrm, normalize(toDial)), 0.0) * exp(-max(r - RJ_DIAL.z, 0.0) * 4.0) * step(RJ_RCUT, r);
+    vec3 stone = alb * (vec3(0.42, 0.44, 0.58) * keyL * mix(1.0, rl.b, rlOn) + vec3(0.03)
+               + dialC * dialK * glowD * 0.9 * rlOn * step(RJ_DIAL.z - 0.035, r));
     // el vidrio de la esfera, iluminado desde adentro
     float glassM = mk.g * step(r, RJ_DIAL.z);
     stone = mix(stone, alb * 2.4 * dialC * dialK, glassM);
