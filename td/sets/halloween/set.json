@@ -27,19 +27,22 @@
   "piano_gesture": false,
   "plate_lod": "uStyle * 3.2",
   "style_palettes": ["Calabaza", "Sangre", "Veneno", "Fantasma", "Infierno", "Hechizo", "Pantano", "Sepia"],
+  "transition_style": "halloween",
   "midi_redirect": {
     "Hue": "Estilopaleta",
     "Density": "Estilo",
     "Lookamount": "Nocheintensidad",
     "Palettelock": "Estilomarco",
-    "Duallayer": "toggleNight"
+    "Duallayer": "toggleNight",
+    "Blendnext": "triggerMoment"
   },
   "midi_labels": {
     "Hue": "Perilla 2: Paleta del estilo",
     "Density": "Perilla 4: Estilo aerografo",
     "Lookamount": "Perilla 15: Noche (intensidad)",
     "Palettelock": "Perilla 16: Marco de arco",
-    "Duallayer": "Pad 7: Noche ON/OFF"
+    "Duallayer": "Pad 7: Noche ON/OFF",
+    "Blendnext": "Pad 16: Momento (climax)"
   },
   "presets_default": "presets_default.json"
 }

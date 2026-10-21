@@ -16,7 +16,7 @@ import os
 from . import (config, audio, control, midi, scenes, program, dashboard, shader,
               media, keyboard, autopilot, laser, laserfx)
 from .tdutil import (safe_set, safe_expr, safe_mark, add_float, add_int,
-                     add_toggle, add_string, add_pulse, log, clear_log,
+                     add_toggle, add_string, add_pulse, add_menu, log, clear_log,
                      chan_names)
 
 DAT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'dats')
@@ -56,6 +56,17 @@ def _parameters(proj):
     add_float(t, 'Transitionseconds', 'Transition Seconds',
               c.DEFAULT_TRANSITION_SECONDS, 0.05, 4.0)
     add_float(t, 'Xfadetarget', 'Xfade Target (interno)', 0.0, 0, 1)
+    st = add_menu(t, 'Transitionstyle', 'Estilo de transicion',
+                  [n for n, _, _ in c.TRANSITION_STYLES],
+                  [l for _, l, _ in c.TRANSITION_STYLES])
+    try:
+        st.default = c.TRANSITION_STYLE_DEFAULT
+        st.val = c.TRANSITION_STYLE_DEFAULT
+    except Exception:
+        pass
+    # Internos (los escribe control_script._startFade en cada cambio).
+    add_float(t, 'Transitionfx', 'Efecto en curso (interno)', 0.0, -10, 10)
+    add_float(t, 'Transitionmin', 'Segundos minimos del efecto (interno)', 0.0, 0, 10)
 
     o = proj.appendCustomPage('Output')
     add_int(o, 'Outputwidth', 'Output Width', c.DEFAULT_OUTPUT_W, 320, c.MAX_OUTPUT)
@@ -460,6 +471,9 @@ def _parameters(proj):
         add_float(s, 'K{}vel'.format(_i), 'Voz {} fuerza (interno)'.format(_i), 0.0, 0, 1)
         add_float(s, 'K{}on'.format(_i), 'Voz {} apretada en (interno)'.format(_i), -1.0)
         add_float(s, 'K{}off'.format(_i), 'Voz {} soltada en (interno)'.format(_i), -1.0)
+    # Momento (pad de climax a mano, control_script.triggerMoment): kclock
+    # en que se pidio; -1 = nunca.
+    add_float(s, 'Momenton', 'Momento pedido en (interno)', -1.0)
     # Efectos de pad (Fase 3, 8 pads del banco B del MiniLab mkII, ver
     # config.DEFAULT_MIDI) -- se escriben desde midi_logic.py
     # (EFFECT_TRIGGERS).
@@ -935,6 +949,7 @@ def verify(proj, channels):
     # inputs, que es lo que romperia el efecto en silencio (un input mal
     # conectado da negro o el frame sin procesar, no un error rojo).
     for name, n_inputs in (('program_blend', 3), ('program_trails', 3),
+                           ('program_trans', 3), ('trans_pick', 2),
                            ('program_pick', 2), ('trails_pick', 2),
                            ('trails_fb', 1)):
         node = proj.op(name)

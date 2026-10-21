@@ -225,6 +225,27 @@ PROGRAM_H = 360
 
 DEFAULT_TRANSITION_SECONDS = 0.45
 
+# Estilos de transicion (parametro Transitionstyle). 'fundido' es el
+# crossfade de siempre (y no cocina nada extra); los demas los dibuja
+# program_trans solo mientras dura el cambio. 'halloween' elige uno de
+# los cuatro al azar en cada cambio (sin repetir el anterior).
+# (nombre, etiqueta, segundos minimos: debajo de eso no se llega a leer)
+TRANSITION_STYLES = [
+    ('fundido', 'Fundido', 0.0),
+    ('niebla', 'Niebla', 1.8),
+    ('sangre', 'Sangre', 2.0),
+    ('rayo', 'Rayo', 1.0),
+    ('apagon', 'Apagon (velas)', 2.2),
+    ('halloween', 'Halloween (al azar)', 0.0),
+]
+TRANSITION_STYLE_DEFAULT = 'fundido'   # set.json "transition_style"
+# Duracion real del fundido: Transition Seconds, pero nunca menos que el
+# minimo del estilo que corre (Transitionmin, lo escribe _startFade). La
+# usan los dos Lag del fundido (program.py y control.py): tienen que ser
+# identicos para que la imagen y el efecto vayan juntos.
+TRANSITION_LAG_EXPR = ("max(op('/project1').par.Transitionseconds, "
+                       "op('/project1').par.Transitionmin)")
+
 # Resolucion de los thumbnails del dashboard.
 # Con Previewall default True (ver builder.py) las 34 escenas cocinan
 # siempre -- resolucion de thumbnail bajada (256x144 -> 192x108) para que
@@ -312,7 +333,16 @@ CTRL_CHANNELS = [
     # medido con 'kclock' (reloj propio del piano, corre siempre, aun en
     # silencio). Soltada = koff >= kon. Ver keyEnv() en shader.py.
     'kclock',     # 50
-] + ['k{}{}'.format(i, f) for i in range(6) for f in ('pos', 'vel', 'on', 'off')]  # 51-74
+] + ['k{}{}'.format(i, f) for i in range(6) for f in ('pos', 'vel', 'on', 'off')] + [  # 51-74
+    # MOMENTO (pad de Halloween): kclock en que se pidio el climax a mano;
+    # -1 = nunca. Ver hkClimax en sets/halloween/common.glsl.
+    'moment',     # 75
+    # TRANSICIONES CON TEMA (program.py, program_trans): avance del
+    # fundido 0 (lado A) .. 1 (lado B), y que efecto corre ahora. transfx
+    # = +-(estilo + semilla*0.9): signo + = entra B, - = entra A.
+    'xfade',      # 76
+    'transfx',    # 77
+]
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
 # (nombre del parametro, nombre del canal)
@@ -357,7 +387,11 @@ PAR_CHANNELS = [
     ('Estilopaleta', 'stylepal'),
     ('Estiloauto', 'styleauto'),
 ] + [('K{}{}'.format(i, f), 'k{}{}'.format(i, f))
-     for i in range(6) for f in ('pos', 'vel', 'on', 'off')]
+     for i in range(6) for f in ('pos', 'vel', 'on', 'off')] + [
+    ('Momenton', 'moment'),
+    ('Xfadetarget', 'xfade'),   # pasa por un Lag en control.py (no tal cual)
+    ('Transitionfx', 'transfx'),
+]
 
 # Voces del piano polifonico y su suavizado de perillas Detail
 PIANO_VOICES = 6
@@ -889,6 +923,8 @@ def _apply_set(name):
         g['STYLE_DEFAULT'] = (float(data['style'][0]), float(data['style'][1]))
     g['STYLE_PALETTES'] = list(data.get('style_palettes', []))
     g['MIDI_REDIRECT'] = dict(data.get('midi_redirect', {}))
+    if data.get('transition_style'):
+        g['TRANSITION_STYLE_DEFAULT'] = str(data['transition_style'])
     g['MIDI_REDIRECT_LABELS'] = dict(data.get('midi_labels', {}))
     if data.get('plate_lod'):
         g['PLATE_LOD'] = str(data['plate_lod'])

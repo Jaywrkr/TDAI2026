@@ -129,10 +129,11 @@ En Halloween varias perillas casi no aportaban (Density la usan 4 de 26 escenas;
 | Perilla 15 | **Noche, intensidad** (0 = sin efecto de noche) | Look |
 | Perilla 16 | **Marco de arco** (Estilomarco) | Paleta |
 | Pad 7 (banco A) | **Noche ON/OFF** (LED rojo = prendida) | Dos Capas |
+| Pad 16 (banco B) | **Momento**: dispara ya el gran clímax de la escena (LED verde mientras dura) | Modo mezcla |
 
 Todo lo demás queda igual: Energía, Speed, Chaos (locura), Audio, Estela, Master, Detail 1–6, Shift+1/Shift+9, tira de Mod (imagen), los pads del show y el banco B de efectos (sin cambios por ahora). La página MIDI Mapping muestra los nombres nuevos. Para volver a lo de siempre en Halloween, borrar `"midi_redirect"` del `set.json`.
 
-Ideas para más adelante (no hechas): el banco B podría pasar a efectos propios de Halloween (relámpago, sangre, apagón) y el pad 16 (Modo mezcla, que sin Dos Capas no hace nada) a **Paleta automática**.
+Idea para más adelante (no hecha): el banco B podría pasar a efectos propios de Halloween.
 
 ## Locura (perilla Chaos) y kit compartido
 
@@ -375,3 +376,30 @@ Mismo tratamiento que la fase 11: piano propio, Detail sin saltos y clímax en t
 
 - **Miniaturas:** `render_thumbs.py` define `HK_STILL` y `hkClimax` devuelve 0, así cada miniatura muestra la escena en reposo y no un clímax a medias.
 
+
+## Fase 15: pad Momento y transiciones de Halloween
+
+**Momento (pad 16).** Dispara al instante el **gran clímax** de la escena que está al aire (aviso, pico y secuelas, 22 s), sin esperar el calendario automático. Mientras dura, el LED queda verde y otra pulsada no hace nada (no lo reinicia a la mitad). Durante el momento el calendario automático se calla. Funciona igual en las 26 escenas, porque todas usan `hkClimax`/`hkGrandClimax`.
+
+- Python: `control_script.triggerMoment()` guarda el `kclock` en `Momenton` (canal `moment`). `MOMENT_SECONDS` = 22.
+- GLSL (`common.glsl`): si `uKclock - uMoment` está entre 0 y `HK_MOMENT_LEN`, `hkClimax` y `hkGrandClimax` devuelven ese clímax. Las dos constantes tienen que coincidir (lo verifica el test).
+- Corre con el reloj del piano: funciona aunque no haya música.
+
+**Transiciones.** Página *Transitions* → **Estilo de transición**:
+
+| Estilo | Qué se ve | Duración mínima |
+|---|---|---|
+| Fundido | El crossfade de siempre | — |
+| Niebla | Sube un banco de niebla, la escena nueva aparece por donde la niebla es menos densa | 1,8 s |
+| Sangre | Chorrea desde arriba hasta tapar todo y se escurre hacia abajo mostrando la nueva | 2,0 s |
+| Rayo | La escena se apaga en tormenta, cae un rayo y en el fogonazo ya está la nueva | 1,0 s |
+| Apagón (velas) | La luz falla y se corta, quedan cinco velas, vuelve titilando con la nueva | 2,2 s |
+| **Halloween (al azar)** | Uno de los cuatro en cada cambio, sin repetir el anterior. **Es el de este set** (`set.json` → `"transition_style"`) | — |
+
+![Transiciones](img/transiciones_halloween.jpg)
+
+- El fundido dura `max(Transition Seconds, mínimo del estilo)`: con Energía alta (fundidos de 0,3 s) igual se llega a leer el efecto. Para cortes rápidos, elegir **Fundido**.
+- `program_trans` (GLSL con 3 inputs: A, B y control) solo cocina **durante** un cambio con estilo. El switch `trans_pick` elige entre él y el crossfade. Fuera de los cambios cuesta 0 FPS. En los extremos devuelve exactamente la escena de cada lado, así que el switch no salta al soltar.
+- Otro Next a mitad de un cambio mantiene el efecto que está corriendo.
+- Hoja fuera de TD: `python3 td/tools/render_transitions.py salida.png --set halloween --ab 7,16`. Test: `td/tools/test_transiciones.py`.
+- Cambian CHOPs (`xfade_sel`, `xfade_ctrl_lag`), canales (`moment`, `xfade`, `transfx`) y parámetros: hace falta **Reconstruir Todo**.

@@ -27,3 +27,4 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 12** (rama `claude/halloween-f12-escenas-07-13`, sobre f11): escenas 07–13 con el mismo tratamiento.
 - **Fase 13** (rama `claude/halloween-f13-escenas-14-19`, sobre f12): escenas 14–19, y piano optimizado (`keyEnv` corta si la voz no suena).
 - **Fase 14** (rama `claude/halloween-f14-escenas-20-25`, sobre f13): escenas de imagen 20–25; miniaturas sin clímax (`HK_STILL`).
+- **Fase 15** (rama `claude/halloween-f15-momento-transiciones`, sobre f14): pad 16 = Momento (`triggerMoment`, canal `moment`, override en `hkClimax`); transiciones Niebla/Sangre/Rayo/Apagón (`program_trans`, `Transitionstyle`, Halloween = al azar). Test: `td/tools/test_transiciones.py`. Sigue la fase 16 (escenas nuevas 26 mansión, 28 reloj).

@@ -599,6 +599,189 @@ def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
             'trails': trails, 'trails_fb': fb, 'trails_pick': trails_pick}
 
 
+# ---------------------------------------------------------------
+# TRANSICIONES CON TEMA (Niebla, Sangre, Rayo, Apagon con velas)
+# ---------------------------------------------------------------
+# Reemplaza al crossfade SOLO mientras dura un cambio de escena con un
+# estilo distinto de 'fundido' (switch trans_pick): el resto del tiempo
+# no cocina. Lee el avance del fundido (uXfade, la misma rampa que
+# program_cross) y el efecto elegido (uTransfx, ver
+# control_script._pickTransition). En los extremos del fundido devuelve
+# EXACTAMENTE la escena de ese lado, asi el switch no salta al soltar.
+_TRANS_FRAG = """
+out vec4 fragColor;
+
+float tr_h1(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+float tr_h2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float tr_n1(float x) {
+    float i = floor(x), f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(tr_h1(i), tr_h1(i + 1.0), f);
+}
+float tr_noise(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(tr_h2(i), tr_h2(i + vec2(1.0, 0.0)), f.x),
+               mix(tr_h2(i + vec2(0.0, 1.0)), tr_h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float tr_fbm(vec2 p) {
+    float v = 0.0, a = 0.5;
+    for (int i = 0; i < 4; i++) { v += a * tr_noise(p); p = p * 2.03 + vec2(1.7, 9.2); a *= 0.5; }
+    return v;
+}
+
+void main() {
+    vec2 uv = vUV.st;
+    vec3 a = texture(sTD2DInputs[0], uv).rgb;
+    vec3 b = texture(sTD2DInputs[1], uv).rgb;
+    float x = clamp(uXfade, 0.0, 1.0);
+    float tf = abs(uTransfx);
+    int style = int(floor(tf));
+    float seed = fract(tf) * 10.0;           // distinta en cada cambio
+    bool toB = uTransfx >= 0.0;
+    float q = toB ? x : 1.0 - x;             // avance 0..1 del cambio
+    vec3 oldC = toB ? a : b;
+    vec3 newC = toB ? b : a;
+    float u = 1.0 - abs(2.0 * q - 1.0);      // 0 en los extremos, 1 a mitad
+    float t = uKclock;                       // corre aun en silencio
+    float asp = uResW / max(uResH, 1.0);
+    vec2 p = vec2(uv.x * asp, uv.y);
+    vec3 col = mix(a, b, x);
+
+    if (style == 1) {
+        // NIEBLA: sube un banco de niebla, la escena nueva aparece por
+        // donde la niebla es menos densa y la niebla se va.
+        vec2 drift = vec2(t * 0.06, t * 0.015);
+        float f = tr_fbm(p * 2.2 + drift + seed);
+        float f2 = tr_fbm(p * 5.0 - drift * 1.7 + 3.0);
+        float fog = clamp(f * 0.75 + f2 * 0.35, 0.0, 1.0);
+        float sw = smoothstep(0.38, 0.62, q + (0.5 - fog) * 0.25);
+        vec3 base = mix(oldC, newC, sw);
+        float dens = smoothstep(0.0, 1.0, u * (0.75 + 0.7 * fog));
+        dens = clamp(dens * (1.15 - 0.35 * uv.y), 0.0, 1.0);   // mas densa abajo
+        vec3 fogC = mix(vec3(0.20, 0.24, 0.26), vec3(0.62, 0.70, 0.68), fog);
+        col = mix(base * (1.0 - 0.4 * u), fogC, dens * 0.92);
+    } else if (style == 2) {
+        // SANGRE: chorrea desde arriba hasta tapar todo; debajo cambia la
+        // escena; la sangre se escurre hacia abajo y deja ver la nueva.
+        float cx = uv.x * 34.0;
+        float ci = floor(cx);
+        float fc = fract(cx) - 0.5;
+        float h = tr_h1(ci + seed * 13.0);
+        float w = 0.22 + 0.22 * tr_h1(ci + 41.0 + seed * 7.0);
+        float tip = sqrt(max(0.0, 1.0 - (fc / w) * (fc / w)));    // gota redonda
+        float wob = tr_n1(uv.x * 9.0 + seed * 3.0);
+        float edge, cov;
+        if (q < 0.5) {
+            float q1 = pow(clamp(q * 2.0, 0.0, 1.0), 1.3);
+            float reach = q1 * 1.3 * (0.85 + 0.3 * wob) + q1 * tip * h * 0.35;
+            edge = 1.0 - reach;
+            cov = smoothstep(0.0, 0.006, uv.y - edge);
+        } else {
+            float q2 = pow(clamp(q * 2.0 - 1.0, 0.0, 1.0), 1.6);
+            float fall = q2 * 1.4 * (0.85 + 0.3 * wob) + q2 * tip * h * 0.25;
+            edge = 1.0 - fall;
+            cov = smoothstep(0.0, 0.006, edge - uv.y);
+        }
+        float d = abs(uv.y - edge);
+        vec3 blood = mix(vec3(0.55, 0.02, 0.03), vec3(0.16, 0.0, 0.01), smoothstep(0.0, 0.3, d));
+        blood += vec3(0.5, 0.12, 0.1) * exp(-d * 45.0) * (0.5 + 0.5 * tip);   // brillo del borde
+        blood *= 0.85 + 0.3 * tr_noise(p * vec2(6.0, 40.0) + seed);           // vetas
+        vec3 base = q < 0.5 ? oldC : newC;
+        col = mix(base, blood, cov);
+    } else if (style == 3) {
+        // RAYO: la escena se apaga en tormenta, cae un rayo y en el
+        // fogonazo ya esta la escena nueva.
+        vec3 base = q < 0.5 ? oldC : newC;
+        float win = smoothstep(0.0, 0.12, u);
+        float fl = exp(-pow((q - 0.5) * 12.0, 2.0))
+                 + 0.55 * exp(-pow((q - 0.36) * 30.0, 2.0))
+                 + 0.40 * exp(-pow((q - 0.63) * 26.0, 2.0));
+        fl *= win;
+        float lum = dot(base, vec3(0.3, 0.59, 0.11));
+        base = mix(base, lum * vec3(0.6, 0.75, 1.1), 0.5 * u) * (1.0 - 0.45 * u);
+        float x0 = (0.25 + 0.5 * tr_h1(seed * 3.1)) * asp;
+        float path = x0 + (tr_n1(uv.y * 9.0 + seed * 17.0) - 0.5) * 0.25
+                        + (tr_n1(uv.y * 31.0 + seed * 5.0) - 0.5) * 0.07;
+        float yEnd = 0.08 + 0.25 * tr_h1(seed * 7.7);
+        float vis = smoothstep(yEnd - 0.02, yEnd + 0.05, uv.y);
+        float d = abs(p.x - path);
+        float side = tr_h1(seed * 1.3) < 0.5 ? -1.0 : 1.0;
+        float path2 = path + side * max(0.0, 0.62 - uv.y) * 0.55
+                    + (tr_n1(uv.y * 40.0 + seed) - 0.5) * 0.04;
+        float vis2 = smoothstep(0.30, 0.38, uv.y) * step(uv.y, 0.62);
+        float d2 = abs(p.x - path2);
+        float boltA = smoothstep(0.35, 0.9, fl);
+        float core = vis * 0.003 / (d + 0.003) + vis2 * 0.0015 / (d2 + 0.002);
+        float halo = vis * exp(-d * 7.0) * 0.5 + vis2 * exp(-d2 * 12.0) * 0.25;
+        vec3 boltC = (vec3(0.85, 0.92, 1.0) * core * 1.6 + vec3(0.45, 0.55, 1.0) * halo) * boltA;
+        col = base * (1.0 + 2.2 * fl) + vec3(0.55, 0.65, 0.9) * fl * 0.6 + boltC;
+    } else if (style == 4) {
+        // APAGON: la luz falla y se corta; en la oscuridad quedan unas
+        // velas; vuelve la luz titilando con la escena nueva.
+        float dark = q < 0.5 ? smoothstep(0.0, 0.42, q) : 1.0 - smoothstep(0.58, 1.0, q);
+        vec3 base = q < 0.5 ? oldC : newC;
+        float n = tr_n1(t * 22.0 + seed * 40.0) * 0.7 + tr_n1(t * 7.0 + seed * 11.0) * 0.5;
+        float flick = mix(1.0, step(0.45, n), sin(3.14159 * dark) * 0.85);
+        float bri = (1.0 - dark) * flick;
+        float candle = smoothstep(0.3, 0.8, dark);
+        vec3 flame = vec3(0.0);
+        float lit = 0.0;
+        for (int i = 0; i < 5; i++) {
+            float fi = float(i);
+            vec2 c = vec2((fi + 0.5 + (tr_h1(fi * 3.7 + seed) - 0.5) * 0.6) / 5.0 * asp,
+                          0.2 + 0.14 * tr_h1(fi * 9.1 + seed));
+            float fk = 0.75 + 0.25 * tr_n1(t * 9.0 + fi * 5.0);
+            vec2 dv = p - c - vec2((tr_n1(t * 5.0 + fi) - 0.5) * 0.004, 0.0);
+            vec2 df = vec2(dv.x * 2.2, (dv.y - 0.01) * (dv.y > 0.01 ? 0.75 : 1.4));
+            float core = exp(-dot(df, df) * 1400.0 / fk);
+            float hot = exp(-dot(df, df) * 6000.0 / fk);
+            float wax = smoothstep(0.017, 0.014, abs(dv.x)) * step(dv.y, -0.022) * step(-0.16, dv.y);
+            lit += exp(-length(dv) * 4.5) * fk;
+            flame += vec3(1.0, 0.55, 0.18) * core * 1.6 + vec3(1.0, 0.95, 0.8) * hot
+                   + vec3(0.75, 0.6, 0.45) * wax * (0.35 + 0.5 * exp(dv.y * 18.0)) * fk;
+        }
+        vec3 warm = vec3(1.0, 0.7, 0.4);
+        col = base * bri + base * warm * lit * 0.9 * candle + flame * candle
+            + vec3(0.35, 0.14, 0.04) * lit * 0.12 * candle;
+    }
+
+    vec3 excess = max(col - 1.0, 0.0);
+    col = col - excess + excess / (1.0 + excess);
+    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+}
+"""
+
+
+def _build_transitions(proj, sw_a, sw_b, cross, ctrl_tex, channels):
+    """program_trans (GLSL, 3 inputs: A, B, control) + trans_pick: el
+    switch elige el crossfade de siempre o el efecto, y solo durante un
+    cambio con estilo (bypass real: fuera de eso el GLSL no cocina)."""
+    dat = proj.create(textDAT, 'program_trans_frag')
+    dat.nodeX, dat.nodeY = 760, 620
+    dat.text = shader.ctrl_header(channels, 2) + _TRANS_FRAG
+
+    trans = proj.create(glslTOP, 'program_trans')
+    trans.nodeX, trans.nodeY = 960, 620
+    safe_set_first(trans, ['pixeldat', 'pixelshader'], dat.path)
+    connect(trans, sw_a, 0)
+    connect(trans, sw_b, 1)
+    connect(trans, ctrl_tex, 2)
+    safe_set_first(trans, ['format', 'pixelformat'], 'rgba16float')
+    safe_set_first(trans, ['inputfiltertype', 'inputfilter'], 'linear')
+
+    pick = proj.create(switchTOP, 'trans_pick')
+    pick.nodeX, pick.nodeY = 1040, 280
+    connect(pick, cross, 0)
+    connect(pick, trans, 1)
+    safe_set(pick, 'cooktype', 'selective')
+    safe_expr(pick, 'index',
+              "1 if abs(op('/project1').par.Transitionfx.eval()) > 0.5 and "
+              "0.0005 < op('/project1/xfade')['Xfadetarget'].eval() < 0.9995 else 0")
+    log('TRANSICIONES: niebla/sangre/rayo/apagon (bypass real por switch) OK')
+    return trans, pick
+
+
 def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # --- puentes locales a cada escena ---
     srcs = []
@@ -655,8 +838,8 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
 
     lag = proj.create(lagCHOP, 'xfade_lag')
     lag.nodeX, lag.nodeY = 860, 20
-    safe_expr(lag, 'lag1', "op('/project1').par.Transitionseconds")
-    safe_expr(lag, 'lag2', "op('/project1').par.Transitionseconds")
+    safe_expr(lag, 'lag1', config.TRANSITION_LAG_EXPR)
+    safe_expr(lag, 'lag2', config.TRANSITION_LAG_EXPR)
     safe_set_first(lag, ['lagmethod', 'method'], 'slew')
     connect(lag, xp)
 
@@ -678,15 +861,20 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # Solo si el llamador paso la textura de control (siempre, en el build
     # normal). Sin ella se cae al bus de antes, sin Master FX, para que
     # este modulo se pueda seguir usando suelto.
+    trans = None
     if ctrl_tex is not None and channels:
-        fx = _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels)
+        trans, cross_out = _build_transitions(proj, sw_a, sw_b, cross, ctrl_tex, channels)
+    else:
+        cross_out = cross
+    if ctrl_tex is not None and channels:
+        fx = _build_master_fx(proj, sw_a, sw_b, cross_out, ctrl_tex, channels)
         clean = fx['clean']
         post = fx['trails_pick']
     else:
         fx = {}
         clean = proj.create(nullTOP, 'program_clean')
         clean.nodeX, clean.nodeY = 1160, 280
-        connect(clean, cross)
+        connect(clean, cross_out)
         post = clean
 
     bloom_fx = _build_bloom(proj, post, ctrl_tex, channels)
@@ -727,6 +915,8 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
                  text_fx['text_y'], text_fx['text_composite']]
     res_nodes += [fx[k] for k in ('blend', 'pick', 'trails', 'trails_fb',
                                   'trails_pick') if k in fx]
+    if trans is not None:
+        res_nodes += [trans, cross_out]
     for t in res_nodes:
         safe_set(t, 'outputresolution', 'custom')
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
