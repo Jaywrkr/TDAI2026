@@ -129,7 +129,10 @@ DEFAULT_RENDER_SCALE = 0.75
 # RMS de la entrada antes del auto-gain. Por debajo de este piso se congela
 # el reloj visual y se cierra el detector de kick: el ruido residual de una
 # fuente en pausa no debe mover ninguna escena.
-SILENCE_RMS_THRESHOLD = 0.005
+# 0.005 -> 0.002: con una entrada floja (microfono de la Mac, RMS de la
+# musica ~0.008) la compuerta se cerraba en cada parte suave y nada
+# bailaba. 0.002 (-54 dBFS) sigue arriba del ruido de una entrada quieta.
+SILENCE_RMS_THRESHOLD = 0.002
 # El reloj de los visuales YA NO se congela con este piso (pedido
 # explicito: "si Speed esta en 50 %, no puede bajar de 50 %"). Con la
 # compuerta, cada vez que el RMS rozaba el piso -- entre frases, en una
@@ -755,6 +758,11 @@ def set_dir(name=None):
 # escena despues de ctrl (y de media, si la escena usa media), en orden
 # alfabetico. {indice: [rutas absolutas]}.
 PLATES = {}
+# Atlas de laminas (td/tools/build_atlas.py): {indice: {'paths': [atlasN.png],
+# 'plates': [lo de atlas.json por lamina]}}. Si una escena tiene atlas, sus
+# laminas entran como 1-2 texturas de <= 1280 px: en Metal (Mac) un GLSL TOP
+# con mas de 3 inputs no compila.
+PLATE_ATLAS = {}
 
 
 def _find_plates(folder):
@@ -769,9 +777,31 @@ def _find_plates(folder):
         if not m:
             continue
         sub = _os.path.join(folder, d)
-        files = sorted(f for f in _os.listdir(sub) if f.lower().endswith('.png'))
+        files = sorted(f for f in _os.listdir(sub) if f.lower().endswith('.png')
+                       and not f.startswith('atlas'))
         if files:
             out[int(m.group(1))] = [_os.path.join(sub, f) for f in files]
+    return out
+
+
+def _find_atlases(plates):
+    import json as _json
+    out = {}
+    for i, files in plates.items():
+        sub = _os.path.dirname(files[0])
+        try:
+            with open(_os.path.join(sub, 'atlas.json'), 'r', encoding='utf-8') as f:
+                meta = _json.load(f)
+            pl = meta['plates']
+            paths = [_os.path.join(sub, n) for n in meta['atlases']]
+        except Exception:
+            continue
+        # un atlas viejo (laminas cambiadas sin volver a correr build_atlas)
+        # no se usa: mejor las laminas sueltas que una mal ubicada
+        if ([p['file'] for p in pl] != [_os.path.basename(f) for f in files]
+                or not all(_os.path.isfile(p) for p in paths)):
+            continue
+        out[i] = {'paths': paths, 'plates': pl}
     return out
 
 
@@ -782,6 +812,8 @@ def plate_base(i):
 
 def scene_input_count(i):
     """Cuantos inputs tiene el GLSL TOP de la escena i (ctrl + media + laminas)."""
+    if i in PLATE_ATLAS:
+        return plate_base(i) + len(PLATE_ATLAS[i]['paths'])
     return plate_base(i) + len(PLATES.get(i, []))
 
 
@@ -836,6 +868,7 @@ def _apply_set(name):
         g['DEFAULT_OUTPUT_W'] = max(320, min(int(w), MAX_OUTPUT))
         g['DEFAULT_OUTPUT_H'] = max(240, min(int(h), MAX_OUTPUT))
     g['PLATES'] = _find_plates(_os.path.join(set_dir(name), data.get('plates_dir', 'plates')))
+    g['PLATE_ATLAS'] = _find_atlases(g['PLATES'])
     if data.get('style'):
         g['STYLE_DEFAULT'] = (float(data['style'][0]), float(data['style'][1]))
     g['STYLE_PALETTES'] = list(data.get('style_palettes', []))

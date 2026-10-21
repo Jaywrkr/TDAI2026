@@ -31,11 +31,10 @@ const float HALF_W = 1.0;
 vec4 t18Tex(int which, vec2 uv, float lod) {
     // laminas que se repiten: muestreo con nivel de mip calculado a mano
     // (con fract la derivada salta y el mip automatico dejaria una linea)
-    uv = fract(uv);
-    if (which == 0) return textureLod(sTD2DInputs[1], uv, lod);
-    if (which == 1) return textureLod(sTD2DInputs[2], uv, lod);
-    if (which == 2) return textureLod(sTD2DInputs[3], uv, lod);
-    return textureLod(sTD2DInputs[4], uv, lod);
+    if (which == 0) return plate0WrapLod(uv, lod);
+    if (which == 1) return plate1WrapLod(uv, lod);
+    if (which == 2) return plate2WrapLod(uv, lod);
+    return plate3WrapLod(uv, lod);
 }
 vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
 

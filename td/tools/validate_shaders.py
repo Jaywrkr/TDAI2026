@@ -56,16 +56,31 @@ def build_source(index, force_template=False, channels=None):
 
 
 def _compile(src):
-    """(ok, salida) de pasar una fuente GLSL por glslangValidator."""
-    with tempfile.NamedTemporaryFile('w', suffix='.frag', delete=False) as f:
-        f.write(src)
-        tmp = f.name
-    try:
-        r = subprocess.run(['glslangValidator', '-S', 'frag', tmp],
-                           capture_output=True, text=True)
-        return r.returncode == 0, r.stdout + r.stderr
-    finally:
-        os.unlink(tmp)
+    """(ok, salida) de pasar una fuente GLSL por glslangValidator.
+
+    Dos pasadas: la de siempre (#version 330) y otra como la compila TD
+    de verdad (#version 460 a SPIR-V). La segunda atrapa palabras que en
+    330 pasan pero en 4.60 estan reservadas -- 'patch', 'sample',
+    'subroutine'... -- y que en TD dejan la escena en damero rojo/azul.
+    """
+    srcs = [src, src.replace('#version 330', '#version 460', 1)]
+    out_all = ''
+    for k, s in enumerate(srcs):
+        with tempfile.NamedTemporaryFile('w', suffix='.frag', delete=False) as f:
+            f.write(s)
+            tmp = f.name
+        cmd = ['glslangValidator', '-S', 'frag', tmp]
+        if k == 1:
+            cmd[1:1] = ['-G', '--auto-map-locations', '--auto-map-bindings',
+                        '-o', os.devnull]
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True)
+        finally:
+            os.unlink(tmp)
+        if r.returncode != 0:
+            return False, ('[GLSL 4.60 / TD] ' if k else '') + r.stdout + r.stderr
+        out_all += r.stdout + r.stderr
+    return True, out_all
 
 
 def validate(index, force_template=False, channels=None):

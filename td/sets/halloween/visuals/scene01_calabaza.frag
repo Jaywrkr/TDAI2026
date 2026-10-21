@@ -204,9 +204,9 @@ vec4 render(vec2 uv) {
         float pool = exp(-length((pT - base) * vec2(0.8, 3.0)) * 2.0) * inner * (1.0 + uD6 * 1.2);
         float tlight = 0.06 + hwWarm(pT, heroK, cf) * 1.1 + pool * 0.9;
         // mancha de luna en la mesa y sombra de la calabaza hacia la derecha
-        float patch = exp(-pow((pT.x + 0.85) / 0.45, 2.0) - pow((pT.y + 0.80) / 0.12, 2.0)) * beamOn;
+        float moonPatch = exp(-pow((pT.x + 0.85) / 0.45, 2.0) - pow((pT.y + 0.80) / 0.12, 2.0)) * beamOn;
         float shadowH = exp(-pow((pT.x - base.x - 0.35 * size) / (0.40 * size), 2.0) - pow((pT.y - base.y + 0.03) / 0.05, 2.0));
-        vec3 tc = alb(tb.rgb) * (tlight * vec3(1.0, 0.72, 0.45) + moonC * patch * 0.35 + vec3(0.04, 0.045, 0.07));
+        vec3 tc = alb(tb.rgb) * (tlight * vec3(1.0, 0.72, 0.45) + moonC * moonPatch * 0.35 + vec3(0.04, 0.045, 0.07));
         tc *= 1.0 - 0.55 * shadowH;
         tc *= 1.0 - 0.7 * exp(-pow((pT.x - base.x) / (0.42 * size), 2.0) - pow((pT.y - base.y) / 0.025, 2.0));
         // reflejo borroso de la calabaza en la madera

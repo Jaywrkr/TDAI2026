@@ -11,6 +11,7 @@
 - RUN_ME.py elige el set; el build lo recuerda; las herramientas lo
   aceptan con --set.
 """
+import glob
 import json
 import os
 import re
@@ -116,7 +117,11 @@ def main():
         for k, (files, nfun) in sorted(plates.items(), key=lambda kv: int(kv[0])):
             sizes = [Image.open(f).size for f in files]
             check('laminas de la escena {}: {} PNG <= 1280 px y sus plateN()'.format(k, len(files)),
-                  all(max(sz) <= 1280 for sz in sizes) and nfun == 2 * len(files), sizes)
+                  all(max(sz) <= 1280 for sz in sizes) and nfun >= 2 * len(files), sizes)
+            # atlas (build_atlas.py): tambien dentro del tope de 1280 px
+            for a in sorted(glob.glob(os.path.join(os.path.dirname(files[0]), 'atlas*.png'))):
+                check('atlas {} de la escena {} <= 1280 px'.format(os.path.basename(a), k),
+                      max(Image.open(a).size) <= 1280, Image.open(a).size)
 
     print('ELECCION DEL SET')
     run_me = open(os.path.join(TD, 'RUN_ME.py'), encoding='utf-8').read()

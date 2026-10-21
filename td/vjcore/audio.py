@@ -197,6 +197,8 @@ def build(proj):
     mono = proj.create(mathCHOP, 'audio_mono')
     mono.nodeX, mono.nodeY = -1240, 700
     safe_set_first(mono, ['chopop', 'chanop'], 'average')
+    safe_expr(mono, 'gain', "op('/project1').par.Inputgain.eval() if "
+              "hasattr(op('/project1').par, 'Inputgain') else 1.0")
     connect(mono, audio_in)
 
     level_env = _envelope(proj, mono, 'a_level', -1060, 860, 0.15, 'Mastergain')

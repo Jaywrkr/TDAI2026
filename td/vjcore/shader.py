@@ -614,6 +614,9 @@ def plates_header(scene_index):
         out.append('//   plate{}: {}'.format(k, os.path.basename(f)))
     out.append('#define N_PLATES {}'.format(len(files)))
     out.append('#define PLATE_LOD ({})'.format(config.PLATE_LOD))
+    atlas = config.PLATE_ATLAS.get(scene_index)
+    if atlas:
+        return '\n'.join(out + _atlas_funcs(base, atlas)) + '\n'
     for k in range(len(files)):
         # sin repetir en los bordes (el modo de borde del input puede ser
         # 'repeat'): uv recortado medio texel adentro y nivel 0
@@ -631,7 +634,38 @@ def plates_header(scene_index):
         # mipmap elegiria el nivel mas chico (linea visible)
         out.append('vec4 plate{0}Wrap(vec2 uv) {{ return textureLod(sTD2DInputs[{1}], fract(uv), 0.0); }}'
                    .format(k, base + k))
+        out.append('vec4 plate{0}WrapLod(vec2 uv, float lod) {{ return textureLod(sTD2DInputs[{1}], fract(uv), lod); }}'
+                   .format(k, base + k))
     return '\n'.join(out) + '\n'
+
+
+def _atlas_funcs(unit, atlas):
+    """plateN / plateNWrap / plateNWrapLod sobre 1-2 atlas: mismo contrato
+    que con una textura por lamina. El margen del atlas deja limpios los
+    mips hasta PLATE_MAXLOD; mas alla se funde al promedio de la lamina.
+    Si build_atlas achico una lamina, su lodbias corrige el nivel pedido."""
+    out = ['#define PLATE_MAXLOD 3.0']
+    for k, pl in enumerate(atlas['plates']):
+        tex = 'sTD2DInputs[{}]'.format(unit + int(pl['atlas']))
+        r = 'vec4({:.8f}, {:.8f}, {:.8f}, {:.8f})'.format(*pl['uv'])
+        m = 'vec4({:.5f}, {:.5f}, {:.5f}, {:.5f})'.format(*pl['mean'])
+        bias = '{:.4f}'.format(float(pl.get('lodbias', 0.0)))
+        w, h = pl['px'][2], pl['px'][3]
+        out.append('const vec4 PLATE_R{0} = {1};'.format(k, r))
+        out.append('const vec4 PLATE_M{0} = {1};'.format(k, m))
+        out.append('vec4 plate{0}Lod(vec2 st, float lod) {{ lod = max(lod + ({1}), 0.0); '
+                   'vec4 c = textureLod({2}, PLATE_R{0}.xy + st * PLATE_R{0}.zw, min(lod, PLATE_MAXLOD)); '
+                   'return mix(c, PLATE_M{0}, smoothstep(PLATE_MAXLOD, PLATE_MAXLOD + 4.0, lod)); }}'
+                   .format(k, bias, tex))
+        out.append('vec4 plate{0}(vec2 uv) {{ vec2 o = step(vec2(0.0), uv) * step(uv, vec2(1.0)); '
+                   'vec2 hs = vec2(0.5) / vec2({1}.0, {2}.0); '
+                   'vec4 c = plate{0}Lod(clamp(uv, hs, 1.0 - hs), PLATE_LOD) * (o.x * o.y); '
+                   'if (PLATE_LOD > 0.01) {{ float e = 0.003 * exp2(PLATE_LOD); '
+                   'c *= smoothstep(0.0, e, 1.0 - uv.y) * smoothstep(0.0, e, min(uv.x, 1.0 - uv.x)); }} '
+                   'return c; }}'.format(k, w, h))
+        out.append('vec4 plate{0}WrapLod(vec2 uv, float lod) {{ return plate{0}Lod(fract(uv), lod); }}'.format(k))
+        out.append('vec4 plate{0}Wrap(vec2 uv) {{ return plate{0}Lod(fract(uv), 0.0); }}'.format(k))
+    return out
 
 
 def set_prelude():

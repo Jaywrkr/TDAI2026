@@ -120,11 +120,20 @@ def build_scene(scenes, i, channels):
     # Laminas (config.PLATES): una imagen fija por input, despues de ctrl
     # y de media. La ruta es absoluta al repo, asi que mover la carpeta
     # td/ pide Reconstruir Todo.
-    for k, path in enumerate(config.PLATES.get(i, [])):
+    atlas = config.PLATE_ATLAS.get(i)
+    plate_files = atlas['paths'] if atlas else config.PLATES.get(i, [])
+    for k, path in enumerate(plate_files):
         pl = content.create(moviefileinTOP, 'plate{}'.format(k))
         pl.nodeX, pl.nodeY = -400, 150 - k * 110
         safe_set(pl, 'file', path.replace('\\', '/'))
-        safe_set(pl, 'play', False)
+        # Play queda prendido (default): en la Mac, un Movie File In con
+        # Play apagado nunca leia el PNG y daba el cuadro vacio de 128 x 128
+        # -- la escena salia sin tumbas, luna ni niebla. A una imagen
+        # quieta Play no le cambia nada.
+        try:
+            pl.par.reloadpulse.pulse()
+        except Exception:
+            pass
         connect(glsl, pl, config.plate_base(i) + k)
     # IMPORTANTE: sin esto el GLSL TOP hereda la resolucion del input 0,
     # que es la textura de control de 1 x 15 px.

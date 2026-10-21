@@ -1284,6 +1284,88 @@ def reloadShaders():
         print('  Ejecuta primero RUN_ME desde el Text DAT para poner td/ en sys.path.')
 
 
+def _glslLog(content, glsl, max_lines=12):
+    """Texto del compilador de un GLSL TOP (lo que muestra su Info DAT),
+    recortado a las lineas con 'ERROR'."""
+    out = []
+    info = None
+    try:
+        info = content.create('infoDAT', '_tmp_glslinfo')
+        info.par.op = glsl.path
+        info.cook(force=True)
+        txt = info.text if hasattr(info, 'text') else ''
+        if not txt:
+            txt = '\n'.join(' '.join(c.val for c in row) for row in info.rows())
+        lines = [ln.strip() for ln in txt.split('\n') if 'ERROR' in ln.upper()]
+        out = ['    ' + ln for ln in lines[:max_lines]] or ['    (Info DAT sin lineas de ERROR)']
+    except Exception as e:
+        out = ['    (no pude leer el Info DAT: {})'.format(e)]
+    finally:
+        if info is not None:
+            try:
+                info.destroy()
+            except Exception:
+                pass
+    return out
+
+
+def revisarShaders():
+    """Compila TODAS las escenas en este TD y lista las que fallan.
+
+    Una escena con error de GLSL sale en damero rojo/azul y el texto del
+    error solo se ve pasando el mouse sobre el nodo. Esto prende un
+    instante cada escena, la cocina, junta errores y advertencias de su
+    GLSL TOP y de sus laminas, y lo imprime en el Textport y en
+    td/config/shader_errors.txt. Despues deja cocinando lo de siempre.
+    Uso (Textport): op('/project1/control_script').module.revisarShaders()
+    """
+    lines = []
+    bad = 0
+    for i in range(_n_scenes()):
+        sc = _scene(i)
+        if sc is None:
+            continue
+        was = sc.allowCooking
+        sc.allowCooking = True
+        msgs = []
+        content = sc.op('content')
+        if content is not None:
+            for o in content.children:
+                if o.family != 'TOP':
+                    continue
+                try:
+                    o.cook(force=True)
+                except Exception as e:
+                    msgs.append('{}: cook {}'.format(o.name, e))
+                for kind, txt in (('ERROR', o.errors()), ('aviso', o.warnings())):
+                    if txt:
+                        msgs.append('{} {}: {}'.format(kind, o.name, txt.strip()))
+                if 'compile' in (o.warnings() + o.errors()):
+                    msgs.extend(_glslLog(content, o))
+        sc.allowCooking = was
+        if msgs:
+            bad += 1
+            lines.append('--- escena {:02d} ---'.format(i))
+            lines.extend(msgs)
+    lines.append('{} escena(s) con errores o avisos de {}'.format(bad, _n_scenes()))
+    text = '\n'.join(lines)
+    print(text)
+    d = _config_dir()
+    if d:
+        try:
+            path = os.path.join(d, 'shader_errors.txt')
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(text + '\n')
+            print('-> ' + path)
+        except Exception as e:
+            print('revisarShaders: no se pudo guardar el archivo:', e)
+    try:
+        setSceneCooking()
+    except Exception:
+        pass
+    return bad
+
+
 # ---------------------------------------------------------------
 # MIDI MAPPING (persistente)
 # ---------------------------------------------------------------
