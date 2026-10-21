@@ -22,7 +22,7 @@ y **Run Script**. El reporte del build lo confirma en la primera línea:
 
 ```
 VERIFICACION DEL BUILD   [...]
-  set: HALLOWEEN 2026  (30 escenas, sets/halloween/visuals)
+  set: HALLOWEEN 2026  (31 escenas, sets/halloween/visuals)
 ```
 
 El build guarda el set en `td/config/active_set.txt`, así que al reabrir el `.toe` (o con **Reconstruir Todo**) sigue siendo el mismo. En `/project1` → System, **Set de visuales** lo muestra, pero no se cambia ahí: se cambia en `RUN_ME.py`.
@@ -52,9 +52,9 @@ td/
 
 La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
-## Las 30 escenas
+## Las 31 escenas
 
-Las 30 usan láminas horneadas (realismo sin costo en vivo); los scripts de horneado están en `td/tools/bake_plates_*.py`.
+Las 31 usan láminas horneadas (realismo sin costo en vivo); los scripts de horneado están en `td/tools/bake_plates_*.py`.
 
 | # | Escena | Speed mueve | El audio hace | Detail |
 |---|---|---|---|---|
@@ -87,6 +87,7 @@ Las 30 usan láminas horneadas (realismo sin costo en vivo); los scripts de horn
 | 26 | La mansión embrujada | nubes, niebla, cortinas | bajo hace latir las ventanas; medios mecen las cortinas; agudos = chispas de las chimeneas; golpe = una silueta en una ventana | ventanas, niebla, luna, siluetas, cálido↔verde, hiedra |
 | 28 | El bosque de los faroles | cámara entre los árboles, péndulos, niebla | bajo balancea los faroles (cada cuerda a su ritmo); medios = viento; agudos = luciérnagas; golpe = un farol se aviva y su cuerda baja | faroles, largo de cuerdas, niebla, hojas que caen, naranja↔violeta, ojos |
 | 29 | La morgue | vapor y parpadeo | bajo hace zumbar y parpadear los tubos; medios = vapor frío de los cajones; agudos = gotas; golpe = una sábana respira | tubos que andan, vapor, sábanas, parpadeo con el golpe, blanco↔verde, sangre |
+| 30 | El carnaval abandonado | la rueda y el carrusel giran | bajo = focos que laten en cadena; medios mecen la rueda; agudos = chispas del cable suelto; golpe = el carrusel da medio paso y un caballo salta | focos, velocidad de la rueda, niebla, caballos que saltan, feria↔rojo sangre, óxido |
 | 27 | El reloj de la medianoche | engranajes, péndulo, polvo | bajo empuja el péndulo y los engranajes; medios = polvo en la luz; agudos = destellos del hierro; golpe = salta el segundero | engranajes, polvo, luz, salto, bronce↔verdín, grietas |
 
 Con **Speed en 0** todo queda quieto. Con Speed arriba de 0 y **en silencio**, el movimiento propio sigue y solo se apagan las reacciones al audio.
@@ -99,7 +100,7 @@ Formatos y modos de cambio de imagen: los de siempre (GIF, PNG, JPG, WEBP, MP4, 
 
 **Setlist del set.** `set.json` trae `"setlist"` y el rig arranca con **Bancos → Setlist** cargado y **Next/Prev siguen el setlist** prendido. Las escenas no se renumeran: Next/Prev (pads, teclado ← →, autopilot) siguen este orden, intercalando una de imagen cada 2–3 escenas, las suaves temprano y las más gore de madrugada:
 
-`00 26 13 01 16 20 14 27 07 28 08 23 04 12 21 09 03 11 22 29 02 17 10 24 18 06 15 05 25 19`
+`00 26 13 01 16 20 14 27 07 28 08 23 04 12 21 09 03 11 22 29 02 17 10 24 18 06 15 05 25 30 19`
 
 La mansión (26) entra temprano porque se lee de lejos; el reloj (27) cae en el puesto 8 para estar al aire a la medianoche.
 
@@ -126,7 +127,7 @@ Costo en el banco: +3–5 ms con Estilo arriba. Para que el desenfoque de las l�
 
 ![MiniLab en Halloween](img/minilab_halloween.png)
 
-En Halloween varias perillas casi no aportaban (Density la usan 4 de 30 escenas; Hue, Look y Paleta quedan tapados por el estilo aerógrafo), y lo nuevo del set no tenía control físico. Con `set.json` → `"midi_redirect"` el **mismo control ya aprendido** hace otra cosa **solo en este set**. No se toca `midi_map.json` ni el set principal.
+En Halloween varias perillas casi no aportaban (Density la usan 4 de 31 escenas; Hue, Look y Paleta quedan tapados por el estilo aerógrafo), y lo nuevo del set no tenía control físico. Con `set.json` → `"midi_redirect"` el **mismo control ya aprendido** hace otra cosa **solo en este set**. No se toca `midi_map.json` ni el set principal.
 
 | Control | En Halloween | Antes / en el set principal |
 |---|---|---|
@@ -429,6 +430,8 @@ Las dos con láminas horneadas, piano propio, Detail sin saltos y clímax en tre
 
 ## Fase 17: escena 28 (el bosque de los faroles)
 
+![Escenas 28, 29 y 30](img/escenas_28_30.jpg)
+
 Tres capas de bosque de otoño con paralaje (la cámara se mueve entre los árboles con Speed, aun en silencio) y 16 faroles de papel que cuelgan de las ramas de cada capa e iluminan sus troncos. Las ramas y el suelo comparten geometría con el horneado (`// >>> FAROLES_GEOM`, `bake_plates_faroles.py`).
 
 - **Piano:** la tecla prende el farol de esa posición (grave = izquierda) y lo aviva; un acorde prende varios; mantenida, sigue avivado.
@@ -445,4 +448,14 @@ Sala de autopsias hecha por trazado de rayos en el horneado (`bake_plates_morgue
 - **Clímax (~97 s, 20 s):** los tubos se apagan hacia el fondo y queda la luz roja de emergencia → bajo la sábana de la mesa de adelante una figura se sienta → la luz vuelve parpadeando y la mesa está vacía. **Gran clímax:** además se abren todos los cajones.
 - **Eventos:** un tubo se muere un rato cada ~57 s; una camilla tiembla cada ~77 s.
 - Va de madrugada (después de *Se quema*). El guion ahora reparte los turnos para que el del reloj quede **centrado en la medianoche** (23:53–00:08) aunque cambie la cantidad de escenas.
+- **Reconstruir Todo:** escena y láminas nuevas.
+
+## Fase 19: escena 30 (el carnaval abandonado)
+
+Feria vieja de noche (`bake_plates_carnaval.py`, geometría compartida `// >>> CARNAVAL_GEOM`). Lo fijo va horneado (carpas, carrusel, boletería, patas de la rueda, reja); en vivo giran la rueda con sus góndolas que se mecen y los caballos del carrusel, y laten las guirnaldas de focos.
+
+- **Piano:** la tecla enciende los focos de esa sección de la feria (grave = izquierda); mantenida, la luz corre por las guirnaldas hacia los costados.
+- **Clímax (~99 s, 20 s):** la rueda acelera hasta chirriar y tiembla todo, los focos se vuelven rojos y en la góndola más alta aparece la silueta de un payaso → apagón total salvo su sonrisa → la feria vuelve. **Gran clímax:** lluvia de chispas y el carrusel desbocado.
+- **Eventos:** se corta una guirnalda cada ~63 s; una góndola se queda balanceando cada ~81 s.
+- Va al final de la noche, antes del glitch demoníaco (19).
 - **Reconstruir Todo:** escena y láminas nuevas.
