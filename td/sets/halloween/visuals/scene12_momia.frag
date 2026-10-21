@@ -15,13 +15,18 @@
 //   agudos -> brilla el polvo en la luz
 //   golpe  -> se aflojan las vendas (D4); con Chaos: rayos de los ojos y
 //             tiras de venda que se sueltan y flamean
-//   piano  -> mueve la mirada
+// PIANO: cada tecla suelta una venda que flamea al costado de la momia, a
+//   la altura de la nota (grave abajo); la fuerza la hace mas larga;
+//   apretada sigue flameando, al soltarla cae. La momia mira hacia la tecla.
 // Speed hace titilar las antorchas, flotar el polvo y respirar la momia.
-// HISTORIA: cada ~73 s las antorchas casi se apagan (solo quedan los
-// ojos); cada ~41 s la momia gira la cabeza; cada ~59 s brillan los
+// HISTORIA: cada ~41 s la momia gira la cabeza; cada ~59 s brillan los
 // jeroglificos.
+// CLIMAX (~73 s, 18 s, en tres tiempos): las antorchas parpadean y se
+//   apagan; en la oscuridad brillan los jeroglificos, la momia gira la
+//   cabeza y sus ojos lanzan rayos; las antorchas vuelven con una llamarada.
+//   Cada ~4.5 min, ademas, se sueltan todas las vendas (gran climax).
 //
-// @D1: cantidad de vendas
+// @D1: cantidad de vendas (se aprietan o aflojan sin saltos)
 // @D2: separacion entre vendas (cuanto se ve de lo oscuro)
 // @D3: brillo de los ojos
 // @D4: cuanto se aflojan con el golpe
@@ -44,12 +49,22 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.008);
 
-    float dimE = hkEvent(3.0, 73.0, 6.0);
-    float turnE = hkEvent(4.0, 41.0, 5.0);
-    float glyphE = hkEvent(5.0, 59.0, 7.0);
+    vec4 G = hkGrandClimax(3.0);
+    vec4 C = hkClimaxOr(G, hkClimax(3.0, 73.0, 18.0));
+    float cph = C.w;
+    // aviso: parpadean y se apagan; pico: oscuro; secuelas: llamarada
+    float dying = C.x * (1.0 - C.z);
+    float dimE = clamp(dying * (0.75 + 0.25 * step(0.5, noise21(vec2(uRTime * 14.0, 2.0)))) , 0.0, 1.0);
+    float relight = C.z * (1.0 - smoothstep(0.85, 1.0, cph));
+    float turnE = max(hkEvent(4.0, 41.0, 5.0), smoothstep(0.38, 0.48, cph) * (1.0 - smoothstep(0.56, 0.62, cph)));
+    float glyphE = max(hkEvent(5.0, 59.0, 7.0), C.y);
+    // la mirada sigue a la ultima tecla
+    float keyLook = 0.0;
+    for (int k = 0; k < N_KEYS; k++) keyLook = max(keyLook, keyEnv(k, 0.15, 1.2));
+    float lookX = mix(-0.05, 0.05, uKeypos) * max(uKeypulse, keyLook);
     vec2 T0 = vec2(-2.35, 0.36), T1 = vec2(2.40, 0.36);
-    float f0 = (0.85 + 0.15 * sin(t * 9.0) + (0.10 + mid * 0.25) * (noise21(vec2(t * 5.0, 3.0)) - 0.5)) * (1.0 - dimE * 0.85);
-    float f1 = (0.85 + 0.15 * sin(t * 8.1 + 2.0) + (0.10 + mid * 0.25) * (noise21(vec2(t * 5.0, 7.0)) - 0.5)) * (1.0 - dimE * 0.85);
+    float f0 = (0.85 + 0.15 * sin(t * 9.0) + (0.10 + mid * 0.25) * (noise21(vec2(t * 5.0, 3.0)) - 0.5)) * (1.0 - dimE * 0.92) * (1.0 + relight * 0.9);
+    float f1 = (0.85 + 0.15 * sin(t * 8.1 + 2.0) + (0.10 + mid * 0.25) * (noise21(vec2(t * 5.0, 7.0)) - 0.5)) * (1.0 - dimE * 0.92) * (1.0 + relight * 0.9);
     vec3 fireC = vec3(1.0, 0.60, 0.25);
 
     // --- tumba iluminada por las antorchas ---
@@ -104,7 +119,7 @@ vec4 render(vec2 uv) {
         float vol = inHead ? sqrt(max(1.0 - dot(hq, hq), 0.0)) : sqrt(max(1.0 - bp.x * bp.x, 0.0));
         vec3 hn = normalize(vec3(bp.x, inHead ? bp.y : 0.0, vol + 0.05));
         float breathe = 0.012 * sin(t * 0.9) * (inHead ? 0.5 : 1.0);
-        float nB = 10.0 + floor(uD1 * 10.0);
+        float nB = 10.0 + uD1 * 10.0;     // continuo: las vendas se aprietan sin saltar
         float v = (bp.y + 0.18 * bp.x * bp.x + breathe) * nB * 0.5;
         float row = floor(v);
         float loosen = hit * (0.15 + uD4 * 0.6) * (hash21(vec2(row, 3.0)) - 0.5);
@@ -137,7 +152,7 @@ vec4 render(vec2 uv) {
         face = mix(face, cloth * 1.05 * lightK * fireC, diag);
         face *= 1.0 - 0.7 * diagEdge * (1.0 - diag * 0.5);
         // cuencas y ojos
-        vec2 look = vec2(mix(-0.05, 0.05, uKeypos) * uKeypulse + 0.02 * sin(t * 0.4) - turnE * 0.05, 0.0);
+        vec2 look = vec2(lookX + 0.02 * sin(t * 0.4) - turnE * 0.05, 0.0);
         vec2 sk = vec2(abs(hq.x - 0.05) - 0.34, hq.y - 0.14);
         float socket = length(sk / vec2(1.0, 0.55)) - 0.24;
         float socketM = (1.0 - smoothstep(-0.03, 0.03, socket)) * float(inHead);
@@ -146,16 +161,17 @@ vec4 render(vec2 uv) {
     }
     vec3 eyeC = mix(hsv2rgb(vec3(fract(0.30 + hue), 0.90, 1.0)),
                     hsv2rgb(vec3(fract(0.10 + hue), 0.95, 1.0)), uD5);
-    vec2 look2 = vec2(mix(-0.05, 0.05, uKeypos) * uKeypulse + 0.02 * sin(t * 0.4) - turnE * 0.05, 0.0) * 0.43;
+    vec2 look2 = vec2(lookX + 0.02 * sin(t * 0.4) - turnE * 0.05, 0.0) * 0.43;
     vec2 ep = vec2(abs(p.x - c.x - look2.x) - 0.086, p.y - c.y - 0.045);
     float eye = exp(-dot(ep / vec2(0.024, 0.013), ep / vec2(0.024, 0.013)));
-    float eb = (0.9 + uD3 * 1.4) * (0.6 + bass * 0.9 + hit * 0.5) * (1.0 + dimE * 1.2);
+    float eb = (0.9 + uD3 * 1.4) * (0.6 + bass * 0.9 + hit * 0.5) * (1.0 + dimE * 1.2 + C.y * 1.5);
     col += eyeC * eye * eb;
     col += eyeC * exp(-length(ep) * 25.0) * eb * 0.06;
 
     // --- LOCURA: rayos de los ojos y tiras de venda que flamean ---
-    float beam = hit * smoothstep(0.35, 0.9, loco);
-    if (beam > 0.01) {
+    float beam = max(hit * smoothstep(0.35, 0.9, loco), smoothstep(0.48, 0.55, cph) * (1.0 - smoothstep(0.64, 0.70, cph)));
+    float strips = max(beam, G.y);
+    if (strips > 0.01) {
         for (int s2 = -1; s2 <= 1; s2 += 2) {
             vec2 bp2 = p - vec2(c.x + float(s2) * 0.086 + look2.x, c.y + 0.045);
             float spread = 0.008 + abs(bp2.x) * 0.10;
@@ -169,12 +185,27 @@ vec4 render(vec2 uv) {
             float x0 = 0.10 + side * 0.32;
             float dx = (p.x - x0) * side;
             float wave = sin(dx * 9.0 - uRTime * 14.0 + fi) * 0.05 * dx;
-            float strip = step(0.0, dx) * step(dx, 0.75 * beam) * (1.0 - smoothstep(0.02, 0.03, abs(p.y - y0 - wave - dx * 0.12)));
+            float strip = step(0.0, dx) * step(dx, 0.75 * strips) * (1.0 - smoothstep(0.02, 0.03, abs(p.y - y0 - wave - dx * 0.12)));
             col = mix(col, vec3(0.42, 0.35, 0.24) * (0.25 + 0.35 * (f0 + f1) * 0.5 + 0.15 * sin(dx * 30.0)), strip * 0.9);
         }
     }
+    // --- PIANO: vendas sueltas que flamean a la altura de la nota ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.15, 1.0);
+        if (e < 0.01) continue;
+        float vel = keyVel(k), rel = keyRelAge(k);
+        float y0 = mix(-0.60, 0.25, keyPos(k));
+        float side = fract(keyPos(k) * 7.0 + float(k) * 0.5) > 0.5 ? 1.0 : -1.0;
+        float x0 = 0.10 + side * 0.30;
+        float dx = (p.x - x0) * side;
+        float len = (0.35 + vel * 0.55) * smoothstep(0.0, 0.5, keyAge(k));
+        float fall = rel * rel * 0.8;
+        float wave = sin(dx * 9.0 - uKclock * 12.0 + float(k)) * 0.05 * dx;
+        float strip = step(0.0, dx) * step(dx, len) * (1.0 - smoothstep(0.018, 0.028, abs(p.y - y0 - wave - dx * 0.10 + fall * dx * 2.0)));
+        col = mix(col, vec3(0.42, 0.35, 0.24) * (0.25 + 0.35 * (f0 + f1) * 0.5 + 0.15 * sin(dx * 30.0)), strip * 0.9 * e);
+    }
     // --- polvo y arena flotando en la luz ---
-    float dust = hkParticles(p, t * 0.5 + hit * 0.3, 0.10 + uD6 * 0.30 + high * 0.10, vec2(0.3, 0.4 + mid * 0.4), 0.03);
+    float dust = hkParticles(p, t * 0.5 + hit * 0.3, 0.10 + uD6 * 0.30 + high * 0.10 + relight * 0.3, vec2(0.3, 0.4 + mid * 0.4), 0.03);
     float tl = exp(-length(p - T0) * 0.9) * f0 + exp(-length(p - T1) * 0.9) * f1;
     col += vec3(1.0, 0.8, 0.55) * dust * (0.05 + 1.2 * tl) * (0.5 + high * 0.8);
 
