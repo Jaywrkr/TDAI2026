@@ -105,7 +105,8 @@ vec4 render(vec2 uv) {
     // relampago
     float zap = max(hit * smoothstep(0.4, 0.9, loco), max(hkEvent(6.0, 53.0, 6.0), G.y + G.z) * step(0.85, noise21(vec2(uRTime * 6.0, 1.0))));
     float bslot = floor(uRTime * 1.5);
-    float bd = hkBolt(pS, (hash21(vec2(bslot, 2.0)) - 0.5) * uAspect * 1.6, 1.05, -0.35, bslot * 5.0, 0.4);
+    float bx = (hash21(vec2(bslot, 2.0)) - 0.5) * uAspect * 1.6;
+    float bd = hkBolt(pS, bx, 1.05, -0.35, bslot * 5.0, 0.4);
     col += vec3(0.8, 0.75, 1.0) * (exp(-bd * 160.0) + exp(-bd * 20.0) * 0.3) * zap * 1.5;
     col += vec3(0.5, 0.45, 0.8) * zap * 0.15;
     // nubes que cruzan la luna, con borde iluminado
@@ -125,10 +126,19 @@ vec4 render(vec2 uv) {
     vec2 cu = rUV(pC, CAS_R);
     vec4 cas = plate1(cu);
     if (cas.a > 0.0) {
-        vec3 cc = plateCol(cas.rgb) * (0.9 + 0.6 * dot(moonC, vec3(0.33))) * 1.3 * hkStyleSil();
-        cc += plateCol(cas.rgb) * vec3(0.8, 0.75, 1.0) * zap * 4.0;
+        // relieve horneado (RG normal, B id de ventana): la luna marca torres y
+        // roca, y el relampago entra por el lado donde cae
+        vec4 cr = plate2(cu);
+        vec3 cn = vec3(cr.rg * 2.0 - 1.0, 0.0);
+        cn.z = sqrt(max(1.0 - dot(cn.xy, cn.xy), 0.0));
+        vec3 alb = plateCol(cas.rgb);
+        vec3 Lm = normalize(vec3(mc.x - pC.x, 0.9, 0.7));
+        float moonRel = max(1.0 + 1.1 * (dot(cn, Lm) - Lm.z), 0.25);
+        vec3 Lb = normalize(vec3(clamp((bx - pC.x) * 0.6, -1.2, 1.2), 0.8, 0.5));
+        vec3 cc = alb * (0.9 + 0.6 * dot(moonC, vec3(0.33))) * 1.3 * moonRel * hkStyleSil();
+        cc += alb * vec3(0.8, 0.75, 1.0) * zap * (0.8 + 6.0 * max(dot(cn, Lb), 0.0));
         col = mix(col, cc, cas.a);
-        float wid = plate2(cu).r;
+        float wid = cr.b;
         if (wid > 0.01) {
             float idq = floor(wid * 24.0 + 0.5);
             float candle = 0.75 + 0.25 * sin(t * (7.0 + idq) + idq * 3.0) + 0.15 * noise21(vec2(t * 3.0, idq));

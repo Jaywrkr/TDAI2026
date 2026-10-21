@@ -20,6 +20,7 @@ SS = 2
 PLATES = [
     ('1_paisaje', 1, (-3.1, -1.2, 3.1, 0.10), 1280, 268),
     ('2_arbol', 2, (-3.1, -1.2, 3.1, 1.2), 1280, 496),
+    ('4_arbol_relieve', 3, (-2.75, -0.80, -0.35, 1.20), 600, 500),   # RG normal, B cavidad
 ]
 
 VERT = """#version 330
@@ -126,10 +127,10 @@ vec4 land(vec2 p){
   return vec4(c,a);
 }
 
-vec4 tree(vec2 p){
+float treeD(vec2 p){
   vec2 tq=p-vec2(-1.55,-0.62);
-  float tr=abs(tq.x+0.06*sin(tq.y*2.5))-(0.10-tq.y*0.045);
-  tr=max(tr,max(-tq.y,tq.y-1.25));
+  float tr=abs(tq.x+0.06*sin(tq.y*2.5))-(0.10-tq.y*0.045)*(1.-0.85*smoothstep(0.85,1.32,tq.y));  // la copa termina en punta
+  tr=max(tr,max(-tq.y,tq.y-1.32));
   float d=tr;
   for(int i=0;i<8;i++){
     float fi=float(i);
@@ -149,14 +150,42 @@ vec4 tree(vec2 p){
     vec2 q=rot((float(i)-1.)*1.1)*(tq-vec2(0.,0.03));
     d=min(d, max(abs(q.x)-0.03*(1.+q.y*6.), max(q.y, -q.y-0.12)));
   }
-  float m=smoothstep(0.002,-0.002,d);
+  return d;
+}
+vec4 tree(vec2 p){
+  vec2 tq=p-vec2(-1.55,-0.62);
+  float m=smoothstep(0.002,-0.002,treeD(p));
   vec3 bark=vec3(0.04,0.035,0.03)*(0.6+0.6*fbm(tq*vec2(25.,6.),5));
   return vec4(bark,m);
+}
+
+// ---------- RELIEVE DEL ARBOL (fase 26) ----------
+// Tronco y ramas inflados como tubos, con surcos de corteza a lo largo.
+// La escena saca la normal y el rayo lo ilumina del lado donde cae.
+float treeH(vec2 p){
+  float d=treeD(p);
+  if(d>0.) return 0.;
+  float k=clamp(-d/0.05,0.,1.);
+  float h=0.05*sqrt(max(1.-(1.-k)*(1.-k),0.));
+  vec2 tq=p-vec2(-1.55,-0.62);
+  h+=0.006*(fbm(tq*vec2(25.,6.),5)-0.5)*k;
+  return h;
+}
+vec4 treeRelief(vec2 p){
+  if(treeD(p)>0.004) return vec4(0.5,0.5,1.,1.);
+  float e=0.0025;
+  float hx=treeH(p+vec2(e,0.))-treeH(p-vec2(e,0.));
+  float hy=treeH(p+vec2(0.,e))-treeH(p-vec2(0.,e));
+  vec3 n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
+  vec2 tq=p-vec2(-1.55,-0.62);
+  float cav=0.6+0.4*smoothstep(0.35,0.6,fbm(tq*vec2(25.,6.),5));
+  return vec4(n.xy*0.5+0.5,cav,1.);
 }
 
 void main(){
   vec2 p = mix(rect.xy, rect.zw, vUV);
   if(plate==0){ fc=clouds(p,vUV); return; }
+  if(plate==3){ fc=treeRelief(p); return; }
   vec4 c = plate==1 ? land(p) : tree(p);
   fc = vec4(pow(clamp(c.rgb*2.,0.,1.),vec3(1./2.2)), c.a);
 }

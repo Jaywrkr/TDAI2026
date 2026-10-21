@@ -38,3 +38,4 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 23** (rama `claude/halloween-f23-reloj-3d`, sobre f22): relieve de la torre y la esfera del reloj (27).
 - **Fase 24** (rama `claude/halloween-f24-momia-esqueleto-3d`, sobre f23): huesos con volumen (17) y vendas como tubos (12).
 - **Fase 25** (rama `claude/halloween-f25-bosque-fantasmas-3d`, sobre f24): relieve en el bosque (28, capa cercana) y en el pasillo (07, normal en el mundo).
+- **Fase 26** (rama `claude/halloween-f26-castillo-tormenta-3d`, sobre f25): relieve en el castillo (04, normal dentro de `3_ventanas`) y en el árbol de la tormenta (09); el relámpago ilumina por su lado.

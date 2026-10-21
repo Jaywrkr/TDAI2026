@@ -530,3 +530,12 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 - **Bosque (28):** la capa cercana tiene relieve (`5_cerca_relieve`): troncos cilíndricos con surcos de corteza, la rama gruesa como tubo, hojas y suelo. Cada farol ilumina el tronco del lado que lo mira. El atlas de la escena bajó a 0,84 de escala para que entre la lámina nueva.
 - **Pasillo (07):** relieve horneado como **normal en el mundo del pasillo** (`4_relieve` de `bake_plates_pasillo.py`): paneles del zócalo, tableros y marco de las puertas, marcos de los retratos, molduras, tablas del piso, borde de la alfombra y vigas. Las velas lo iluminan desde su posición real; el relieve solo suma o resta luz alrededor de la de siempre, así la luz rasante de la vela sobre su propia pared no se apaga.
 - **Costo:** 07 sube ~20 %; 28 igual. **Reconstruir Todo:** láminas nuevas.
+
+## Fase 26: castillo y tormenta con relieve (escenas 04 y 09)
+
+![Antes y ahora](img/castillo_tormenta_2d_vs_3d.jpg)
+
+- **Castillo (04):** `3_ventanas` ahora lleva también el relieve: **RG = normal**, **B = id de ventana** (antes en R), A = 1. Así no se suma una lámina y el atlas no achica el castillo. El relieve marca torres cilíndricas con sillares, el alero de los techos, la muralla y la roca del acantilado con estratos. La luna modula la luz con la normal (modulación relativa, no se apaga nada), y el relámpago entra **por el lado donde cae** (`bx`).
+- **Tormenta (09):** lámina nueva `4_arbol_relieve` (solo el recuadro del árbol, 600×500): tronco y ramas inflados como tubos con surcos de corteza (B = cavidad). El rayo ilumina el lado de las ramas que lo mira. La copa del tronco ahora termina en punta (antes se cortaba plana).
+- **Costo:** igual dentro del ruido de la medición en las dos escenas. **Reconstruir Todo:** láminas y atlas nuevos.
+
