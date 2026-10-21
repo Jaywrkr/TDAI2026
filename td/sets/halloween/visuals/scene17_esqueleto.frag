@@ -12,9 +12,17 @@
 //   agudos -> brillo en los huesos
 //   golpe  -> salta y abre los brazos (D4); con Chaos baile poseido y
 //             destello de rayos X
+// PIANO: cada tecla es un paso de baile segun la nota (la fuerza: mas
+//   grande): graves patada a la izquierda, medios bajos brazos arriba,
+//   medios altos cabeceo, agudos patada a la derecha; apretada mantiene el
+//   paso; un acorde los combina.
 // Speed marca el paso de baile aun en silencio.
-// HISTORIA: cada ~49 s un solo enloquecido; cada ~91 s el piso hace olas
-// de luz; cada acto cambia el estilo del baile.
+// HISTORIA: cada ~49 s un solo enloquecido; cada acto cambia el estilo
+// del baile.
+// CLIMAX (~91 s, 24 s, en tres tiempos): el piso hace olas de luz; salen
+//   dos esqueletos mas a los costados y hacen el solo los tres juntos; se
+//   quedan bailando un rato y se van. Cada ~4.5 min con el solo (gran
+//   climax).
 //
 // @D1: tamano
 // @D2: energia del baile
@@ -79,8 +87,24 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    float soloE = hkEvent(3.0, 49.0, 7.0);
-    float floorWave = hkEvent(4.0, 91.0, 9.0);
+    vec4 G = hkGrandClimax(4.0);
+    vec4 C = hkClimaxOr(G, hkClimax(4.0, 91.0, 24.0));
+    float cph = C.w;
+    float soloE = max(hkEvent(3.0, 49.0, 7.0), max(C.y, G.y));
+    float floorWave = max(C.x, C.z * 0.6);
+    // los dos de los costados: entran al llegar el pico y se van al final
+    float sideOn = smoothstep(0.30, 0.42, cph) * (1.0 - smoothstep(0.88, 0.98, cph));
+    // pasos del piano (cada zona del teclado, un paso)
+    float kickL = 0.0, kickR = 0.0, armsK = 0.0, headK = 0.0, hopK = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float ke = keyEnv(k, 0.08, 0.4) * (0.5 + keyVel(k) * 0.7);
+        float kp = keyPos(k);
+        kickL = max(kickL, ke * (1.0 - step(0.25, kp)));
+        armsK = max(armsK, ke * step(0.25, kp) * (1.0 - step(0.5, kp)));
+        headK = max(headK, ke * step(0.5, kp) * (1.0 - step(0.75, kp)));
+        kickR = max(kickR, ke * step(0.75, kp));
+        hopK = max(hopK, ke * exp(-keyAge(k) * 4.0));
+    }
     float floorY = -0.62;
     vec3 spotC = vec3(0.85, 0.82, 0.75);
     vec3 neonC = vec3(0.35, 1.0, 0.45);
@@ -144,16 +168,34 @@ vec4 render(vec2 uv) {
     // sombra en el piso
     col *= 1.0 - 0.65 * exp(-pow((p.x - hip.x) / (0.38 * s), 2.0)) * exp(-pow((p.y - floorY + 0.03) / 0.035, 2.0));
 
-    // --- esqueleto, pieza por pieza (de atras hacia adelante) ---
+    // --- esqueletos, pieza por pieza (de atras hacia adelante); el 0 es el
+    // del centro, el 1 y el 2 salen a los costados en el climax ---
+    vec2 hip0 = hip;
+    float s0 = s;
+    float t0 = t;
+    for (int inst = 0; inst < 3; inst++) {
+    float app = inst == 0 ? 1.0 : sideOn;
+    if (app < 0.01) continue;
+    float sideX = inst == 0 ? 0.0 : (inst == 1 ? -1.0 : 1.0);
+    s = s0 * (inst == 0 ? 1.0 : 0.86);
+    t = t0 + float(inst) * 0.37;
+    // entran desde afuera del cuadro hacia su lugar
+    hip = vec2(hip0.x * (inst == 0 ? 1.0 : 0.6) + sideX * mix(uAspect + 0.6, 1.25, app), floorY + 0.92 * s + 0.04 * abs(sin(t * 3.0)) * e + jump + hopK * 0.06 * float(inst == 0));
+    lean = 0.10 * sin(t * 1.5) * e;
+    up = vec2(sin(lean), cos(lean));
+    neck = hip + up * 0.55 * s;
+    beat = sin(t * 3.0);
     vec4 bc = vec4(0.0);
     vec2 bn = vec2(0.0);
-    float armUp = hit * (0.8 + uD4 * 0.8);
+    float armUp = hit * (0.8 + uD4 * 0.8) + armsK * 1.5;
     if (abs(p.x - hip.x) < 1.2 * s && p.y < hip.y + 1.0 * s && p.y > floorY - 0.1) {
         for (int k = 0; k < 2; k++) {
             float sd = k == 0 ? -1.0 : 1.0;
             // piernas
             vec2 hp = hip + vec2(sd * 0.10 * s, -0.03 * s);
             float l1 = sd * 0.10 + 0.45 * e * sin(t * 3.0 + (sd > 0.0 ? 0.0 : PI)) * 0.6;
+            // patadas del piano (el de la izquierda con graves, el otro con agudos)
+            l1 += sd < 0.0 ? -kickL * 1.3 : kickR * 1.3;
             vec2 kn = e17Limb(hp, 0.42 * s, l1);
             vec2 an = e17Limb(kn, 0.40 * s, l1 - abs(l1) * 0.8 * sd + 0.05 * sd);
             an.y = max(an.y, floorY + 0.05 * s);
@@ -179,7 +221,7 @@ vec4 render(vec2 uv) {
             e17Bone(p, wr, tip, B_HAND, thick, step(0.0, sd), bc, bn);
         }
         // craneo (cabecea con el beat)
-        float nod = lean * 1.5 + 0.12 * beat * e;
+        float nod = lean * 1.5 + 0.12 * beat * e + headK * 0.45 * sin(uKclock * 9.0);
         vec2 hup = vec2(sin(nod), cos(nod));
         e17Bone(p, neck + hup * 0.02 * s, neck + hup * 0.32 * s, B_SKULL, 1.0, 0.0, bc, bn);
     }
@@ -194,15 +236,18 @@ vec4 render(vec2 uv) {
         vec3 neon = neonC * (0.15 + rim * 1.6) + neonC * alb * 1.5;
         float xray = hit * step(0.6, loco) * step(0.6, noise21(vec2(floor(uRTime * 14.0), 5.0)));
         bone = mix(bone, neon, clamp(uD5 + xray, 0.0, 1.0));
-        col = mix(col, bone, bc.a);
+        col = mix(col, bone, bc.a * app);
         col += neonC * rim * bc.a * uD5 * 0.3;
     }
     // ojos que arden en las cuencas
-    vec2 headC = neck + vec2(sin(lean * 1.5 + 0.12 * beat * e), cos(lean * 1.5 + 0.12 * beat * e)) * 0.19 * s;
+    float nodE = lean * 1.5 + 0.12 * beat * e + headK * 0.45 * sin(uKclock * 9.0);
+    vec2 headC = neck + vec2(sin(nodE), cos(nodE)) * 0.19 * s;
     for (int k = 0; k < 2; k++) {
         float sd = k == 0 ? -1.0 : 1.0;
         vec2 ec = headC + vec2(sd * 0.052 * s, 0.0);
         col += mix(vec3(1.0, 0.25, 0.08), neonC, uD5) * exp(-dot(p - ec, p - ec) / (0.0004 * s * s)) * (0.5 + bass * 1.2);
     }
+    }
+    s = s0; t = t0; hip = hip0;
     return vec4(hkFinish(col, uv, vec3(0.3, 0.3, 0.4)), 1.0);
 }

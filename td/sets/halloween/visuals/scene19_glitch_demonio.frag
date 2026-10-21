@@ -13,9 +13,16 @@
 //   agudos -> estatica y chispas
 //   golpe  -> se rompe en bloques que se van cada uno para su lado (D2)
 //             y se desdobla; con Chaos se invierte y aparecen copias
+// PIANO: cada tecla hace arder los ojos y corta la senal con una franja
+//   de glitch a la altura de la nota (la fuerza: mas ancha y corrida);
+//   apretada, la franja repta y los ojos siguen ardiendo.
 // Speed hace respirar el rostro y mover el ruido aun en silencio.
-// HISTORIA: cada ~43 s el rostro se derrite; cada ~89 s posesion: se
-// rompe entero sin golpe; cada acto cambia la textura de la senal.
+// HISTORIA: cada ~43 s el rostro se derrite; cada acto cambia la textura
+// de la senal.
+// CLIMAX (~89 s, 20 s, en tres tiempos): la interferencia crece y el
+//   rostro empieza a derretirse; posesion: se rompe entero en bloques con
+//   copias fantasma; vuelve limpio con los ojos ardiendo. Cada ~4.5 min
+//   mas largo y con la imagen invertida (gran climax).
 //
 // @D1: cantidad de lineas de barrido
 // @D2: cuanto se rompe con el golpe
@@ -56,9 +63,18 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    float meltE = hkEvent(19.0, 43.0, 8.0);
-    float meltPh = hkEventPhase(19.0, 43.0, 8.0);
-    float possE = hkEvent(20.0, 89.0, 6.0);
+    vec4 G = hkGrandClimax(20.0);
+    vec4 C = hkClimaxOr(G, hkClimax(20.0, 89.0, 20.0));
+    float cph = C.w;
+    float interf = C.x * (1.0 - C.y) * (1.0 - C.z);          // aviso: interferencia
+    // se derrite al final del aviso (o en su evento propio)
+    float meltC = smoothstep(0.18, 0.33, cph) * (1.0 - smoothstep(0.36, 0.42, cph));
+    float meltE = max(hkEvent(19.0, 43.0, 8.0), meltC);
+    float meltPh = meltC > 0.0 ? clamp((cph - 0.18) / 0.20, 0.0, 1.0) : hkEventPhase(19.0, 43.0, 8.0);
+    float possE = C.y;
+    // piano: ojos y franjas de glitch
+    float keyEyes = 0.0;
+    for (int k = 0; k < N_KEYS; k++) keyEyes = max(keyEyes, keyEnv(k, 0.02, 0.6) * (0.5 + keyVel(k)));
     vec3 fireC = mix(vec3(1.0, 0.25, 0.06), vec3(0.65, 0.15, 1.0), uD5);
     vec3 rimC = mix(vec3(0.45, 0.20, 0.55), vec3(1.0, 0.2, 0.3), uD5);
     float brk = clamp(hit * (0.2 + uD2) + possE + hit * loco * 0.5, 0.0, 1.5);
@@ -70,8 +86,18 @@ vec4 render(vec2 uv) {
     float on = step(1.0 - brk * 0.40, bh.x);
     g += (bh - 0.5) * vec2(0.20, 0.06) * on * brk;
     float row = floor(uv.y * (60.0 + uD1 * 120.0));
-    float tear = step(0.985 - brk * 0.1, hash21(vec2(row, floor(rt * 20.0))));
+    float tear = step(0.985 - brk * 0.1 - interf * 0.08, hash21(vec2(row, floor(rt * 20.0))));
     g.x += (hash21(vec2(row, 3.0)) - 0.5) * 0.15 * tear;
+    // piano: franja corrida a la altura de la nota
+    float keyBand = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.02, 0.6);
+        if (e < 0.01) continue;
+        float by = mix(0.08, 0.92, keyPos(k)) + keyHeld(k) * 0.04 * sin(uKclock * 2.0 + float(k));
+        float band = exp(-pow((uv.y - by) / (0.02 + keyVel(k) * 0.05), 2.0)) * e;
+        keyBand = max(keyBand, band);
+        g.x += (hash21(vec2(floor(uv.y * 90.0), floor(uKclock * 18.0) + float(k))) - 0.5) * 0.18 * band;
+    }
     g.x += sin(uv.y * 30.0 + t * 2.0) * 0.002 * (0.3 + mid * 2.0);
     vec2 p = hkCam(hkPunch(hkShake(centered(g))));
 
@@ -91,8 +117,8 @@ vec4 render(vec2 uv) {
         q.y += drip;
         q.x += sin(q.y * 6.0 + t) * 0.02 * meltE;
     }
-    float eyesK = (0.25 + uD4 * 0.9) * (0.6 + bass * 1.0 + hit * 0.4);
-    float split = (0.004 + uD3 * 0.03) * (1.0 + brk * 2.0 + bass * 0.5);
+    float eyesK = (0.25 + uD4 * 0.9) * (0.6 + bass * 1.0 + hit * 0.4) + keyEyes * 1.6 + C.z * 2.2;
+    float split = (0.004 + uD3 * 0.03) * (1.0 + brk * 2.0 + bass * 0.5 + interf * 2.0) + keyBand * 0.03;
     vec4 fc = g19Face(q, fireC, rimC, eyesK);
     vec3 face = fc.rgb;
     if (split > 0.006) {
@@ -116,10 +142,10 @@ vec4 render(vec2 uv) {
     float lines = 0.5 + 0.5 * sin(uv.y * uResH * (0.35 + uD1 * 0.6));
     col *= 1.0 - 0.25 * lines * (0.3 + uD1 * 0.7);
     float st = hash21(uv * vec2(uResW, uResH) * 0.5 + fract(rt * 31.0) * 97.0);
-    col = mix(col, vec3(st) * 0.5, (0.03 + uD6 * 0.20 + high * 0.08 + brk * 0.06) * step(0.5, st + 0.3));
+    col = mix(col, vec3(st) * 0.5, (0.03 + uD6 * 0.20 + high * 0.08 + brk * 0.06 + interf * 0.25 + keyBand * 0.3) * step(0.5, st + 0.3));
     float bar = smoothstep(0.02, 0.0, abs(fract(uv.y - rt * 0.07) - 0.5) - 0.06);
     col += vec3(0.04) * bar * (0.5 + uD6);
-    float inv = hit * step(0.75, loco) * step(0.6, noise21(vec2(floor(rt * 14.0), 5.0)));
+    float inv = max(hit * step(0.75, loco), G.y) * step(0.6, noise21(vec2(floor(rt * 14.0), 5.0)));
     col = mix(col, (vec3(1.0) - col) * fireC, inv * 0.7);
     // bloques corridos: un poco de color crudo en los bordes del bloque
 
