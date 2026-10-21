@@ -11,6 +11,9 @@ fuera de TouchDesigner y sin GPU.
     python3 td/tools/render_scenes.py salida/ --chaos 0.9     # perilla Chaos (locura)
     python3 td/tools/render_scenes.py salida/ --size 1280x512 # otro formato
     python3 td/tools/render_scenes.py salida/ --night 0.8     # avance de la noche
+    python3 td/tools/render_scenes.py salida/ --keys 0.2:0.9:0.3:1,0.7:0.5:1.5
+        # voces del piano: posicion:fuerza:segundos desde que se apreto[:1 si sigue apretada]
+    python3 td/tools/render_scenes.py salida/ --chan d1=0.37,uno=0.5  # cualquier canal
 
 Compone header + .frag + footer exactamente como shader.py lo hace para
 TD, inyecta lo mismo que inyecta un GLSL TOP (vUV, sTD2DInputs,
@@ -172,7 +175,7 @@ def main():
         return 1
     out = args[0]
     opt = {'--t': '8.0', '--audio': 'musica', '--d': '0.0', '--scenes': '',
-           '--chaos': '0.3', '--night': '0.0'}
+           '--chaos': '0.3', '--night': '0.0', '--keys': '', '--chan': ''}
     for k in opt:
         if k in args:
             opt[k] = args[args.index(k) + 1]
@@ -181,7 +184,26 @@ def main():
     ctx = moderngl.create_standalone_context(backend='egl', require=330)
     values = ctrl_values(float(opt['--t']), opt['--audio'], float(opt['--d']),
                          float(opt['--chaos']))
-    values[list(config.CTRL_CHANNELS).index('night')] = float(opt['--night'])
+    chans = list(config.CTRL_CHANNELS)
+    values[chans.index('night')] = float(opt['--night'])
+    if 'kclock' in chans:
+        now = 100.0
+        values[chans.index('kclock')] = now
+        for i in range(6):
+            values[chans.index('k{}on'.format(i))] = -1.0
+            values[chans.index('k{}off'.format(i))] = -1.0
+        for i, spec in enumerate(x for x in opt['--keys'].split(',') if x):
+            f = [float(v) for v in spec.split(':')]
+            pos, vel, age = f[0], f[1], f[2]
+            held = len(f) > 3 and f[3] > 0.5
+            values[chans.index('k{}pos'.format(i))] = pos
+            values[chans.index('k{}vel'.format(i))] = vel
+            values[chans.index('k{}on'.format(i))] = now - age
+            # soltada: se solto 0.15 s despues de apretarla
+            values[chans.index('k{}off'.format(i))] = -1.0 if held else min(now, now - age + 0.15)
+    for spec in (x for x in opt['--chan'].split(',') if x):
+        k, v = spec.split('=')
+        values[chans.index(k)] = float(v)
     media = media_image()
     if opt['--scenes']:
         indices = [int(s) for s in opt['--scenes'].split(',')]

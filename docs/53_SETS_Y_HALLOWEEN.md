@@ -306,3 +306,31 @@ En la MacBook, un GLSL TOP con **más de 3 texturas de entrada no compila** ("Th
 - Los `.frag` no cambian: `plateN`, `plateNWrap` y `plateNWrapLod` mantienen el mismo contrato.
 - Pruebas: `td/tools/test_atlas.py` (≤ 3 entradas por escena y atlas al día) y `test_sets.py` (atlas ≤ 1280 px).
 - En TD, `op('/project1/control_script').module.revisarShaders()` lista las escenas que no compilan, con el texto del Info DAT.
+
+## Fase 11: piano propio, perillas sin saltos y clímax en tres tiempos (escenas 00–06)
+
+**Base, para todas las escenas:**
+- **Piano polifónico:** 6 voces (canales `kclock`, `k0pos`…`k5off`). En GLSL están `keyPos(i)`, `keyVel(i)`, `keyAge(i)`, `keyRelAge(i)`, `keyHeld(i)` y `keyEnv(i, ataque, caída)`. Mientras la tecla sigue apretada, la envolvente se sostiene. Las voces las asigna `midi_logic._voiceOn/_voiceOff` (nota apretada y nota soltada). El piano usa su propio reloj, así que responde aun en silencio.
+- **Gesto genérico del piano apagado en Halloween:** `set.json` → `"piano_gesture": false`. Cada escena reacciona por su cuenta.
+- **Detail sin saltos:**
+  - Las seis perillas pasan por un Lag de 0.25 s (`detail_lag` en control.py).
+  - Las cantidades usan `revealAt(n, i)`: cada elemento nuevo aparece de a poco, en vez de `floor()`.
+- **Clímax en tres tiempos:**
+  - `hkClimax(seed, cada, largo)` devuelve (aviso, pico, secuelas, fase).
+  - `hkGrandClimax(seed)` es un clímax grande cada ~4.5 min que reemplaza al común (`hkClimaxOr`).
+  - `hkOffWindow(fase, o, r)` apaga un elemento en el aviso y lo devuelve en las secuelas.
+- **Setlist:** reordenado de tranquilo a intenso y luego a cierre oscuro: 0, 13, 1, 16, 20, 14, 7, 8, 23, 4, 12, 21, 9, 3, 11, 22, 2, 17, 10, 24, 18, 6, 15, 5, 25, 19.
+
+**Por escena:**
+
+| Escena | Piano | Clímax |
+|---|---|---|
+| 00 | Un alma por tecla que sube de la tumba. D2 suma lápidas de a una, que suben de la tierra (láminas `2_medio_base`, `3_medio_lapidas`, `7_lapidas_orden`) | Nubes tapan la luna → luna roja, temblor y almas → niebla rojiza |
+| 01 | Llamas flotantes que iluminan pared y mesa; una tecla fuerte hace reír | Viento → apagón con ojos rojos → llamarada |
+| 02 | Calaveritas de neón en la pared que también la iluminan | Los carteles fallan de a uno → apagón con relámpagos → vuelven en cadena |
+| 03 | Pares de ojos nuevos; D1 los abre de a uno | Se cierran todos → ojo gigante que mira y fija la mirada → vuelven |
+| 04 | Bandaditas que giran mientras la tecla está apretada y al soltar vuelan a la cámara; D1 sin saltos | Remolino frente a la luna → luna de sangre → estallan hacia la cámara |
+| 05 | Chorros que manan mientras la tecla sigue apretada; D1 con columnas fijas | Más hilos → cortina de sangre en toda la pared → corte de luz |
+| 06 | Línea de tracking a la altura de la nota | La figura se levanta y camina a la cámara → la cinta se come |
+
+- Herramienta de prueba: `render_scenes.py --keys pos:vel:edad[:1]` y `--chan canal=valor`.

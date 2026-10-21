@@ -50,6 +50,44 @@ float detailDrive(float x) {{
     return mix(x, y, 0.88);
 }}
 
+// Cantidades SIN SALTOS: en vez de floor(uD1 * 9.0) elementos, cada
+// elemento i aparece de a poco mientras la cantidad continua pasa por i.
+// revealAt(n, i) = 0 (no esta) .. 1 (entero). Usarlo como escala, opacidad
+// o altura (una lapida sube de la tierra, una vela se enciende).
+float revealAt(float n, float i) {{ return smoothstep(0.0, 1.0, n - i); }}
+
+// ---------------- piano polifonico (6 voces) ----------------
+// keyPos(i)  grave..agudo 0..1   keyVel(i) fuerza 0..1
+// keyAge(i)  segundos desde que se apreto (grande si nunca)
+// keyHeld(i) 1 mientras la tecla sigue apretada
+// keyEnv(i, ataque, caida) 0..1: sube en 'ataque' s, se SOSTIENE mientras
+//            la tecla siga apretada y cae en 'caida' s al soltarla.
+// Corre con su propio reloj (kclock): el piano responde aun en silencio.
+#define N_KEYS 6
+vec4 _key(int i) {{
+    if (i == 0) return vec4(uK0pos, uK0vel, uK0on, uK0off);
+    if (i == 1) return vec4(uK1pos, uK1vel, uK1on, uK1off);
+    if (i == 2) return vec4(uK2pos, uK2vel, uK2on, uK2off);
+    if (i == 3) return vec4(uK3pos, uK3vel, uK3on, uK3off);
+    if (i == 4) return vec4(uK4pos, uK4vel, uK4on, uK4off);
+    return vec4(uK5pos, uK5vel, uK5on, uK5off);
+}}
+float keyPos(int i) {{ return _key(i).x; }}
+float keyVel(int i) {{ return _key(i).y; }}
+float keyHeld(int i) {{ vec4 k = _key(i); return (k.w < k.z && k.z > 0.0) ? 1.0 : 0.0; }}
+float keyAge(int i) {{ vec4 k = _key(i); return k.z > 0.0 ? max(uKclock - k.z, 0.0) : 1e4; }}
+// segundos desde que se SOLTO (0 mientras siga apretada)
+float keyRelAge(int i) {{ vec4 k = _key(i); return (k.z > 0.0 && k.w >= k.z) ? max(uKclock - k.w, 0.0) : 0.0; }}
+float keyEnv(int i, float att, float rel) {{
+    vec4 k = _key(i);
+    if (k.z <= 0.0) return 0.0;
+    float held = (k.w < k.z) ? 1.0 : 0.0;
+    float upTo = held > 0.5 ? uKclock : k.w;      // hasta cuando estuvo apretada
+    float a = smoothstep(0.0, max(att, 1e-3), upTo - k.z);
+    float r = held > 0.5 ? 1.0 : 1.0 - smoothstep(0.0, max(rel, 1e-3), uKclock - k.w);
+    return a * r;
+}}
+
 float hash21(vec2 p) {{
     p = fract(p * vec2(123.34, 456.21));
     p += dot(p, p + 45.32);
@@ -311,7 +349,7 @@ void main() {
     vec2 renderUV = vUV.st;
     if (uScene >= MODERN_FROM) {
         if (AUDIO_DANCE == 1) renderUV = audioDanceUV(renderUV);
-        renderUV = pianoGestureUV(renderUV);
+        if (PIANO_GESTURE == 1) renderUV = pianoGestureUV(renderUV);
     }
 
     if (uPixelate > 0.0015) {
@@ -338,7 +376,9 @@ void main() {
 
     // Las escenas recientes tienen deformacion y acentos de piano segun
     // su familia visual. Las anteriores conservan el anillo original.
-    if (uScene >= MODERN_FROM) {
+    if (PIANO_GESTURE == 0) {
+        // el set responde al piano dentro de cada escena (keyEnv & co.)
+    } else if (uScene >= MODERN_FROM) {
         c.rgb = pianoGestureLight(vUV.st, c.rgb);
     } else if (uKeypulse > 0.0015) {
         vec2 kp = centered(vec2(mix(0.14, 0.86, uKeypos), 0.5));
@@ -594,6 +634,7 @@ def make_header(scene_index, channels):
     # comun a todos los sets y decide con estos dos #define.
     header += '#define MODERN_FROM {}\n'.format(int(config.MODERN_FROM))
     header += '#define AUDIO_DANCE {}\n'.format(1 if config.AUDIO_DANCE else 0)
+    header += '#define PIANO_GESTURE {}\n'.format(1 if getattr(config, 'PIANO_GESTURE', True) else 0)
     if scene_index in config.MEDIA_SCENES:
         header += _MEDIA_HEADER
     header += plates_header(scene_index)

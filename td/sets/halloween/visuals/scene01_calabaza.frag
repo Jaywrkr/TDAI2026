@@ -16,11 +16,17 @@
 //   medios -> las llamas de las velas se inclinan; humo; ramas afuera
 //   agudos -> brasas y polvo en el rayo de luna; la calabaza chica titila
 //   golpe  -> llamarada y brasas; con Chaos: lenguas de fuego y relampago
-//   piano  -> se encienden los ojos
+// PIANO: cada tecla enciende una llama flotante (un fuego fatuo de vela)
+//   en esa posicion, que ilumina la pared y la mesa; la fuerza la hace
+//   mas grande y una tecla fuerte hace reir a la calabaza; apretada, la
+//   llama se queda; al soltarla sube y se apaga. Los ojos se encienden.
 // Speed mueve llamas, humo, brasas, nubes y ramas aun en silencio.
-// HISTORIA: cada ~71 s la vela se apaga y vuelve con una llamarada; cada
-// ~53 s la calabaza se rie; cada ~37 s pasa un murcielago por la
-// ventana; cada ~61 s hay tormenta afuera.
+// HISTORIA: cada ~53 s la calabaza se rie; cada ~37 s pasa un murcielago
+// por la ventana; cada ~61 s hay tormenta afuera.
+// CLIMAX (~71 s, 15 s, en tres tiempos): entra viento y todas las llamas
+//   se inclinan y tiemblan; se apagan y queda oscuro, solo los ojos rojos;
+//   vuelve con una llamarada: lenguas de fuego, risa y lluvia de chispas.
+//   Cada ~4.5 min llega con la tormenta afuera (gran climax).
 //
 // @D1: tamano de la calabaza
 // @D2: fuerza de la llama interior
@@ -41,8 +47,20 @@ const vec3 CAND[4] = vec3[](vec3(-0.72, -0.60, 0.42), vec3(0.80, -0.62, 0.30),
                             vec3(0.95, -0.66, 0.17), vec3(2.20, -0.37, 0.16));
 
 // luz calida que llega a un punto: calabaza + velas
+// llamas flotantes del piano: x segun la tecla, altura segun la voz
+vec2 hwKeyFlame(int k) { return vec2(hkKeyX(k) * 0.92, 0.05 + 0.30 * fract(float(k) * 0.37 + keyPos(k) * 3.1) + min(keyAge(k), 3.0) * 0.02); }
+float hwKeyLight(vec2 q) {
+    float w = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.08, 1.2);
+        if (e < 0.005) continue;
+        w += e * (0.35 + keyVel(k) * 0.65) * exp(-length(q - hwKeyFlame(k)) * 3.2) * 0.6;
+    }
+    return w;
+}
+
 float hwWarm(vec2 q, float heroK, vec4 cf) {
-    float w = heroK * exp(-length((q - HERO_C) * vec2(0.8, 1.0)) * 1.3);
+    float w = heroK * exp(-length((q - HERO_C) * vec2(0.8, 1.0)) * 1.3) + hwKeyLight(q);
     w += cf.x * exp(-length(q - vec2(CAND[0].x, CAND[0].y + CAND[0].z)) * 3.0) * 0.55;
     w += cf.y * exp(-length(q - vec2(CAND[1].x, CAND[1].y + CAND[1].z)) * 3.0) * 0.45;
     w += cf.z * exp(-length(q - vec2(CAND[2].x, CAND[2].y + CAND[2].z)) * 3.5) * 0.30;
@@ -111,14 +129,26 @@ vec4 render(vec2 uv) {
     vec2 pT = pc + dolly;            // mesa y objetos
 
     // --- historia ---
-    float outE = hkEvent(3.0, 71.0, 5.0);
-    float relight = smoothstep(0.55, 1.0, outE) * (1.0 - smoothstep(0.9, 1.0, outE));
-    float laugh = hkEvent(4.0, 53.0, 7.0);
+    vec4 G = hkGrandClimax(3.0);
+    vec4 C = hkClimaxOr(G, hkClimax(3.0, 71.0, 15.0));
+    float windK = C.x * (1.0 - C.y) * (1.0 - C.z);           // aviso: viento
+    float outE = C.y;                                        // pico: apagadas
+    float relight = C.z;                                     // secuelas: llamarada
+    float laugh = max(hkEvent(4.0, 53.0, 7.0), relight);
     float batE = hkEvent(5.0, 37.0, 4.0);
-    float storm = hkEvent(6.0, 61.0, 8.0);
+    float storm = max(hkEvent(6.0, 61.0, 8.0), G.x);
+    // piano: llamas flotantes; una tecla fuerte tambien hace reir
+    float keyGlow = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.08, 1.2);
+        keyGlow += e * (0.4 + keyVel(k) * 0.6);
+        laugh = max(laugh, e * smoothstep(0.6, 1.0, keyVel(k)) * exp(-keyAge(k) * 0.8));
+    }
+    float gust = windK * (0.6 + 0.4 * noise21(vec2(uRTime * 9.0, 4.0)));
     float warmth = hkActVal(5.0);
     float flick = 0.70 + 0.18 * sin(t * 7.3) + 0.12 * sin(t * 13.1 + 1.7) + 0.10 * noise21(vec2(t * 3.0, 1.0));
-    float inner = (flick * (0.85 + uD2 * 0.70) + bass * 0.55 + hit * 0.70) * (1.0 - outE * 0.92) + relight * 1.5;
+    float inner = (flick * (0.85 + uD2 * 0.70) + bass * 0.55 + hit * 0.70) * (1.0 - outE * 0.96) * (1.0 - gust * 0.45)
+                + relight * 1.6 + keyGlow * 0.15;
     vec3 orange = hsv2rgb(vec3(fract(0.065 + hue + (warmth - 0.5) * 0.03), 0.95, 1.0));
     vec3 hot = vec3(1.0, 0.86, 0.50);
     vec3 moonC = vec3(0.55, 0.62, 0.95);
@@ -131,7 +161,8 @@ vec4 render(vec2 uv) {
     for (int i = 0; i < 4; i++) {
         float fi = float(i);
         cf[i] = (0.75 + 0.15 * sin(t * (8.0 + fi * 1.7) + fi * 3.0) + 0.10 * noise21(vec2(t * 4.0, fi * 5.0)))
-              * (0.8 + uD2 * 0.4) * (1.0 + hit * 0.5);
+              * (0.8 + uD2 * 0.4) * (1.0 + hit * 0.5)
+              * (1.0 - outE * 0.97) * (1.0 - gust * 0.5 * noise21(vec2(t * 11.0, fi))) * (1.0 + relight * 0.8);
     }
     float heroK = inner * (0.55 + uD6 * 0.9);
 
@@ -243,7 +274,7 @@ vec4 render(vec2 uv) {
     vec4 hc = plate3(huv);
     float aura = exp(-max(length(q * vec2(0.85, 1.05)) - 0.55, 0.0) * 3.0);
     col += orange * aura * (0.08 + uD6 * 0.30) * (0.6 + inner * 0.5) * (1.0 - hc.a);
-    float rage = hit * loco;
+    float rage = max(hit * loco, relight * 0.85 * (1.0 - smoothstep(0.80, 0.97, C.w)));
     float faceD = hwFace(q, clamp(uD4 + laugh * 0.6, 0.0, 1.2), rage);
     if (hc.a > 0.0) {
         vec4 hn = plate4(huv);
@@ -274,7 +305,9 @@ vec4 render(vec2 uv) {
             float wall = smoothstep(-0.04, -0.004, faceD);
             flame = mix(flame, ha * 0.25 + orange * 0.35 * inner, wall * 0.6);
             float eyes = step(0.10, q.y) * step(q.y, 0.40);
-            flame += hot * eyes * uKeypulse * (0.6 + uKeyvel);
+            flame += hot * eyes * min(keyGlow, 1.5) * 0.6;
+            // apagada (pico del climax): solo quedan los ojos, rojos
+            flame += vec3(0.9, 0.06, 0.02) * eyes * outE * (0.45 + 0.15 * sin(uRTime * 3.0));
             col = mix(col, flame, hole);
         }
     }
@@ -287,7 +320,7 @@ vec4 render(vec2 uv) {
         vec2 d = pT - tip;
         if (dot(d, d) > 0.09) continue;
         float h = (0.055 + uD2 * 0.025) * (0.85 + 0.25 * cf[i]) * (1.0 + hit * 0.35) * (1.0 - outE * (i == 0 ? 0.0 : 0.3));
-        float lean = (0.25 + mid * 0.9) * sin(t * (1.6 + fi * 0.4) + fi * 2.0) * 0.5;
+        float lean = (0.25 + mid * 0.9) * sin(t * (1.6 + fi * 0.4) + fi * 2.0) * 0.5 + gust * (1.4 + 0.5 * sin(uRTime * 17.0 + fi));
         vec2 fl = hwFlame(d, h, lean);
         col += mix(vec3(1.0, 0.45, 0.12), vec3(1.0, 0.92, 0.70), fl.x) * fl.x * 1.6 * cf[i];
         col += vec3(1.0, 0.55, 0.20) * fl.y * 0.22 * cf[i];
@@ -317,9 +350,24 @@ vec4 render(vec2 uv) {
             col += mix(orange, hot, n) * jet * n * 2.5;
         }
     }
-    // --- brasas (los agudos las hacen chispear) ---
-    float emb = hkParticles(pT, t + hit * 0.3, 0.08 + uD3 * 0.22, vec2(0.15, 1.0), 0.04);
-    col += orange * emb * (0.7 + hit * 1.2 + high * 0.8) * smoothstep(1.0, -0.4, pT.y) * exp(-abs(pT.x) * 0.5);
+    // --- llamas flotantes del piano ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.08, 1.2);
+        if (e < 0.005) continue;
+        vec2 fp = hwKeyFlame(k);
+        // al soltarla sube un poco mientras se apaga
+        fp.y += (1.0 - e) * 0.15 * (1.0 - keyHeld(k));
+        vec2 d = pT - fp;
+        if (dot(d, d) > 0.16) continue;
+        float h = (0.09 + keyVel(k) * 0.10) * (0.85 + 0.15 * sin(uKclock * 9.0 + float(k) * 2.0));
+        vec2 fl = hwFlame(d + vec2(0.0, h * 0.3), h, 0.25 * sin(uKclock * 1.7 + float(k)));
+        vec3 kc = mix(vec3(1.0, 0.45, 0.12), vec3(1.0, 0.92, 0.70), fl.x);
+        col += kc * fl.x * 1.8 * e + vec3(1.0, 0.55, 0.2) * fl.y * 0.45 * e;
+        col += orange * exp(-dot(d, d) * 40.0) * 0.22 * e * (0.5 + keyVel(k));
+    }
+    // --- brasas (los agudos las hacen chispear; la llamarada las suelta) ---
+    float emb = hkParticles(pT, t + hit * 0.3, 0.08 + uD3 * 0.22 + relight * 0.25, vec2(0.15, 1.0), 0.04);
+    col += orange * emb * (0.7 + hit * 1.2 + high * 0.8 + relight * 2.5) * smoothstep(1.0, -0.4, pT.y) * exp(-abs(pT.x) * 0.5);
 
     col = audioLift(col, high * 0.08);
     return vec4(hkFinish(col, uv, vec3(0.9, 0.4, 0.1)), 1.0);

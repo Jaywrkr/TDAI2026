@@ -24,11 +24,16 @@ OUT = os.path.join(os.path.dirname(HERE), 'sets', 'halloween', 'plates', 'scene0
 H0 = -0.36
 X0, X1 = -3.4, 3.4
 PLATES = [
-    # nombre, id, (y0, y1), alto px, celda de lapidas
-    ('1_lejos', 0, (H0 + 0.12, H0 + 0.68), 0, 0.0),
-    ('2_medio_pocas', 1, (H0 - 0.40, H0 + 0.95), 0, 0.62),
-    ('3_medio_muchas', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27),
-    ('4_cerca', 2, (-1.30, 0.40), 0, 0.0),
+    # nombre, id, (y0, y1), alto px, celda de lapidas, modo de la lamina media
+    # Medio en tres laminas para que D2 sume lapidas DE A UNA (sin saltos):
+    #   2_medio_base     colinas, reja, suelo y pasto, sin lapidas (modo 1)
+    #   3_medio_lapidas  solo las lapidas (modo 2)
+    #   7_lapidas_orden  R = en que punto de D2 aparece cada lapida (modo 3)
+    ('1_lejos', 0, (H0 + 0.12, H0 + 0.68), 0, 0.0, 0),
+    ('2_medio_base', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27, 1),
+    ('3_medio_lapidas', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27, 2),
+    ('4_cerca', 2, (-1.30, 0.40), 0, 0.0, 0),
+    ('7_lapidas_orden', 1, (H0 - 0.40, H0 + 0.95), 0, 0.27, 3),
 ]
 W = 1280
 SS = 2  # supersampling
@@ -43,6 +48,7 @@ in vec2 vUV; out vec4 fc;
 uniform int plate;
 uniform vec4 rect;
 uniform float cellW;
+uniform int midMode;   // 0 todo, 1 sin lapidas, 2 solo lapidas, 3 orden
 uniform vec2 texRes;
 const float H0 = %(h0)f;
 const vec3 MOONC = vec3(0.80, 0.74, 0.86);
@@ -258,6 +264,17 @@ vec2 midTombs(vec2 p, out vec2 qo, out vec4 info){
 
 vec4 plateMid(vec2 p){
   vec3 col=vec3(0.); float a=0.;
+  if(midMode>=2){
+    // solo las lapidas (o su orden de aparicion)
+    vec2 q; vec4 info;
+    float d=midTombs(p,q,info).x;
+    float m=smoothstep(0.0012,-0.0012,d);
+    if(midMode==3) return vec4(vec3(h21(vec2(info.z,31.0))), m);
+    float e=0.0012; vec2 q2; vec4 i2;
+    vec2 grad=vec2(midTombs(p+vec2(e,0.),q2,i2).x-d, midTombs(p+vec2(0.,e),q2,i2).x-d)/e;
+    if(m>0.) return vec4(stone(p,q,d,grad,info.x,info.y,info.z*1.3+7.,int(info.w),0.75)*0.85, m);
+    return vec4(0.);
+  }
   // colinas
   for(int i=0;i<2;i++){
     float hy=hillY(p.x,i);
@@ -290,6 +307,7 @@ vec4 plateMid(vec2 p){
   vec3 gc=vec3(0.03,0.025,0.035)*(0.6+0.7*fbm(p*vec2(10.,35.),5));
   col=mix(col,gc*0.6,gm); a=max(a,gm);
   // lapidas
+  if(midMode==0){
   vec2 q; vec4 info;
   float d=midTombs(p,q,info).x;
   float e=0.0012; vec2 q2; vec4 i2;
@@ -298,6 +316,7 @@ vec4 plateMid(vec2 p){
   if(m>0.){
     vec3 sc=stone(p,q,d,grad,info.x,info.y,info.z*1.3+7.,int(info.w),0.75);
     col=mix(col,sc*0.85,m); a=max(a,m);
+  }
   }
   // pasto al pie
   float k=p.x*300.;
@@ -459,16 +478,19 @@ def bake():
         print('lamina', name, im.size)
 
     src = FRAG % dict(h0=H0)
-    for name, pid, (y0, y1), _, cell in PLATES:
+    for old in ('2_medio_pocas', '3_medio_muchas'):
+        if os.path.isfile(os.path.join(OUT, old + '.png')):
+            os.remove(os.path.join(OUT, old + '.png'))
+    for name, pid, (y0, y1), _, cell, mode in PLATES:
         h = int(round(W * (y1 - y0) / (X1 - X0)))
-        img = run(src, W * SS, h * SS, dict(plate=pid, rect=(X0, y0, X1, y1), cellW=cell))
+        img = run(src, W * SS, h * SS, dict(plate=pid, rect=(X0, y0, X1, y1), cellW=cell, midMode=mode))
         save(down(img, SS), name)
     # textura de ruido (se repite): 1024 x 512
     save(run(NOISE_FRAG, 1024, 512, {}), '5_ruido')
     # luna 512 x 512
     save(down(run(MOON_FRAG, 1024, 1024, {}), 2), '6_luna')
     print('-> ' + OUT)
-    for name, pid, (y0, y1), _, cell in PLATES:
+    for name, pid, (y0, y1), _, cell, mode in PLATES:
         print('  %s: x %.2f..%.2f  y %.3f..%.3f' % (name, X0, X1, y0, y1))
 
 

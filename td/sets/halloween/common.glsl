@@ -98,6 +98,47 @@ float hkEventPhase(float seed, float every, float len) {
     return clamp((uRTime - slot * every - start) / len, 0.0, 1.0);
 }
 
+// CLIMAX EN TRES TIEMPOS: aviso -> pico -> secuelas, en vez de un golpe
+// que aparece y se va. Mismo calendario que hkEvent(seed, every, len).
+//   x: aviso    0..1, crece despacio durante el primer 35 % (la luz baja,
+//               el viento sube) y se queda en 1 hasta que pasan las secuelas
+//   y: pico     0..1, la parte fuerte (35 %..70 %), con entrada y salida suaves
+//   z: secuelas 0..1, sube al terminar el pico y se apaga al final
+//   w: fase     0..1 a lo largo de todo el climax (0 fuera de el)
+// Ademas, cada ~4.5 min (hkGrand) el climax de la escena coincide con su
+// otro evento: ver hkGrand().
+vec4 hkClimax(float seed, float every, float len) {
+    float slot = floor(uRTime / every);
+    float start = hash21(vec2(slot, seed + float(uScene))) * (every - len - 2.0);
+    float k = uRTime - slot * every - start;
+    float ph = clamp(k / len, 0.0, 1.0);
+    float inside = step(0.0, k) * step(k, len);
+    float pre = smoothstep(0.0, 0.35, ph) * (1.0 - smoothstep(0.9, 1.0, ph));
+    float peak = smoothstep(0.33, 0.42, ph) * (1.0 - smoothstep(0.62, 0.72, ph));
+    float post = smoothstep(0.62, 0.72, ph) * (1.0 - smoothstep(0.85, 1.0, ph));
+    return vec4(pre, peak, post, ph) * inside;
+}
+
+// Gran climax: una vez cada ~4.5 min (26 s), el climax principal de la
+// escena llega junto con su otro evento, mas grande. Mismo formato que
+// hkClimax. hkClimaxOr: mientras dura el gran climax, reemplaza al comun
+// (no se suman: dos climax a medias se verian como ninguno).
+vec4 hkGrandClimax(float seed) { return hkClimax(seed + 500.0, 270.0, 26.0); }
+vec4 hkClimaxOr(vec4 grand, vec4 c) { return grand.w > 0.0 ? grand : c; }
+
+// Dentro de un climax de fase ph: cuanto esta "apagado" un elemento que
+// se apaga en el aviso (en el punto o, 0..1 del aviso) y vuelve en las
+// secuelas (en el punto r, 0..1 de las secuelas). 0 fuera del climax.
+float hkOffWindow(float ph, float o, float r) {
+    if (ph <= 0.0) return 0.0;
+    float a = 0.02 + o * 0.30, b = 0.70 + r * 0.22;
+    return smoothstep(a, a + 0.04, ph) * (1.0 - smoothstep(b, b + 0.04, ph));
+}
+
+// Tecla del piano -> x en pantalla (grave a la izquierda), en las mismas
+// coordenadas que centered(): -aspect..aspect.
+float hkKeyX(int i) { return mix(-uAspect * 0.85, uAspect * 0.85, keyPos(i)); }
+
 // Camara lenta de documental: cada acto encuadra un poco distinto
 // (acercamiento y paneo suaves). Mantiene el centro de interes.
 vec2 hkCam(vec2 p) {

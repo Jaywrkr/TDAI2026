@@ -65,7 +65,7 @@ def main():
         'FX_TRIGGER_PARS (midi.build_effects_envelope)': set(fx_channels),
         'midi.build_keypulse': KEY_CHOP_CHANNELS,
         'audio.py': AUDIO_CHANNELS,
-        'time/rtime/music (control.py, fijos)': {'time', 'rtime', 'music'},
+        'time/rtime/music/kclock (control.py, fijos)': {'time', 'rtime', 'music', 'kclock'},
     }
     names = list(sources)
     for i in range(len(names)):

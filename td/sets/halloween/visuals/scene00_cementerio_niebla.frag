@@ -14,14 +14,21 @@
 //   medios -> el viento mueve las ramas; los fuegos fatuos suben y bajan
 //   agudos -> titilan las estrellas; chispean los fuegos fatuos
 //   golpe  -> relampago (D4) que ilumina la piedra y almas que suben
+// PIANO: cada tecla saca un alma de la tumba en esa posicion (grave a la
+//   izquierda); la fuerza la hace mas grande y brillante; mientras la
+//   tecla siga apretada el alma sigue subiendo y flota; un acorde saca
+//   varias a la vez.
 // Speed mueve nubes, niebla, camara y viento aun en silencio.
 // HISTORIA: cada acto (~78 s) cambia encuadre, nubes y niebla; cada
-// ~47 s una tormenta seca; cada ~2 min la luna se pone roja; cada ~71 s
-// cruza una procesion de fuegos fatuos.
+// ~47 s una tormenta seca; cada ~71 s cruza una procesion de fuegos fatuos.
+// CLIMAX (~2 min, 26 s, en tres tiempos): las nubes tapan la luna y la
+//   luz baja; la luna sale roja, la tierra tiembla y las almas suben de
+//   todas las tumbas; despues la niebla queda rojiza un rato. Cada ~4.5
+//   min llega junto con la procesion de fuegos fatuos (gran climax).
 // LOCURA (Chaos): sacudida, rayo doble, niebla que hierve, mas almas.
 //
 // @D1: densidad de la niebla
-// @D2: cantidad de lapidas
+// @D2: cantidad de lapidas (aparecen de a una, subiendo de la tierra)
 // @D3: brillo de la luna y sus rayos
 // @D4: relampagos con el golpe
 // @D5: niebla verde toxica y fuegos fatuos
@@ -63,8 +70,12 @@ vec4 render(vec2 uv) {
     float cover = hkActVal(1.0);
     float fogAct = mix(0.7, 1.35, hkActVal(2.0));
     float storm = hkEvent(5.0, 47.0, 9.0);
-    float bloodMoon = hkEvent(6.0, 131.0, 22.0);
-    float parade = hkEvent(7.0, 71.0, 14.0);
+    vec4 G = hkGrandClimax(6.0);
+    vec4 C = hkClimaxOr(G, hkClimax(6.0, 131.0, 26.0));     // aviso, pico, secuelas, fase
+    float bloodMoon = max(C.y, C.z * 0.75);
+    float parade = max(hkEvent(7.0, 71.0, 14.0), G.y + G.z * 0.6);
+    // aviso: las nubes cierran la luna; en el pico se abren
+    cover = clamp(cover + C.x * (1.0 - C.y) * (1.0 - C.z) * 0.9 - (C.y + C.z * 0.6) * 0.35, 0.0, 1.3);
     float autoFlash = storm * step(0.82, noise21(vec2(uRTime * 7.0, 3.0)));
     float flash = max(hit * (0.25 + uD4 * 1.0) * (1.0 + loco * 0.6), autoFlash * 0.9);
     vec3 flashCol = vec3(0.78, 0.72, 1.0);
@@ -73,8 +84,11 @@ vec4 render(vec2 uv) {
     float horizon = -0.36 + dh;
     vec3 fogTint = mix(vec3(0.62, 0.56, 0.80), vec3(0.32, 0.95, 0.40), uD5);
     fogTint = mix(fogTint, hkStyleMap(0.70), uStyle * 0.6);
-    float moonGain = 0.45 + uD3 * 1.05;
+    float moonGain = (0.45 + uD3 * 1.05) * (1.0 - C.x * (1.0 - C.y) * (1.0 - C.z) * 0.45 + C.y * 0.25);
     float light = 0.55 + 0.45 * moonGain;      // cuanto ilumina la luna la piedra
+    // el climax tine la luz de la piedra y la niebla de rojo
+    vec3 bloodLight = mix(vec3(1.0), vec3(1.35, 0.55, 0.45), bloodMoon * 0.7);
+    fogTint = mix(fogTint, vec3(0.85, 0.16, 0.18), C.y * 0.55 + C.z * 0.70);
 
     // --- cielo: gradiente, bruma y estrellas que titilan con los agudos ---
     vec3 skyLow = hsv2rgb(vec3(fract(0.77 + hue), 0.62, 0.34));
@@ -162,16 +176,29 @@ vec4 render(vec2 uv) {
         col += glowC * g * sty * (0.95 + bass * 0.45 + flash * 0.3);
         col += hkStyleMap(0.40) * exp(-pow((gy - 0.45) / 0.35, 2.0)) * sty * 0.25 * smoothstep(0.2, 1.0, abs(pT.x) / uAspect);
     }
-    // --- colinas, reja y lapidas (D2 pasa de pocas grandes a muchas) ---
+    // --- colinas, reja y suelo ---
     vec2 muv = plateUVGround(pT - vec2(0.0, dh), MID_Y);
-    vec4 ma = plate1(muv), mb = plate2(muv);
-    // fundido corto a mitad de perilla: casi siempre se ve una sola version
-    // (un fundido largo dejaria todas las lapidas semitransparentes)
-    float dMix = smoothstep(0.42, 0.58, uD2);
-    vec3 mpre = mix(plateCol(ma.rgb) * ma.a, plateCol(mb.rgb) * mb.a, dMix);
-    float mAlpha = mix(ma.a, mb.a, dMix);
-    vec3 midLit = mpre * light * 1.9 * mix(1.0, 0.30, sty) + mpre * flashCol * flash * 2.4;
-    col = col * (1.0 - mAlpha) + midLit;
+    vec4 mbase = plate1(muv);
+    vec3 mpre = plateCol(mbase.rgb) * mbase.a;
+    vec3 midLit = (mpre * light * 1.9 * mix(1.0, 0.30, sty) + mpre * flashCol * flash * 2.4) * bloodLight;
+    col = col * (1.0 - mbase.a) + midLit;
+    // --- lapidas: D2 las suma DE A UNA (cada una con su punto de la perilla,
+    // lamina 7_lapidas_orden) y la nueva sube de la tierra; en el pico del
+    // climax la tierra tiembla ---
+    float tombN = mix(0.20, 1.06, uD2);
+    vec2 tq0 = pT - vec2(C.y * 0.006 * sin(uRTime * 43.0), dh);
+    float ordHere = plate6(plateUV(tq0, MID_Y)).r;
+    float riseK = 1.0 - smoothstep(ordHere - 0.05, ordHere + 0.05, tombN);
+    vec2 tqR = tq0 - vec2(0.0, riseK * 0.12);
+    vec4 tomb = plate2(plateUV(tqR, MID_Y));
+    float ordT = plate6(plateUV(tqR, MID_Y)).r;
+    float tombA = tomb.a * smoothstep(ordT - 0.05, ordT + 0.05, tombN);
+    // lo que sube no puede asomar por debajo del suelo
+    float gMid = -0.36 + 0.05 * sin(tq0.x * 1.7 + 1.3) + 0.03 * sin(tq0.x * 4.1);
+    tombA *= mix(1.0, smoothstep(gMid - 0.03, gMid - 0.005, tq0.y), step(0.001, riseK));
+    vec3 tpre = plateCol(tomb.rgb);
+    vec3 tombLit = (tpre * light * 1.9 * mix(1.0, 0.30, sty) + tpre * flashCol * flash * 2.4) * bloodLight;
+    col = mix(col, tombLit, tombA);
 
     // --- arbol muerto: las ramas se mecen con el viento y los medios ---
     vec2 tq = pT - vec2(-uAspect * 0.70, horizon);
@@ -196,6 +223,47 @@ vec4 render(vec2 uv) {
     vec3 bark = vec3(0.020, 0.016, 0.018) * (0.7 + 0.6 * noise21(tq * vec2(30.0, 8.0)));
     col = mix(col, bark + flashCol * flash * 0.04, treeM);
     col += haloC * 0.25 * moonGain * hkLine(tree, 1.0) * step(0.0, tq.x + 0.02) * (1.0 - treeM * 0.5);
+
+    // --- PIANO: un alma por tecla, sale de la tumba en esa posicion ---
+    vec3 soulC = mix(vec3(0.70, 0.85, 1.0), vec3(1.0, 0.55, 0.50), bloodMoon * 0.6);
+    if (pT.y > horizon - 0.15 && pT.y < horizon + 1.25) {
+        for (int k = 0; k < N_KEYS; k++) {
+            float env = keyEnv(k, 0.12, 1.8);
+            if (env < 0.005) continue;
+            float vel = keyVel(k);
+            float age = keyAge(k);
+            float kx = hkKeyX(k);
+            float sy = pT.y - horizon;
+            // sube mientras dura; apretada, sigue subiendo hasta flotar arriba
+            float top = 0.10 + min(age * (0.30 + vel * 0.45), 0.85 + vel * 0.25);
+            float wob = (noise21(vec2(sy * 4.0 - uKclock * 1.6, float(k) * 7.0 + keyPos(k) * 31.0)) - 0.5) * (0.04 + sy * 0.20);
+            float wdt = (0.018 + sy * 0.07) * (0.7 + vel * 0.9);
+            float d = (pT.x - kx - wob) / wdt;
+            float a = exp(-d * d) * smoothstep(-0.02, 0.06, sy) * (1.0 - smoothstep(top - 0.30, top, sy));
+            a *= 0.6 + 0.4 * noise21(vec2(pT.x * 16.0, sy * 8.0 - uKclock * 2.5 + float(k)));
+            vec2 head = vec2(kx + wob, horizon + top - 0.10);
+            float hd = dot(pT - head, pT - head);
+            col += soulC * (a * 0.55 + exp(-hd * 260.0) * 0.55 + exp(-hd * 2600.0) * 0.6) * env * (0.45 + vel * 0.9);
+            // la tumba de donde sale brilla un momento
+            vec2 g = (pT - vec2(kx, horizon + 0.02)) * vec2(1.0, 3.0);
+            col += soulC * exp(-dot(g, g) * 22.0) * env * 0.35 * exp(-age * 1.2);
+        }
+    }
+
+    // --- CLIMAX: en el pico suben almas de todas las tumbas ---
+    float climaxSouls = C.y + C.z * 0.35;
+    if (climaxSouls > 0.01 && pT.y > horizon - 0.1 && pT.y < horizon + 1.1) {
+        for (int s = 0; s < 7; s++) {
+            float fs = float(s);
+            float sx = (hash21(vec2(fs, 61.0)) - 0.5) * 2.0 * uAspect * 0.95;
+            float ph = fract(C.w * (1.6 + hash21(vec2(fs, 62.0))) + hash21(vec2(fs, 63.0)));
+            float sy = pT.y - horizon - ph * 0.25;
+            float wob = (noise21(vec2(sy * 5.0 - uRTime * 1.5, fs * 9.0)) - 0.5) * (0.05 + max(sy, 0.0) * 0.18);
+            float d = (pT.x - sx - wob) / (0.014 + max(sy, 0.0) * 0.06);
+            float a = exp(-d * d) * smoothstep(-0.25, -0.15, sy) * (1.0 - smoothstep(0.2, 0.75, sy));
+            col += soulC * a * climaxSouls * 0.45;
+        }
+    }
 
     // --- almas que suben de las tumbas con el golpe ---
     float soulAmt = hit * (0.55 + loco * 0.8);
@@ -241,10 +309,12 @@ vec4 render(vec2 uv) {
 
     // --- fuegos fatuos ---
     vec3 wispC = mix(vec3(0.55, 0.85, 1.0), vec3(0.45, 1.0, 0.55), uD5);
-    float nW = 2.0 + floor(uD5 * 4.0 + parade * 4.0);
+    // D5 suma fuegos fatuos de a uno: el nuevo se enciende de a poco
+    float nW = 2.0 + uD5 * 4.0 + parade * 4.0;
     for (int i = 0; i < 10; i++) {
         float fi = float(i);
         if (fi >= nW) break;
+        float wOn = revealAt(nW, fi);
         float h1 = hash21(vec2(fi, 11.0)), h2 = hash21(vec2(fi, 23.0));
         float spd = 0.010 + h2 * 0.012 + parade * 0.03;
         float wx = mix(-uAspect - 0.3, uAspect + 0.3, fract(h1 + t * spd));
@@ -254,15 +324,15 @@ vec4 render(vec2 uv) {
         float r2 = dot(wd, wd);
         if (r2 > 0.04) continue;
         float flick = 0.7 + 0.3 * sin(uRTime * (9.0 + h1 * 7.0) + fi) * (0.4 + high);
-        col += wispC * (exp(-r2 * 900.0) * 0.9 + exp(-r2 * 90.0) * 0.18) * flick * (0.6 + band * 0.9);
-        col += vec3(1.0) * exp(-r2 * 9000.0) * 0.6 * flick;
+        col += wispC * (exp(-r2 * 900.0) * 0.9 + exp(-r2 * 90.0) * 0.18) * flick * (0.6 + band * 0.9) * wOn;
+        col += vec3(1.0) * exp(-r2 * 9000.0) * 0.6 * flick * wOn;
     }
 
     // --- primer plano: lapidas cercanas, cruz celta, suelo y pasto ---
     vec4 nr = plate3(plateUV(pN, NEAR_Y));
     vec3 nc = plateCol(nr.rgb);
     float nearLight = light * 2.4 * (0.80 + 0.20 * towardMoon);
-    col = mix(col, nc * nearLight * mix(1.0, 0.22, sty) + nc * flashCol * flash * 2.6, nr.a);
+    col = mix(col, (nc * nearLight * mix(1.0, 0.22, sty) + nc * flashCol * flash * 2.6) * bloodLight, nr.a);
     // borde de la silueta encendido por el resplandor de atras (halo naranja)
     if (sty > 0.001) col += hkStyleMap(0.60) * nr.a * (1.0 - nr.a) * 1.5 * sty * 0.6;
     // la niebla baja cubre el pie de las lapidas cercanas y el suelo

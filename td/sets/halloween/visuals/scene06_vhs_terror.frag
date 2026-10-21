@@ -15,10 +15,18 @@
 //   agudos -> mas nieve en la senal
 //   golpe  -> salto de tracking y de cuadro; con Chaos: la camara salta
 //             adentro de la tele, cuadro invertido y la imagen rueda
+// PIANO: cada tecla rasga la cinta con una linea de tracking a la altura
+//   de la nota (grave abajo, agudo arriba) y la imagen salta de lado; la
+//   fuerza la hace mas ancha; apretada, la linea se queda y repta; la
+//   pantalla tambien echa un fogonazo de luz al cuarto.
 // Speed mueve la banda, el ruido y el reloj aun en silencio.
-// HISTORIA: cada ~44 s alguien cambia de canal (estatica), cada ~97 s la
-// cinta se come, cada ~83 s aparece una figura sentada en el sillon, y
-// cada acto alterna entre ver el cuarto y ver la pantalla completa.
+// HISTORIA: cada ~44 s alguien cambia de canal (estatica), cada ~83 s
+// aparece una figura sentada en el sillon, y cada acto alterna entre ver
+// el cuarto y ver la pantalla completa.
+// CLIMAX (~97 s, 18 s, en tres tiempos): la imagen empieza a deformarse y
+//   aparece la figura en el sillon; se levanta y camina hacia la camara
+//   hasta tapar todo; justo cuando llega la cinta se come y queda estatica.
+//   Cada ~4.5 min termina con cambio de canal (gran climax).
 //
 // @D1: cantidad de ruido / estatica
 // @D2: perdida de tracking
@@ -46,7 +54,18 @@ vec3 hwVHS(vec2 uv, float t, float rt, float bass, float high, float hit, float 
     suv.y = fract(suv.y + hit * loco * 0.25 * step(0.5, noise21(vec2(floor(rt * 4.0), 9.0))));
     suv.x += jitter * trackAmt * (0.3 + tear) + wobble;
     suv.y = fract(suv.y + hit * 0.04 * step(0.6, noise21(vec2(floor(rt * 10.0), 2.0))));
-    float split = 0.002 + bass * 0.010 + hit * 0.008;
+    // piano: una linea de tracking por tecla, a la altura de la nota
+    float keyTear = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.02, 0.5);
+        if (e < 0.01) continue;
+        float ky = mix(0.08, 0.92, keyPos(k)) + keyHeld(k) * sin(uKclock * 1.3 + float(k)) * 0.03;
+        float kw = 0.018 + keyVel(k) * 0.05;
+        float inBand = exp(-pow((uv.y - ky) / kw, 2.0)) * e;
+        keyTear = max(keyTear, inBand);
+        suv.x += (noise21(vec2(floor(uv.y * 120.0), floor(uKclock * 24.0) + float(k))) - 0.3) * 0.10 * inBand * (0.5 + keyVel(k));
+    }
+    float split = 0.002 + bass * 0.010 + hit * 0.008 + keyTear * 0.02;
     vec3 img;
     img.r = mediaTex(suv + vec2(split, 0.0)).r;
     img.g = mediaTex(suv).g;
@@ -68,6 +87,7 @@ vec3 hwVHS(vec2 uv, float t, float rt, float bass, float high, float hit, float 
     float bottom = smoothstep(0.08, 0.0, uv.y) * step(0.6, noise21(vec2(uv.x * 80.0, floor(rt * 20.0))));
     col += vec3(0.6) * bottom * (0.3 + uD2);
     col += vec3(0.9, 0.85, 0.85) * hit * 0.12 * tear;
+    col += vec3(0.85) * keyTear * step(0.55, hash21(vec2(floor(uv.x * 300.0), floor(uKclock * 30.0)))) * 0.5;
     float inv = hit * step(0.75, loco) * step(0.7, noise21(vec2(floor(rt * 12.0), 4.0)));
     col = mix(col, vec3(1.0) - col, inv);
     vec2 rp = (uv - vec2(0.06, 0.90)) * vec2(1.4, 1.0);
@@ -100,6 +120,35 @@ float hwSeg7(vec2 p, int dgt) {
     return d;
 }
 
+// Figura: sentada (stand 0) o parada (stand 1, ~0.75 de alto): hombros
+// caidos, brazos largos que cuelgan hasta las rodillas, cabeza ladeada.
+float hwFigure(vec2 q, float stand) {
+    float sit;
+    {
+        float head = length((q - vec2(0.02, 0.36)) / vec2(0.85, 1.0)) - 0.075;
+        float neck = length(max(abs(q - vec2(0.015, 0.27)) - vec2(0.025, 0.04), 0.0)) - 0.01;
+        float torso = hkRBox(q - vec2(0.0, 0.04), vec2(0.17, 0.17), 0.08);
+        sit = hkSmin(hkSmin(head, neck, 0.02), torso, 0.05);
+    }
+    if (stand <= 0.0) return sit;
+    vec2 hq = rot2(0.28) * (q - vec2(0.03, 0.63));
+    float head = length(hq / vec2(0.82, 1.0)) - 0.062;
+    float neck = hkSeg(q, vec2(0.012, 0.50), vec2(0.025, 0.58)) - 0.018;
+    // torso que se angosta hacia la cintura
+    float k = clamp((q.y - 0.10) / 0.40, 0.0, 1.0);
+    float hw = mix(0.085, 0.135, k);
+    float torso = max(abs(q.x) - hw, max(0.10 - q.y, q.y - 0.52 + 0.06 * (q.x * q.x / 0.02)));
+    float arms = min(hkSeg(q, vec2(-0.14, 0.46), vec2(-0.19, -0.02)), hkSeg(q, vec2(0.14, 0.46), vec2(0.18, 0.0))) - 0.020;
+    float hands = min(length(q - vec2(-0.19, -0.05)), length(q - vec2(0.18, -0.03))) - 0.028;
+    float legs = min(hkSeg(q, vec2(-0.055, 0.14), vec2(-0.07, -0.40)), hkSeg(q, vec2(0.055, 0.14), vec2(0.065, -0.40))) - 0.034;
+    float f = hkSmin(hkSmin(head, neck, 0.015), torso, 0.03);
+    f = hkSmin(f, min(arms, hands), 0.02);
+    f = hkSmin(f, legs, 0.03);
+    // ropa rota: borde deshilachado
+    f += (noise21(q * 38.0) - 0.5) * 0.010 + (noise21(q * 110.0) - 0.5) * 0.004;
+    return mix(sit, f, stand);
+}
+
 vec4 render(vec2 uv) {
     float t = uTime;
     float rt = uRTime;
@@ -108,9 +157,15 @@ vec4 render(vec2 uv) {
     float high = clamp(uHigh, 0.0, 1.0) * uAudioamt;
     float hit = hkHit();
     float loco = hkLoco();
-    float zap = hkEvent(3.0, 44.0, 2.2);
-    float eaten = hkEvent(4.0, 97.0, 6.0);
-    float figure = hkEvent(5.0, 83.0, 9.0);
+    vec4 G = hkGrandClimax(4.0);
+    vec4 C = hkClimaxOr(G, hkClimax(4.0, 97.0, 18.0));
+    // camina hacia la camara durante el pico; en las secuelas la cinta se come
+    float walk = clamp((C.w - 0.36) / 0.32, 0.0, 1.0) * step(0.0001, C.w) * (1.0 - step(0.70, C.w));
+    float zap = max(hkEvent(3.0, 44.0, 2.2), G.z * step(0.85, G.w));
+    float eaten = max(C.z, C.x * 0.25 * (1.0 - C.z));
+    float figure = max(hkEvent(5.0, 83.0, 9.0), C.x * (1.0 - smoothstep(0.30, 0.38, C.w)));
+    float keyFlash = 0.0;
+    for (int k = 0; k < N_KEYS; k++) keyFlash += keyEnv(k, 0.02, 0.5) * (0.3 + keyVel(k)) * exp(-keyAge(k) * 3.0);
 
     // vista: cuarto <-> pantalla completa (por acto) y salto con locura
     vec2 act = hkAct();
@@ -140,7 +195,7 @@ vec4 render(vec2 uv) {
     vec3 avg = (mediaTex(vec2(0.3, 0.35)).rgb + mediaTex(vec2(0.7, 0.55)).rgb + mediaTex(vec2(0.5, 0.75)).rgb) / 3.0;
     float lavg = dot(avg, vec3(0.3, 0.59, 0.11));
     vec3 glowC = mix(vec3(0.55, 0.65, 0.9) * (0.5 + 0.5 * hash21(vec2(floor(rt * 20.0), 1.0))), mix(vec3(1.0, 0.85, 0.65) * lavg, vec3(1.0, 0.2, 0.12) * lavg, uD3), step(0.02, lavg) * (1.0 - zap));
-    glowC *= (0.8 + bass * 0.8 + hit * 0.4) * (0.9 + 0.1 * sin(rt * 60.0));
+    glowC *= (0.8 + bass * 0.8 + hit * 0.4 + keyFlash * 0.8) * (0.9 + 0.1 * sin(rt * 60.0));
     float dist = length((p - SCR_C) * vec2(0.8, 1.0));
     float glowFall = 1.0 / (1.0 + dist * dist * 3.0);
 
@@ -150,10 +205,7 @@ vec4 render(vec2 uv) {
     // figura sentada en el sillon (evento)
     if (figure > 0.01) {
         vec2 fq = p - vec2(1.25, -0.30);
-        float head = length((fq - vec2(0.02, 0.36)) / vec2(0.85, 1.0)) - 0.075;
-        float neck = length(max(abs(fq - vec2(0.015, 0.27)) - vec2(0.025, 0.04), 0.0)) - 0.01;
-        float torso = hkRBox(fq - vec2(0.0, 0.04), vec2(0.17, 0.17), 0.08);
-        float fig = hkSmin(hkSmin(head, neck, 0.02), torso, 0.05);
+        float fig = hwFigure(fq, 0.0);
         float fm = (1.0 - smoothstep(-0.004, 0.004, fig)) * figure;
         col = mix(col, vec3(0.005), fm);
         col += glowC * 0.25 * (1.0 - smoothstep(0.0, 0.006, abs(fig))) * figure * step(fq.x, 0.0);
@@ -204,5 +256,28 @@ vec4 render(vec2 uv) {
         fcol *= 1.0 - 0.25 * dot(fb, fb);
         col = mix(col, fcol, fs);
     }
+    // --- CLIMAX: la figura se levanta y camina hacia la camara ---
+    if (walk > 0.0) {
+        // del sillon (en pantalla) al centro, creciendo hasta tapar todo
+        vec2 sofa = (vec2(1.25, -0.30) - SCR_C * (1.0 - 1.0 / z)) * z;
+        float a = walk * walk;
+        float fsz = mix(z, 6.5, a);
+        // al final la cabeza queda en el centro: los ojos miran a la camara
+        vec2 fc = mix(sofa, vec2(-0.03, 0.10) - fsz * vec2(0.03, 0.63), smoothstep(0.0, 1.0, walk));
+        vec2 fq = (p0 - fc) / fsz + vec2(0.0, 0.0);
+        // pasos: se balancea al caminar
+        fq.x += sin(walk * 18.0) * 0.012;
+        float fig = hwFigure(fq, smoothstep(0.0, 0.15, walk));
+        float fm = 1.0 - smoothstep(-0.004, 0.004, fig);
+        col = mix(col, vec3(0.004), fm);
+        // la luz de la tele le recorta el borde
+        col += glowC * 0.35 * (1.0 - smoothstep(0.0, 0.01, abs(fig))) * (1.0 - fm * 0.5);
+        // los ojos: dos puntos que se ven cuando ya esta cerca
+        vec2 eq = vec2(abs(fq.x - 0.02) - 0.028, fq.y - mix(0.36, 0.63, smoothstep(0.0, 0.15, walk)));
+        col += vec3(1.0, 0.9, 0.85) * exp(-dot(eq, eq) * 26000.0) * smoothstep(0.3, 0.7, walk);
+    }
+    // la cinta comida ensucia toda la imagen, no solo la pantalla
+    col = mix(col, vec3(hash21(floor(uv * vec2(uResW, uResH) * 0.5) + floor(rt * 30.0))) * 0.5,
+              C.z * (1.0 - smoothstep(0.80, 0.95, C.w)) * smoothstep(0.69, 0.72, C.w) * 0.65);
     return vec4(hkFinish(max(col, 0.0), uv, vec3(0.5, 0.1, 0.1)), 1.0);
 }

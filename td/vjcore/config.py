@@ -307,7 +307,12 @@ CTRL_CHANNELS = [
     'stylearch',  # 47 marco de arco alrededor de la imagen
     'stylepal',   # 48 paleta del estilo (0..1 recorre las paletas del set)
     'styleauto',  # 49 1 = la paleta cambia sola en cada acto
-]
+    # PIANO POLIFONICO: 6 voces (las ultimas teclas tocadas). Por voz:
+    # posicion grave..agudo, fuerza, y en que momento se apreto y se solto,
+    # medido con 'kclock' (reloj propio del piano, corre siempre, aun en
+    # silencio). Soltada = koff >= kon. Ver keyEnv() en shader.py.
+    'kclock',     # 50
+] + ['k{}{}'.format(i, f) for i in range(6) for f in ('pos', 'vel', 'on', 'off')]  # 51-74
 
 # Parametros custom de /project1 que expone el Parameter CHOP.
 # (nombre del parametro, nombre del canal)
@@ -351,7 +356,14 @@ PAR_CHANNELS = [
     ('Estilomarco', 'stylearch'),
     ('Estilopaleta', 'stylepal'),
     ('Estiloauto', 'styleauto'),
-]
+] + [('K{}{}'.format(i, f), 'k{}{}'.format(i, f))
+     for i in range(6) for f in ('pos', 'vel', 'on', 'off')]
+
+# Voces del piano polifonico y su suavizado de perillas Detail
+PIANO_VOICES = 6
+# Las perillas Detail pasan por un Lag de este tiempo (s): aunque se giren
+# rapido, el cambio se desliza (pedido del usuario: nada de saltos).
+DETAIL_LAG_SECONDS = 0.25
 
 # ---------------------------------------------------------------
 # ENVOLVENTE DE LOS 8 EFECTOS DE PAD (Grain..Posterize)
@@ -694,6 +706,7 @@ MODERN_FROM = 58
 # comun a todas las escenas (docs/51); un set nuevo puede apagarla y
 # hacer que el audio mueva elementos internos de cada visual.
 AUDIO_DANCE = True
+PIANO_GESTURE = True
 PRESETS_FILE = 'presets.json'    # dentro de td/config/
 PRESETS_DEFAULT = ''             # presets de fabrica del set (ruta absoluta) o ''
 # GLSL comun del set, que se agrega al final del header de CADA escena
@@ -851,6 +864,9 @@ def _apply_set(name):
     g['FULLRES_SCENES'] = set(int(i) for i in data.get('fullres_scenes', []))
     g['MODERN_FROM'] = int(data.get('modern_from', 0))
     g['AUDIO_DANCE'] = bool(data.get('audio_dance', False))
+    # deformacion generica del piano en el footer (pianoGestureUV/Light);
+    # un set cuyas escenas responden al piano por su cuenta la apaga
+    g['PIANO_GESTURE'] = bool(data.get('piano_gesture', True))
     if data.get('default_media_folder'):
         g['DEFAULT_MEDIA_FOLDER'] = data['default_media_folder']
     g['THUMBS_DIRNAME'] = _os.path.join(
