@@ -231,6 +231,10 @@ vec4 render(vec2 uv) {
         float lam = max(dot(nb, normalize(vec3(spot - p, 0.9))), 0.0);
         float rim = pow(1.0 - nb.z, 2.0);
         vec3 bone = alb * spotC * (0.06 + lam * 0.85 * (0.45 + cone)) * 1.5 + alb * torch * 0.8;
+        // las baldosas encendidas lo iluminan desde abajo (fase 24)
+        vec3 tileC = mix(vec3(0.55, 0.25, 0.9), neonC, uD5);
+        float under = max(-nb.y * 0.8 + 0.2, 0.0) * exp(-max(p.y - floorY, 0.0) * 2.2);
+        bone += alb * tileC * under * uD6 * (0.25 + bass * 0.9 + floorWave * 0.6);
         bone += spotC * pow(max(dot(nb, normalize(vec3(spot - p, 0.9) + vec3(0.0, 0.0, 1.0))), 0.0), 20.0) * (0.08 + high * 0.2);
         // neon / rayos X
         vec3 neon = neonC * (0.15 + rim * 1.6) + neonC * alb * 1.5;

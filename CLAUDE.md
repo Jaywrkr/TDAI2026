@@ -36,3 +36,4 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 21** (rama `claude/halloween-f21-calabazas-3d`, sobre f20): calabaza 3D (01 y 13) y tallado con grosor en la 01. Plan de fases 22–28 (3D): 22 mansión, 23 reloj, 24 momia+esqueleto, 25 bosque+fantasmas, 26 castillo+tormenta, 27 manos+túnel, 28 velas+caldero(+sábanas morgue).
 - **Fase 22** (rama `claude/halloween-f22-mansion-3d`, sobre f21): relieve de la fachada de la mansión (26) con luz en vivo.
 - **Fase 23** (rama `claude/halloween-f23-reloj-3d`, sobre f22): relieve de la torre y la esfera del reloj (27).
+- **Fase 24** (rama `claude/halloween-f24-momia-esqueleto-3d`, sobre f23): huesos con volumen (17) y vendas como tubos (12).

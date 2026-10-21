@@ -144,10 +144,16 @@ vec4 render(vec2 uv) {
             diag = max(diag, band * step(abs(dq.x), 0.9));
             diagEdge = max(diagEdge, (1.0 - smoothstep(0.0, 0.03, abs(abs(dq.y) - bw))) * step(abs(dq.x), 0.9));
         }
+        // cada venda es un tubo (fase 24): el canto de arriba mira hacia
+        // arriba y el de abajo hacia abajo; las antorchas marcan cada vuelta
+        float bu = clamp((f - sep) / max(1.0 - sep, 0.05), 0.0, 1.0);
+        float bandN = (bu - 0.5) * 2.0 * (1.0 - gapM);
+        hn = normalize(hn + vec3(0.15 * (fray - 0.5), bandN * 1.6, 0.0) * (1.0 - diag * 0.7));
+        float bandAO = 0.55 + 0.45 * sin(bu * 3.14159);              // los cantos del tubo, mas oscuros
         vec3 L0 = normalize(vec3(T0 - p, 0.8)), L1 = normalize(vec3(T1 - p, 0.8));
         float lam = max(dot(hn, L0), 0.0) * f0 / (1.0 + dot(T0 - p, T0 - p) * 0.22) + max(dot(hn, L1), 0.0) * f1 / (1.0 + dot(T1 - p, T1 - p) * 0.22);
         float lightK = (0.10 + 1.1 * lam + 0.35 * shaft * (1.0 - dimE * 0.7) * (0.5 + 0.5 * hn.y)) * (0.35 + 0.65 * vol);
-        vec3 face = cloth * prof * lightK * fireC;
+        vec3 face = cloth * prof * lightK * fireC * bandAO;
         face = mix(face, vec3(0.012, 0.008, 0.005), gapM * 0.92);
         face = mix(face, cloth * 1.05 * lightK * fireC, diag);
         face *= 1.0 - 0.7 * diagEdge * (1.0 - diag * 0.5);
