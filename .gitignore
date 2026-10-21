@@ -14,3 +14,4 @@ td/config/presets_*.json
 td/sets/*/thumbs/
 # Halloween trae miniaturas de arranque (td/tools/render_thumbs.py); Bakethumbs las pisa en TD
 !td/sets/halloween/thumbs/
+td/config/shader_errors.txt
