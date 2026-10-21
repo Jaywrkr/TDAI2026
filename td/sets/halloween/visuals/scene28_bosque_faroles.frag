@@ -173,11 +173,22 @@ vec4 render(vec2 uv) {
         vec4 pl = Ly == 0 ? plate0(pu) : (Ly == 1 ? plate1(pu) : plate2(pu));
         // luz de los faroles de esta capa sobre sus troncos y su suelo
         vec3 light = vec3(0.0);
+        // relieve de la capa cercana (fase 25): cada farol ilumina el tronco
+        // del lado que lo mira
+        vec3 nrm = vec3(0.0, 0.0, 1.0);
+        float rlOn = 0.0;
+        if (Ly == 2 && pl.a > 0.01) {
+            vec4 rl = plate4(pu);
+            rlOn = rl.a;
+            nrm = vec3(rl.rg * 2.0 - 1.0, 0.0);
+            nrm.z = sqrt(max(1.0 - dot(nrm.xy, nrm.xy), 0.0));
+        }
         for (int i = 0; i < FL_N; i++) {
             if (pl.a < 0.01) break;
             if (abs(FL[i].y - Lf) > 0.5 || LL[i] <= 0.01) continue;
             vec2 d = (p - LP[i].xy) / LP[i].z;
-            light += lcol * LL[i] / (1.0 + dot(d, d) * 5.0);
+            float face = mix(1.0, 0.40 + 1.7 * max(dot(nrm, normalize(vec3(LP[i].xy - p, 0.20 * LP[i].z))), 0.0), rlOn);
+            light += lcol * LL[i] / (1.0 + dot(d, d) * 5.0) * face;
         }
         vec3 alb = plateCol(pl.rgb);
         vec3 amb = vec3(0.14, 0.14, 0.21) * (Ly == 0 ? 1.4 : 1.0);

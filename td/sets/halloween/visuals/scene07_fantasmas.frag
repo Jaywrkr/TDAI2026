@@ -89,6 +89,11 @@ vec4 render(vec2 uv) {
     vec4 sf = hwSurf(p);
     vec3 X = vec3(sf.xy, sf.z);
     float sid = sf.w;
+    // relieve horneado (fase 25): normal en el mundo del pasillo
+    vec3 nW = normalize(plate3(rUV(p)).rgb * 2.0 - 1.0);
+    // normal de la superficie lisa: el relieve solo suma o resta luz
+    // alrededor de la de siempre (la vela, rasante sobre su pared, no se apaga)
+    vec3 nB = sid < 0.5 ? vec3(0.0, 1.0, 0.0) : (sid < 1.5 ? vec3(0.0, -1.0, 0.0) : (sid < 2.5 ? vec3(-sign(X.x), 0.0, 0.0) : vec3(0.0, 0.0, -1.0)));
 
     // --- fantasmas: posicion en el mundo (se calculan una vez) ---
     // cantidad continua: el fantasma nuevo aparece de a poco
@@ -153,7 +158,7 @@ vec4 render(vec2 uv) {
         float fi = float(i);
         float fl = 0.75 + 0.15 * sin(t * (8.0 + fi * 2.0) + fi) + (0.10 + high * 0.5) * (noise21(vec2(uRTime * (6.0 + high * 14.0), fi)) - 0.5) * 2.0;
         vec3 dv = X - sconce[i];
-        sl += fl / (1.0 + dot(dv, dv) * 2.2);
+        sl += fl / (1.0 + dot(dv, dv) * 2.2) * clamp(1.0 + 2.6 * (dot(nW, -normalize(dv)) - dot(nB, -normalize(dv))), 0.25, 2.2);
         // llama en pantalla
         vec2 sp = VP + sconce[i].xy / sconce[i].z + vec2(0.0, 0.035 / sconce[i].z);
         vec2 dq = (p - sp) * sconce[i].z;

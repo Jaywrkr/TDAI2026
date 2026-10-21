@@ -21,7 +21,7 @@ OUT = os.path.join(SETS, 'scene07')
 SS = 2
 R = (-3.1, -1.2, 3.1, 1.2)
 W, H = 1280, 496
-PLATES = [('1_pasillo', 0), ('2_marcas', 1)]
+PLATES = [('1_pasillo', 0), ('2_marcas', 1), ('4_relieve', 2)]
 
 VERT = """#version 330
 in vec2 in_pos; out vec2 vUV;
@@ -156,8 +156,84 @@ vec4 shade(vec2 p, out vec2 marks){
   return vec4(c,a);
 }
 
+
+// ---------- RELIEVE (fase 25) ----------
+// Altura sobre cada superficie del pasillo: tablas del piso y borde de la
+// alfombra, vigas, zocalo de paneles, molduras, puertas con tableros y
+// marco, retratos con marco dorado, apliques. Se hornea la NORMAL EN EL
+// MUNDO (x, y, z del pasillo) para que la escena ilumine con las velas y
+// los fantasmas desde su posicion real.
+float hgt(vec2 p, out vec3 X, out float id){
+  vec4 s=surf(p);
+  X=vec3(s.xy, s.z); id=s.w;
+  float h=0.;
+  if(id==0.){
+    float bx=fract(X.x*5.);
+    h=0.006*smoothstep(0.,0.04,bx)*smoothstep(1.,0.96,bx);
+    if(abs(X.x)<0.55){ h=0.012+0.004*step(0.45,abs(X.x)); }
+  } else if(id==1.){
+    h=0.04*step(0.82,fract(X.z*1.1));
+  } else if(id<3.5){
+    float Y=X.y, Z=X.z;
+    h=0.002*step(0.5,fract(Z*6.));
+    if(Y>0.82) h=0.03*(0.5+0.5*fract(Y*30.));
+    if(Y<-0.38){
+      float pz=fract(Z*1.6); float py=(Y+1.05)/0.67;
+      float panel=smoothstep(0.08,0.12,pz)*smoothstep(0.92,0.88,pz)*smoothstep(0.16,0.20,py)*smoothstep(0.84,0.80,py);
+      h=0.02+0.012*panel;
+      if(abs(Y+0.38)<0.02) h=0.04;
+    }
+    vec2 dz = id==2.? vec2(1.25,1.85) : vec2(2.55,3.10);
+    if(Z>dz.x && Z<dz.y && Y<0.45){
+      float fr=min(min(Z-dz.x,dz.y-Z), 0.45-Y);
+      h=-0.02+0.012*step(0.06,fr)*step(0.5,fract((Y+1.05)*2.2));
+      if(fr<0.04) h=0.03*smoothstep(0.0,0.02,fr);
+      vec2 kn=vec2(Z-(id==2.?dz.y-0.06:dz.x+0.06), Y+0.38);
+      h+=0.02*smoothstep(0.02,0.0,length(kn*vec2(1.,2.)));
+    }
+    vec2 pz2 = id==2.? vec2(2.05,2.45) : vec2(1.35,1.85);
+    if(Z>pz2.x && Z<pz2.y && Y>-0.05 && Y<0.60){
+      float fr=min(min(Z-pz2.x,pz2.y-Z),min(Y+0.05,0.60-Y));
+      h=0.01;
+      if(fr<0.05) h=0.01+0.03*sin(fr/0.05*3.14159)*(0.85+0.15*fract(fr*80.));
+    }
+    for(int k=0;k<2;k++){
+      float zs = k==0?1.0:2.25;
+      float zz = id==2.?zs:zs+0.65;
+      vec2 sq=vec2((Z-zz)*1.8, Y-0.12);
+      float r=length(sq*vec2(1.,0.6));
+      if(r<0.06) h=0.03*sqrt(1.-r*r/0.0036);
+    }
+  } else {
+    vec2 b=X.xy;
+    if(b.y<-0.38) h=0.02;
+  }
+  return h;
+}
+vec3 baseN(float id, vec3 X){
+  if(id==0.) return vec3(0.,1.,0.);
+  if(id==1.) return vec3(0.,-1.,0.);
+  if(id==2.) return vec3(1.,0.,0.);
+  if(id<3.5) return vec3(-1.,0.,0.);
+  return vec3(0.,0.,-1.);
+}
+vec4 reliefW(vec2 p){
+  vec3 X; float id;
+  float h=hgt(p,X,id);
+  vec3 nb=baseN(id,X);
+  float e=0.0025;
+  vec3 X1,X2,X3,X4; float i1,i2,i3,i4;
+  float h1=hgt(p+vec2(e,0.),X1,i1), h2=hgt(p-vec2(e,0.),X2,i2), h3=hgt(p+vec2(0.,e),X3,i3), h4=hgt(p-vec2(0.,e),X4,i4);
+  if(i1!=id||i2!=id||i3!=id||i4!=id||X.z>4.5) return vec4(nb*0.5+0.5,1.);
+  vec3 dx=(X1+nb*h1)-(X2+nb*h2), dy=(X3+nb*h3)-(X4+nb*h4);
+  vec3 n=normalize(cross(dx,dy));
+  if(dot(n,nb)<0.) n=-n;
+  return vec4(n*0.5+0.5,1.);
+}
+
 void main(){
   vec2 p = mix(rect.xy, rect.zw, vUV);
+  if(plate==2){ fc=reliefW(p); return; }
   vec2 marks;
   vec4 c=shade(p,marks);
   if(plate==1){ fc=vec4(marks,0.,1.); return; }
