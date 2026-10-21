@@ -22,7 +22,7 @@ y **Run Script**. El reporte del build lo confirma en la primera línea:
 
 ```
 VERIFICACION DEL BUILD   [...]
-  set: HALLOWEEN 2026  (28 escenas, sets/halloween/visuals)
+  set: HALLOWEEN 2026  (29 escenas, sets/halloween/visuals)
 ```
 
 El build guarda el set en `td/config/active_set.txt`, así que al reabrir el `.toe` (o con **Reconstruir Todo**) sigue siendo el mismo. En `/project1` → System, **Set de visuales** lo muestra, pero no se cambia ahí: se cambia en `RUN_ME.py`.
@@ -52,9 +52,9 @@ td/
 
 La cantidad de escenas sale de contar los `.frag` de la carpeta.
 
-## Las 28 escenas
+## Las 29 escenas
 
-Las 28 usan láminas horneadas (realismo sin costo en vivo); los scripts de horneado están en `td/tools/bake_plates_*.py`.
+Las 29 usan láminas horneadas (realismo sin costo en vivo); los scripts de horneado están en `td/tools/bake_plates_*.py`.
 
 | # | Escena | Speed mueve | El audio hace | Detail |
 |---|---|---|---|---|
@@ -85,6 +85,7 @@ Las 28 usan láminas horneadas (realismo sin costo en vivo); los scripts de horn
 | 24 | La imagen sangra (Media) | llegan, sangran, caen | bajo acelera los hilos; golpe = salpicadura | pedazos, sangre, salpicaduras, desgarro, gris↔sepia, charco |
 | 25 | Posesión (Media) | tiras, humo, llamas | golpe hace saltar las tiras y desdobla la imagen; bajo late las venas | tiras, salto, espejo, venas, gris↔rojo, sombras |
 | 26 | La mansión embrujada | nubes, niebla, cortinas | bajo hace latir las ventanas; medios mecen las cortinas; agudos = chispas de las chimeneas; golpe = una silueta en una ventana | ventanas, niebla, luna, siluetas, cálido↔verde, hiedra |
+| 28 | El bosque de los faroles | cámara entre los árboles, péndulos, niebla | bajo balancea los faroles (cada cuerda a su ritmo); medios = viento; agudos = luciérnagas; golpe = un farol se aviva y su cuerda baja | faroles, largo de cuerdas, niebla, hojas que caen, naranja↔violeta, ojos |
 | 27 | El reloj de la medianoche | engranajes, péndulo, polvo | bajo empuja el péndulo y los engranajes; medios = polvo en la luz; agudos = destellos del hierro; golpe = salta el segundero | engranajes, polvo, luz, salto, bronce↔verdín, grietas |
 
 Con **Speed en 0** todo queda quieto. Con Speed arriba de 0 y **en silencio**, el movimiento propio sigue y solo se apagan las reacciones al audio.
@@ -97,7 +98,7 @@ Formatos y modos de cambio de imagen: los de siempre (GIF, PNG, JPG, WEBP, MP4, 
 
 **Setlist del set.** `set.json` trae `"setlist"` y el rig arranca con **Bancos → Setlist** cargado y **Next/Prev siguen el setlist** prendido. Las escenas no se renumeran: Next/Prev (pads, teclado ← →, autopilot) siguen este orden, intercalando una de imagen cada 2–3 escenas, las suaves temprano y las más gore de madrugada:
 
-`00 26 13 01 16 20 14 27 07 08 23 04 12 21 09 03 11 22 02 17 10 24 18 06 15 05 25 19`
+`00 26 13 01 16 20 14 27 07 28 08 23 04 12 21 09 03 11 22 02 17 10 24 18 06 15 05 25 19`
 
 La mansión (26) entra temprano porque se lee de lejos; el reloj (27) cae en el puesto 8 para estar al aire a la medianoche.
 
@@ -124,7 +125,7 @@ Costo en el banco: +3–5 ms con Estilo arriba. Para que el desenfoque de las l�
 
 ![MiniLab en Halloween](img/minilab_halloween.png)
 
-En Halloween varias perillas casi no aportaban (Density la usan 4 de 28 escenas; Hue, Look y Paleta quedan tapados por el estilo aerógrafo), y lo nuevo del set no tenía control físico. Con `set.json` → `"midi_redirect"` el **mismo control ya aprendido** hace otra cosa **solo en este set**. No se toca `midi_map.json` ni el set principal.
+En Halloween varias perillas casi no aportaban (Density la usan 4 de 29 escenas; Hue, Look y Paleta quedan tapados por el estilo aerógrafo), y lo nuevo del set no tenía control físico. Con `set.json` → `"midi_redirect"` el **mismo control ya aprendido** hace otra cosa **solo en este set**. No se toca `midi_map.json` ni el set principal.
 
 | Control | En Halloween | Antes / en el set principal |
 |---|---|---|
@@ -260,7 +261,7 @@ Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, c
 
 ## Guion de la noche (sin MIDI)
 
-`guion.json` de este set lleva la noche entera sin controlador: las 28 escenas en el orden del setlist, de 22:00 a 05:30 (~16 min cada una; el reloj, a la medianoche), con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
+`guion.json` de este set lleva la noche entera sin controlador: todas las escenas en el orden del setlist, de 22:00 a 05:30 (~15 min cada una; el reloj, a la medianoche), con subidas, picos y golpes de efecto. Con **Guion → Seguir la hora real** se posiciona solo según el reloj. Ver [54_GUION](54_GUION.md).
 
 ## Presets de la noche (punto de partida por escena)
 
@@ -383,7 +384,7 @@ Mismo tratamiento que la fase 11: piano propio, Detail sin saltos y clímax en t
 
 ## Fase 15: pad Momento y transiciones de Halloween
 
-**Momento (pad 16).** Dispara al instante el **gran clímax** de la escena que está al aire (aviso, pico y secuelas, 22 s), sin esperar el calendario automático. Mientras dura, el LED queda verde y otra pulsada no hace nada (no lo reinicia a la mitad). Durante el momento el calendario automático se calla. Funciona igual en las 28 escenas, porque todas usan `hkClimax`/`hkGrandClimax`.
+**Momento (pad 16).** Dispara al instante el **gran clímax** de la escena que está al aire (aviso, pico y secuelas, 22 s), sin esperar el calendario automático. Mientras dura, el LED queda verde y otra pulsada no hace nada (no lo reinicia a la mitad). Durante el momento el calendario automático se calla. Funciona igual en todas las escenas, porque todas usan `hkClimax`/`hkGrandClimax`.
 
 - Python: `control_script.triggerMoment()` guarda el `kclock` en `Momenton` (canal `moment`). `MOMENT_SECONDS` = 22.
 - GLSL (`common.glsl`): si `uKclock - uMoment` está entre 0 y `HK_MOMENT_LEN`, `hkClimax` y `hkGrandClimax` devuelven ese clímax. Las dos constantes tienen que coincidir (lo verifica el test).
@@ -424,3 +425,13 @@ Las dos con láminas horneadas, piano propio, Detail sin saltos y clímax en tre
 - **Láminas:** `bake_plates_mansion.py` y `bake_plates_reloj.py`, después `build_atlas.py`. Las marcas guardan todo en RGB con A = 1: con A = 0, PIL premultiplica al achicar y se pierde el dato.
 - **Orden del show y guion:** las dos entran al setlist (arriba) y `guion.json` se rehízo para 28 escenas: cada una conserva sus Detail y su golpe de efecto, y la locura y la velocidad suben con la hora.
 - **Reconstruir Todo:** hay escenas y láminas nuevas.
+
+## Fase 17: escena 28 (el bosque de los faroles)
+
+Tres capas de bosque de otoño con paralaje (la cámara se mueve entre los árboles con Speed, aun en silencio) y 16 faroles de papel que cuelgan de las ramas de cada capa e iluminan sus troncos. Las ramas y el suelo comparten geometría con el horneado (`// >>> FAROLES_GEOM`, `bake_plates_faroles.py`).
+
+- **Piano:** la tecla prende el farol de esa posición (grave = izquierda) y lo aviva; un acorde prende varios; mantenida, sigue avivado.
+- **Clímax (~93 s, 20 s):** los faroles se apagan de a uno y se encienden ojos entre los troncos → vuelven a prenderse desde el fondo hacia adelante, como un camino que llega a la cámara → los ojos se cierran. **Gran clímax:** faroles rojos, más ojos y una ráfaga de hojas.
+- **Eventos:** una ráfaga cada ~59 s; algo mira desde el fondo cada ~79 s.
+- Entra en el setlist después de los fantasmas (07); el guion se rehízo para 29 escenas y el reloj sigue al aire a la medianoche (23:48–00:04).
+- **Reconstruir Todo:** escena y láminas nuevas.
