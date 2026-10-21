@@ -150,7 +150,7 @@ vec4 render(vec2 uv) {
         vec2 fp = X.xz - vec2(0.55, 2.15);
         float n = plate2Wrap(fp * 0.35).g;
         float arr = length(fp * vec2(1.0, 0.7)) * 1.1 + (n - 0.5) * 0.45;
-        float bl = smoothstep(arr, arr - 0.04, uD6 * 1.1);
+        float bl = smoothstep(arr, arr + 0.04, uD6 * 1.1);
         vec3 blood = vec3(0.18, 0.005, 0.01) * (0.6 + 0.4 * n);
         col = mix(col, blood * (light * 1.4 + 0.02) + spec * 0.35 * vec3(1.0, 0.4, 0.4), bl * 0.95);
     }
