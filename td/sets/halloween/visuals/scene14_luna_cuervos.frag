@@ -18,12 +18,28 @@
 //   posicion (la fuerza: mas grande, mas cerca de la camara); apretada, da
 //   vueltas sobre la rama; al soltarla se va volando lejos.
 // Speed mueve las nubes, el vuelo y el viento aun en silencio.
-// HISTORIA: cada ~63 s una bandada grande cruza la luna; cada ~41 s todos
-// giran la cabeza a la vez.
-// CLIMAX (~127 s, 24 s, en tres tiempos): todos giran la cabeza y empieza
-//   el eclipse; con la luna tapada levantan vuelo y la bandada cruza la
-//   luna; vuelve la luz y las ramas quedan vacias, hasta que regresan de a
-//   uno. Cada ~4.5 min con la bandada grande (gran climax).
+// REPERTORIO (fase 33, motor hkSuceso del kit):
+//   ESTADOS (~5 min): luna llena, nubes (el cielo se tapa) y luna de
+//     sangre (mas roja, con bruma en el valle).
+//   SUCESOS (~55 s, 7): una bandada grande cruza la luna; todos giran la
+//     cabeza; una lechuza pasa lenta frente a la luna; dos cuervos pelean
+//     en el aire; se enciende una luz en la capilla; un caminante con
+//     baston cruza la colina; un cuervo viene volando hacia la camara.
+//   DETALLES (~30 s, 5): estrella fugaz, un cuervo sacude las alas, un
+//     murcielago lejano, una luz en la colina, caen hojas de la rama.
+//   CLIMAX (~4 min, 24 s, rotan 3 guiones en tres tiempos):
+//     A el eclipse: giran la cabeza, la luna se tapa, levantan vuelo y la
+//       bandada cruza la luna; vuelve la luz y regresan de a uno.
+//     B el remolino: una nube de cuervos gira en espiral alrededor de la
+//       luna, se cierra y se dispersa.
+//     C la luna sangra: la luna se pone roja, chorrea sangre por el borde
+//       de abajo y la bruma del valle sube roja.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con la bandada
+//     grande.
+// @EST: luna llena | nubes | luna de sangre
+// @SUC: bandada | giran la cabeza | la lechuza | pelea en el aire | luz en la capilla | el caminante | hacia la camara
+// @DET: estrella fugaz | sacude las alas | murcielago lejano | luz en la colina | caen hojas
+// @CLX: A el eclipse | B el remolino | C la luna sangra
 //
 // @D1: cantidad de cuervos volando (aparecen de a uno)
 // @D2: tamano de la luna
@@ -73,20 +89,37 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    vec4 G = hkGrandClimax(15.0);
-    vec4 C = hkClimaxOr(G, hkClimax(15.0, 127.0, 24.0));
-    float cph = C.w;
+    // --- calendario (fase 33) ---
+    hkSetClimax(15.0, 24.0, 28.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(15.0, 7, 12.0);
+    int sv = int(S.z);
+    float se = S.x, sp = S.y, ss = S.w;
+    vec4 D = hkDetalle(15.0, 5, 3.5);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(15.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(15.0, 3));
+    float cph = cA * C.w;
     float inC = step(0.0001, cph);
-    float flockE = max(hkEvent(14.0, 63.0, 12.0), C.y);
-    float flockPh = inC > 0.5 ? clamp((cph - 0.33) / 0.40, 0.0, 1.0) : hkEventPhase(14.0, 63.0, 12.0);
+    float flockE = max(sv == 0 ? se : 0.0, cA * C.y);
+    float flockPh = inC > 0.5 ? clamp((cph - 0.33) / 0.40, 0.0, 1.0) : sp;
     float eclE = smoothstep(0.08, 0.25, cph) * (1.0 - smoothstep(0.72, 0.84, cph));
     float eclPh = clamp((cph - 0.08) / 0.76, 0.0, 1.0);
-    float turnE = max(hkEvent(16.0, 41.0, 4.0), inC * step(0.04, cph) * (1.0 - step(0.30, cph)));
+    float turnE = max(sv == 1 ? se : 0.0, inC * step(0.04, cph) * (1.0 - step(0.30, cph)));
+    // B: remolino de cuervos; C: la luna sangra
+    float swirl = cB * smoothstep(0.05, 0.30, C.w) * (1.0 - smoothstep(0.75, 0.95, C.w));
+    float bleed = cC * smoothstep(0.08, 0.45, C.w) * (1.0 - smoothstep(0.78, 0.97, C.w));
     // los posados levantan vuelo con la luna tapada y vuelven al final
     float perchGone = smoothstep(0.38, 0.48, cph) * (1.0 - smoothstep(0.93, 1.0, cph));
 
     // --- cielo ---
-    vec3 moonC = mix(vec3(1.0, 0.48, 0.22), vec3(1.0, 0.12, 0.06), clamp(uD5 + C.y * 0.5, 0.0, 1.0));
+    vec3 moonC = mix(vec3(1.0, 0.48, 0.22), vec3(1.0, 0.12, 0.06), clamp(uD5 + cA * C.y * 0.5 + EST.z * 0.5 + bleed, 0.0, 1.0));
     vec3 col = mix(moonC * 0.07, vec3(0.010, 0.002, 0.004), smoothstep(-0.6, 1.0, p.y));
     float sh = hash21(floor(p * 120.0));
     col += vec3(0.8, 0.7, 0.7) * step(0.996, sh) * (0.4 + 0.6 * sin(t * 2.0 + sh * 50.0) * (0.5 + high)) * smoothstep(0.2, 0.9, p.y);
@@ -114,13 +147,37 @@ vec4 render(vec2 uv) {
     }
 
     col = hkStyleMoon(col, p, mc, R);
+    // C: la sangre chorrea por el borde de abajo de la luna
+    if (bleed > 0.0) {
+        float cx = floor((p.x - mc.x) / 0.05);
+        float h = hash21(vec2(cx, 4.0));
+        float x0 = (cx + 0.5) * 0.05 + mc.x + (h - 0.5) * 0.02;
+        float h2 = hash21(vec2(cx, 9.0));
+        float edge = mc.y + sqrt(max(R * R - (x0 - mc.x) * (x0 - mc.x), 0.0)) * (0.35 + 0.4 * h2);
+        float len = smoothstep(h2 * 0.4, h2 * 0.4 + 0.6, bleed) * (0.1 + 1.0 * h * h) * step(0.3, h) * step(abs(x0 - mc.x), R * 0.9);
+        float w = 0.004 + 0.010 * h * h2;
+        float yy = clamp((edge - p.y) / max(len, 1e-3), 0.0, 1.0);
+        float wob = (noise21(vec2(p.y * 5.0, cx)) - 0.5) * 0.02;
+        float dd = max(abs(p.x - x0 - wob) - w * mix(1.6, 0.5, yy), max(p.y - edge, edge - len - p.y));
+        dd = min(dd, length((p - vec2(x0, edge - len)) / vec2(1.0, 1.3)) - w * 1.5);
+        col = mix(col, vec3(0.45, 0.02, 0.01) * (0.8 + bass * 0.4), (1.0 - smoothstep(-0.002, 0.002, dd)) * step(0.01, len));
+    }
+    // detalle: estrella fugaz
+    if (dv == 0) {
+        vec2 s0 = vec2((D.w - 0.7) * 3.0, 0.95);
+        vec2 sd = normalize(vec2(-0.8, -0.3));
+        vec2 rel = p - (s0 + sd * D.y * 1.2);
+        float along = dot(rel, sd), perp = abs(rel.x * sd.y - rel.y * sd.x);
+        col += vec3(0.9, 0.85, 0.8) * exp(-perp * 500.0) * smoothstep(-0.3, 0.0, along) * step(along, 0.0) * (1.0 + along * 3.0) * D.x * 1.4;
+    }
     // --- nubes que cruzan ---
     float cl = plate6Wrap(vec2(p.x * 0.12 - t * 0.008, p.y * 0.5 + 0.2)).r;
     float cl2 = plate6Wrap(vec2(p.x * 0.20 - t * 0.013 + 0.3, p.y * 0.8)).g;
-    float clouds = smoothstep(0.55 - uD6 * 0.2, 0.78 - uD6 * 0.15, cl * 0.65 + cl2 * 0.35) * smoothstep(-0.3, 0.3, p.y) * (0.3 + uD6 * 0.7);
+    float d6 = clamp(uD6 + EST.y * 0.6, 0.0, 1.0);
+    float clouds = smoothstep(0.55 - d6 * 0.2, 0.78 - d6 * 0.15, cl * 0.65 + cl2 * 0.35) * smoothstep(-0.3, 0.3, p.y) * (0.3 + d6 * 0.7);
     float rim = (smoothstep(0.50, 0.58, cl) - smoothstep(0.58, 0.72, cl)) * exp(-mr * 1.6);
     col = mix(col, vec3(0.03, 0.008, 0.012) + moonC * 0.05 * exp(-mr * 1.2), clouds * 0.85);
-    col += moonC * rim * (0.3 + high * 0.4) * uD6;
+    col += moonC * rim * (0.3 + high * 0.4) * d6;
 
     // --- cuervos volando (dos capas; la bandada grande cruza la luna) ---
     // 0..7: los que vuelan siempre (D1, de a uno); 8..21: la bandada
@@ -143,6 +200,52 @@ vec4 render(vec2 uv) {
         float flap = sin(t * (7.0 + h1 * 5.0) + fi * 2.0);
         float d = c14Flyer(q, flap) * s;
         col = mix(col, vec3(0.006, 0.003, 0.004), (1.0 - smoothstep(0.0, 0.003, d)) * on);
+    }
+    // --- B: remolino de cuervos alrededor de la luna ---
+    if (swirl > 0.0) {
+        float close = smoothstep(0.30, 0.60, C.w), out_ = smoothstep(0.72, 0.95, C.w);
+        for (int i = 0; i < 40; i++) {
+            float fi = float(i);
+            float h1 = hash21(vec2(fi, 31.0)), h2 = hash21(vec2(fi, 37.0));
+            float ang = fi * 2.39996 + uRTime * (0.9 + h1 * 0.6);
+            float rad = R * mix(1.9 + h2 * 0.8, 1.05 + h2 * 0.25, close) + out_ * (2.0 + h1 * 2.0);
+            vec2 c = mc + vec2(cos(ang), sin(ang) * 0.62) * rad;
+            float sc = 0.08 + 0.05 * h2;
+            vec2 q = (p - c) / sc;
+            if (dot(q, q) > 2.0) continue;
+            q = rot2(-ang - 1.57) * q;
+            col = mix(col, vec3(0.006, 0.003, 0.004), (1.0 - smoothstep(0.0, 0.003, c14Flyer(q, sin(uRTime * 9.0 + fi)) * sc)) * swirl);
+        }
+    }
+    // --- suceso: la lechuza pasa lenta frente a la luna ---
+    if (sv == 2 && se > 0.0) {
+        vec2 c = mc + vec2(mix(-1.6, 1.6, ss > 0.5 ? sp : 1.0 - sp), 0.15 + 0.05 * sin(sp * 8.0));
+        vec2 q = (p - c) / 0.26;
+        if (dot(q, q) < 2.0) col = mix(col, vec3(0.008, 0.004, 0.004), (1.0 - smoothstep(0.0, 0.003, c14Flyer(q, sin(uRTime * 3.5)) * 0.26)) * se);
+    }
+    // --- suceso: dos cuervos pelean en el aire ---
+    if (sv == 3 && se > 0.0) {
+        vec2 c0 = vec2((ss - 0.5) * 2.5, 0.75 + 0.1 * sin(sp * 5.0));
+        for (int i = 0; i < 2; i++) {
+            float a = uRTime * 3.0 + float(i) * PI;
+            vec2 c = c0 + vec2(cos(a), sin(a) * 0.6) * 0.14;
+            vec2 q = (p - c) / 0.09;
+            if (dot(q, q) > 2.0) continue;
+            if (i == 1) q.x = -q.x;
+            col = mix(col, vec3(0.006, 0.003, 0.004), (1.0 - smoothstep(0.0, 0.003, c14Flyer(rot2(sin(a) * 0.6) * q, sin(uRTime * 14.0 + float(i))) * 0.09)) * se);
+        }
+    }
+    // --- suceso: un cuervo viene hacia la camara ---
+    if (sv == 6 && se > 0.0) {
+        float k = smoothstep(0.1, 0.95, sp);
+        vec2 c = mix(vec2((ss - 0.5) * 3.0, 0.6), vec2(0.2, 0.1), k);
+        float sc = mix(0.04, 1.6, k * k * k);
+        vec2 q = (p - c) / sc;
+        if (dot(q, q) < 2.0) col = mix(col, vec3(0.006, 0.003, 0.004), (1.0 - smoothstep(0.0, 0.003, c14Flyer(q, sin(uRTime * 8.0)) * sc)) * se * (1.0 - smoothstep(0.92, 1.0, sp)));
+    }
+    if (dv == 2) {
+        vec2 q = (p - vec2(mix(-2.5, 2.5, D.y), 0.8 + 0.06 * sin(D.y * 30.0))) / 0.035;
+        if (dot(q, q) < 2.0) col = mix(col, vec3(0.01), (1.0 - smoothstep(0.0, 0.003, c14Flyer(q, sin(uRTime * 16.0)) * 0.035)) * D.x);
     }
     // --- PIANO: un cuervo levanta vuelo de la rama por tecla ---
     for (int k = 0; k < N_KEYS; k++) {
@@ -176,7 +279,24 @@ vec4 render(vec2 uv) {
     }
     // bruma roja en el valle
     float mist = plate6Wrap(vec2(p.x * 0.10 - t * 0.006, p.y * 0.6)).b;
-    col = mix(col, moonC * 0.10, smoothstep(0.45, 0.8, mist) * exp(-pow((p.y + 0.55) / 0.18, 2.0)) * 0.5);
+    float mistUp = EST.z * 0.12 + bleed * 0.35;
+    col = mix(col, moonC * (0.10 + bleed * 0.12), smoothstep(0.45 - mistUp * 0.5, 0.8, mist) * exp(-pow((p.y + 0.55 - mistUp) / (0.18 + mistUp * 0.6), 2.0)) * (0.5 + mistUp));
+    // suceso: luz en la capilla; detalle: una luz en la colina
+    if (sv == 4) col += vec3(1.0, 0.7, 0.3) * se * (0.7 + 0.3 * noise21(vec2(uRTime * 5.0, 1.0))) * (exp(-dot(p - vec2(1.22, -0.07), p - vec2(1.22, -0.07)) * 9000.0) * 1.8 + exp(-length(p - vec2(1.22, -0.07)) * 8.0) * 0.12);
+    if (dv == 3) { vec2 lq = p - vec2(-1.2 + D.w * 2.0, -0.27); col += vec3(1.0, 0.75, 0.35) * D.x * (exp(-dot(lq, lq) * 20000.0) * 1.5 + exp(-length(lq) * 15.0) * 0.05); }
+    // suceso: un caminante con baston cruza la colina
+    if (sv == 5 && se > 0.0) {
+        float wx = mix(-1.6, 1.0, ss > 0.5 ? sp : 1.0 - sp);
+        vec2 wq = (p - vec2(wx, -0.22 + 0.015 * sin(wx * 2.0))) / 0.14;
+        float stepA = sin(sp * 70.0);
+        float body = length(max(abs(wq - vec2(0.0, 0.55)) - vec2(0.13, 0.40), 0.0)) - 0.07;
+        float head = length(wq - vec2(0.03, 1.10)) - 0.13;
+        float hat = max(abs(wq.y - 1.22) - 0.03, abs(wq.x - 0.03) - 0.25);
+        float legs = min(hkSeg(wq, vec2(0.0, 0.2), vec2(0.12 * stepA, -0.25)), hkSeg(wq, vec2(0.0, 0.2), vec2(-0.12 * stepA, -0.25))) - 0.05;
+        float cane = hkSeg(wq, vec2(0.25, 0.6), vec2(0.35 + 0.05 * stepA, -0.25)) - 0.02;
+        float fig = min(min(min(body, head), min(hat, legs)), cane);
+        col = mix(col, vec3(0.004, 0.002, 0.002), (1.0 - smoothstep(-0.03, 0.03, fig)) * se);
+    }
 
     // --- arbol (la rama se mece con los medios; D3) ---
     float wind = (0.4 + uD3) * (0.4 * sin(t * 0.9) + 0.25 * sin(t * 2.1 + 1.0) + mid * 0.8 * sin(t * 3.3));
@@ -219,6 +339,7 @@ vec4 render(vec2 uv) {
         // Chaos levantan vuelo hacia arriba
         float lag = fract(h * 7.0) * 0.25;
         float scare = hit * smoothstep(0.0, 0.3, hit - lag) * (0.4 + uD4 * 0.4);
+        if (dv == 1 && abs(k - floor(D.w * nSlot)) < 0.5) scare = max(scare, D.x * abs(sin(D.y * 18.0)) * 0.5);   // detalle: sacude las alas
         float fly = hit * loco * step(0.5, loco) * step(0.4, h);
         // llega volando (desde arriba a la derecha) mientras 'land' sube
         vec2 off = vec2(fly * 0.8 + (1.0 - land) * 0.6, scare * 0.12 + fly * 0.9 + (1.0 - land) * 0.7);
@@ -242,5 +363,14 @@ vec4 render(vec2 uv) {
         col = mix(col, crowC * hkStyleSil(), cc.a);
     }
 
+    // detalle: caen hojas de la rama
+    if (dv == 4) {
+        for (int i = 0; i < 3; i++) {
+            float fi = float(i);
+            vec2 lc = vec2((D.w - 0.5) * 3.0 + fi * 0.3 + 0.12 * sin(D.y * 9.0 + fi), mix(0.45, -0.6, fract(D.y + fi * 0.2)));
+            vec2 lq = rot2(uRTime * 3.0 + fi) * (p - lc);
+            col = mix(col, vec3(0.03, 0.01, 0.005), (1.0 - smoothstep(-0.003, 0.003, length(lq * vec2(1.0, 2.4)) - 0.018)) * D.x);
+        }
+    }
     return vec4(hkFinish(col, uv, vec3(0.5, 0.1, 0.1)), 1.0);
 }

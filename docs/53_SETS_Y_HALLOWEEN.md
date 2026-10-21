@@ -669,7 +669,7 @@ Las escenas 00 a 05 usan el motor de la fase 30. Cada una tiene 3 estados, 7 suc
 
 **Pruebas fuera de TD:**
 - **Calendario:** `timeline_sucesos.py` y `test_sucesos.py` en 3 horas, con la Noche y el Miedo en tres niveles: sin choques con el clímax, sin repetir y con todas las variantes.
-- **Destellos:** 0 por segundo en cada suceso, detalle y clímax de 00 a 05 (Noche 0,8, Miedo 0,5, Chaos 0,9). En el gran clímax, `test_destellos.py` sigue en 3 como máximo. Los rayos de la tormenta caen a lo sumo uno cada 5 s.
+- **Destellos:** en el gran clímax, `test_destellos.py` sigue en 3 como máximo. Los rayos de la tormenta caen a lo sumo uno cada 5 s. *(Corrección de la fase 33: la medición por suceso de esta fase daba 0 por un error del script. Repetida bien, la 00 llegaba a 6 y la 02 a 7; se arreglaron en la fase 33.)*
 - **Validación:** `validate_shaders` sin errores en los dos sets, y la compilación para Metal también.
 
 **Arreglo del motor:** `hkPick` hacía muchos hashes repetidos y ordenaba un arreglo con índice variable, que en la GPU va a memoria lenta. Ahora usa dos hashes por vuelta y cuentas en escalares. El calendario es idéntico al de antes (comparado en 4 horas, en 4 escenas). El costo del "suceso extra" de la segunda mitad del casillero bajó de +20 ms a +7 ms en el banco por software.
@@ -712,7 +712,7 @@ Igual que en la fase 31: 3 estados, 7 sucesos, 5 detalles y 3 clímax que rotan 
 
 **Pruebas fuera de TD:**
 - **Calendario:** `test_sucesos.py` da OK en las 13 escenas con repertorio.
-- **Destellos:** 0 por segundo en cada suceso, detalle y clímax de 06 a 11 (Noche 0,8, Miedo 0,5, Chaos 0,9). En el gran clímax, `test_destellos.py` sigue en 3 como máximo.
+- **Destellos:** en el gran clímax, `test_destellos.py` sigue en 3 como máximo. *(Corrección de la fase 33: la medición por suceso daba 0 por un error del script. Repetida bien, de 06 a 11 da 3 como máximo.)*
 - **Validación:** `validate_shaders` sin errores en los dos sets, y la compilación para Metal también.
 
 **Costo** (1280×512 por software, contra la fase 31):
@@ -729,3 +729,44 @@ Igual que en la fase 31: 3 estados, 7 sucesos, 5 detalles y 3 clímax que rotan 
 Unos 7 ms de eso son del calendario (`hkSuceso` y `hkDetalle`). Es la misma cuenta para todos los píxeles, así que en una GPU debería pesar bastante menos que en este banco. Los FPS reales hay que mirarlos en TD, sobre todo en la 10.
 
 **Reconstruir Todo:** cambiaron los `.frag` de 06 a 11. Sigue la fase 33 (escenas 12–17).
+
+## Fase 33: repertorio en las escenas 12–17 y límite de destellos por suceso
+
+![Los tres clímax de las escenas 12 a 17](img/climax_12_17.jpg)
+
+| Escena | Estados | Sucesos | Detalles | Clímax B y C |
+|---|---|---|---|---|
+| 12 momia | antorchas, penumbra, arena en el aire | gira la cabeza, jeroglíficos, escarabajos, venda que cae, levanta un brazo, arena del techo, humo de la vasija | chisporrotea, parpadea, jeroglífico suelto, escarabajo en la pared, polvo en la luz | **B** el despertar (da un paso hacia la cámara y se le aflojan las vendas); **C** los escarabajos (un enjambre sale del sarcófago) |
+| 13 calabazas | noche clara, niebla, viento | persecución, el cuervo, se apaga y se prende, cantan en ola, murciélago en la luna, la granja se enciende, miran a un lado | estrella fugaz, chispa, parpadea, hoja que cae, nube en la luna | **B** el coro (fuego por turnos con el bajo); **C** la luna calabaza (la luna se vuelve una cara tallada y todas la miran) |
+| 14 luna y cuervos | luna llena, nubes, luna de sangre | bandada, giran la cabeza, la lechuza, pelea en el aire, luz en la capilla, el caminante, hacia la cámara | estrella fugaz, sacude las alas, murciélago lejano, luz en la colina, caen hojas | **B** el remolino (cuervos en espiral alrededor de la luna); **C** la luna sangra |
+| 15 manos | niebla verde, luna clara, tormenta | relámpago, saluda, el cuervo, la cripta se abre, asoma una cabeza, tamborilean, la tierra se raja | un dedo, luciérnaga, cae un terrón, nube en la luna, ojos en la cripta | **B** manos al aire (todas se mecen juntas con el bajo); **C** el zombi (sube un cuerpo entero por el agujero del centro) |
+| 16 velas | velas calmas, corriente, humo | la luna, apagón, la calavera, llora cera, sombra en el vitral, llamas verdes, la llama flota | se aviva, chisporrotea, humo de una apagada, polilla, gota de cera | **B** la misa (llamas altas que laten juntas, vitral de colores, la calavera mira); **C** la ronda (las llamas vuelan en círculo frente al vitral) |
+| 17 esqueleto | foco, luz negra, antorchas | el solo, pierde la cabeza, se desarma, brazos arriba, foco rojo, moonwalk, lluvia de huesos | guiña, saltito, brillo en el cráneo, cae polvo, chisporrotea | **B** el gigante (crece y baila lento); **C** el desarme (los huesos vuelan girando y se rearman) |
+
+**Destellos por suceso (corrección):**
+- **El error:** la medición por suceso de las fases 31 y 32 se hacía con un script mío que compilaba la escena antes de calcular la línea de tiempo. Esa cuenta deja el estado de OpenGL cambiado, los cuadros salían mal y todo daba 0. Repetida bien, casi todas las escenas dan 3 por segundo en el peor caso de la prueba (golpe a 128 BPM con Chaos 0,9), que es el golpe mismo.
+- **Las que se pasaban:**
+  - **00 cementerio:** llegaba a 4–6, y eso ya pasaba antes del repertorio. El destello del golpe y el latido de la niebla, sumados, se pasaban. El destello del golpe ahora va al 45 %, el latido de la niebla es más suave y se calla durante el relámpago del estado tormenta.
+  - **02 neón:** los chispazos llegaban a 7. El temblor del cartel y la caja eléctrica pasan a un ritmo lento.
+- **Ahora:** `test_destellos.py --sucesos` mide cada suceso, detalle y clímax de las escenas con repertorio (la primera vez que sale cada uno en una hora, con Noche 0,8 y Miedo 0,5). Da 3 como máximo en todo el set.
+
+**Pruebas fuera de TD:**
+- **Calendario:** `test_sucesos.py` da OK en las 19 escenas con repertorio.
+- **Validación:** `validate_shaders` sin errores en los dos sets, y la compilación para Metal también.
+
+**Costo** (1280×512 por software, contra la fase 32):
+
+| Escena | Cambio |
+|---|---|
+| 00 | −3 % |
+| 02 | −2 % |
+| 12 | +11 % |
+| 13 | +6 % |
+| 14 | +12 % |
+| 15 | +10 % |
+| 16 | +19 % |
+| 17 | +25 % |
+
+Los FPS reales hay que mirarlos en TD, sobre todo en la 16 y la 17.
+
+**Reconstruir Todo:** cambiaron los `.frag` de 00, 02 y 12 a 17. Sigue la fase 34 (escenas 18–25).

@@ -17,12 +17,29 @@
 //   la llama se estira, brilla mas y suelta chispas; si estaba apagada la
 //   enciende; apretada sigue avivada; un acorde aviva varias.
 // Speed hace titilar las llamas y subir el humo aun en silencio.
-// HISTORIA: cada ~83 s la luna entra por el vitral; cada acto cambia
-// cuantas velas estan prendidas.
-// CLIMAX (~61 s, 20 s, en tres tiempos): entra una corriente y todas las
-//   llamas se inclinan; se apagan de a una de izquierda a derecha y queda
-//   el humo y la luna en el vitral; se vuelven a encender solas desde el
-//   centro. Cada ~4.5 min, ademas, la luna entra con fuerza (gran climax).
+// Cada acto cambia cuantas velas estan prendidas.
+// REPERTORIO (fase 33, motor hkSuceso del kit):
+//   ESTADOS (~5 min): velas calmas, corriente (las llamas siempre
+//     inclinadas) y humo (sube mas humo de todas).
+//   SUCESOS (~55 s, 7): la luna entra por el vitral; se apagan todas de
+//     golpe y vuelven de a una; la calavera enciende los ojos; una vela
+//     llora cera; una sombra pasa detras del vitral; las llamas se ponen
+//     verdes; una llama se despega y flota.
+//   DETALLES (~30 s, 5): una vela se aviva, una llama chisporrotea, humo
+//     de una que se apago, una polilla vuela alrededor de una llama, cae
+//     una gota de cera.
+//   CLIMAX (~4 min, 20 s, rotan 3 guiones en tres tiempos):
+//     A la corriente: las llamas se inclinan y se apagan de a una; queda
+//       el humo y la luna; se vuelven a encender desde el centro.
+//     B la misa: las llamas crecen y laten juntas con el bajo, el vitral
+//       se enciende de colores y la calavera mira.
+//     C la ronda: las llamas se despegan, vuelan y giran en circulo frente
+//       al vitral; despues vuelve cada una a su vela.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con la luna fuerte.
+// @EST: velas calmas | corriente | humo
+// @SUC: la luna | apagon | la calavera | llora cera | sombra en el vitral | llamas verdes | la llama flota
+// @DET: se aviva | chisporrotea | humo de una apagada | polilla | gota de cera
+// @CLX: A la corriente | B la misa | C la ronda
 //
 // @D1: cantidad de velas (la nueva se enciende de a poco)
 // @D2: altura de las llamas
@@ -56,12 +73,28 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    vec4 G = hkGrandClimax(30.0);
-    vec4 C = hkClimaxOr(G, hkClimax(30.0, 61.0, 20.0));
-    float cph = C.w;
-    float gustK = C.x * (1.0 - C.y) * (1.0 - C.z);       // aviso: la corriente las inclina
-    float moonE = max(hkEvent(31.0, 83.0, 12.0), max(C.y, G.x * 1.2));
-    vec3 flameC = mix(vec3(1.0, 0.55, 0.20), vec3(0.35, 1.0, 0.55), uD5);
+    // --- calendario (fase 33) ---
+    hkSetClimax(30.0, 20.0, 24.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(30.0, 7, 10.0);
+    int sv = int(S.z);
+    float se = S.x, sph = S.y, ss = S.w;
+    vec4 D = hkDetalle(30.0, 5, 3.0);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(30.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(30.0, 3));
+    float cph = cA * C.w;
+    float gustK = cA * C.x * (1.0 - C.y) * (1.0 - C.z) + EST.y * 0.35;   // aviso: la corriente las inclina
+    float moonE = max((sv == 0 || sv == 4) ? se * (sv == 4 ? 0.7 : 1.0) : 0.0, max(cA * C.y, G.x * 1.2));   // la sombra se ve contra la luna
+    float misa = cB * smoothstep(0.05, 0.30, C.w) * (1.0 - smoothstep(0.80, 0.95, C.w));
+    float ring = cC * smoothstep(0.08, 0.35, C.w) * (1.0 - smoothstep(0.72, 0.92, C.w));
+    vec3 flameC = mix(vec3(1.0, 0.55, 0.20), vec3(0.35, 1.0, 0.55), clamp(uD5 + (sv == 5 ? se : 0.0), 0.0, 1.0));
     float nLit = min(3.0 + uD1 * 9.0 + hkActVal(4.0) * 1.5, 12.0);
 
     // estado de cada llama: prendida (0..1), punta, tamano
@@ -87,10 +120,22 @@ vec4 render(vec2 uv) {
         float back = abs(c.x) / 2.6;
         float out_ = cph > 0.0 ? smoothstep(0.32 + pos * 0.26, 0.36 + pos * 0.26, cph) * (1.0 - smoothstep(0.71 + back * 0.20, 0.75 + back * 0.20, cph)) : 0.0;
         out_ = max(out_, hit * loco * step(0.75, loco) * step(0.5, hash21(vec2(fi, floor(uRTime * 2.0)))) * 0.9);
+        // suceso: apagon de golpe y vuelven de a una (en orden al azar)
+        if (sv == 1) out_ = max(out_, se * smoothstep(0.10, 0.13, sph) * (1.0 - smoothstep(0.40 + hash21(vec2(fi, 13.0)) * 0.45, 0.45 + hash21(vec2(fi, 13.0)) * 0.45, sph)));
+        // detalle: una se apaga y humea
+        if (dv == 2 && i == int(D.w * 11.99)) out_ = max(out_, D.x);
+        if (dv == 0 && i == int(D.w * 11.99)) kb = max(kb, D.x * 0.8);
+        if (dv == 1 && i == int(D.w * 11.99)) out_ = max(out_, D.x * 0.5 * step(0.6, noise21(vec2(uRTime * 12.0, fi))));
         on[i] = lit * (1.0 - out_);
         float jump = smoothstep(0.0, 0.3, hit - fract(fi * 0.37) * 0.3) * uD4;
-        fsz[i] = (0.065 + uD2 * 0.07) * (1.0 + jump * 0.8 + bass * 0.15 + kb * 0.9) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
+        boost[i] = kb;
+        fsz[i] = (0.065 + uD2 * 0.07) * (1.0 + jump * 0.8 + bass * 0.15 + kb * 0.9 + misa * (0.9 + bass * 0.8)) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
         tip[i] = vec2(c.x, c.y + c.z + 0.02);
+        // suceso: una llama se despega y flota
+        if (sv == 6 && i == int(ss * 11.99)) tip[i] += vec2(0.12 * sin(sph * 9.0), 0.55 * sin(sph * PI)) * se;
+        // C: las llamas vuelan y giran en circulo frente al vitral
+        float ang = fi / 12.0 * TAU + uRTime * 0.9;
+        tip[i] = mix(tip[i], vec2(0.0, 0.42) + vec2(cos(ang), sin(ang) * 0.8) * 0.45, ring * smoothstep(0.0, 0.5, ring * 1.6 - hash21(vec2(fi, 7.0)) * 0.6));
     }
 
     // --- superficie: pared o altar ---
@@ -129,9 +174,31 @@ vec4 render(vec2 uv) {
     // la luna entra por el vitral
     vec3 moonC = vec3(0.45, 0.55, 0.85);
     vec3 col = alb * L * 7.0 * (1.0 - glass * 0.75);
-    col += alb * glass * (0.02 + moonE * 0.30) * vec3(1.6, 1.3, 1.5);
+    // suceso: una sombra pasa detras del vitral
+    float shadowG = sv == 4 ? se * smoothstep(0.12, 0.0, abs(p.x - mix(-0.6, 0.6, ss > 0.5 ? sph : 1.0 - sph)) - 0.10 + 0.08 * smoothstep(0.75, 0.55, p.y)) * smoothstep(-0.3, 0.1, p.y) : 0.0;
+    col += alb * glass * (0.02 + moonE * 0.30) * vec3(1.6, 1.3, 1.5) * (1.0 - shadowG);
+    // B: el vitral se enciende de colores
+    col += alb * glass * misa * (0.25 + bass * 0.3) * vec3(1.8, 1.1, 1.6);
     col += plateCol(wa.rgb) * glass * flameC * 0.02 * float(aa.a < 0.5);
     col += vec3(1.0, 0.72, 0.45) * sss * 0.55 * flameC * 1.2;            // cera transluciendo
+    // la calavera enciende los ojos (suceso y B)
+    float skullK = max(sv == 2 ? se * smoothstep(0.1, 0.3, sph) : 0.0, misa);
+    if (skullK > 0.0) {
+        vec2 eq = vec2(abs(p.x + 0.005) - 0.045, p.y + 0.20);
+        col += mix(flameC, vec3(1.0, 0.2, 0.1), 0.6) * (exp(-dot(eq, eq) * 6000.0) * 1.8 + exp(-dot(eq, eq) * 400.0) * 0.12) * skullK;
+    }
+    // suceso: una vela llora cera; detalle: cae una gota
+    if (sv == 3 || dv == 4) {
+        int wi = sv == 3 ? int(ss * 9.99) : int(D.w * 9.99);
+        vec4 c = CANDLES[wi];
+        float k = sv == 3 ? se * smoothstep(0.05, 0.8, sph) : D.x * D.y;
+        float x0 = c.x + c.w * 0.55;
+        float top = c.y + c.z;
+        float len = sv == 3 ? k * c.z * 0.95 : 0.0;
+        float tear = max(abs(p.x - x0 - 0.004 * sin(p.y * 40.0)) - 0.007, max(p.y - top, top - len - p.y));
+        tear = min(tear, length((p - vec2(x0, top - (sv == 3 ? len : k * (c.z + 0.1)))) / vec2(1.0, 1.3)) - 0.010);
+        col = mix(col, vec3(1.0, 0.85, 0.6) * (0.35 + sss * 0.6) * flameC * 1.4, (1.0 - smoothstep(-0.002, 0.002, tear)) * (sv == 3 ? se : D.x));
+    }
     // haz de luna sobre el altar
     if (moonE > 0.01) {
         float beam = smoothstep(0.42, 0.25, abs(p.x + (p.y - 0.4) * 0.35)) * smoothstep(0.9, -0.4, p.y);
@@ -146,10 +213,11 @@ vec4 render(vec2 uv) {
         float fi = float(i);
         float s = fsz[i];
         // humo que sube (mas cuando la llama se apago)
-        if (uD6 > 0.02 && dq.y > 0.0 && abs(dq.x) < 0.05 + dq.y * 0.3) {
+        float smokeA = max(uD6, EST.z * 0.9 + (dv == 2 ? D.x : 0.0));
+        if (smokeA > 0.02 && dq.y > 0.0 && abs(dq.x) < 0.05 + dq.y * 0.3) {
             float sm = fbm(vec2(dq.x * 6.0 + sin(dq.y * 4.0 - t * 1.2 + fi) * 0.6, dq.y * 2.0 - t * 0.5), 3, 0.5);
             float plume = exp(-pow(dq.x / (0.02 + dq.y * 0.12), 2.0)) * smoothstep(1.1, 0.1, dq.y);
-            col += vec3(0.20, 0.19, 0.18) * smoothstep(0.45, 0.8, sm) * plume * uD6 * (0.10 + (1.0 - on[i]) * 0.5) * (L.r * 6.0 + 0.2);
+            col += vec3(0.20, 0.19, 0.18) * smoothstep(0.45, 0.8, sm) * plume * smokeA * (0.10 + (1.0 - on[i]) * 0.5) * (L.r * 6.0 + 0.2);
         }
         if (on[i] < 0.01) continue;
         // halo
@@ -174,5 +242,13 @@ vec4 render(vec2 uv) {
         col += flameC * sp * smoothstep(0.8, 0.0, dq.y) * step(0.0, dq.y) * exp(-abs(dq.x) * 8.0) * (0.2 + high + boost[i] * 2.0) * on[i];
     }
 
+    // detalle: una polilla vuela alrededor de una llama
+    if (dv == 3) {
+        int mi = int(D.w * 11.99);
+        vec2 mp = tip[mi] + vec2(cos(uRTime * 4.0), sin(uRTime * 4.0) * 0.6) * 0.09 + vec2(0.0, 0.05);
+        vec2 mq = (p - mp) / 0.018;
+        float wing = length(vec2(abs(mq.x) - 0.6 * (0.5 + 0.5 * sin(uRTime * 40.0)), mq.y)) - 0.6;
+        col = mix(col, vec3(0.04, 0.03, 0.02) + flameC * 0.15, (1.0 - smoothstep(-0.1, 0.1, wing)) * D.x * on[mi]);
+    }
     return vec4(hkFinish(col, uv, vec3(0.45, 0.28, 0.12)), 1.0);
 }
