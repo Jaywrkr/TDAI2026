@@ -607,3 +607,47 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 
 **Reconstruir Todo:** hay canales, CHOPs, parámetros y un GLSL nuevos.
 
+## Fase 30: repertorio de sucesos (motor) y la mansión como piloto
+
+![Repertorio de la mansión](img/mansion_repertorio.jpg)
+
+**El problema.** Cada escena tenía un solo guion de clímax, que se repetía cada 1 a 2 minutos, y uno o dos eventos chicos siempre iguales. En media hora con una escena, el mismo clímax salía entre 15 y 25 veces.
+
+**El motor** (`common.glsl`, sirve para todas las escenas). Son cuatro niveles, más el estado de la escena:
+
+| Nivel | Cada cuánto | Función |
+|---|---|---|
+| Detalle | uno cada 30 s | `hkDetalle(semilla, n, largo)` |
+| Suceso | uno cada 55 s; con la Noche y el Miedo, otro entre medio | `hkSuceso(semilla, n, largo)` |
+| Clímax | cerca del medio de cada casillero de 4 min (entre dos hay 2,5 a 5,5 min); rotan 3 guiones | `hkClimaxV()` + `hkClimaxVar(n)` |
+| Gran clímax | uno de cada tres clímax (~12 min) o el pad Momento | `hkGrandV()` |
+| Estado | cambia cada 5 min, con fundido de 25 s | `hkEstado(semilla, n)` (pesos de hasta 4 estados) |
+
+- **Variantes sin repetición.** Salen de una permutación por vuelta, una cuenta del tipo (a·i + b) mod n con `a` coprimo con n: en cada vuelta salen todas una vez y en otro orden.
+- **Borde entre vueltas.** El primero de la vuelta nueva no puede ser ninguno de los tres últimos de la anterior, porque un clímax puede comerse hasta dos casilleros.
+- **Variación dentro de cada suceso.** Cada uno trae su propia semilla, que decide qué ventana, qué lado o qué chimenea.
+- **Clímax.** Ningún suceso ni detalle cae encima de uno: se callan 4 s antes y vuelven 4 s después. El clímax y el gran clímax nunca salen pegados.
+- **Uso en una escena:** `hkSetClimax(semilla, largo, largoGran)` al principio de `render()`.
+
+**Mansión (26):**
+- **4 estados:** noche clara, niebla espesa, tormenta lejana (un rayo cada tanto) y casa activa.
+- **9 sucesos:** corre con una vela, cortina y cara, puerta entreabierta, carruaje con farol, chimenea con fuego y murciélagos, piso que parpadea, niña en el porche, sombra enorme y alguien en el ático.
+- **6 detalles:** murciélago en la luna, cortina sola, ventana que se prende, ojos en el árbol, estrella fugaz y chispazo.
+- **3 clímax:** **A** la vela (el de antes), **B** la fiesta (siluetas que bailan en todas las ventanas, apagón de golpe y una sola cara en el ático), **C** la casa despierta (ojos rojos en las buhardillas, la puerta como boca roja, la casa respira).
+- **Gran clímax:** A, con relámpagos y murciélagos que salen de la torre.
+
+En 30 minutos (Noche 0,3): ~37 sucesos, ~52 detalles, 7 clímax de los 3 guiones, 2 grandes clímax y 5 cambios de estado.
+
+**Herramientas:**
+- `td/tools/timeline_sucesos.py 26`: lista qué pasa minuto a minuto, leído del mismo GLSL compilado con `HK_TIMELINE`. Con `--sheet` arma una hoja con un cuadro de cada cosa.
+- `td/tools/test_sucesos.py`: 3 horas en tres niveles de Noche y Miedo. Comprueba que no haya choques con un clímax, que nada se repita seguido y que salgan todas las variantes.
+
+Los nombres de cada cosa van en las líneas `@EST/@SUC/@DET/@CLX` del encabezado del `.frag`.
+
+**Costo y destellos:**
+- **Mansión:** de ~51 a ~58–63 ms en el banco de prueba (1280×512, por software), un 10–20 % más. El gran clímax llega a ~76 ms, como antes.
+- **Arreglo de costo:** la primera versión del calendario costaba hasta 3 veces más; se rehizo con una tabla de coprimos y calculando la variante solo cuando hay algo en curso.
+- **Destellos:** 30 minutos seguidos de mansión dan como máximo 2 por segundo.
+
+**Reconstruir Todo:** cambió `common.glsl` (todas las escenas lo incluyen). Las demás escenas todavía no usan el motor; siguen las fases 31–36.
+
