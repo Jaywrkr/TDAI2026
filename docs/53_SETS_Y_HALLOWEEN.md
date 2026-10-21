@@ -334,3 +334,18 @@ En la MacBook, un GLSL TOP con **más de 3 texturas de entrada no compila** ("Th
 | 06 | Línea de tracking a la altura de la nota | La figura se levanta y camina a la cámara → la cinta se come |
 
 - Herramienta de prueba: `render_scenes.py --keys pos:vel:edad[:1]` y `--chan canal=valor`.
+
+## Fase 12: escenas 07–13
+
+Mismo tratamiento que la fase 11: piano propio, Detail sin saltos y clímax en tres tiempos.
+
+| Escena | Piano | Detail sin saltos | Clímax |
+|---|---|---|---|
+| 07 | Fantasma que cruza; apretada se acerca, al soltar se va al fondo | D1 suma fantasmas de a uno | Espiral frente a la puerta → entran todos con estallido de luz → vuelven de a uno |
+| 08 | Arañitas colgadas de su hilo | D1 y D2: radios y anillos fijos, cada uno aparece por su cuenta | La tela vibra y bajan arañitas → la araña grande baja hasta la cámara → sube |
+| 09 | Rayo por tecla; apretada chisporrotea; con tope de brillo | Ramas del rayo continuas; la ventana de la granja se prende y apaga con fundido | La tormenta crece y los rayos se acercan → rayo al árbol → el árbol arde y la granja se apaga |
+| 10 | Chorro de fuego desde el anillo; al soltar sale como bola | Color del fuego en fundido (antes saltaba en D5 = 0.5); runas con fundido | Runas de a una → se abre y salen brazos con garras → onda de fuego |
+| 11 | Burbuja que crece apretada y al soltar revienta en chorro | D1 suma burbujas de a una; color por acto en fundido | Hervor → la cara grita en el vapor → erupción con lluvia verde → piso brillando |
+| 12 | Vendas que flamean a la altura de la nota; la momia mira la tecla | D1 continuo (las vendas se aprietan) | Las antorchas se apagan → jeroglíficos, giro de cabeza y rayos de los ojos → llamarada |
+| 13 | Prende con todo la calabaza de esa posición, con lengua de fuego | D1 continuo: la fila se acomoda y la nueva crece; ventanas con fundido | Persecución cada vez más rápida → todas al rojo escupiendo fuego → el cuervo vuela |
+

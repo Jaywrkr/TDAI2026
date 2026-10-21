@@ -14,12 +14,19 @@
 //   agudos -> titilan las velas de los apliques; polvo en la luz de luna
 //   golpe  -> los fantasmas se asoman (brillan y crecen); con Chaos se
 //             abalanzan hacia la camara
+// PIANO: cada tecla trae un fantasma que aparece en esa posicion y cruza
+//   el pasillo (la fuerza: mas grande y brillante); apretada, se queda
+//   flotando y se acerca de a poco; al soltarla se va volando al fondo.
 // Speed los hace flotar y avanzar por el pasillo aun en silencio.
 // HISTORIA: cada acto cambia cuantos hay; cada ~59 s uno pasa volando
-// muy cerca de la camara; cada ~83 s se apagan y reaparecen; cada ~71 s
-// se entreabre una puerta con luz.
+// muy cerca de la camara; cada ~71 s se entreabre una puerta con luz.
+// CLIMAX (~83 s, 18 s, en tres tiempos): la puerta se entreabre y los
+//   fantasmas se juntan girando en espiral frente a ella; el remolino se
+//   cierra y entran todos por la puerta, que estalla de luz; despues la
+//   puerta se apaga y vuelven de a uno. Cada ~4.5 min, ademas, uno pasa
+//   volando junto a la camara (gran climax).
 //
-// @D1: cantidad de fantasmas
+// @D1: cantidad de fantasmas (aparecen de a uno)
 // @D2: transparencia
 // @D3: ondulacion del borde
 // @D4: brillo interior
@@ -69,17 +76,24 @@ vec4 render(vec2 uv) {
     vec3 gc = mix(cold, spectral, uD5);
     vec3 moonC = vec3(0.50, 0.60, 0.95);
 
-    float flyBy = hkEvent(3.0, 59.0, 6.0);
-    float vanish = hkEvent(4.0, 83.0, 4.0);
-    float doorE = hkEvent(6.0, 71.0, 8.0);
+    vec4 GC = hkGrandClimax(4.0);
+    vec4 C = hkClimaxOr(GC, hkClimax(4.0, 83.0, 18.0));
+    float cph = C.w;
+    float flyBy = max(hkEvent(3.0, 59.0, 6.0), GC.x * (1.0 - GC.y));
+    float doorE = max(hkEvent(6.0, 71.0, 8.0), C.x * 0.5 + C.y * 1.3);
+    // la puerta del climax: en la pared izquierda, a media profundidad
+    vec3 doorP = vec3(-WC + 0.25, -0.30, 1.85);
+    float gather = smoothstep(0.0, 0.33, cph) * (1.0 - smoothstep(0.66, 0.72, cph));
+    float spin = 1.0 - smoothstep(0.30, 0.62, cph);
 
     vec4 sf = hwSurf(p);
     vec3 X = vec3(sf.xy, sf.z);
     float sid = sf.w;
 
     // --- fantasmas: posicion en el mundo (se calculan una vez) ---
-    float n = min(3.0 + floor(uD1 * 4.0 + uDensity + hkActVal(5.0) * 2.0), 7.0);
-    vec4 G[7];
+    // cantidad continua: el fantasma nuevo aparece de a poco
+    float n = min(3.0 + uD1 * 4.0 + uDensity + hkActVal(5.0) * 2.0, 7.0);
+    vec4 G[13];
     for (int i = 0; i < 7; i++) {
         float fi = float(i);
         float h1 = hash21(vec2(fi, 1.3)), h2 = hash21(vec2(fi, 7.7));
@@ -91,12 +105,34 @@ vec4 render(vec2 uv) {
             z = mix(z, mix(3.5, 0.55, fp), flyBy);
             x = mix(x, mix(-0.4, 0.5, fp), flyBy);
         }
-        float on = step(fi, n - 1.0) * (1.0 - vanish * step(0.5, hash21(vec2(fi, floor(uRTime * 6.0)))));
+        float on = revealAt(n, fi);
+        // climax: espiral frente a la puerta, entran y vuelven de a uno
+        if (cph > 0.0) {
+            float ang = fi * 0.9 + uRTime * (2.2 + fi * 0.15);
+            float rad = 0.12 + 0.75 * spin;
+            vec3 orbit = doorP + vec3(cos(ang) * rad * 0.55, sin(ang) * rad * 0.35 + 0.15, sin(ang) * rad * 0.6);
+            vec3 cur = mix(vec3(x, y, z), orbit, gather);
+            x = cur.x; y = cur.y; z = cur.z;
+            float into = smoothstep(0.52 + fi * 0.018, 0.62 + fi * 0.018, cph);
+            float back = smoothstep(0.73 + hash21(vec2(fi, 31.0)) * 0.20, 0.77 + hash21(vec2(fi, 31.0)) * 0.20, cph);
+            on *= 1.0 - into * (1.0 - back);
+        }
         G[i] = vec4(x, y, z, on);
+    }
+    // fantasmas del piano (voces 0..5 -> G[7..12])
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.25, 1.6);
+        float age = keyAge(k), rel = keyRelAge(k);
+        float side = keyPos(k) < 0.5 ? 1.0 : -1.0;
+        float x = hkKeyX(k) * 0.55 + side * min(age, 4.0) * 0.12 * (1.0 - keyHeld(k) * 0.7);
+        float y = -0.25 + 0.25 * fract(keyPos(k) * 5.3) + 0.05 * sin(uKclock * 1.4 + float(k));
+        // apretada se acerca despacio; al soltarla se va al fondo
+        float z = max(2.2 - min(age, 3.0) * 0.30 * keyHeld(k), 0.9) + rel * 2.5;
+        G[7 + k] = vec4(x, y, z, e * (0.6 + keyVel(k) * 0.6));
     }
     // luz de los fantasmas sobre las superficies
     float gl = 0.0;
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 13; i++) {
         vec3 dv = X - G[i].xyz;
         gl += G[i].w / (1.0 + dot(dv, dv) * 5.0);
     }
@@ -153,10 +189,13 @@ vec4 render(vec2 uv) {
     float fogA = (1.0 - exp(-X.z * (0.08 + uD6 * 0.18))) * (0.6 + 0.5 * fz);
     col = mix(col, vec3(0.05, 0.06, 0.09) + gc * gl * 0.08, clamp(fogA, 0.0, 0.85));
 
+    // la puerta del climax estalla de luz cuando entran
+    col += vec3(1.0, 0.85, 0.6) * C.y * smoothstep(0.50, 0.62, cph) * 0.35 * exp(-length((p - (VP + doorP.xy / doorP.z)) * vec2(2.5, 1.2)) * 2.0);
+
     // --- fantasmas en pantalla (translucidos: el orden casi no se nota) ---
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 13; i++) {
         vec4 g = G[i];
-        if (g.w <= 0.0) continue;
+        if (g.w <= 0.005) continue;
         float fi = float(i);
         float h1 = hash21(vec2(fi, 1.3)), h2 = hash21(vec2(fi, 7.7));
         float peek = hit * step(0.45, fract(h1 * 7.0 + h2 * 3.0));
@@ -179,14 +218,14 @@ vec4 render(vec2 uv) {
         float density = (0.18 + 0.35 * smoothstep(-0.6, 0.3, q.y)) * (1.0 - uD2 * 0.6) * (0.85 + bass * 0.3);
         float lum = (0.55 + uD4 * 0.6 + peek * 0.8) * (1.0 / (0.6 + zz * 0.3)) * exp(-zz * 0.06 * (1.0 + uD6));
         vec3 gcol = gc * lum * (0.45 + 0.4 * folds + 0.6 * fres);
-        col = mix(col, col * 0.55 + gcol, body * density);
+        col = mix(col, col * 0.55 + gcol, body * density * min(g.w, 1.0));
         // ojos y boca huecos
         vec2 ep = vec2(abs(q.x) - 0.11, q.y - 0.22);
         float eyes = 1.0 - smoothstep(0.045, 0.06, length(ep / vec2(0.8, 1.3)));
         float mouth = 1.0 - smoothstep(0.05, 0.065, length((q - vec2(0.0, 0.04)) / vec2(0.7 + rush * 0.4, 1.0 + peek * 0.8 + rush * 2.5)));
-        col = mix(col, col * 0.12, max(eyes, mouth) * body * 0.9);
+        col = mix(col, col * 0.12, max(eyes, mouth) * body * 0.9 * min(g.w, 1.0));
         // halo frio alrededor
-        col += gc * exp(-max(d, 0.0) * 9.0) * 0.12 * lum * (1.0 - body);
+        col += gc * exp(-max(d, 0.0) * 9.0) * 0.12 * lum * (1.0 - body) * min(g.w, 1.0);
     }
 
     col = audioLift(col, high * 0.08);

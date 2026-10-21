@@ -14,12 +14,19 @@
 //   agudos -> destella el rocio; brilla el polvo en el aire
 //   golpe  -> la tela vibra (cada vuelta con su fase, D4) y la arana se
 //             encoge; con Chaos bajan aranitas por sus hilos
+// PIANO: cada tecla baja una aranita colgada de su hilo en esa posicion
+//   (la fuerza: mas grande y mas abajo); apretada, se queda colgando y se
+//   balancea; al soltarla sube rapido por el hilo.
 // Speed mueve la arana, la brisa y el polvo aun en silencio.
-// HISTORIA: cada ~67 s la arana camina hasta el centro de la tela; cada
+// HISTORIA: cada ~101 s la arana camina hasta el centro de la tela; cada
 // ~53 s una rafaga sacude todo; cada acto cambia la luz de la luna.
+// CLIMAX (~67 s, 18 s, en tres tiempos): la tela empieza a vibrar y bajan
+//   aranitas; la arana grande baja hasta la camara y tapa media pantalla;
+//   despues sube y las aranitas trepan. Cada ~4.5 min con rafaga (gran
+//   climax).
 //
-// @D1: cantidad de radios
-// @D2: cantidad de anillos
+// @D1: cantidad de radios (cada uno aparece por su cuenta)
+// @D2: cantidad de anillos (cada uno aparece por su cuenta)
 // @D3: tamano de la arana
 // @D4: vibracion con el golpe
 // @D5: rocio
@@ -79,8 +86,13 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.006);
-    float gust = hkEvent(4.0, 53.0, 4.0);
-    float walk = hkEvent(3.0, 67.0, 14.0);
+    vec4 GC = hkGrandClimax(3.0);
+    vec4 CL = hkClimaxOr(GC, hkClimax(3.0, 67.0, 18.0));
+    float gust = max(hkEvent(4.0, 53.0, 4.0), GC.x * (1.0 - GC.y) * 0.8);
+    float walk = hkEvent(7.0, 101.0, 14.0) * (1.0 - step(0.0001, CL.w));
+    // la arana grande baja hasta la camara en el pico
+    float approach = smoothstep(0.30, 0.55, CL.w) * (1.0 - smoothstep(0.66, 0.85, CL.w));
+    float babies = max(CL.x * (1.0 - CL.z * 0.5), hit * loco);
     vec3 moonC = mix(vec3(0.60, 0.70, 1.0), vec3(0.85, 0.80, 1.0), hkActVal(5.0));
     vec3 silk = mix(vec3(0.90, 0.92, 1.0), hsv2rgb(vec3(fract(0.78 + hue), 0.45, 1.0)), uD6);
 
@@ -96,7 +108,9 @@ vec4 render(vec2 uv) {
     vec2 wp = p - C - vec2(breeze, breeze * 0.4) * smoothstep(0.0, 1.0, length(p - C));
     float r = length(wp);
     float a = atan(wp.y, wp.x);
-    float nSp = floor(14.0 + uD1 * 16.0);
+    // radios en lugares FIJOS (30): D1 decide cuales estan, cada uno con su
+    // punto de la perilla -- antes cambiaba la cantidad y la tela entera saltaba
+    const float nSp = 30.0;
     float sector = TAU / nSp;
     float ai = floor(a / sector);
     float al = a - (ai + 0.5) * sector;
@@ -108,18 +122,20 @@ vec4 render(vec2 uv) {
     if (r < webR + 0.02) {
         // radios
         float spoke = abs(sin(al)) * r;
-        web = max(web, (1.0 - smoothstep(0.0, px, spoke)) * smoothstep(0.03, 0.06, r));
+        float spokeOn = smoothstep(0.0, 0.06, mix(0.45, 1.02, uD1) - hash21(vec2(ai, 51.0)) * 0.98);
+        web = max(web, (1.0 - smoothstep(0.0, px, spoke)) * smoothstep(0.03, 0.06, r) * spokeOn);
         // espiral: tramos rectos entre radios (r del poligono)
         float rp = r * cos(al) / cos(0.0);
-        float nRing = 12.0 + floor(uD2 * 20.0);
+        const float nRing = 32.0;
         float spacing = (webR - 0.10) / nRing;
         float k = (rp - 0.10) / spacing + (hash21(vec2(ai, 3.0)) - 0.5) * 0.35;
         float ring = floor(k);
         // vibracion del golpe: cada vuelta con su fase
-        float vib = hit * (0.15 + uD4 * 0.6) * sin(ring * 1.7 + uRTime * 30.0) * 0.25;
+        float vib = (hit * (0.15 + uD4 * 0.6) + CL.x * 0.5 * (1.0 - CL.z)) * sin(ring * 1.7 + uRTime * 30.0) * 0.25;
         float fk = fract(k + vib);
         float rd = abs(fk - 0.5) * spacing;
-        float onR = step(0.10, rp) * step(rp, webR) * step(ring, nRing - 1.0) * step(0.05, hash21(vec2(ring, ai + 17.0)));
+        float ringOn = smoothstep(0.0, 0.06, mix(0.40, 1.02, uD2) - hash21(vec2(ring, 52.0)) * 0.98);
+        float onR = step(0.10, rp) * step(rp, webR) * step(ring, nRing - 1.0) * step(0.05, hash21(vec2(ring, ai + 17.0))) * ringOn;
         web = max(web, (1.0 - smoothstep(0.0, px, rd)) * onR);
         // gotas de rocio sobre la espiral
         float along = al * r / spacing * 1.2;
@@ -155,13 +171,15 @@ vec4 render(vec2 uv) {
     }
 
     // --- arana en su hilo ---
-    float sz = 0.28 + uD3 * 0.22;
+    float sz = (0.28 + uD3 * 0.22) * mix(1.0, 4.2, approach * approach);
     float hang = 0.25 + 0.30 * sin(t * 0.28) + 0.10 * sin(t * 0.71);
     vec2 sp = vec2(1.15, hang);
     // historia: camina hasta el centro de la tela y vuelve
     float wph = hkEventPhase(3.0, 67.0, 14.0);
     vec2 centerPos = C + vec2(0.0, -0.05);
     sp = mix(sp, centerPos, walk * smoothstep(0.0, 0.4, wph) * (1.0 - smoothstep(0.6, 1.0, wph)));
+    // climax: baja hacia la camara (crece y queda en el centro, arriba)
+    sp = mix(sp, vec2(0.05, 0.55), approach);
     float curl = hit * (0.5 + uD4 * 0.5);
     // hilo de seda
     float drag = abs(p.x - sp.x) - px * 0.5;
@@ -200,19 +218,40 @@ vec4 render(vec2 uv) {
         col += moonC * fuzz * 0.12 * (1.0 - m * 0.5);
     }
 
-    // --- locura: aranitas que bajan por sus hilos ---
-    if (hit * loco > 0.05) {
+    // --- PIANO: aranitas que bajan colgadas en la posicion de la tecla ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.05, 0.9);
+        if (e < 0.01) continue;
+        float vel = keyVel(k), age = keyAge(k), rel = keyRelAge(k);
+        float bx = hkKeyX(k) * 0.92;
+        float drop = min(age * (0.8 + vel), 0.55 + vel * 0.6);
+        float by = 0.86 - drop + rel * rel * 6.0 + keyHeld(k) * 0.03 * sin(uKclock * 3.0 + float(k));
+        bx += keyHeld(k) * 0.04 * sin(uKclock * 1.6 + float(k) * 2.0) * smoothstep(0.3, 1.0, age);
+        float th = max(abs(p.x - bx) - px * 0.4, max(by - p.y, p.y - 0.86));
+        col += silk * (1.0 - smoothstep(0.0, px, th)) * 0.30 * e;
+        float bs = 0.10 + vel * 0.07;
+        vec2 bq = rot2(PI) * (p - vec2(bx, by)) / bs;
+        if (dot(bq, bq) > 2.0) continue;
+        vec2 aq;
+        vec2 bd = hwSpider(bq, uKclock * 2.0 + float(k), 0.0, aq);
+        float bm = 1.0 - smoothstep(-0.02, 0.02, bd.x);
+        col = mix(col, vec3(0.03, 0.022, 0.015), bm * e);
+        col += moonC * (1.0 - smoothstep(0.0, 0.05, abs(bd.x))) * 0.15 * e * (1.0 - bm);
+    }
+
+    // --- locura y climax: aranitas que bajan por sus hilos ---
+    if (babies > 0.05) {
         for (int i = 0; i < 6; i++) {
             float fi = float(i);
             float bx = -1.8 + fi * 0.75 + 0.2 * hash21(vec2(fi, 3.0));
             float by = 0.86 - fract(uRTime * 0.3 + hash21(vec2(fi, 4.0))) * 1.6;
             float th = max(abs(p.x - bx) - px * 0.4, max(by - p.y, p.y - 0.86));
-            col += silk * (1.0 - smoothstep(0.0, px, th)) * 0.2 * hit * loco;
+            col += silk * (1.0 - smoothstep(0.0, px, th)) * 0.2 * babies;
             vec2 bq = rot2(PI) * (p - vec2(bx, by)) / 0.06;
             if (dot(bq, bq) > 2.0) continue;
             vec2 aq;
             vec2 bd = hwSpider(bq, t * 2.0 + fi, 0.0, aq);
-            col = mix(col, vec3(0.03), (1.0 - smoothstep(-0.02, 0.02, bd.x)) * hit * loco);
+            col = mix(col, vec3(0.03), (1.0 - smoothstep(-0.02, 0.02, bd.x)) * babies);
         }
     }
 

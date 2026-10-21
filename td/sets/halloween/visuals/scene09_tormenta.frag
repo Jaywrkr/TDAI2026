@@ -14,11 +14,17 @@
 //   agudos -> brilla la lluvia
 //   golpe  -> cae el rayo (cada golpe en otro lugar) y recorta el
 //             paisaje; con Chaos: dos y tres rayos
+// PIANO: cada tecla hace caer un rayo en esa posicion (la fuerza: mas
+//   brillante y mas ramas) que ilumina nubes y campo; apretada, el rayo
+//   sigue chisporroteando; un acorde tira varios a la vez.
 // Speed mueve nubes y lluvia aun en silencio.
 // HISTORIA: cada acto la tormenta es mas o menos intensa; cada ~57 s
-// llega el pico (rayos seguidos sin golpe); cada ~73 s un rayo cae en el
-// arbol y lo deja ardiendo un rato; la ventana de la granja se apaga y
-// se prende.
+// llega el pico (rayos seguidos sin golpe); la ventana de la granja se
+// apaga y se prende.
+// CLIMAX (~73 s, 22 s, en tres tiempos): la lluvia arrecia y los rayos
+//   caen cada vez mas cerca; uno cae en el arbol; el arbol queda ardiendo
+//   y la ventana de la granja se apaga. Cada ~4.5 min con el pico de la
+//   tormenta (gran climax).
 //
 // @D1: cantidad de lluvia
 // @D2: ramificacion del rayo
@@ -45,17 +51,20 @@ float hwBolt(vec2 p, float x0, float top, float bot, float seed) {
     return abs(p.x - x);
 }
 
+// 'branches' es continuo: la rama nueva crece de a poco (D2 sin saltos)
 float hwBranchy(vec2 p, float x0, float top, float bot, float seed, float branches) {
     float d = hwBolt(p, x0, top, bot, seed);
     for (int i = 0; i < 4; i++) {
         float fi = float(i);
-        if (fi >= branches) break;
+        float on = revealAt(branches, fi);
+        if (on < 0.01) break;
         float by = mix(top, bot, 0.25 + 0.15 * fi);
         float bx = x0 + (noise21(vec2(by * 6.0, seed)) - 0.5) * 0.30 * (0.25 + 0.15 * fi);
         float dir = (fract(seed * 7.0 + fi * 0.37) > 0.5) ? 1.0 : -1.0;
         vec2 q = p - vec2(bx, by);
         q = rot2(dir * 0.55) * q;
-        d = min(d, hwBolt(q + vec2(0.0, by), 0.0, by, by - 0.35 - 0.1 * fi, seed + fi * 9.0) + 0.0015);
+        float len = (0.35 + 0.1 * fi) * on;
+        d = min(d, hwBolt(q + vec2(0.0, by), 0.0, by, by - len, seed + fi * 9.0) + 0.0015);
     }
     return d;
 }
@@ -73,17 +82,34 @@ vec4 render(vec2 uv) {
     float hue = audioHue(uHue, mid * 0.008);
 
     float slot = floor(rt * 1.7);
-    float peak = hkEvent(3.0, 57.0, 10.0);
-    float treeHit = hkEvent(5.0, 73.0, 9.0);
+    vec4 G = hkGrandClimax(5.0);
+    vec4 C = hkClimaxOr(G, hkClimax(5.0, 73.0, 22.0));
+    float peak = max(hkEvent(3.0, 57.0, 10.0), max(C.x * 0.7 * (1.0 - C.z), G.x));
+    // el rayo cae en el arbol al llegar el pico
+    float treeHit = step(0.36, C.w) * step(C.w, 0.52);
     float ambient = max(uD3, peak) * step(0.86 - peak * 0.2 - hkActVal(4.0) * 0.08, hash21(vec2(floor(rt * 3.0), 5.0)));
     float strike = clamp(hit + ambient, 0.0, 1.0);
     // el destello se apaga en una fraccion de segundo, con un rebote
     float flick = strike * (0.75 + 0.25 * step(0.5, hash21(vec2(floor(rt * 22.0), 2.0))));
+    // piano: rayos propios, uno por tecla (luz que dejan en nubes y campo)
+    float keyFlick = 0.0;
+    float keyNear = 0.0;
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.01, 0.35);
+        float crackle = keyHeld(k) > 0.5 ? 0.7 + 0.3 * step(0.5, hash21(vec2(floor(uKclock * 18.0), float(k)))) : 1.0;
+        float kf = e * crackle * (0.5 + keyVel(k) * 0.8) * (keyHeld(k) > 0.5 ? 1.0 : exp(-keyRelAge(k) * 4.0));
+        keyFlick = max(keyFlick, kf);
+        keyNear += kf * exp(-abs(p.x - hkKeyX(k)) * 0.9);
+    }
+    keyNear = 1.2 * keyNear / (1.0 + keyNear);    // varios rayos no queman la imagen
     vec3 boltC = mix(hsv2rgb(vec3(fract(0.77 + hue), 0.45, 1.0)),
                      hsv2rgb(vec3(fract(0.60 + hue), 0.55, 1.0)), uD5);
     float bx = (hash21(vec2(slot, 1.0)) - 0.5) * uAspect * 1.5;
     vec2 treeTop = vec2(-1.55, 0.55);
+    // aviso: los rayos se acercan al arbol (de la derecha hacia el arbol)
+    if (C.w > 0.0 && C.w < 0.36) bx = mix(bx, mix(uAspect * 0.8, treeTop.x + 0.3, C.w / 0.36), 0.75);
     if (treeHit > 0.5) bx = treeTop.x;
+
 
     // --- cielo y nubarrones con relieve (textura de ruido que se mueve) ---
     vec3 col = mix(vec3(0.02, 0.018, 0.04), vec3(0.005, 0.004, 0.012), smoothstep(-0.3, 1.2, p.y));
@@ -101,6 +127,7 @@ vec4 render(vec2 uv) {
     // brillo interno: el rayo y el bajo encienden las nubes desde adentro
     float inside = exp(-abs(p.x - bx) * 1.8) * shape * (0.4 + 0.6 * cl);
     col += boltC * inside * flick * (0.6 + uD4 * 1.2);
+    col += boltC * shape * (0.4 + 0.6 * cl) * keyNear * (0.35 + uD4 * 0.6);
     col += boltC * shape * bass * 0.10 * (0.5 + 0.5 * n1.g) * exp(-abs(p.x - sin(rt * 0.3) * 1.5) * 0.8);
     col += boltC * 0.08 * flick * (0.5 + uD4);
 
@@ -112,15 +139,28 @@ vec4 render(vec2 uv) {
     float core = 1.0 - smoothstep(px * 0.8, px * 2.2, d);
     float glow = exp(-d * 60.0) * 0.6 + exp(-d * 12.0) * 0.25;
     col += (vec3(1.0) * core + boltC * glow) * flick * (0.8 + uD4 * 1.2);
+    // rayos del piano
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.01, 0.35);
+        if (e < 0.01) continue;
+        float kf = e * (0.5 + keyVel(k) * 0.8) * (keyHeld(k) > 0.5 ? 1.0 : exp(-keyRelAge(k) * 4.0));
+        float seed = keyPos(k) * 97.0 + floor(uKclock * (keyHeld(k) > 0.5 ? 10.0 : 0.0));
+        float dk = hwBranchy(p, hkKeyX(k), 1.35, -0.62, seed, 1.0 + keyVel(k) * 2.5);
+        float ck = 1.0 - smoothstep(px * 0.8, px * 2.2, dk);
+        col += (vec3(1.0) * ck + boltC * (exp(-dk * 60.0) * 0.6 + exp(-dk * 12.0) * 0.25)) * kf * (0.8 + uD4 * 1.2);
+    }
 
     // --- paisaje: oscuro, el relampago lo recorta ---
     vec4 ld = plate0(rUV(p + vec2(0.0, 0.0), LAND_R));
     vec3 la = plateCol(ld.rgb);
     float near = exp(-abs(p.x - bx) * 0.6);
-    vec3 lc = la * (0.45 + vec3(0.15, 0.15, 0.25) + boltC * flick * (1.5 + uD4 * 2.0) * (0.4 + 0.6 * near));
+    vec3 lc = la * (0.45 + vec3(0.15, 0.15, 0.25) + boltC * flick * (1.5 + uD4 * 2.0) * (0.4 + 0.6 * near)
+                  + boltC * keyNear * (0.7 + uD4 * 1.0));
     // la ventana de la granja: se apaga y se prende
     vec2 wq = p - vec2(1.55, -0.42 + 0.0);
-    float lamp = step(0.25, hash21(vec2(floor(rt / 9.0), 4.0)));
+    float ls = rt / 9.0;
+    float lamp = mix(step(0.25, hash21(vec2(floor(ls) - 1.0, 4.0))), step(0.25, hash21(vec2(floor(ls), 4.0))), smoothstep(0.0, 0.08, fract(ls)));
+    lamp *= 1.0 - C.z;      // en las secuelas del climax la granja se apaga
     lc += vec3(1.0, 0.65, 0.25) * exp(-dot(wq * vec2(1.0, 1.6), wq * vec2(1.0, 1.6)) * 4000.0) * 1.5 * lamp;
     col = mix(col, lc, ld.a);
 
@@ -142,7 +182,8 @@ vec4 render(vec2 uv) {
     vec4 tr = plate1(tu);
     float treeOn = 0.35 + 0.65 * uD6;
     vec3 tc = plateCol(tr.rgb) * (0.4 + boltC * flick * 2.5 * exp(-abs(p.x - bx) * 0.8));
-    float burn = treeHit * smoothstep(0.3, 0.5, hkEventPhase(5.0, 73.0, 9.0));
+    // arde desde que le cae el rayo hasta el final del climax
+    float burn = smoothstep(0.38, 0.46, C.w) * (1.0 - smoothstep(0.92, 1.0, C.w));
     if (burn > 0.0 && tr.a > 0.0) {
         float fl = plate2Wrap(vec2(p.x * 0.4, p.y * 0.3 - rt * 0.15)).g;
         tc += vec3(1.0, 0.45, 0.10) * smoothstep(0.45, 0.75, fl) * burn * 1.8 * smoothstep(-0.5, 0.4, p.y);
@@ -158,7 +199,7 @@ vec4 render(vec2 uv) {
     vec2 rp = p;
     rp.x += rp.y * (0.20 + mid * 0.25);
     float rain = 0.0;
-    float rainBoost = 1.0 + loco * hit * 1.5;
+    float rainBoost = 1.0 + loco * hit * 1.5 + C.x * (1.0 - C.z) * 0.9;
     for (int i = 0; i < 2; i++) {
         float fi = float(i);
         vec2 g = vec2(rp.x * (60.0 + fi * 40.0), rp.y * 2.0 + t * (2.2 + fi));

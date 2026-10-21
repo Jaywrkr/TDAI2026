@@ -13,10 +13,17 @@
 //   agudos -> brasas que salen del portal
 //   golpe  -> late el anillo, se enciende una tanda de runas; con Chaos
 //             se abren ojos de demonio dentro del vortice
+// PIANO: cada tecla escupe un chorro de fuego desde el anillo, hacia el
+//   lado de la nota (grave a la izquierda); la fuerza lo hace mas largo y
+//   la cripta se ilumina; apretada, el chorro sigue saliendo; al soltarla
+//   se despega como una bola de fuego que sale volando.
 // Speed hace girar el vortice y subir las llamas aun en silencio.
-// HISTORIA: cada ~73 s el portal se abre de par en par; cada ~61 s se
-// encienden las runas del circulo del piso; cada acto gira para otro
-// lado y cambia de fuego.
+// HISTORIA: cada ~61 s se encienden las runas del circulo del piso; cada
+// acto gira para otro lado y cambia de fuego.
+// CLIMAX (~73 s, 20 s, en tres tiempos): las runas se encienden de a una;
+//   el portal se abre en espiral y salen brazos y llamas; se cierra con
+//   una onda de fuego que recorre la cripta. Cada ~4.5 min con el circulo
+//   del piso y los ojos del demonio (gran climax).
 //
 // @D1: tamano del portal
 // @D2: altura de las llamas
@@ -61,10 +68,19 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float hue = audioHue(uHue, mid * 0.008);
 
-    float openE = hkEvent(3.0, 73.0, 10.0);
-    float floorRunes = hkEvent(5.0, 61.0, 8.0);
-    float R = (0.36 + uD1 * 0.22) * (1.0 + openE * 0.25);
+    vec4 G = hkGrandClimax(3.0);
+    vec4 C = hkClimaxOr(G, hkClimax(3.0, 73.0, 20.0));
+    float cph = C.w;
+    float openE = C.y;
+    float floorRunes = max(hkEvent(5.0, 61.0, 8.0), max(G.x, C.x * 0.6));
+    float R = (0.36 + uD1 * 0.22) * (1.0 + openE * 0.30) * (1.0 - C.z * 0.35);
     R = min(R, 0.70);
+    // onda de fuego que sale al cerrarse
+    float waveR = mix(R, 3.2, clamp((cph - 0.70) / 0.25, 0.0, 1.0));
+    float waveA = smoothstep(0.69, 0.72, cph) * (1.0 - smoothstep(0.90, 0.97, cph));
+    // piano: chorros de fuego (tambien iluminan la cripta)
+    float keyFire = 0.0;
+    for (int k = 0; k < N_KEYS; k++) keyFire += keyEnv(k, 0.05, 0.8) * (0.4 + keyVel(k) * 0.6);
     float heat = exp(-abs(length(p) - R) * 6.0);
     p += (vec2(noise21(p * 9.0 + vec2(0.0, t * 3.0)), noise21(p * 9.0 + vec2(5.0, t * 3.0))) - 0.5) * 0.025 * heat * (1.0 + loco);
     float r = length(p);
@@ -72,8 +88,10 @@ vec4 render(vec2 uv) {
 
     vec3 fireA = mix(vec3(1.0, 0.35, 0.05), vec3(0.35, 1.0, 0.15), uD5);
     vec3 fireB = mix(vec3(1.0, 0.85, 0.40), vec3(0.85, 1.0, 0.55), uD5);
-    fireA = hsv2rgb(vec3(fract(hue + (uD5 > 0.5 ? 0.30 : 0.04)), 0.95, 1.0)) * 0.5 + fireA * 0.5;
-    float fireI = (0.75 + 0.25 * sin(t * 7.0) * sin(t * 3.1) + bass * 0.7 + hit * 0.5) * (1.0 + openE * 0.6);
+    // (antes saltaba de golpe en D5 = 0.5; ahora es un fundido)
+    fireA = hsv2rgb(vec3(fract(hue + mix(0.04, 0.30, smoothstep(0.35, 0.65, uD5))), 0.95, 1.0)) * 0.5 + fireA * 0.5;
+    float fireI = (0.75 + 0.25 * sin(t * 7.0) * sin(t * 3.1) + bass * 0.7 + hit * 0.5) * (1.0 + openE * 0.6)
+                + keyFire * 0.45 + waveA * 1.2;
 
     // --- cripta iluminada por el portal y las velas ---
     vec2 pu = rUV(pw);
@@ -131,14 +149,7 @@ vec4 render(vec2 uv) {
         vec2 sf = fract(sp) - 0.5;
         float em = exp(-dot(sf, sf) * 60.0) * step(0.80, hash21(sid)) * smoothstep(R * 1.9, R * 0.9, r) * smoothstep(0.1, R * 0.6, r);
         pc += fireB * em * (0.8 + hit);
-        float eyesOn = max(hit * smoothstep(0.35, 0.9, loco), openE * step(0.5, fract(uRTime * 0.2)));
-        if (eyesOn > 0.01) {
-            vec2 eq = vec2(abs(p.x) - R * 0.32, p.y - R * 0.05);
-            float almond = max(length(eq / R - vec2(0.0, -0.10)), length(eq / R - vec2(0.0, 0.10))) - 0.16;
-            float eye = 1.0 - smoothstep(-0.01, 0.01, almond / max(eyesOn, 0.2));
-            float slitE = 1.0 - smoothstep(0.012, 0.02, abs(eq.x) / R);
-            pc = mix(pc, mix(fireB * 1.6, vec3(0.0), slitE), eye * insideM);
-        }
+        float eyesOn = max(hit * smoothstep(0.35, 0.9, loco), G.y);
         // anillo de fuego
         float ringD = r - R;
         float flameH = 0.08 + uD2 * 0.16 + bass * 0.08;
@@ -149,6 +160,36 @@ vec4 render(vec2 uv) {
         vec3 fire = mix(fireA, fireB, smoothstep(0.3, 1.0, flame)) * flame * 1.5 * (1.0 + hit * 0.8);
         pc += fire;
         pc += fireB * exp(-abs(ringD) * 70.0) * (0.8 + hit * 1.2);
+        // climax: tres brazos que salen del vortice, por encima del anillo (hombro, codo, mano con garras)
+        if (openE > 0.01) {
+            float out_ = smoothstep(0.36, 0.56, cph) * (1.0 - C.z);
+            for (int j = 0; j < 3; j++) {
+                float fj = float(j);
+                float aa = 0.9 + fj * 2.2 + sin(uRTime * 0.7 + fj * 2.0) * 0.25;
+                vec2 dir = vec2(cos(aa), sin(aa));
+                vec2 side = vec2(-dir.y, dir.x);
+                float bend = (fj == 1.0 ? -1.0 : 1.0) * (0.10 + 0.04 * sin(uRTime * 2.0 + fj));
+                vec2 sh = dir * R * 0.40;
+                vec2 el = dir * R * mix(0.45, 0.78, out_) + side * bend * R;
+                vec2 hd = dir * R * mix(0.50, 1.30, out_) + side * bend * R * 0.4;
+                float k = R / 0.5;
+                float arm = min(hkSeg(p, sh, el) - 0.075 * k, hkSeg(p, el, hd) - 0.050 * k);
+                arm = hkSmin(arm, length(p - el) - 0.065 * k, 0.03 * k);
+                vec2 fd0 = normalize(hd - el);
+                for (int f = -1; f <= 1; f++) {
+                    vec2 fd = rot2(float(f) * 0.42 + sin(uRTime * 4.0 + fj + float(f)) * 0.15) * fd0;
+                    vec2 tip = hd + fd * R * 0.20;
+                    arm = hkSmin(arm, hkSeg(p, hd, tip) - 0.017 * k, 0.015 * k);
+                }
+                // el brazo nace de la oscuridad del fondo del vortice
+                float am = (1.0 - smoothstep(-0.006, 0.006, arm)) * out_ * smoothstep(R * 0.38, R * 0.58, length(p));
+                // piel de demonio iluminada por el fuego del anillo (mas luz hacia afuera)
+                float lit = 0.35 + 0.65 * smoothstep(0.0, R, length(p));
+                vec3 skin = vec3(0.30, 0.07, 0.04) * (0.6 + 0.5 * noise21(p * 40.0)) * lit + fireA * 0.22 * lit;
+                pc = mix(pc, skin, am);
+                pc += fireA * (1.0 - smoothstep(0.0, 0.03, abs(arm))) * 0.30 * out_;
+            }
+        }
         // runas
         float Rr = R + 0.11 + uD2 * 0.06;
         float nR = 14.0;
@@ -160,14 +201,45 @@ vec4 render(vec2 uv) {
         float px = 2.0 / uResH;
         float rune = 1.0 - smoothstep(px * 0.6, px * 1.8, rd);
         float wave = floor(rt * 1.3);
-        float on = step(1.0 - (0.20 + uD4 * 0.70), hash21(vec2(slotI, wave)));
+        // cada tanda prende/apaga con fundido; D4 suma runas sin saltos
+        float th = 1.0 - (0.20 + uD4 * 0.70);
+        float on = mix(smoothstep(th - 0.04, th + 0.04, hash21(vec2(slotI, wave - 1.0))),
+                       smoothstep(th - 0.04, th + 0.04, hash21(vec2(slotI, wave))), smoothstep(0.0, 0.25, fract(rt * 1.3)));
         on = max(on, hit * step(0.5, hash21(vec2(slotI, wave + 7.0))));
+        // climax: se encienden de a una durante el aviso
+        on = max(on, smoothstep(hash21(vec2(slotI, 41.0)) * 0.33, hash21(vec2(slotI, 41.0)) * 0.33 + 0.02, cph) * step(0.0001, cph) * (1.0 - C.z));
         pc += fireB * (rune + exp(-rd * 160.0) * 0.5) * mix(0.10, 1.3, on) * step(abs(r - Rr), 0.05);
         pc += fireA * (1.0 - smoothstep(px * 0.5, px * 1.5, abs(r - Rr - 0.05))) * 0.6;
         pc += fireA * (1.0 - smoothstep(px * 0.5, px * 1.5, abs(r - Rr + 0.05))) * 0.6;
         col = mix(col, pc, hole);
         // el fuego se derrama sobre la piedra del arco
         col += fireA * exp(-max(r - R, 0.0) * 6.0) * 0.10 * fireI * (1.0 - hole);
+    }
+    // --- PIANO: chorros de fuego desde el anillo ---
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, 0.05, 0.8);
+        if (e < 0.01) continue;
+        float vel = keyVel(k), age = keyAge(k), rel = keyRelAge(k);
+        float th = mix(PI * 0.97, PI * 0.03, keyPos(k)) - 0.25;     // grave a la izquierda
+        vec2 dir = vec2(cos(th), sin(th));
+        vec2 side = vec2(-dir.y, dir.x);
+        float along = dot(p, dir), across = dot(p, side);
+        // apretada: chorro que crece desde el anillo; suelta: se despega y vuela
+        float start = R + rel * 2.2;
+        float len = min(age * 2.0, 0.35 + vel * 0.55) * (1.0 - smoothstep(0.0, 0.5, rel) * 0.6);
+        float u = (along - start) / max(len, 1e-3);
+        if (u < -0.1 || u > 1.2) continue;
+        float w = (0.05 + vel * 0.05) * (0.5 + 0.8 * u) * (1.0 + rel);
+        float n = fbm(vec2(across * 12.0, along * 6.0 - uKclock * 6.0) + float(k) * 3.0, 3, 0.6);
+        float jet = smoothstep(w, 0.0, abs(across) - (n - 0.5) * w) * smoothstep(-0.1, 0.05, u) * (1.0 - smoothstep(0.7, 1.15, u));
+        col += mix(fireA, fireB, smoothstep(0.4, 1.0, jet * n * 1.6)) * jet * (0.6 + n) * 1.4 * e;
+    }
+    // --- CLIMAX: onda de fuego al cerrarse ---
+    if (waveA > 0.0) {
+        float wd = length((pw - PC) * vec2(1.0, 1.4)) - waveR;
+        float wn = noise21(vec2(atan(pw.y - PC.y, pw.x - PC.x) * 8.0, uRTime * 3.0));
+        col += mix(fireA, fireB, 0.5) * exp(-abs(wd + (wn - 0.5) * 0.08) * 22.0) * waveA * 1.6;
+        col += fireA * smoothstep(0.0, -0.6, wd) * waveA * 0.10;
     }
     // brasas que escapan del portal (agudos)
     float emb = hkParticles(pw - PC, t * 0.6, 0.05 + high * 0.15, vec2(0.0, 1.0), 0.025);
