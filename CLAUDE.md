@@ -14,7 +14,7 @@ Lee primero [docs/51_SPEED_Y_BAILE.md](docs/51_SPEED_Y_BAILE.md). Ese documento 
 - Rama de trabajo: `claude/upbeat-bell-m4iut3`. El reloj de Speed ya está corregido (ver la actualización al inicio de docs/51). El twirl de `audioDanceUV` sigue pendiente.
 - Láser ILDA opcional: docs/52_LASER_ILDA.md.
 - Show de **Halloween el 30 de octubre**: set aparte con el mismo núcleo, ver docs/53_SETS_Y_HALLOWEEN.md.
-- Halloween tiene 29 escenas (26 mansión, 27 reloj, 28 bosque de faroles): 20–25 usan la carpeta Media (`media_scenes` en set.json) y el set trae `"setlist"` que las intercala; ver docs/53.
+- Halloween tiene 30 escenas (26 mansión, 27 reloj, 28 bosque de faroles, 29 morgue): 20–25 usan la carpeta Media (`media_scenes` en set.json) y el set trae `"setlist"` que las intercala; ver docs/53.
 - Estilo aerógrafo retro: perillas Estilo/Estilomarco (canales `style`/`stylearch`), `hkStyle` en common.glsl; adaptado a fondo en 00, 01, 04, 13, 14 y 16 (docs/53).
 - MiniLab en Halloween: `set.json` → `midi_redirect` (perillas 2/4/15/16 = paleta/estilo/noche/marco, pad 7 = noche on/off); `Nocheon` apaga el efecto de la noche. Test: `td/tools/test_minilab_halloween.py`.
 - Halloween trae miniaturas (`td/tools/render_thumbs.py`) y presets de fábrica por escena (`presets_default.json`; Snapshot del usuario gana encima). Test: `td/tools/test_presets_fabrica.py`.
@@ -29,4 +29,5 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 14** (rama `claude/halloween-f14-escenas-20-25`, sobre f13): escenas de imagen 20–25; miniaturas sin clímax (`HK_STILL`).
 - **Fase 15** (rama `claude/halloween-f15-momento-transiciones`, sobre f14): pad 16 = Momento (`triggerMoment`, canal `moment`, override en `hkClimax`); transiciones Niebla/Sangre/Rayo/Apagón (`program_trans`, `Transitionstyle`, Halloween = al azar). Test: `td/tools/test_transiciones.py`.
 - **Fase 16** (rama `claude/halloween-f16-escenas-nuevas`, sobre f15): escenas 26 mansión y 27 reloj (el reloj marca la hora de la fiesta y dispara su gran clímax a la medianoche real); setlist y `guion.json` para 28 escenas. 
-- **Fase 17** (rama `claude/halloween-f17-bosque-faroles`, sobre f16): escena 28 bosque de faroles (16 faroles en 3 capas con paralaje). Siguen 29 morgue y 30 carnaval.
+- **Fase 17** (rama `claude/halloween-f17-bosque-faroles`, sobre f16): escena 28 bosque de faroles (16 faroles en 3 capas con paralaje). 
+- **Fase 18** (rama `claude/halloween-f18-morgue`, sobre f17): escena 29 morgue (luz de tubos en vivo con la profundidad horneada). Sigue 30 carnaval.
