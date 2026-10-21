@@ -248,15 +248,18 @@ Una escena puede traer **láminas**: capas PNG con lo que no se mueve (sierra, c
 - **Dónde van:** `td/sets/<set>/plates/sceneNN/*.png`. Entran al GLSL TOP después de ctrl (y de media), en orden alfabético. En el `.frag` se leen con `plate0(uv)`, `plate1(uv)`… y con `plateNWrap(uv)` para las texturas que se repiten.
 - **Cuándo se cargan:** el build crea un Movie File In TOP por lámina. Si se agregan o quitan láminas, o se mueve la carpeta `td/`, hay que hacer **Reconstruir Todo**. Si solo cambia el contenido de un PNG, alcanza con recargar el archivo.
 - **Tamaño:** máximo 1280 px por lado (licencia Non-Commercial). `test_sets.py` lo verifica.
-- **Escena 00:** `python3 td/tools/bake_plates_cementerio.py` vuelve a generar sus 6 láminas:
+- **Escena 00:** `python3 td/tools/bake_plates_cementerio.py` vuelve a generar sus 8 láminas (después, `build_atlas.py`):
 
 | Lámina | Qué es |
 |---|---|
 | `1_lejos` | sierras y capilla: R luz, G cuál sierra, B ventanas, A cobertura |
-| `2_medio_pocas` y `3_medio_muchas` | colinas, reja y lápidas; D2 pasa de una a otra |
-| `4_cerca` | lápidas cercanas, cruz celta, suelo y pasto |
+| `2_medio_base` | colinas, reja, suelo y pasto (sin lápidas) |
+| `3_medio_lapidas` | lápidas del cementerio en 3D: color sin luz |
+| `4_cerca` | lápidas cercanas y cruz celta en 3D (color sin luz), suelo y pasto |
 | `5_ruido` | ruido que se repite: R nubes, G y B niebla, A detalle |
-| `6_luna` | luna con cráteres |
+| `6_luna` | luna con cráteres (256 px) |
+| `7_lapidas_normal` | relieve 3D de las lápidas del medio (RG) y, en B, en qué punto de D2 aparece cada una |
+| `8_cerca_normal` | relieve 3D de las cercanas (RG) y su oclusión (B) |
 
 - **Codificación del color:** las láminas de color guardan color lineal ×2 con gamma 2.2; la escena lo decodifica con `plateCol()`.
 - **Reemplazarlas por fotos o arte:** sirve cualquier PNG con el mismo nombre y el mismo encuadre (ver las constantes `FAR_Y`, `MID_Y` y `NEAR_Y` en la escena).
@@ -333,7 +336,7 @@ En la MacBook, un GLSL TOP con **más de 3 texturas de entrada no compila** ("Th
 
 | Escena | Piano | Clímax |
 |---|---|---|
-| 00 | Un alma por tecla que sube de la tumba. D2 suma lápidas de a una, que suben de la tierra (láminas `2_medio_base`, `3_medio_lapidas`, `7_lapidas_orden`) | Nubes tapan la luna → luna roja, temblor y almas → niebla rojiza |
+| 00 | Un alma por tecla que sube de la tumba. D2 suma lápidas de a una, que suben de la tierra (láminas `2_medio_base`, `3_medio_lapidas`, `7_lapidas_normal`) | Nubes tapan la luna → luna roja, temblor y almas → niebla rojiza |
 | 01 | Llamas flotantes que iluminan pared y mesa; una tecla fuerte hace reír | Viento → apagón con ojos rojos → llamarada |
 | 02 | Calaveritas de neón en la pared que también la iluminan | Los carteles fallan de a uno → apagón con relámpagos → vuelven en cadena |
 | 03 | Pares de ojos nuevos; D1 los abre de a uno | Se cierran todos → ojo gigante que mira y fija la mirada → vuelven |
@@ -459,3 +462,20 @@ Feria vieja de noche (`bake_plates_carnaval.py`, geometría compartida `// >>> C
 - **Eventos:** se corta una guirnalda cada ~63 s; una góndola se queda balanceando cada ~81 s.
 - Va al final de la noche, antes del glitch demoníaco (19).
 - **Reconstruir Todo:** escena y láminas nuevas.
+
+## Fase 20: cementerio en 3D (prueba de realismo)
+
+![Antes y ahora](img/cementerio_2d_vs_3d.jpg)
+
+![Detalle](img/cementerio_2d_vs_3d_detalle.jpg)
+
+Las lápidas de la escena 00 dejaron de ser siluetas con luz pintada: se hornean como **sólidos 3D** por trazado de rayos (`bake_plates_cementerio.py`, sección 3D). Tienen espesor, cantos redondeados y gastados, la cara de arriba a la vista (la cámara mira un poco hacia abajo) y musgo donde junta agua. El horneado saca el color **sin luz** y el **relieve** (normal) de cada píxel; la luz se calcula en vivo (`stoneLight` en la escena):
+
+- la luna desde arriba a la derecha, con el lado en sombra más oscuro;
+- un contraluz que enciende los cantos y las caras de arriba;
+- un brillo húmedo suave;
+- el **relámpago desde el lado donde cae el rayo**, que cambia en cada golpe.
+
+**Costo:** +5 % frente a la versión 2D en el banco de prueba (0,206 contra 0,195 s); el relieve entra en los mismos dos atlas, sin achicar nada (la luna pasó a 256 px). Hay que confirmar los FPS en TD. Si convence, el mismo camino sirve para las demás escenas con objetos sólidos (calabaza, mansión, troncos del bosque, torre del reloj).
+
+**Reconstruir Todo:** cambiaron las láminas de la escena 00.

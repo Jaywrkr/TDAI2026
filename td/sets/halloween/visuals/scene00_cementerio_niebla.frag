@@ -47,6 +47,26 @@ vec2 plateUVGround(vec2 p, vec2 yr) { vec2 u = plateUV(p, yr); u.y = max(u.y, 0.
 // las laminas guardan color lineal x2 con gamma 2.2
 vec3 plateCol(vec3 c) { return pow(c, vec3(2.2)) * 0.5; }
 
+// LAPIDAS 3D: las laminas 7_lapidas_normal y 8_cerca_normal guardan el
+// relieve horneado por trazado de rayos (normal en RG, x derecha, y
+// arriba, z hacia el publico). La luz se calcula aca, en vivo: la luna
+// desde arriba a la derecha, un contraluz que enciende los cantos, un
+// brillo humedo y el relampago desde el lado donde cae el rayo.
+const vec3 MOONC = vec3(0.80, 0.74, 0.86);
+vec3 stoneLight(vec3 alb, vec2 nrg, float ao, float moonK, vec3 flashDir, float flashK, vec3 flashCol) {
+    vec3 n = vec3(nrg * 2.0 - 1.0, 0.0);
+    n.z = sqrt(max(1.0 - dot(n.xy, n.xy), 0.0));
+    const vec3 L = vec3(0.5287, 0.5287, 0.6639);
+    float dif = max(dot(n, L), 0.0);
+    float rim = pow(1.0 - n.z, 1.5) * max(dot(normalize(n.xy + 1e-4), vec2(0.85, 0.53)), 0.0);
+    float spec = pow(max(dot(n, normalize(L + vec3(0.0, 0.0, 1.0))), 0.0), 40.0);
+    float fd = max(dot(n, flashDir), 0.0);
+    // lado en sombra mas oscuro que antes y la cara de la luna mas fuerte:
+    // asi se lee el volumen (antes la luz venia horneada y pareja)
+    return alb * ao * ((0.10 + 1.30 * dif * MOONC + rim * 1.4 * MOONC) * moonK + flashCol * flashK * (0.45 + 2.8 * fd * fd))
+         + MOONC * spec * 0.06 * moonK * ao;
+}
+
 vec4 render(vec2 uv) {
     vec2 p0 = hkPunch(hkShake(centered(uv)));
     vec2 pc = hkCam(p0);
@@ -187,17 +207,20 @@ vec4 render(vec2 uv) {
     // climax la tierra tiembla ---
     float tombN = mix(0.20, 1.06, uD2);
     vec2 tq0 = pT - vec2(C.y * 0.006 * sin(uRTime * 43.0), dh);
-    float ordHere = plate6(plateUV(tq0, MID_Y)).r;
+    float ordHere = plate6(plateUV(tq0, MID_Y)).b;
     float riseK = 1.0 - smoothstep(ordHere - 0.05, ordHere + 0.05, tombN);
     vec2 tqR = tq0 - vec2(0.0, riseK * 0.12);
     vec4 tomb = plate2(plateUV(tqR, MID_Y));
-    float ordT = plate6(plateUV(tqR, MID_Y)).r;
+    vec4 tombNrm = plate6(plateUV(tqR, MID_Y));
+    float ordT = tombNrm.b;
     float tombA = tomb.a * smoothstep(ordT - 0.05, ordT + 0.05, tombN);
     // lo que sube no puede asomar por debajo del suelo
     float gMid = -0.36 + 0.05 * sin(tq0.x * 1.7 + 1.3) + 0.03 * sin(tq0.x * 4.1);
     tombA *= mix(1.0, smoothstep(gMid - 0.03, gMid - 0.005, tq0.y), step(0.001, riseK));
     vec3 tpre = plateCol(tomb.rgb);
-    vec3 tombLit = (tpre * light * 1.9 * mix(1.0, 0.30, sty) + tpre * flashCol * flash * 2.4) * bloodLight;
+    // el relampago pega desde el lado donde cae el rayo
+    vec3 flashDir = normalize(vec3(clamp((bx - pT.x) * 0.7, -1.2, 1.2), 0.9, 0.45));
+    vec3 tombLit = stoneLight(tpre, tombNrm.rg, 1.0, light * 1.9 * mix(1.0, 0.30, sty), flashDir, flash * 0.95, flashCol) * bloodLight;
     col = mix(col, tombLit, tombA);
 
     // --- arbol muerto: las ramas se mecen con el viento y los medios ---
@@ -330,9 +353,13 @@ vec4 render(vec2 uv) {
 
     // --- primer plano: lapidas cercanas, cruz celta, suelo y pasto ---
     vec4 nr = plate3(plateUV(pN, NEAR_Y));
+    vec4 nn = plate7(plateUV(pN, NEAR_Y));
     vec3 nc = plateCol(nr.rgb);
     float nearLight = light * 2.4 * (0.80 + 0.20 * towardMoon);
-    col = mix(col, (nc * nearLight * mix(1.0, 0.22, sty) + nc * flashCol * flash * 2.6) * bloodLight, nr.a);
+    vec3 nearPre = (nc * nearLight * mix(1.0, 0.22, sty) + nc * flashCol * flash * 2.6) * bloodLight;   // suelo y pasto: luz horneada
+    vec3 flashDirN = normalize(vec3(clamp((bx - pN.x) * 0.7, -1.2, 1.2), 0.9, 0.45));
+    vec3 nearStone = stoneLight(nc, nn.rg, nn.b, nearLight * mix(1.0, 0.22, sty), flashDirN, flash * 1.0, flashCol) * bloodLight;
+    col = mix(col, mix(nearPre, nearStone, nn.a), nr.a);
     // borde de la silueta encendido por el resplandor de atras (halo naranja)
     if (sty > 0.001) col += hkStyleMap(0.60) * nr.a * (1.0 - nr.a) * 1.5 * sty * 0.6;
     // la niebla baja cubre el pie de las lapidas cercanas y el suelo
