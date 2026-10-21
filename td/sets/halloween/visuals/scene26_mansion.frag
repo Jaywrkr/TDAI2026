@@ -140,6 +140,7 @@ vec4 render(vec2 uv) {
     float doorB = smoothstep(0.62, 0.66, cph) * (1.0 - smoothstep(0.78, 0.94, cph));
     float attic = hkEvent(5.0, 61.0, 7.0);
     float bolt = max(hkEvent(8.0, 67.0, 1.2), G.y * step(0.55, fract(uRTime * 1.3)));
+    float bx = hash21(vec2(floor(uRTime / 67.0), 8.0)) * 3.6 - 1.8;      // donde cae el rayo
 
     vec3 warm = vec3(1.0, 0.60, 0.26);
     vec3 spect = hsv2rgb(vec3(fract(0.36 + hue), 0.65, 1.0));
@@ -149,6 +150,11 @@ vec4 render(vec2 uv) {
     vec2 pu = rUV(p);
     vec4 fa = plate0(pu);
     vec4 mk = plate1(pu);
+    // relieve horneado de la fachada (fase 22): normal y cavidad
+    vec4 rl = plate3(pu);
+    float rlOn = rl.a;
+    vec3 nrm = vec3(rl.rg * 2.0 - 1.0, 0.0);
+    nrm.z = sqrt(max(1.0 - dot(nrm.xy, nrm.xy), 0.0));
     float door = smoothstep(0.8, 0.95, mk.r);
     float fore = smoothstep(0.3, 0.45, mk.r) * (1.0 - smoothstep(0.6, 0.8, mk.r));
 
@@ -175,7 +181,6 @@ vec4 render(vec2 uv) {
         sky += vec3(0.12, 0.09, 0.18) * grand * G.x * (0.6 + 0.4 * cl) * smoothstep(-0.2, 0.9, p.y);
         // relampago lejano
         if (bolt > 0.01) {
-            float bx = hash21(vec2(floor(uRTime / 67.0), 8.0)) * 3.6 - 1.8;
             float bd = hkBolt(p, bx, 1.1, 0.0, floor(uRTime * 7.0), 0.5);
             sky += vec3(0.8, 0.85, 1.0) * bolt * (0.004 / (bd + 0.004) + 0.25);
         }
@@ -184,7 +189,15 @@ vec4 render(vec2 uv) {
 
     // --- fachada a la luz de la luna ---
     vec3 alb = plateCol(fa.rgb);
-    vec3 house = alb * (vec3(0.26, 0.29, 0.42) * moonK + vec3(0.025, 0.02, 0.025));
+    // con relieve: la luna llega desde arriba a la izquierda y el relampago
+    // desde el lado donde cae; cada tabla, moldura y persiana se marca
+    float difM = max(dot(nrm, vec3(-0.6236, 0.4828, 0.6150)), 0.0);
+    vec3 Lb = normalize(vec3(clamp((bx - p.x) * 0.6, -1.2, 1.2), 0.8, 0.5));
+    float difB = max(dot(nrm, Lb), 0.0);
+    float moonOnly = (0.60 + uD3 * 0.80) * (1.0 - C.x * 0.45);
+    float rim = pow(1.0 - nrm.z, 1.5) * max(dot(normalize(nrm.xy + 1e-4), vec2(-0.79, 0.61)), 0.0);
+    float keyL = mix(moonK, moonOnly * (0.30 + 1.30 * difM + rim * 0.8) + bolt * 1.6 * (0.25 + 1.8 * difB), rlOn);
+    vec3 house = alb * (vec3(0.26, 0.29, 0.42) * keyL * mix(1.0, rl.b, rlOn) + vec3(0.025, 0.02, 0.025));
 
     // --- ventanas ---
     float nLive = min(3.0 + uD1 * 15.0 + uDensity * 2.0 + hkActVal(3.0) * 2.0, 19.0);
@@ -242,7 +255,10 @@ vec4 render(vec2 uv) {
         vec3 lc = wc * L * pulse + candleC * wl * 1.4;
         float Lt = L * pulse + wl;
         // luz que derrama sobre la fachada y el suelo
-        spill += lc * exp(-max(bd, 0.0) * (16.0 - 4.0 * step(p.y, w.y - w.w))) * 0.16;
+        // (con relieve: pega mas en lo que mira a la ventana, como el canto
+        // de las persianas y el alfeizar)
+        float face = 0.85 + 1.0 * max(dot(nrm, normalize(vec3(w.xy - p, 0.06))), 0.0);
+        spill += lc * exp(-max(bd, 0.0) * (16.0 - 4.0 * step(p.y, w.y - w.w))) * 0.16 * mix(1.0, face, rlOn);
         // el cuarto, visto por el vidrio
         if (mk.g > 0.002 && bd < 0.004) {
             vec2 q = (p - w.xy) / w.zw;

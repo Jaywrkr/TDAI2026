@@ -20,6 +20,9 @@ Laminas:
              D6 la hace crecer desde el suelo), A = 1 siempre (con A = 0
              el atlas pierde el color al achicar: PIL premultiplica)
   3_ruido    el ruido que se repite de la escena 00 (nubes, niebla)
+  4_relieve  relieve de la fachada (fase 22): RG normal, B cavidad, A = hay
+             fachada; la luz de la luna, el relampago, las ventanas y la
+             puerta se calcula en vivo con esto
 
 uso: python3 td/tools/bake_plates_mansion.py   (despues: build_atlas.py)
 """
@@ -38,7 +41,7 @@ FRAG = os.path.join(SET, 'visuals', 'scene26_mansion.frag')
 SS = 2
 R = (-3.4, -1.25, 3.4, 1.25)
 W, H = 1280, 470
-PLATES = [('1_fachada', 0), ('2_marcas', 1)]
+PLATES = [('1_fachada', 0), ('2_marcas', 1), ('4_relieve', 2)]
 
 VERT = """#version 330
 in vec2 in_pos; out vec2 vUV;
@@ -327,8 +330,79 @@ S shade(vec2 p){
   return o;
 }
 
+
+// ---------- RELIEVE (fase 22) ----------
+// Altura de cada punto de la fachada (en unidades de la escena): tablas
+// que sobresalen, cornisa y molduras, ventanas y puerta hundidas,
+// persianas con tablillas, mansarda inclinada, torreon cilindrico, conos y
+// aguja, chimeneas de ladrillo y columnas. La escena saca de aca la normal
+// y hace la luz en vivo (luna, relampago, ventanas, puerta).
+float height(vec2 p, out float on){
+  on=0.; float h=0.;
+  float board=0.004*fract(p.y*40.);
+  bool wall=(p.x>-1.72&&p.x<-0.95&&p.y>-0.56&&p.y<0.02)||(abs(p.x)<0.95&&p.y>-0.56&&p.y<0.24)||(abs(p.x)<0.21&&p.y>0.24&&p.y<0.84);
+  float gab=sdTri(p,vec2(-1.80,0.02),vec2(-0.88,0.02),vec2(-1.34,0.40));
+  if(wall||gab<0.){ on=1.; h=board; if(gab<0.&&gab>-0.035) h=0.012; }
+  if(abs(p.x)<0.21&&p.y>0.24&&p.y<0.84) h=0.05+board;              // la torre sale del cuerpo
+  float tx=(p.x-1.20)/0.25;
+  if(abs(tx)<1.&&p.y>-0.56&&p.y<0.52){ on=1.; h=sqrt(max(1.-tx*tx,0.))*0.25+board; }
+  if(abs(tx)<1.12&&p.y>0.50&&p.y<0.545){ on=1.; h=sqrt(max(1.-tx*tx/1.25,0.))*0.27+0.01; }
+  if(abs(p.x)<0.99&&p.y>0.205&&p.y<0.255){ on=1.; h=0.035+0.008*step(0.5,fract(p.x*14.))+(p.y-0.205)*0.3; }
+  float mt=(p.y-0.255)/0.22;
+  if(mt>0.&&mt<1.){ float hw=mix(1.00,0.80,pow(mt,0.7));
+    if(abs(p.x)<hw){ on=1.;
+      vec2 sc=p*vec2(26.,30.); sc.x+=mod(floor(sc.y),2.)*0.5; vec2 f=fract(sc)-vec2(0.5,1.0);
+      h=0.035-mt*0.10+0.003*(1.-smoothstep(0.3,0.52,length(f*vec2(1.,0.9)))); } }
+  if(abs(p.x)<0.21&&p.y>0.24&&p.y<0.84) { on=1.; h=0.05+board; }
+  if(abs(p.x)<0.235&&p.y>0.80&&p.y<0.845){ on=1.; h=0.065; }
+  float spr=sdTri(p,vec2(-0.25,0.845),vec2(0.25,0.845),vec2(0.,1.08));
+  if(spr<0.){ on=1.; h=0.06+(0.25-abs(p.x))*0.35; }
+  float cone=sdTri(p,vec2(0.92,0.545),vec2(1.48,0.545),vec2(1.20,0.93));
+  if(cone<0.){ on=1.; float r=(0.93-p.y)/0.385*0.28; float u=clamp((p.x-1.20)/max(r,0.01),-1.,1.); h=sqrt(1.-u*u)*r; }
+  for(int i=0;i<3;i++){ vec3 ch=MN_CHIM[i];
+    if(abs(p.x-ch.x)<ch.z&&p.y>ch.y-0.36&&p.y<ch.y){ on=1.;
+      vec2 s2=p*vec2(28.,56.); s2.x+=mod(floor(s2.y),2.)*0.5; vec2 f=fract(s2);
+      h=0.06+sqrt(max(1.-pow((p.x-ch.x)/ch.z,2.),0.))*0.02-0.004*clamp(step(f.x,0.07)+step(f.y,0.12),0.,1.); }
+    if(abs(p.x-ch.x)<ch.z+0.015&&p.y>ch.y-0.03&&p.y<ch.y){ on=1.; h=0.09; } }
+  if(on>0.&&p.y<-0.50){ vec2 s3=p*vec2(9.,14.); s3.x+=mod(floor(s3.y),2.)*0.45; vec2 f=fract(s3); h=0.012-0.006*clamp(step(f.x,0.05)+step(f.y,0.08),0.,1.); }
+  // porche
+  if(abs(p.x)<0.42&&p.y>-0.225&&p.y<-0.17){ on=1.; h=0.10; }
+  for(int k=0;k<4;k++){ float cx=k<2?(k==0?-0.36:-0.17):(k==2?0.17:0.36);
+    if(abs(p.x-cx)<0.016&&p.y>-0.56&&p.y<-0.225){ on=1.; h=0.08+sqrt(max(1.-pow((p.x-cx)/0.016,2.),0.))*0.016; } }
+  // puerta hundida con marco y tableros
+  vec4 dr=MN_DOOR; vec2 dq=p-dr.xy; float top=dr.w-dr.z;
+  float dd=min(max(abs(dq.x)-dr.z,max(dq.y-top,-dr.w-dq.y)),length(dq-vec2(0.,top))-dr.z);
+  if(dd<0.035&&dd>0.){ on=1.; h=0.02+0.01*smoothstep(0.035,0.015,dd); }
+  if(dd<0.){ on=1.; h=-0.03+0.004*step(0.012,abs(abs(dq.x)-0.05))*step(0.02,abs(fract((dq.y+dr.w)*6.)-0.5)); }
+  // ventanas: vidrio hundido, marco, alfeizar, dintel y persianas
+  for(int i=0;i<MN_NW;i++){ vec4 w=MN_WIN[i]; vec2 q=p-w.xy;
+    if(abs(q.x)>w.z+0.09||abs(q.y)>w.w+0.09) continue;
+    float d=mnWinD(p,i); int ty=MN_TYPE[i];
+    if(ty==0){ float sx=abs(q.x)-w.z-0.03;
+      if(abs(sx)<0.03&&abs(q.y)<w.w&&!((i==3||i==13)&&q.y<w.w*0.2)){ on=1.; h=0.010+0.003*fract(q.y*70.); }
+      if(abs(q.x)<w.z+0.02&&q.y>w.w&&q.y<w.w+0.025){ on=1.; h=0.018; }
+      if(abs(q.x)<w.z+0.025&&q.y<-w.w&&q.y>-w.w-0.018){ on=1.; h=0.020; } }
+    if(d<0.018&&d>0.){ on=1.; h=0.012+0.008*smoothstep(0.018,0.006,d); }
+    if(d<=0.){ on=1.; float mull=min(abs(q.x)-0.006, abs(q.y-(ty==1?w.w-w.z:0.))-0.006); if(ty==2) mull=min(abs(q.x),abs(q.y))-0.005;
+      h=mull<0.?-0.012:-0.025; } }
+  return h;
+}
+vec4 relief(vec2 p){
+  float on, o2; float h=height(p,on);
+  if(on<0.5) return vec4(0.5,0.5,1.,0.);
+  float e=0.0026;
+  float hx=height(p+vec2(e,0.),o2)-height(p-vec2(e,0.),o2);
+  float hy=height(p+vec2(0.,e),o2)-height(p-vec2(0.,e),o2);
+  vec3 n=normalize(vec3(-hx/(2.*e),-hy/(2.*e),1.));
+  // cavidad: mas oscuro donde lo de alrededor sobresale
+  float avg=0.; for(int k=0;k<4;k++){ float a=float(k)*1.5708; avg+=height(p+vec2(cos(a),sin(a))*0.012,o2); }
+  float ao=clamp(1.-max(avg*0.25-h,0.)*14.,0.45,1.);
+  return vec4(n.xy*0.5+0.5,ao,1.);
+}
+
 void main(){
   vec2 p=mix(rect.xy,rect.zw,vUV);
+  if(plate==2){ fc=relief(p); return; }
   S o=shade(p);
   if(plate==1){ fc=vec4(o.mk.rgb,1.); return; }
   fc=vec4(pow(clamp(o.c*2.,0.,1.),vec3(1./2.2)),o.a);
@@ -362,7 +436,7 @@ def bake():
         vao.render(mode=moderngl.TRIANGLE_STRIP)
         img = np.frombuffer(fbo.read(components=4, dtype='f4'), 'f4').reshape(H * SS, W * SS, 4)[::-1]
         fbo.release()
-        if pid == 0:
+        if pid in (0, 2):
             a = img[..., 3:4]
             pm = np.concatenate([img[..., :3] * a, a], -1).reshape(H, SS, W, SS, 4).mean((1, 3))
             rgb = pm[..., :3] / np.maximum(pm[..., 3:4], 1e-5)
