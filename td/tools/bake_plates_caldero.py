@@ -42,6 +42,7 @@ float gn(vec2 p){ vec2 i=floor(p), f=fract(p); vec2 u=f*f*f*(f*(f*6.-15.)+10.);
 float fbm(vec2 p,int o){ float s=0.,a=.5,n=0.; for(int i=0;i<10;i++){ if(i>=o)break; s+=a*gn(p); n+=a; a*=.5; p=mat2(.8,-.6,.6,.8)*p*2.03+11.3; } return s/n; }
 float sdBox(vec2 p, vec2 b){ vec2 d=abs(p)-b; return length(max(d,0.))+min(max(d.x,d.y),0.); }
 float sdRBox(vec2 p, vec2 b, float r){ vec2 d=abs(p)-b+r; return length(max(d,0.))+min(max(d.x,d.y),0.)-r; }
+float infl(float d, float r0){ float k=clamp(-d/r0,0.,1.); return r0*sqrt(max(1.-(1.-k)*(1.-k),0.)); }
 float sdSeg(vec2 p, vec2 a, vec2 b){ vec2 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h); }
 mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c); }
 
@@ -75,14 +76,16 @@ S hut(vec2 p){
   float e; vec3 c=stoneCell(p,e);
   float st=smoothstep(0.025,0.07,e);
   vec3 sc=mix(vec3(0.22,0.20,0.18),vec3(0.28,0.24,0.19),c.z)*(0.7+0.4*fbm(p*25.+c.xy,5));
-  s.alb=mix(vec3(0.06,0.05,0.04),sc,st); s.h=st*(0.4+0.6*smoothstep(0.04,0.3,e))+(fbm(p*50.,3)-0.5)*0.2;
+  // fase 28: piedras abombadas (h en unidades de 1/100: la normal sale de h*0.01 por unidad de mundo)
+  s.alb=mix(vec3(0.06,0.05,0.04),sc,st); s.h=100.*(0.035*sqrt(smoothstep(0.02,0.13,e))+0.004*(fbm(p*50.,3)-0.5));
+  s.alb*=0.55+0.45*smoothstep(0.02,0.08,e);                                       // oclusion en las juntas
   // chimenea detras del caldero: boca oscura con arco
   vec2 fq=p-vec2(0.,-0.50);
   float arch=max(sdBox(fq-vec2(0.,-0.10),vec2(0.92,0.40)), -(length(fq-vec2(0.,0.30))-0.92)*0.+0.);
   float mouthF=min(sdBox(fq-vec2(0.,-0.20),vec2(0.86,0.30)), length((fq-vec2(0.,0.10))*vec2(1.,1.6))-0.86);
   if(mouthF<0.){ s.alb=vec3(0.03,0.025,0.02)*(0.6+0.6*fbm(fq*8.,4)); s.h=0.; }
   float lintel=sdBox(fq-vec2(0.,0.72),vec2(1.15,0.08));
-  if(lintel<0.){ s.alb=vec3(0.18,0.11,0.06)*(0.6+0.5*fbm(vec2(fq.x*20.,fq.y*4.),5)); s.h=1.4; }
+  if(lintel<0.){ s.alb=vec3(0.18,0.11,0.06)*(0.6+0.5*fbm(vec2(fq.x*20.,fq.y*4.),5)); s.h=5.+100.*infl(lintel,0.05)+0.8*fbm(vec2(fq.x*20.,fq.y*4.),5); }
   // vigas del techo
   if(p.y>1.00){ s.alb=vec3(0.14,0.08,0.045)*(0.6+0.6*fbm(vec2(p.x*3.,p.y*25.),6)); s.h=1.2; }
   // estantes con frascos a los costados
@@ -111,7 +114,7 @@ S hut(vec2 p){
           float fill=step(jq.y, jh*(0.3+0.5*hh));
           s.alb=mix(vec3(0.18,0.20,0.17),lc,fill*0.85)*(0.6+0.5*sqrt(max(1.-u*u,0.)));
           s.alb+=vec3(0.25)*smoothstep(0.6,0.95,-u)*0.5;
-          s.h=1.3; s.glass=0.4+0.6*fill;
+          s.h=5.+100.*infl(d,jw*1.1); s.glass=0.4+0.6*fill;
           // corcho
           if(jq.y>jh*0.98 && jq.y<jh*1.12 && abs(jq.x)<jw*0.4){ s.alb=vec3(0.35,0.22,0.10); s.glass=0.; }
         }
@@ -126,7 +129,7 @@ S hut(vec2 p){
   float cr=length((kq-vec2(0.,0.15))/vec2(1.,0.9))-0.55;
   float jw2=sdBox(kq-vec2(0.,-0.30),vec2(0.30,0.15))-0.05;
   float sk=max(min(cr,jw2), -min(length(vec2(abs(kq.x)-0.22,kq.y-0.05))-0.15, max(abs(kq.x)*1.5+(kq.y+0.17)*0.8-0.06,-(kq.y+0.22))));
-  if(sk<0.){ s.alb=vec3(0.62,0.56,0.44)*(0.7+0.4*fbm(kq*10.,4)); s.h=1.4; s.glass=0.; }
+  if(sk<0.){ s.alb=vec3(0.62,0.56,0.44)*(0.7+0.4*fbm(kq*10.,4)); s.h=5.+100.*infl(sk*0.10,0.05); s.glass=0.; }
   // libro de hechizos sobre el estante izquierdo de arriba
   vec2 bq=p-vec2(-1.92,0.585);
   float book=sdBox(bq,vec2(0.20,0.06));
@@ -140,7 +143,7 @@ S hut(vec2 p){
     float bunch=max(length((q-vec2(0.,-0.24))*vec2(1.0,0.55))-0.10, -q.y-0.36);
     float stems=step(0.5,fract(q.x*90.+q.y*8.));
     if(str<0.){ s.alb=vec3(0.25,0.20,0.12); s.h=1.5; }
-    if(bunch<0.){ s.alb=mix(vec3(0.12,0.16,0.06),vec3(0.28,0.22,0.10),h21(vec2(fi,4.)))*(0.6+0.5*fbm(q*vec2(60.,20.),4))*(0.8+0.3*stems); s.h=1.6; s.glass=0.; }
+    if(bunch<0.){ s.alb=mix(vec3(0.12,0.16,0.06),vec3(0.28,0.22,0.10),h21(vec2(fi,4.)))*(0.6+0.5*fbm(q*vec2(60.,20.),4))*(0.8+0.3*stems); s.h=6.+100.*infl(bunch,0.08)+1.5*stems; s.glass=0.; }
   }
   return s;
 }
@@ -153,7 +156,7 @@ S cauldron(vec2 p){
     float fi=float(i);
     vec2 lq=rot((fi-1.)*0.35)*(cp-vec2((fi-1.)*0.25,-0.50));
     float log1=sdRBox(lq,vec2(0.36,0.06),0.05);
-    if(log1<0.){ float ring=step(0.30,abs(lq.x)); s.alb=mix(vec3(0.12,0.07,0.04)*(0.6+0.6*fbm(vec2(lq.x*30.,lq.y*60.),5)),vec3(0.30,0.20,0.10),ring); s.h=1.; s.a=1.; s.glass=0.0; }
+    if(log1<0.){ float ring=step(0.30,abs(lq.x)); s.alb=mix(vec3(0.12,0.07,0.04)*(0.6+0.6*fbm(vec2(lq.x*30.,lq.y*60.),5)),vec3(0.30,0.20,0.10),ring); s.h=60.*infl(log1,0.06)+1.5*fbm(vec2(lq.x*30.,lq.y*60.),5)*(1.-ring); s.a=1.; s.glass=0.0; }
   }
   // brasas: el canal glass marca donde arden (en vivo)
   float coals=(length((cp-vec2(0.,-0.57))/vec2(0.60,0.07))-1.0)*0.07 + (gn(cp*vec2(40.,8.))-0.5)*0.02;
@@ -182,7 +185,8 @@ S cauldron(vec2 p){
     // labio del borde
     if(lip<0.){ iron=vec3(0.13,0.13,0.14)*(0.7+0.4*fbm(cp*40.,4)); n=normalize(vec3(0.,1.,0.4)); }
     if(handle<0.){ iron=vec3(0.12); }
-    s.alb=iron; s.h=1.+ham*0.3; s.glass=0.;
+    s.alb=iron; s.h=1.+ham*1.2; s.glass=0.;
+    if(handle<0.) s.h=1.+100.*infl(handle,0.014);
   }
   // la boca: transparente (ahi va el liquido en vivo)
   if(mouth<-0.18 && cp.y>0.10) { s.a=0.; }

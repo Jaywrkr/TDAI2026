@@ -49,6 +49,7 @@ float fbm(vec2 p,int o){ float s=0.,a=.5,n=0.; for(int i=0;i<10;i++){ if(i>=o)br
 float sdBox(vec2 p, vec2 b){ vec2 d=abs(p)-b; return length(max(d,0.))+min(max(d.x,d.y),0.); }
 float rbox(vec2 p, vec2 b, float r){ vec2 d=abs(p)-b+r; return length(max(d,0.))+min(max(d.x,d.y),0.)-r; }
 mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c); }
+float infl(float d, float r0){ float k=clamp(-d/r0,0.,1.); return r0*sqrt(max(1.-(1.-k)*(1.-k),0.)); }
 float smin(float a,float b,float k){ float h=clamp(.5+.5*(b-a)/k,0.,1.); return mix(b,a,h)-k*h*(1.-h); }
 
 const float ALTAR_Y=-0.38;
@@ -138,9 +139,10 @@ A altar(vec2 p){
       vec3 wax=mix(vec3(0.55,0.50,0.42),vec3(0.75,0.70,0.60),h21(vec2(float(i),5.)));
       wax*=0.8+0.2*fbm(q*vec2(40.,80.),3);
       r.alb=wax; r.wax=1.;
-      r.h=sqrt(max(1.-x*x,0.))*0.6+0.1*smoothstep(-0.01,0.,-drip);
+      // fase 27-28: cilindro de verdad (la normal se escala por 0.02: h*0.02 = radio)
+      r.h=(rad*sqrt(max(1.-x*x,0.))+infl(drip,0.012)*0.8)/0.02;
       // crater de la mecha arriba
-      if(q.y>top-0.02&&abs(q.x)<rad*0.8){ r.h-=0.2; r.alb*=0.8; }
+      if(q.y>top-0.02&&abs(q.x)<rad*0.8){ r.h-=rad*0.4/0.02; r.alb*=0.8; }
       if(abs(q.x)<0.004&&q.y>top-0.01&&q.y<top+0.025){ r.alb=vec3(0.02); r.wax=0.; }
     }
   }
@@ -153,7 +155,7 @@ A altar(vec2 p){
     float cup=rbox(q-vec2(sg*0.015,0.53),vec2(0.05,0.012),0.006);
     float knob=length(q-vec2(0.,0.30))-0.025;
     float d=min(min(stem,base),min(cup,knob));
-    if(d<0.){ r.a=1.; r.wax=0.; r.alb=vec3(0.06,0.055,0.05)*(0.6+0.6*fbm(q*40.,3)); r.h=0.5; }
+    if(d<0.){ r.a=1.; r.wax=0.; r.alb=vec3(0.06,0.055,0.05)*(0.6+0.6*fbm(q*40.,3)); r.h=infl(d,0.014)/0.02; }
   }
   // calavera en el centro
   {
@@ -168,8 +170,11 @@ A altar(vec2 p){
       r.a=1.; r.wax=0.;
       float sh=sqrt(clamp(-sk/0.10,0.,1.));
       r.alb=vec3(0.55,0.50,0.40)*(0.7+0.4*fbm(q*30.,4));
-      r.h=sh*0.8;
-      if(eyes<0.||nose<0.){ r.alb=vec3(0.01); r.h=-0.3; }
+      r.h=(infl(sk,0.11)+0.012*exp(-pow((q.y-0.035)/0.02,2.))*step(abs(q.x),0.11))/0.02;   // cupula + arco de las cejas
+      float hole=min(eyes,nose);
+      r.alb*=0.45+0.55*smoothstep(-0.005,0.03,hole);                                        // oclusion de las cuencas
+      r.h=mix(r.h,-0.02/0.02,smoothstep(0.01,-0.015,hole));
+      if(eyes<0.||nose<0.){ r.alb=vec3(0.01); }
       if(teeth>0.5&&q.y<-0.115){ r.alb=vec3(0.62,0.58,0.48); }
       float crack=1.-smoothstep(0.,0.004,abs(q.x-0.04-0.03*sin(q.y*30.))-0.0015);
       r.alb*=1.-crack*step(0.02,q.y)*0.7;
@@ -188,7 +193,7 @@ A altar(vec2 p){
       vec3 cov=mix(vec3(0.20,0.06,0.05),vec3(0.07,0.10,0.06),step(0.5,h21(vec2(fb,4.))));
       bool pages=abs(q.y)<0.012&&q.x>0.08-k*0.012;
       r.alb=pages?vec3(0.45,0.40,0.30)*(0.8+0.2*sin(q.y*900.)):cov*(0.6+0.5*fbm(q*40.,3));
-      r.h=0.4;
+      r.h=infl(bk,0.008)/0.02;
     }
   }
   return r;
