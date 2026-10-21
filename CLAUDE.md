@@ -40,3 +40,4 @@ Trabajar en una rama; hacer **commit y push**. Desde el 21 de octubre de 2026: *
 - **Fase 25** (rama `claude/halloween-f25-bosque-fantasmas-3d`, sobre f24): relieve en el bosque (28, capa cercana) y en el pasillo (07, normal en el mundo).
 - **Fase 26** (rama `claude/halloween-f26-castillo-tormenta-3d`, sobre f25): relieve en el castillo (04, normal dentro de `3_ventanas`) y en el árbol de la tormenta (09); el relámpago ilumina por su lado.
 - **Fase 27** (rama `claude/halloween-f27-manos-tunel-3d`, sobre f26): relieve de manos (15: falanges, nudillos, tendones) y calaveras del túnel (18), más el arreglo de la base de la normal del túnel.
+- **Fase 28** (rama `claude/halloween-f28-velas-caldero-3d`, sobre f27): relieve a escala real en velas (16) y caldero (11). Con esto termina el plan 3D (fases 20–28); las sábanas de la morgue quedan como están.

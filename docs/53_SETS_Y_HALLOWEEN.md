@@ -548,3 +548,12 @@ Mapa de alturas horneado (`height()` en `bake_plates_reloj.py`, lámina `4_relie
 - **Error corregido en el túnel:** en la pared izquierda y la bóveda, la base de la normal (T/B) estaba invertida. Con el relieve casi plano no se notaba; con el nuevo aparecía una costura entre la pared y la bóveda.
 - **Costo:** igual dentro del ruido. **Reconstruir Todo:** láminas nuevas.
 
+## Fase 28: velas y caldero con relieve (escenas 16 y 11)
+
+![Antes y ahora](img/velas_caldero_2d_vs_3d.jpg)
+
+- **Velas (16):** el relieve del altar existía, pero con alturas de 3 a 10 veces menos que el tamaño real de los objetos, así que se veía plano. Ahora cada vela es un cilindro de su radio, con las chorreadas como tubos. La calavera tiene cúpula, arco de las cejas y cuencas hondas con oclusión. El candelabro y los libros tienen los cantos redondeados. Las llamas los iluminan desde donde están.
+- **Caldero (11):** las piedras de la pared están abombadas y tienen oclusión en las juntas. El hierro del caldero está martillado, y las asas, la leña, la viga, los frascos y los ramos de hierbas tienen volumen. La forma esférica del caldero ya estaba.
+- **Morgue (29):** las sábanas quedan como están. La lámina de marcas no tiene canal libre y el cambio pedía otra lámina por poca diferencia.
+- **Costo:** igual dentro del ruido. **Reconstruir Todo:** láminas nuevas.
+
