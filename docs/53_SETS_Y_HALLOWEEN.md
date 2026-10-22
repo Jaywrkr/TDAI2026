@@ -946,3 +946,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 |---|---|
 | 00 cementerio | En la lápida grande de la izquierda aparece grabado **JAY** y un **∞** debajo; el surco brilla verde, más con el relámpago |
 | 01 calabaza | La boca tallada pasa a ser un **∞** por el que sale la luz de adentro |
+| 02 neón | Un cartel de neón viejo se prende con zumbido y se lee **JA_**; la **Y** llega tarde y se queda |
