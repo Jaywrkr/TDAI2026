@@ -160,6 +160,24 @@ vec4 render(vec2 uv) {
     }
     col += moonC * hkRays(pS, mc, t, 14.0) * 0.16 * (1.0 - disk) * hkStyleRays();
     col = hkStyleMoon(col, pS, mc, moonR);
+    // EASTER EGG "JAY INFINITO" (fase 38): una fila de murcielagos vuela
+    // frente a la luna dibujando un infinito
+    vec2 EG = hkEgg(4.0);
+    if (EG.x > 0.0) {
+        float a = moonR * 1.05;
+        vec2 bp = pS - mc - vec2(0.0, 0.12);
+        if (abs(bp.x) < a * 1.25 && abs(bp.y) < a * 0.6) {
+            float bd = 1e3;
+            for (int i = 0; i < 30; i++) {
+                float ph = float(i) / 30.0 * 6.2832 + uRTime * 0.5;
+                vec2 q = (bp - hkInfPath(ph, a)) / 0.065;
+                if (dot(q, q) > 2.0) continue;
+                bd = min(bd, hwBat(q, sin(uRTime * 14.0 + float(i) * 1.7)) * 0.065);
+            }
+            float bm = (1.0 - smoothstep(0.0, 0.003, bd)) * EG.x * smoothstep(0.0, 0.25, EG.y);
+            col = mix(col, vec3(0.015, 0.01, 0.02), bm);
+        }
+    }
     // detalle: estrella fugaz
     if (dv == 0) {
         vec2 s0 = vec2((D.w - 0.5) * 3.2, 0.95);
@@ -316,6 +334,8 @@ vec4 render(vec2 uv) {
         vec2 h = hash22(cid + fl * 13.0);
         // D1 suma murcielagos de a uno: el nuevo llega de lejos (crece)
         float appear = smoothstep(0.0, 0.08, presence - hash21(cid + fl * 7.0 + 0.5));
+        // easter egg: la bandada deja libre la luna para que se lea el infinito
+        appear *= 1.0 - EG.x * 0.95 * (1.0 - smoothstep(moonR * 1.2, moonR * 1.8, length((cid + 0.5) * cs - vec2(t * (0.10 + 0.05 * fl) * depth, 0.0) - mc)));
         if (appear < 0.01) continue;
         vec2 center = (cid + 0.5 + (h - 0.5) * 0.35) * cs;
         center.y += 0.06 * sin(t * (0.8 + h.x) + h.y * 9.0);
