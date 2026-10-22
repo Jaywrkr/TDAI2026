@@ -16,12 +16,25 @@
 //   (grave a la izquierda): una estrella de grietas que crece mientras la
 //   tecla siga apretada (la fuerza: mas grande) y se cierra al soltarla.
 // Speed mueve el vapor, las velas y las gotas aun en silencio.
-// HISTORIA: cada ~71 s una mano limpia el vapor y la imagen se ve clara;
-// cada ~47 s se corta la luz y solo queda la imagen en el espejo.
-// CLIMAX (~59 s, 20 s, en tres tiempos): el vapor cubre todo el espejo y
-//   la bombita tiembla; una mano lo limpia y la imagen aparece nitida; el
-//   espejo se raja entero y los pedazos corren la imagen. Cada ~4.5 min
-//   con apagon al final (gran climax).
+// REPERTORIO (fase 34, motor hkSuceso del kit, version liviana):
+//   ESTADOS (~5 min): bombita, velas (la bombita baja) y vapor (el espejo
+//     se empana mas).
+//   SUCESOS (~55 s, 5): una mano limpia el vapor; se corta la luz y solo
+//     queda la imagen; alguien dibuja una cara en el vapor; una figura
+//     aparece detras, adentro del espejo; la canilla gotea sangre.
+//   DETALLES (~30 s, 4): la bombita se balancea, una gota corre por el
+//     vidrio, una vela titila, una huella de mano en el vidrio.
+//   CLIMAX (~4 min, 20 s, rotan 3 guiones en tres tiempos):
+//     A el espejo se raja: el vapor lo cubre, una mano lo limpia, la
+//       imagen aparece nitida y el espejo se raja entero.
+//     B el espejo crece: el ovalo se agranda hasta llenar la pantalla y la
+//       imagen queda a pantalla completa; despues vuelve.
+//     C mil espejos: adentro del espejo hay otro espejo, y otro, y otro.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con apagon.
+// @EST: bombita | velas | vapor
+// @SUC: limpia el vapor | apagon | una cara en el vapor | alguien detras | gotea sangre
+// @DET: la bombita se balancea | una gota | una vela | huella de mano
+// @CLX: A se raja | B el espejo crece | C mil espejos
 //
 // @D1: vapor en el vidrio
 // @D2: rajaduras con el golpe
@@ -61,21 +74,37 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float has = hkMediaHas();
 
-    vec4 G = hkGrandClimax(30.0);
-    vec4 C = hkClimaxOr(G, hkClimax(30.0, 59.0, 20.0));
-    float cph = C.w;
-    float fogUp = C.x * (1.0 - C.y) * (1.0 - C.z);                  // aviso: vapor
-    float crackE = C.z;                                              // secuelas: se raja
+    // --- calendario (fase 34) ---
+    hkSetClimax(30.0, 20.0, 24.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(30.0, 5, 10.0);
+    int sv = int(S.z);
+    float se = S.x, sp = S.y, ss = S.w;
+    vec4 D = hkDetalle(30.0, 4, 3.5);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(30.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(30.0, 3));
+    float cph = cA * C.w;
+    float fogUp = cA * C.x * (1.0 - C.y) * (1.0 - C.z);              // aviso: vapor
+    float crackE = cA * C.z;                                         // secuelas: se raja
     float wipeC = smoothstep(0.34, 0.40, cph) * (1.0 - smoothstep(0.74, 0.80, cph));
-    float wipeE = max(hkEvent(31.0, 71.0, 12.0), wipeC);
-    float wipePh = wipeC > 0.0 ? clamp((cph - 0.36) / 0.30, 0.0, 1.0) : hkEventPhase(31.0, 71.0, 12.0);
-    float darkE = max(hkEvent(32.0, 47.0, 5.0), G.z * smoothstep(0.85, 0.9, G.w));
+    float wipeE = max(sv == 0 ? se : 0.0, wipeC);
+    float wipePh = wipeC > 0.0 ? clamp((cph - 0.36) / 0.30, 0.0, 1.0) : sp;
+    float darkE = max(sv == 1 ? se : 0.0, G.z * smoothstep(0.85, 0.9, G.w));
+    float grow = cB * smoothstep(0.08, 0.45, C.w) * (1.0 - smoothstep(0.72, 0.92, C.w));
+    float droste = cC * smoothstep(0.08, 0.30, C.w) * (1.0 - smoothstep(0.80, 0.95, C.w));
 
     // bombita que parpadea
     float flick = step(0.12, noise21(vec2(uRTime * 9.0, 1.0))) * (0.75 + 0.25 * sin(t * 50.0));
-    float bulb = (0.55 + bass * 0.6) * mix(1.0, flick, 0.35 + loco * 0.4 + fogUp * 0.5) * (1.0 - darkE);
-    vec2 bp = vec2(0.0, 0.98);
-    float candles = uD6;
+    float bulb = (0.55 + bass * 0.6) * mix(1.0, flick, 0.35 + loco * 0.4 + fogUp * 0.5) * (1.0 - darkE) * (1.0 - EST.y * 0.6);
+    vec2 bp = vec2(dv == 0 ? D.x * 0.12 * sin(uRTime * 3.0) : 0.0, 0.98);
+    float candles = clamp(uD6 + EST.y * 0.7, 0.0, 1.0);
 
     // --- luz del cuarto ---
     vec3 L = vec3(0.010, 0.011, 0.013);
@@ -85,6 +114,7 @@ vec4 render(vec2 uv) {
         float cx = (fk < 2.0 ? -1.0 : 1.0) * (0.62 + mod(fk, 2.0) * 0.30);
         vec2 cp = vec2(cx, SINK_Y + 0.14);
         float fl = 0.8 + 0.2 * noise21(vec2(t * 6.0, fk * 4.0));
+        if (dv == 2 && k == int(D.w * 3.99)) fl *= 1.0 - D.x * 0.6 * noise21(vec2(t * 7.0, 2.0));
         L += vec3(1.0, 0.70, 0.45) * candles * fl * (0.6 + bass * 0.4) * 0.06 / (0.02 + dot(p - cp, p - cp)) * (1.0 - darkE);
     }
 
@@ -110,7 +140,18 @@ vec4 render(vec2 uv) {
     col += vec3(0.6) * bulb * pow(max(0.0, 1.0 - length(tf - 0.3) * 2.2), 6.0) * 0.05 * grout * (1.0 - mold);
 
     // --- espejo ---
-    vec2 mq = (p - MC) / MR;
+    vec2 mq = (p - MC) / (MR * (1.0 + grow * grow * 2.4));   // B: el espejo crece
+    // C: espejos adentro del espejo (hasta 3)
+    float ironRing = 0.0;
+    if (droste > 0.0) {
+        float dk = mix(1.0, 0.58, droste);
+        for (int i = 0; i < 3; i++) {
+            float r0 = length(mq);
+            if (r0 < dk + 0.08 && r0 > dk) ironRing = max(ironRing, sin((r0 - dk) / 0.08 * PI));
+            if (r0 >= dk) break;
+            mq /= dk;
+        }
+    }
     float mr = length(mq);
     float frameIn = 1.0, frameOut = 1.14;
     if (mr < frameOut + 0.02) {
@@ -120,7 +161,7 @@ vec4 render(vec2 uv) {
     if (mr < frameIn) {
         vec2 m = mq * 0.5 + 0.5;                       // 0..1 en el ovalo
         // rajaduras: celdas de voronoi alrededor del punto de impacto
-        vec2 imp = vec2(0.35 + 0.3 * hash21(vec2(floor(uRTime / 59.0), 1.0)), 0.40 + 0.25 * hash21(vec2(floor(uRTime / 59.0), 2.0)));
+        vec2 imp = vec2(0.35 + 0.3 * hash21(vec2(floor(uRTime / 240.0), 1.0)), 0.40 + 0.25 * hash21(vec2(floor(uRTime / 240.0), 2.0)));
         // piano: estrellas de grietas en el punto de cada tecla
         float keyCrack = 0.0;
         vec2 keyShift = vec2(0.0);
@@ -158,7 +199,26 @@ vec4 render(vec2 uv) {
             wipe = (1.0 - smoothstep(0.10, 0.22, length(hp * vec2(1.0, 0.7)))) * wipeE;
             wipe = max(wipe, smoothstep(0.35, 0.0, abs(mm.y - 0.55 - 0.08 * sin(mm.x * 9.0))) * step(mm.x, 0.25 + wipePh * 0.5) * wipeE);
         }
-        float steam = clamp(max(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)), fogUp * 1.1) - wipe, 0.0, 1.0);
+        // suceso: alguien dibuja una cara en el vapor (con el dedo)
+        if (sv == 2 && se > 0.0) {
+            vec2 fq = (mm - vec2(0.5 + (ss - 0.5) * 0.3, 0.55)) / 0.22;
+            float draw = smoothstep(0.05, 0.7, sp);
+            float eyes = min(length(fq - vec2(-0.35, 0.25)), length(fq - vec2(0.35, 0.25))) - 0.10;
+            float ma = atan(fq.y + 0.1, fq.x);
+            float smile = abs(length(fq - vec2(0.0, 0.1)) - 0.55) - 0.05;
+            smile = max(smile, fq.y + 0.05 - 0.0);
+            smile = max(smile, step(draw * 2.0, (ma + PI) / PI) * 9.0);
+            float stroke = min(max(eyes, step(draw, 0.3) * 9.0), smile);
+            wipe = max(wipe, (1.0 - smoothstep(0.03, 0.09, stroke)) * se);
+        }
+        if (dv == 3) {                                                  // huella de mano
+            vec2 hq = (mm - vec2(0.3 + D.w * 0.4, 0.35)) / 0.07;
+            float palm = length(hq * vec2(1.0, 1.1)) - 0.9;
+            for (int i = 0; i < 4; i++) palm = min(palm, hkSeg(hq, vec2(-0.6 + float(i) * 0.4, 0.6), vec2(-0.7 + float(i) * 0.45, 1.9)) - 0.22);
+            wipe = max(wipe, (1.0 - smoothstep(-0.1, 0.1, palm)) * D.x * 0.8);
+        }
+        float steam = clamp(max(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)) + EST.z * 0.5, fogUp * 1.1) - wipe, 0.0, 1.0);
+        steam *= 1.0 - grow * 0.8;
         float fogN = fbm(mm * 5.0 + vec2(0.0, t * 0.03), 4, 0.55);
         vec3 im = hkMediaGet(muv, steam * 3.5, has);
         vec3 tint = mix(vec3(0.70, 0.82, 0.95), vec3(1.0, 0.35, 0.30), uD5);
@@ -183,8 +243,18 @@ vec4 render(vec2 uv) {
         vec3 inv = tint * pow(1.0 - pow(clamp(im * 1.8, 0.0, 1.0), vec3(1.0 / 2.2)), vec3(2.2)) * 0.65;
         im = mix(im, inv, hit * loco * step(0.7, loco) * shardOn);
         im += vec3(0.5, 0.55, 0.6) * 0.025 * smoothstep(0.08, 0.0, abs(mm.x + mm.y * 0.6 - 0.75)) * (0.3 + bulb);   // brillo del vidrio
+        // suceso: una figura aparece detras, adentro del espejo
+        if (sv == 3 && se > 0.0) {
+            vec2 fq = (mm - vec2(0.5 + (ss - 0.5) * 0.5, 0.42)) / 0.32;
+            float fig = min(length(fq - vec2(0.0, 0.55)) - 0.18, length(max(abs(fq - vec2(0.0, -0.2)) - vec2(0.28 - fq.y * 0.1, 0.55), 0.0)) - 0.08);
+            float fade = smoothstep(0.1, 0.4, sp) * (1.0 - smoothstep(0.75, 0.95, sp));
+            im = mix(im, im * 0.08, (1.0 - smoothstep(-0.06, 0.06, fig)) * se * fade * (1.0 - steam * 0.6));
+            vec2 eq = vec2(abs(fq.x) - 0.07, fq.y - 0.58);
+            im += vec3(0.9, 0.95, 1.0) * exp(-dot(eq, eq) * 900.0) * se * fade * 0.6;
+        }
         float dk = darkE * 0.4;                                          // apagon: el espejo brilla solo
         col = im * (1.0 - darkE * 0.2) + im * dk;
+        col = mix(col, vec3(0.10, 0.095, 0.09) * (L * 6.0 + 0.05) * (0.4 + 0.6 * ironRing), ironRing);
     } else if (mr < frameOut) {
         // marco de hierro forjado con relieve
         float e = (mr - frameIn) / (frameOut - frameIn);
@@ -221,11 +291,23 @@ vec4 render(vec2 uv) {
         float fau = min(hkRBox(p - vec2(0.0, SINK_Y + 0.07), vec2(0.03, 0.06), 0.015), hkRBox(p - vec2(0.0, SINK_Y + 0.12), vec2(0.07, 0.015), 0.01));
         col = mix(col, vec3(0.25, 0.24, 0.22) * (L * 4.0 + 0.05) * (0.6 + 0.6 * smoothstep(0.05, -0.05, p.x)), 1.0 - smoothstep(0.0, 0.004, fau));
     }
-    // gota de la canilla
+    // gota de la canilla (suceso: gotea sangre, cada vez mas)
     {
-        float ph = fract(t * 0.35);
+        float blood = sv == 4 ? se : 0.0;
+        float ph = fract(t * (0.35 + blood * 0.9));
         vec2 dp = vec2(0.0, SINK_Y + 0.07 - ph * 0.25);
-        col += vec3(0.6, 0.65, 0.7) * (1.0 - smoothstep(0.004, 0.009, length((p - dp) * vec2(1.0, 0.7)))) * step(ph, 0.85) * (L.r * 3.0 + 0.1);
+        vec3 dcol = mix(vec3(0.6, 0.65, 0.7) * (L.r * 3.0 + 0.1), vec3(0.45, 0.02, 0.02) * (L.r * 4.0 + 0.2), blood);
+        col = mix(col, dcol, (1.0 - smoothstep(0.004, 0.009, length((p - dp) * vec2(1.0, 0.7)))) * step(ph, 0.85) * (0.6 + 0.4 * blood));
+        if (blood > 0.0) {
+            float stream = (1.0 - smoothstep(0.003, 0.006, abs(p.x))) * step(SINK_Y - 0.03, p.y) * step(p.y, SINK_Y + 0.07) * smoothstep(0.4, 0.6, sp);
+            float pool = (1.0 - smoothstep(0.0, 0.01, length((p - vec2(0.0, SINK_Y - 0.06)) * vec2(0.5, 3.0)) - smoothstep(0.4, 1.0, sp) * 0.12));
+            col = mix(col, vec3(0.35, 0.01, 0.01) * (L * 4.0 + 0.15), max(stream, pool * step(p.y, SINK_Y - 0.02)) * blood);
+        }
+    }
+    // detalle: una gota corre por el vidrio del espejo
+    if (dv == 1 && mr < 1.0) {
+        vec2 gq = (p - MC) / MR - vec2((D.w - 0.5) * 1.2, mix(0.8, -0.8, D.y));
+        col += vec3(0.7, 0.75, 0.8) * (1.0 - smoothstep(0.02, 0.035, length(gq * vec2(1.0, 0.6)))) * D.x * 0.25;
     }
 
     // --- velas en el lavabo ---

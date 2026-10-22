@@ -770,3 +770,51 @@ Unos 7 ms de eso son del calendario (`hkSuceso` y `hkDetalle`). Es la misma cuen
 Los FPS reales hay que mirarlos en TD, sobre todo en la 16 y la 17.
 
 **Reconstruir Todo:** cambiaron los `.frag` de 00, 02 y 12 a 17. Sigue la fase 34 (escenas 18–25).
+
+## Fase 34: repertorio en las escenas 18–25 (versión liviana)
+
+![Los tres clímax de las escenas 18 a 25](img/climax_18_25.jpg)
+
+Mismo motor que en las fases 30–33, con menos piezas por escena para cuidar los FPS: 3 estados, 5 sucesos, 4 detalles y 3 guiones de clímax (A es el clímax que ya tenía la escena).
+
+| Escena | Estados | Sucesos | Detalles | Clímax B y C |
+|---|---|---|---|---|
+| 18 túnel de calaveras | antorchas, oscuridad verde, niebla espesa | ola de ojos, figura al fondo, se apagan las antorchas, cae una calavera, retrocede | guiña, polvo, chisporrotea, ratas | **B** la calavera del fondo (silueta negra con ojos rojos); **C** el fuego (llamas por los costados del piso) |
+| 19 demonio glitch | señal estable, interferencia, fuego alto | se derrite, llora fuego, sin señal (barras de color), se acerca, mosaico | parpadea, chispas, línea de tracking, espejo | **B** el tercer ojo; **C** partido al medio |
+| 20 galería | lámparas, velas, penumbra | apagón, se suelta un cuadro, los ojos se corren, una sombra, sangra | una vela, lámpara titila, polvo, araña | **B** la ronda (los cuadros giran); **C** el cuadro gigante (el del medio crece y tapa el resto) |
+| 21 espejo | bombita, velas, vapor | limpia el vapor, apagón, una cara en el vapor, alguien detrás, gotea sangre | la bombita se balancea, una gota, una vela, huella de mano | **B** el espejo crece; **C** mil espejos (espejo dentro de espejo) |
+| 22 se quema | vela, viento, a oscuras | ráfaga, rostro en el humo, se da vuelta, llamarada, sangra | chispa, un fósforo, aro de humo, ceniza | **B** al revés (el fuego retrocede y la foto se rearma); **C** el rostro de fuego |
+| 23 película 1920 | plata, sepia, proyector gastado | el iris, cartel, se da vuelta, al revés, una sombra | un pelo, quemadura, parpadeo, polvo grueso | **B** la cuenta regresiva (cola de película con el círculo que barre); **C** el público se da vuelta (pantalla roja y ojos en la sala) |
+| 24 sangra | lámpara, penumbra, la sangre sube | la pared llora, se apaga la lámpara, la mano ensangrentada, se despegan algunos pedazos, crece el charco | una gota, salpicadura, polilla, revoque | **B** la ronda (la imagen da una vuelta entera abriéndose en pedazos); **C** el ojo (la imagen se abre como una puerta y detrás hay un ojo enorme que mira) |
+| 25 posesión | velas, las venas, frío | se encienden los ojos, se avivan las velas, se da vuelta, arañazos nuevos, las tiras se desordenan | una vela se apaga, gota negra, la cruz gira, una sombra | **B** el exorcismo (un círculo de runas alrededor de la imagen se enciende runa por runa y una luz blanca la limpia); **C** los ojos en la pared (ojos rojos por toda la pared que miran la imagen) |
+
+**Notas:**
+- **24:** la imagen entra y sale cada 32 s. Si el clímax B o C, o el suceso "se despegan", cae en el hueco, los pedazos llegan antes y se quedan hasta el final. La ronda y la puerta mueven la grilla entera porque la escena busca cada pedazo solo entre las celdas vecinas.
+- **Destellos:** se bajaron parpadeos rápidos que ya estaban:
+  - **19:** la inversión sortea 2 veces por segundo (antes 14).
+  - **20:** el negativo del clímax A sortea 3 veces por segundo (antes 9).
+  - **24:** la lámpara del clímax A sortea 4 veces por segundo (antes 13), o sea que se apaga a lo sumo 2 veces.
+  - **25:** la inversión de la posesión se prende 1,5 veces por segundo (antes 6).
+- **Semillas:** la semilla de las quemaduras y las rajaduras (21 y 23) se renueva cada 4 minutos y no en cada clímax.
+
+**Pruebas fuera de TD:**
+- **Calendario:** `test_sucesos.py` da OK en las 27 escenas con repertorio. `timeline_sucesos.py` muestra que cada suceso sale unas 36–48 veces en 3 horas y cada clímax 9–11 veces.
+- **Destellos:** `test_destellos.py --sucesos --scenes 18,...,25` da 3 como máximo.
+- **Validación:** `validate_shaders` sin errores en los dos sets, y la compilación para Metal también. Las demás pruebas de `td/tools` dan OK.
+
+**Costo** (1280×512 por software, contra la fase 33):
+
+| Escena | Cambio |
+|---|---|
+| 18 | +10 % |
+| 19 | 0 % |
+| 20 | +9 % |
+| 21 | −6 % |
+| 22 | +12 % |
+| 23 | +14 % |
+| 24 | +9 % |
+| 25 | +19 % |
+
+Los FPS reales hay que mirarlos en TD, sobre todo en la 20, la 24 y la 25 (las de imagen son las más caras).
+
+**Reconstruir Todo:** cambiaron los `.frag` de 18 a 25. Sigue la fase 35 (escenas 27–30) y después la 36 (control en vivo y arco de la noche).

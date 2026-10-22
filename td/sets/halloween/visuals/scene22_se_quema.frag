@@ -18,12 +18,27 @@
 //   nota (grave a la izquierda) con un chorro de chispas; la fuerza la hace
 //   mas alta; apretada sigue ardiendo.
 // Speed marca que tan rapido avanza el fuego (y el humo) aun en silencio.
-// HISTORIA: cada vuelta (~22 s del reloj de Speed) el fuego empieza de un
-// lado distinto; cada ~61 s una rafaga de viento tira las cenizas al costado.
-// CLIMAX (~83 s, 16 s, en tres tiempos): el calor crece, sube el humo y
-//   saltan brasas; el fuego se vuelve un incendio con llamaradas enormes
-//   que iluminan toda la mesa; una rafaga se lleva las cenizas al costado.
-//   Cada ~4.5 min mas largo (gran climax).
+// Cada vuelta (~22 s del reloj de Speed) el fuego empieza de un lado distinto.
+// REPERTORIO (fase 34, motor hkSuceso del kit, version liviana):
+//   ESTADOS (~5 min): vela, viento (humo y cenizas acostados) y a oscuras
+//     (sin vela: solo alumbra el fuego).
+//   SUCESOS (~55 s, 5): una rafaga tira las cenizas al costado; un rostro
+//     se forma en el humo; la foto se da vuelta y vuelve; una llamarada;
+//     la imagen sangra desde abajo.
+//   DETALLES (~30 s, 4): salta una chispa, un fosforo se enciende solo,
+//     el humo hace un aro, cae ceniza sobre la foto.
+//   CLIMAX (~4 min, 16 s, rotan 3 guiones en tres tiempos):
+//     A el incendio: el calor crece, llamaradas enormes iluminan la mesa
+//       y una rafaga se lleva las cenizas.
+//     B al reves: el fuego retrocede y la foto se des-quema, como una
+//       pelicula al reves; despues sigue ardiendo.
+//     C el rostro de fuego: sobre la mesa se levanta una cara hecha de
+//       llamas que mira y despues se apaga.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A mas largo.
+// @EST: vela | viento | a oscuras
+// @SUC: rafaga | rostro en el humo | se da vuelta | llamarada | sangra
+// @DET: chispa | un fosforo | aro de humo | ceniza
+// @CLX: A el incendio | B al reves | C el rostro de fuego
 //
 // @D1: velocidad del fuego (dentro de cada vuelta; el frente se desliza sin saltar)
 // @D2: brasa (fuerza de la linea de fuego)
@@ -44,10 +59,27 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float has = hkMediaHas();
-    vec4 G = hkGrandClimax(40.0);
-    vec4 C = hkClimaxOr(G, hkClimax(40.0, 83.0, 16.0));
-    float wind = max(hkEvent(40.0, 61.0, 6.0), C.z);
-    float blaze = C.x * 0.6 * (1.0 - C.z) + C.y;                // calor del climax
+    // --- calendario (fase 34) ---
+    hkSetClimax(40.0, 16.0, 20.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(40.0, 5, 9.0);
+    int sv = int(S.z);
+    float se = S.x, sph = S.y, ss = S.w;
+    vec4 D = hkDetalle(40.0, 4, 3.0);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(40.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(40.0, 3));
+    float wind = max(max(sv == 0 ? se : 0.0, cA * C.z), EST.y * 0.5);
+    float blaze = cA * (C.x * 0.6 * (1.0 - C.z) + C.y) + (sv == 3 ? se * sin(sph * PI) * 0.8 : 0.0);   // calor
+    float rewind = cB * smoothstep(0.05, 0.55, C.w) * (1.0 - smoothstep(0.80, 0.97, C.w));
+    float fface = cC * smoothstep(0.10, 0.45, C.w) * (1.0 - smoothstep(0.72, 0.92, C.w));
+    float candleOn = uD6 * (1.0 - EST.z);
 
     // ciclo de quemado (reloj de Speed). La vuelta dura SIEMPRE lo mismo:
     // si D1 cambiara la duracion, la fase saltaria (y hasta la foto). D1
@@ -56,7 +88,7 @@ vec4 render(vec2 uv) {
     float cyc = t / period;
     float cid = floor(cyc);
     float ph = fract(cyc);
-    float b = ph * mix(1.20, 2.00, uD1) - 0.12 + hit * 0.03;   // frente del fuego
+    float b = mix(ph * mix(1.20, 2.00, uD1) - 0.12 + hit * 0.03, 0.12, rewind);   // frente del fuego (B: retrocede hasta el borde)
     float drop = smoothstep(0.0, 0.05, ph);              // la copia nueva cae
 
     // la foto sobre la mesa
@@ -65,6 +97,11 @@ vec4 render(vec2 uv) {
     float tilt = (hash21(vec2(cid, 1.0)) - 0.5) * 0.12;
     vec2 off = vec2((hash21(vec2(cid, 2.0)) - 0.5) * 0.25, (1.0 - drop) * 0.25);
     vec2 q = q22rot(tilt) * (p - off);
+    // suceso: la foto se da vuelta (y se ve el dorso)
+    float flipA = sv == 2 ? se * smoothstep(0.15, 0.85, sph) * PI * 2.0 : 0.0;
+    float flipC = cos(flipA);
+    q.x /= sign(flipC) * max(abs(flipC), 0.04);
+    float backSide = step(flipC, 0.0);
     vec2 m = q / (2.0 * hsz) + 0.5;                      // 0..1 en la foto
     float pd = hkBox(q, hsz);
     // origen del fuego: un borde distinto por vuelta
@@ -105,7 +142,8 @@ vec4 render(vec2 uv) {
         keyFire += e;
     }
     vec2 cp = vec2(-uAspect + 0.55, 0.02);
-    L += vec3(1.0, 0.70, 0.42) * uD6 * 0.07 / (0.05 + dot(p - cp, p - cp) * 1.2) * (0.85 + 0.15 * noise21(vec2(t * 5.0, 2.0)));
+    L += vec3(1.0, 0.70, 0.42) * candleOn * 0.07 / (0.05 + dot(p - cp, p - cp) * 1.2) * (0.85 + 0.15 * noise21(vec2(t * 5.0, 2.0)));
+    L += fireC * fface * 0.25 * smoothstep(1.0, -0.5, abs(p.x)) * (0.8 + 0.2 * noise21(vec2(uRTime * 3.0, 4.0)));
     vec3 col = wood * L * 7.0;
 
     // --- restos de fotos quemadas alrededor ---
@@ -141,7 +179,15 @@ vec4 render(vec2 uv) {
             col = mix(col, vec3(0.05, 0.04, 0.035) * L * 6.0, 1.0 - smoothstep(0.0, 0.003, head));
         }
         vec4 cd = hkCandle(p, vec2(cp.x, -0.16), 0.03, 0.12, t, 3.0);
-        col = mix(col, cd.rgb, cd.a * smoothstep(0.0, 0.1, uD6));
+        col = mix(col, cd.rgb * (EST.z > 0.5 ? vec3(0.1) : vec3(1.0)), cd.a * smoothstep(0.0, 0.1, uD6));
+        // detalle: un fosforo se enciende solo
+        if (dv == 1) {
+            vec2 mh = vec2(uAspect - 0.98, -0.32) + vec2(0.28, 0.06);
+            vec2 fq = (p - mh - vec2(0.0, 0.03)) / vec2(0.02, 0.05);
+            float fl = 1.0 - smoothstep(0.5, 1.0, length(fq) + max(fq.y, 0.0) * 0.3);
+            col += mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.9, 0.6), fl) * fl * D.x * 1.5;
+            col += vec3(1.0, 0.5, 0.15) * exp(-length(p - mh) * 10.0) * D.x * 0.2;
+        }
     }
 
     // sombra de la foto en la mesa
@@ -157,7 +203,16 @@ vec4 render(vec2 uv) {
         vec2 mi = (hm - 0.5) * (2.0 * hsz) / (2.0 * hsz - 2.0 * border) + 0.5;
         vec3 im = hkMediaGet(hkMediaCover(mi, ia), 0.3, has);
         im = hkTone(im, 0.05, mix(vec3(0.95), vec3(1.0, 0.82, 0.58), uD5), 1.15) * 0.9;
+        // suceso: la imagen sangra desde abajo
+        if (sv == 4) {
+            float cx = floor(mi.x * 30.0);
+            float hb = hash21(vec2(cx, 5.0));
+            float len = smoothstep(0.05, 0.85, sph) * (0.2 + 0.7 * hb) * step(0.35, hb);
+            float drip = (1.0 - smoothstep(0.15, 0.3, abs(fract(mi.x * 30.0) - 0.5))) * step(1.0 - len, 1.0 - mi.y);
+            im = mix(im, vec3(0.35, 0.01, 0.01), drip * se);
+        }
         vec3 photo = mix(paper, im, inImg);
+        photo = mix(photo, paper * vec3(0.95, 0.92, 0.85) * (0.8 + 0.2 * noise21(q * 15.0)), backSide);   // el dorso
         photo *= 0.92 + 0.12 * noise21(m * 6.0);
         // tostado antes del fuego, carbon despues
         float scorch = smoothstep(-0.10, 0.0, burnt);
@@ -202,11 +257,38 @@ vec4 render(vec2 uv) {
         col += vec3(1.0, 0.6, 0.2) * sp * exp(-abs(fq.x) * 6.0) * smoothstep(-0.05, 0.6, fq.y) * e * 1.5;
     }
 
+    // B: lineas de rebobinado que suben
+    if (rewind > 0.0) col += vec3(0.5, 0.45, 0.4) * smoothstep(0.012, 0.0, abs(fract(p.y * 2.0 + uRTime * 1.5) - 0.5) - 0.48) * rewind * 0.25;
+    // --- C: el rostro de fuego sobre la mesa ---
+    if (fface > 0.0) {
+        vec2 fq = (p - vec2(0.0, mix(-0.9, 0.05, smoothstep(0.0, 0.6, fface)))) / 0.75;
+        float fn = fbm(vec2(fq.x * 3.0, fq.y * 2.0 - uRTime * 2.0), 4, 0.55);
+        float head = length(fq / vec2(0.8, 1.0)) - 1.0 + (fn - 0.5) * 0.5;
+        float eyes = min(length((fq - vec2(-0.32, 0.18)) / vec2(1.0, 0.7)), length((fq - vec2(0.32, 0.18)) / vec2(1.0, 0.7))) - 0.15;
+        float mouth = length((fq - vec2(0.0, -0.40)) / vec2(1.0, 0.45 + 0.2 * bass)) - 0.28;
+        float body = (1.0 - smoothstep(-0.1, 0.1, head)) * smoothstep(-0.05, 0.08, eyes) * smoothstep(-0.05, 0.08, mouth);
+        float flame = body * (0.4 + fn * 0.9);
+        col += mix(vec3(1.0, 0.25, 0.04), vec3(1.0, 0.85, 0.45), smoothstep(0.5, 1.0, flame)) * flame * fface * (1.0 + bass * 0.5);
+        col *= 1.0 - (1.0 - smoothstep(-0.05, 0.05, min(eyes, mouth))) * (1.0 - step(0.0, head)) * fface * 0.7;
+    }
     // --- humo ---
     {
         float sm = fbm(vec2(p.x * 1.6 + sin(p.y * 2.0 + t * 0.3) * 0.4 - wind * p.y, p.y * 1.2 - t * (0.25 + mid * 0.4)), 4, 0.55);
         float col2 = exp(-pow((p.x - frontP.x - (p.y - frontP.y) * (0.2 + wind)) * 1.5, 2.0)) * smoothstep(frontP.y - 0.2, frontP.y + 0.3, p.y);
         float smoke = smoothstep(0.45, 0.8, sm) * col2 * fireAmt * clamp(uD3 + blaze * 0.6, 0.0, 1.2);
+        // suceso: un rostro se forma en el humo; detalle: un aro de humo
+        if (sv == 1) {
+            vec2 sq = (p - frontP - vec2(0.15, 0.55)) / 0.30;
+            float eyes = min(length(sq - vec2(-0.35, 0.2)), length(sq - vec2(0.35, 0.2))) - 0.17;
+            float mth = length((sq - vec2(0.0, -0.4)) / vec2(1.0, 0.6)) - 0.25;
+            float face = (1.0 - smoothstep(0.8, 1.1, length(sq / vec2(0.85, 1.0)))) * smoothstep(-0.05, 0.05, min(eyes, mth));
+            float fs = face * smoothstep(0.3, 0.75, sm + 0.2) * se * smoothstep(0.1, 0.5, sph);
+            col = mix(col, vec3(0.30, 0.29, 0.28) * (0.4 + L * 4.0), fs * 0.75);
+        }
+        if (dv == 2) {
+            vec2 rq = p - frontP - vec2(0.05, 0.25 + D.y * 0.7);
+            smoke = max(smoke, (1.0 - smoothstep(0.0, 0.025, abs(length(rq * vec2(1.0, 2.2)) - 0.12 - D.y * 0.08))) * D.x * 0.7);
+        }
         col = mix(col, vec3(0.16, 0.155, 0.15) * (0.3 + L * 3.0), smoke * 0.55);
     }
     // --- cenizas y chispas que vuelan ---
@@ -214,8 +296,10 @@ vec4 render(vec2 uv) {
     float ash = hkParticles(p - frontP * 0.3, t * 0.6, 0.05 + uD4 * 0.25 + blaze * 0.2, dir, 0.035);
     col += vec3(1.0, 0.45, 0.12) * ash * (0.15 + high * 0.6 + uD4 * 0.3 + blaze) * fireAmt * smoothstep(-0.8, 0.2, p.y - frontP.y);
     // incendio: resplandor sobre toda la mesa
-    col += vec3(1.0, 0.40, 0.10) * C.y * 0.08 * (0.7 + 0.3 * noise21(vec2(uRTime * 6.0, 1.0))) * smoothstep(1.0, -0.8, p.y);
-    float flake = hkParticles(p * 1.3 + 3.0, t * 0.3, 0.06 + uD4 * 0.15, dir, 0.05);
+    col += vec3(1.0, 0.40, 0.10) * cA * C.y * 0.08 * (0.7 + 0.3 * noise21(vec2(uRTime * 2.0, 1.0))) * smoothstep(1.0, -0.8, p.y);
+    // detalles: salta una chispa; cae ceniza sobre la foto
+    if (dv == 0) { vec2 sq2 = p - frontP - vec2(0.3 * D.y, D.y * 0.8 - D.y * D.y * 0.6); col += vec3(1.0, 0.7, 0.3) * exp(-dot(sq2, sq2) * 20000.0) * D.x * 2.0; }
+    float flake = hkParticles(p * 1.3 + 3.0, t * 0.3, 0.06 + uD4 * 0.15 + (dv == 3 ? D.x * 0.3 : 0.0), dir, 0.05);
     col = mix(col, vec3(0.20, 0.19, 0.18) * (0.2 + L * 3.0), clamp(flake, 0.0, 1.0) * 0.5 * uD4);
 
     return vec4(hkFinish(col, uv, vec3(0.35, 0.25, 0.18)), 1.0);

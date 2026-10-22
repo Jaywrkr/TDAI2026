@@ -16,12 +16,26 @@
 //   de la nota (grave a la izquierda) y el cuadro salta; la fuerza: mas
 //   grueso; apretada, el rayon sigue y tiembla.
 // Speed mueve el grano, las rayas y el polvo aun en silencio.
-// HISTORIA: cada ~41 s el iris se cierra y se abre; cada ~57 s un cartel
-// de titulo con marco; alguien del publico se da vuelta.
-// CLIMAX (~73 s, 18 s, en tres tiempos): el proyector salta y parpadea
-//   cada vez mas y el iris se cierra; se abre y la cinta se quema con una
-//   burbuja hasta quedar en blanco; vuelve con un cartel de titulo y
-//   alguien del publico se da vuelta. Cada ~4.5 min mas largo (gran climax).
+// REPERTORIO (fase 34, motor hkSuceso del kit, version liviana):
+//   ESTADOS (~5 min): plata, sepia y proyector gastado (mas rayas, polvo
+//     y parpadeo).
+//   SUCESOS (~55 s, 5): el iris se cierra y se abre; un cartel de titulo
+//     con marco; alguien del publico se da vuelta; la pelicula pasa al
+//     reves; la sombra de alguien cruza la pantalla.
+//   DETALLES (~30 s, 4): un pelo en la ventanilla, una quemadura chica,
+//     el proyector parpadea, polvo grueso.
+//   CLIMAX (~4 min, 18 s, rotan 3 guiones en tres tiempos):
+//     A la cinta se quema: salta y parpadea, se cierra el iris, la cinta
+//       se quema hasta quedar en blanco y vuelve con un cartel.
+//     B la cuenta regresiva: la pelicula se corta y pasa la cola de
+//       arranque (circulo con la aguja que barre), una y otra vez.
+//     C el publico se da vuelta: todos giran con los ojos encendidos y la
+//       pantalla se tine de rojo.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A mas largo.
+// @EST: plata | sepia | proyector gastado
+// @SUC: el iris | cartel | se da vuelta | al reves | una sombra
+// @DET: un pelo | quemadura | parpadeo | polvo grueso
+// @CLX: A la cinta se quema | B la cuenta regresiva | C el publico se da vuelta
 //
 // @D1: rayas y polvo
 // @D2: parpadeo
@@ -44,33 +58,52 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float has = hkMediaHas();
 
-    vec4 G = hkGrandClimax(51.0);
-    vec4 C = hkClimaxOr(G, hkClimax(51.0, 73.0, 18.0));
-    float cph = C.w;
-    float shake = C.x * (1.0 - C.y) * (1.0 - C.z);                         // aviso: saltos
-    float irisE = hkEvent(50.0, 41.0, 5.0);
-    float irisPh = hkEventPhase(50.0, 41.0, 5.0);
+    // --- calendario (fase 34) ---
+    hkSetClimax(51.0, 18.0, 22.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(51.0, 5, 8.0);
+    int sv = int(S.z);
+    float se = S.x, sph = S.y, ss = S.w;
+    vec4 D = hkDetalle(51.0, 4, 3.0);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(51.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(51.0, 3));
+    float cph = cA * C.w;
+    float shake = cA * C.x * (1.0 - C.y) * (1.0 - C.z);                    // aviso: saltos
+    float irisE = sv == 0 ? se : 0.0;
+    float irisPh = sph;
+    float leader = cB * smoothstep(0.08, 0.15, C.w) * (1.0 - smoothstep(0.85, 0.92, C.w));
+    float crowd = cC * smoothstep(0.05, 0.35, C.w) * (1.0 - smoothstep(0.80, 0.95, C.w));
+    float d5 = clamp(uD5 + EST.y * 0.8, 0.0, 1.0);
+    float worn = EST.z;
     // el iris del climax: se cierra al final del aviso y se abre al llegar el pico
     float irisC = smoothstep(0.18, 0.33, cph) * (1.0 - smoothstep(0.36, 0.44, cph));
     // la cinta se quema durante el pico y queda en blanco hasta el cartel
     float burnE = smoothstep(0.44, 0.46, cph) * (1.0 - smoothstep(0.78, 0.82, cph));
     float burnPh = clamp((cph - 0.45) / 0.22, 0.0, 1.0);
-    float cardE = max(hkEvent(52.0, 57.0, 6.0), smoothstep(0.80, 0.85, cph) * (1.0 - smoothstep(0.95, 1.0, cph)));
-    float turnE = max(hkEvent(53.0, 67.0, 9.0), C.z);
+    float cardE = max(sv == 1 ? se : 0.0, smoothstep(0.80, 0.85, cph) * (1.0 - smoothstep(0.95, 1.0, cph)));
+    float turnE = max(sv == 2 ? se : 0.0, cA * C.z);
     // piano: saltos de cuadro
     float keyJump = 0.0;
     for (int k = 0; k < N_KEYS; k++) keyJump = max(keyJump, keyEnv(k, 0.01, 0.3) * exp(-keyAge(k) * 5.0) * (0.5 + keyVel(k)));
 
     float fps = floor(t * 18.0);                    // la pelicula corre a 18 cuadros
-    float flick = 1.0 - (0.06 + uD2 * 0.22 + shake * 0.30) * (0.5 + 0.5 * hash21(vec2(fps, 1.0))) - bass * uD2 * 0.15;
+    float flick = 1.0 - (0.06 + uD2 * 0.22 + shake * 0.30 + worn * 0.10) * (0.5 + 0.5 * hash21(vec2(fps, 1.0))) - bass * uD2 * 0.15;
+    if (dv == 2) flick *= 1.0 - D.x * 0.35 * step(0.45, D.y) * (1.0 - step(0.6, D.y));   // detalle: un parpadeo fuerte
     vec2 SW = vec2(SH * 4.0 / 3.0, SH);
 
     // --- sala ---
     vec3 col = vec3(0.006, 0.005, 0.005);
     // haz del proyector (desde arriba atras del publico)
     vec2 pj = vec2(0.0, -1.25);
-    vec2 dv = p - pj;
-    float beamA = abs(atan(dv.x, dv.y));
+    vec2 dvb = p - pj;
+    float beamA = abs(atan(dvb.x, dvb.y));
     float beam = smoothstep(0.42, 0.30, beamA) * smoothstep(-1.2, 0.2, p.y) * step(p.y, SC.y + SH);
     float dustB = hkParticles(p * 1.2, t * 0.2, 0.15 + uD1 * 0.2, vec2(0.1, 0.25), 0.04);
     float smokeB = fbm(p * vec2(2.0, 1.0) + vec2(t * 0.05, -t * 0.03), 3, 0.5);
@@ -106,6 +139,7 @@ vec4 render(vec2 uv) {
     sq += vec2(sin(t * 3.1) * 0.003, sin(t * 2.3) * 0.004) * (0.5 + mid * 2.0);
     vec2 sc = sq / (2.0 * SW) + 0.5;                    // 0..1 de la pantalla
     vec2 fr2 = vec2(sc.x, fract(sc.y + jump));
+    if (sv == 3 && se > 0.5 && sph > 0.15 && sph < 0.85) fr2 = 1.0 - fr2;   // suceso: la pelicula al reves
     float inScr = step(abs(sq.x), SW.x) * step(abs(sq.y), SW.y);
     if (inScr > 0.5) {
         vec2 mu = hkMediaCover(fr2, 4.0 / 3.0);
@@ -114,7 +148,7 @@ vec4 render(vec2 uv) {
         float l = dot(im, vec3(0.2126, 0.7152, 0.0722));
         l = pow(clamp(l * 1.3, 0.0, 1.0), 0.85);
         l = smoothstep(0.0, 1.0, l);                      // contraste de nitrato
-        vec3 film = vec3(l) * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.80, 0.55), uD5);
+        vec3 film = vec3(l) * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.80, 0.55), d5);
         // linea negra entre fotogramas cuando salta
         float bar = smoothstep(0.03, 0.0, abs(fract(sc.y + jump) - 0.0)) + smoothstep(0.03, 0.0, abs(fract(sc.y + jump) - 1.0));
         film *= 1.0 - bar * step(0.01, jump) * 0.95;
@@ -125,7 +159,7 @@ vec4 render(vec2 uv) {
         for (int k = 0; k < 3; k++) {
             float fk = float(k);
             float sx = fract(hash21(vec2(floor(t * 0.7 + fk * 0.37), fk)) + t * 0.01 * (fk - 1.0));
-            float on = step(0.45 - uD1 * 0.35, hash21(vec2(floor(t * 2.0 + fk), fk + 9.0)));
+            float on = step(0.45 - uD1 * 0.35 - worn * 0.25, hash21(vec2(floor(t * 2.0 + fk), fk + 9.0)));
             float sline = 1.0 - smoothstep(0.0, 0.0015 + fk * 0.0006, abs(sc.x - sx));
             film = mix(film, k == 1 ? vec3(0.0) : vec3(1.0), sline * on * 0.55);
         }
@@ -133,11 +167,25 @@ vec4 render(vec2 uv) {
         vec2 dg = sc * vec2(28.0, 21.0);
         vec2 di = floor(dg);
         float dh = hash21(di + fps * 7.1);
-        float dust = (1.0 - smoothstep(0.05, 0.12, length(fract(dg) - hash22(di + fps)))) * step(1.0 - (0.012 + uD1 * 0.05 + high * 0.03), dh);
+        float dust = (1.0 - smoothstep(0.05, 0.12 + (dv == 3 ? D.x * 0.15 : 0.0), length(fract(dg) - hash22(di + fps)))) * step(1.0 - (0.012 + uD1 * 0.05 + high * 0.03 + worn * 0.03 + (dv == 3 ? D.x * 0.03 : 0.0)), dh);
         film = mix(film, dh > 0.996 ? vec3(1.0) : vec3(0.0), dust);
         vec2 hq = sc - vec2(0.15 + 0.7 * hash21(vec2(floor(t * 0.5), 5.0)), 0.8);
         float hair = hkLine(sin(hq.x * 25.0) * 0.02 - hq.y * 0.3, 1.0) * step(abs(hq.x), 0.12) * step(0.6, hash21(vec2(floor(t * 0.5), 6.0)));
-        film = mix(film, vec3(0.0), hair * uD1);
+        film = mix(film, vec3(0.0), hair * max(uD1, dv == 0 ? D.x : 0.0));
+        // detalle: una quemadura chica que se abre y se cierra
+        if (dv == 1) {
+            vec2 bq = (sc - vec2(0.2 + D.w * 0.6, 0.3 + fract(D.w * 7.0) * 0.4)) * vec2(4.0 / 3.0, 1.0);
+            float br = D.x * sin(D.y * PI) * 0.06;
+            float bd2 = length(bq) + (noise21(bq * 60.0) - 0.5) * 0.02;
+            film = mix(film, vec3(1.0, 0.95, 0.85), smoothstep(br, br - 0.01, bd2));
+            film += vec3(1.0, 0.55, 0.2) * exp(-abs(bd2 - br) * 120.0) * D.x * 0.8;
+        }
+        // suceso: la sombra de alguien cruza la pantalla
+        if (sv == 4 && se > 0.0) {
+            vec2 hq2 = (sc - vec2(mix(-0.2, 1.2, ss > 0.5 ? sph : 1.0 - sph), 0.05)) * vec2(4.0 / 3.0, 1.0) / 0.5;
+            float shd = min(length(hq2 - vec2(0.0, 0.62)) - 0.17, length(max(abs(hq2 - vec2(0.0, 0.0)) - vec2(0.36, 0.45), 0.0)) - 0.10);
+            film *= 1.0 - 0.85 * (1.0 - smoothstep(-0.03, 0.03, shd)) * se;
+        }
         // parpadeo + vineta + iris
         film *= flick;
         vec2 vc = (sc - 0.5) * vec2(4.0 / 3.0, 1.0);
@@ -171,12 +219,12 @@ vec4 render(vec2 uv) {
             }
             vec3 card = vec3(0.02) + vec3(0.85) * max(max(1.0 - smoothstep(0.0, 0.004, bord), 1.0 - smoothstep(0.0, 0.003, orn)), lines);
             card *= 0.8 + 0.4 * gr;
-            film = mix(film, card * flick * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.8, 0.55), uD5), cardE);
+            film = mix(film, card * flick * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.8, 0.55), d5), cardE);
         }
         // la cinta se quema / se traba con locura
         float melt = burnE * smoothstep(0.0, 1.0, burnPh) + hit * loco * step(0.75, loco) * 0.5;
         if (melt > 0.001) {
-            vec2 bc = vec2(0.5 + 0.2 * hash21(vec2(floor(uRTime / 73.0), 1.0)) - 0.1, 0.55);
+            vec2 bc = vec2(0.5 + 0.2 * hash21(vec2(floor(uRTime / 240.0), 1.0)) - 0.1, 0.55);
             float bd = length((sc - bc) * vec2(4.0 / 3.0, 1.0)) + (fbm(sc * 6.0 + t * 0.2, 3, 0.5) - 0.5) * 0.25;
             float r = melt * 1.1;
             float hole = smoothstep(r, r - 0.02, bd);
@@ -185,6 +233,21 @@ vec4 render(vec2 uv) {
             film = mix(film, vec3(0.05, 0.03, 0.02), smoothstep(r + 0.08, r, bd) * (1.0 - hole) * 0.8);
             film += vec3(1.0, 0.6, 0.25) * rim * 0.9;
         }
+        // B: la cola de arranque (circulo, cruz y la aguja que barre)
+        if (leader > 0.0) {
+            vec2 lq = (sc - 0.5) * vec2(4.0 / 3.0, 1.0);
+            float sweep = fract(uRTime * 1.0);
+            float ang = fract(atan(lq.x, lq.y) / TAU + 0.5);
+            vec3 ld = vec3(0.55) * mix(1.0, 0.75, step(ang, sweep));
+            float rings = min(abs(length(lq) - 0.36), abs(length(lq) - 0.30)) - 0.005;
+            float cross2 = min(abs(lq.x), abs(lq.y)) - 0.003;
+            ld = mix(ld, vec3(0.05), (1.0 - smoothstep(0.0, 0.004, min(rings, cross2))));
+            ld *= 0.8 + 0.4 * gr;
+            ld *= flick * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.8, 0.55), d5);
+            film = mix(film, ld, leader);
+        }
+        // C: la pantalla se tine de rojo
+        film = mix(film, film * vec3(1.3, 0.25, 0.2), crowd);
         col = film * 0.9;
     }
     // borde de la pantalla, levemente iluminado
@@ -207,7 +270,7 @@ vec4 render(vec2 uv) {
             float sp = 0.42 + fr3 * 0.08;
             float cx = (floor(p.x / sp + 0.5 + fr3 * 0.5) - fr3 * 0.5) * sp;
             float hh = hash21(vec2(cx, fr3));
-            float turn = step(0.92, hh) * turnE;
+            float turn = max(step(0.92, hh) * turnE, crowd * step(0.15, hh));   // C: casi todos
             vec2 hq = p - vec2(cx + (hh - 0.5) * 0.1, yb + 0.20 + hh * 0.05);
             float head = length(hq * vec2(1.0, 0.85)) - 0.085 - fr3 * 0.02;
             float hat = step(0.7, hh) * min(hkRBox(hq - vec2(0.0, 0.07), vec2(0.07, 0.04), 0.02), hkRBox(hq - vec2(0.0, 0.035), vec2(0.13, 0.008), 0.004));
@@ -219,7 +282,7 @@ vec4 render(vec2 uv) {
             float a = 1.0 - smoothstep(0.0, 0.004, sil);
             vec3 sc2 = vec3(0.004) + vec3(0.35) * bounce * exp(-max(-head, 0.0) * 30.0) * step(head, 0.01) * 0.5;
             // alguien se da vuelta: dos puntitos brillantes
-            sc2 += vec3(0.9, 0.85, 0.7) * turn * (1.0 - smoothstep(0.006, 0.012, length(vec2(abs(hq.x) - 0.03, hq.y + 0.005))));
+            sc2 += mix(vec3(0.9, 0.85, 0.7), vec3(1.0, 0.15, 0.08), crowd) * turn * (1.0 - smoothstep(0.006, 0.012, length(vec2(abs(hq.x) - 0.03, hq.y + 0.005))));
             col = mix(col, sc2, a * uD6);
         }
     }
