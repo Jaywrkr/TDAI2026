@@ -264,7 +264,7 @@ vec4 render(vec2 uv) {
         vec2 dq = pM - ic;
         float trace = smoothstep(0.15, 0.55, EG.y);                    // el trazo crece y se cierra
         float ang = atan(dq.y, dq.x * 0.6);
-        float infD = hkInfD(dq, 0.36);
+        float infD = hkInfD(dq, 0.36 * hkEggS);              // fase 39: mas chico
         float line = exp(-infD / 0.006) * EG.x * trace;
         glowSum += exp(-infD / 0.05) * EG.x * trace * 0.8;
         vec3 ic3 = mix(irisCol, vec3(1.0, 0.85, 0.4), 0.5);
@@ -272,7 +272,7 @@ vec4 render(vec2 uv) {
         eyeM[1] = max(eyeM[1], clamp(line, 0.0, 1.0));
         float bl = 1.0 - (1.0 - smoothstep(0.0, 0.04, abs(EG.y - 0.75))) * 0.9;   // un parpadeo
         for (int s = -1; s <= 1; s += 2) {
-            vec2 eq = (dq - vec2(float(s) * 0.245, 0.0)) / 0.10;
+            vec2 eq = (dq - vec2(float(s) * 0.245 * hkEggS, 0.0)) / (0.10 * hkEggS);
             eq.x *= float(s);
             vec2 e = hwEye(eq, EG.x * bl, vec2(-0.3, 0.0) * float(s), 0.0);
             vec3 c = mix(ic3 * 0.25, mix(ic3, vec3(1.0, 0.96, 0.8), 0.35), e.y) * (1.3 + bass * 0.5);
