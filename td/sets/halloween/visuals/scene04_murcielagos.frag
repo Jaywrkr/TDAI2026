@@ -164,17 +164,17 @@ vec4 render(vec2 uv) {
     // frente a la luna dibujando un infinito
     vec2 EG = hkEgg(4.0);
     if (EG.x > 0.0) {
-        float a = moonR * 1.05;
+        float a = moonR * 1.05 * hkEggS;                     // fase 39: mas chico
         vec2 bp = pS - mc - vec2(0.0, 0.12);
         if (abs(bp.x) < a * 1.25 && abs(bp.y) < a * 0.6) {
             float bd = 1e3;
             for (int i = 0; i < 30; i++) {
                 float ph = float(i) / 30.0 * 6.2832 + uRTime * 0.5;
-                vec2 q = (bp - hkInfPath(ph, a)) / 0.065;
+                vec2 q = (bp - hkInfPath(ph, a)) / (0.065 * hkEggS);
                 if (dot(q, q) > 2.0) continue;
-                bd = min(bd, hwBat(q, sin(uRTime * 14.0 + float(i) * 1.7)) * 0.065);
+                bd = min(bd, hwBat(q, sin(uRTime * 14.0 + float(i) * 1.7)) * 0.065 * hkEggS);
             }
-            float bm = (1.0 - smoothstep(0.0, 0.003, bd)) * EG.x * smoothstep(0.0, 0.25, EG.y);
+            float bm = (1.0 - smoothstep(0.0, 0.003, bd)) * smoothstep(0.0, 0.3, EG.x) * smoothstep(0.0, 0.25, EG.y);
             col = mix(col, vec3(0.015, 0.01, 0.02), bm);
         }
     }
