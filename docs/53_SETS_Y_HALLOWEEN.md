@@ -1,2 +1,2 @@
 
-| 07 fantasmas | Fantasmita y estela más chicos |
+| 08 araña | El ∞ tejido es más chico |

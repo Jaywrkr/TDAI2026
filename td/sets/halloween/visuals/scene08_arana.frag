@@ -210,7 +210,7 @@ vec4 render(vec2 uv) {
     // un infinito de hilo (primero un lazo, despues el otro) con rocio
     vec2 EG = hkEgg(8.0);
     if (EG.x > 0.0 && r < 0.6) {
-        float ia = 0.42;
+        float ia = 0.42 * hkEggS;                              // fase 39: mas chico
         float side = wp.x < 0.0 ? 0.0 : 1.0;
         vec2 lc = wp - vec2((side * 2.0 - 1.0) * ia * 0.62, 0.0);
         float ang = fract((atan(lc.y, -lc.x * (side * 2.0 - 1.0)) + PI) / TAU);
