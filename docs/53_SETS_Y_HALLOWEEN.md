@@ -953,3 +953,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 06 VHS | La tele muestra un cartel de videocasetera (letras blancas con sombra) **JAY ∞** y el reloj de la videocasetera dice **JAY∞** en vez de 12:00 |
 | 07 fantasmas | Un fantasmita da una vuelta en **∞** por el pasillo dejando una estela de luz, y se desvanece |
 | 08 araña | En el centro de la tela se teje un **∞** de hilo, primero un lazo y después el otro, con gotitas de rocío |
+| 09 tormenta | Entre las nubes queda un rayo quieto con forma de **J** que crepita sin destellar |
