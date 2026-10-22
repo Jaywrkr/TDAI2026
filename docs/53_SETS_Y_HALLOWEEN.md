@@ -1,2 +1,2 @@
 
-| 27 reloj | El ∞ sobre el VIII es más chico |
+| 28 bosque de faroles | ∞ más chico y estela más tenue |
