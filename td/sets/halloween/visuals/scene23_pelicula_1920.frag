@@ -286,5 +286,7 @@ vec4 render(vec2 uv) {
             col = mix(col, sc2, a * uD6);
         }
     }
+    // LUZ DE TECLA (fase 37): el proyector sube donde toca
+    col = hkKeyLit(col, p, 0.0, vec2(0.3, 0.8), vec3(1.0, 0.95, 0.85), vec3(1.0, 0.85, 0.6), 0.03, 0.8);
     return vec4(hkFinish(col, uv, vec3(0.3, 0.28, 0.25)), 1.0);
 }

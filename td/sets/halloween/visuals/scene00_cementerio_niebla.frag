@@ -584,5 +584,7 @@ vec4 render(vec2 uv) {
     col *= mix(vec3(1.0), vec3(1.05, 1.0, 0.93), smoothstep(0.35, 1.0, lum));
 
     col = audioLift(col, high * 0.10);
+    // LUZ DE TECLA (fase 37): el alma ilumina las lapidas
+    col = hkKeyLit(col, p0, -0.15, vec2(0.32, 0.55), vec3(0.45, 1.0, 0.75), vec3(0.75, 0.85, 1.0), 0.12, 1.8);
     return vec4(hkFinish(col, uv, vec3(0.5, 0.3, 0.8)), 1.0);
 }

@@ -543,5 +543,7 @@ vec4 render(vec2 uv) {
     }
 
     col = audioLift(col, high * 0.06);
+    // LUZ DE TECLA (fase 37): se prende una ventana
+    col = hkKeyLit(col, p, 0.0, vec2(0.25, 0.45), vec3(1.0, 0.7, 0.35), vec3(0.6, 0.9, 1.0), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.35, 0.3, 0.6)), 1.0);
 }

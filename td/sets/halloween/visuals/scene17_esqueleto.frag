@@ -324,5 +324,7 @@ vec4 render(vec2 uv) {
             }
         }
     }
+    // LUZ DE TECLA (fase 37): un foco por tecla
+    col = hkKeyLit(col, p, 0.0, vec2(0.22, 1.0), vec3(0.8, 0.85, 1.0), vec3(1.0, 0.4, 0.9), 0.04, 1.0);
     return vec4(hkFinish(col, uv, vec3(0.3, 0.3, 0.4)), 1.0);
 }

@@ -389,5 +389,7 @@ vec4 render(vec2 uv) {
     }
 
     col = audioLift(col, high * 0.06);
+    // LUZ DE TECLA (fase 37): columna roja donde cae la sangre
+    col = hkKeyLit(col, p, 0.1, vec2(0.18, 0.9), vec3(1.0, 0.12, 0.08), vec3(1.0, 0.35, 0.15), 0.02, 1.5);
     return vec4(hkFinish(col, uv, vec3(0.6, 0.05, 0.05)), 1.0);
 }

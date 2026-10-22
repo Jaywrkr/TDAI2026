@@ -414,5 +414,7 @@ vec4 render(vec2 uv) {
         col = mix(col, gc, em * giant);
     }
     col = audioLift(col, high * 0.08);
+    // LUZ DE TECLA (fase 37): los ojos tinen lo que los rodea
+    col = hkKeyLit(col, p0, -0.1, vec2(0.3, 0.35), vec3(1.0, 0.25, 0.1), vec3(1.0, 0.75, 0.2), 0.1, 1.0);
     return vec4(hkFinish(col, uv, vec3(0.3, 0.35, 0.6)), 1.0);
 }

@@ -238,5 +238,7 @@ vec4 render(vec2 uv) {
     col += (tubeC * sumT * 0.25 + 0.02) * drops * 1.5;
 
     col = audioLift(col, high * 0.05);
+    // LUZ DE TECLA (fase 37): el tubo de esa zona se prende
+    col = hkKeyLit(col, p, -0.05, vec2(0.3, 0.6), vec3(0.7, 1.0, 0.85), vec3(0.9, 1.0, 1.0), 0.04, 1.0);
     return vec4(hkFinish(col, uv, vec3(0.35, 0.5, 0.5)), 1.0);
 }

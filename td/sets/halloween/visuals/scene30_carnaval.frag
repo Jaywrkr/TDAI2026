@@ -284,5 +284,7 @@ vec4 render(vec2 uv) {
     }
 
     col = audioLift(col, high * 0.05);
+    // LUZ DE TECLA (fase 37): luces de feria
+    col = hkKeyLit(col, p, 0.05, vec2(0.3, 0.55), vec3(1.0, 0.3, 0.5), vec3(0.3, 0.8, 1.0), 0.04, 1.0);
     return vec4(hkFinish(col, uv, vec3(0.5, 0.3, 0.5)), 1.0);
 }

@@ -323,5 +323,7 @@ vec4 render(vec2 uv) {
         vec2 fq = p - vec2((D.w - 0.5) * 4.0 + 0.3 * sin(D.y * 7.0), -0.35 + 0.15 * sin(D.y * 11.0));
         col += glowC * exp(-dot(fq, fq) * 20000.0) * D.x * (0.6 + 0.4 * sin(uRTime * 4.0)) * 1.5;
     }
+    // LUZ DE TECLA (fase 37): la tierra brilla verde donde sale la mano
+    col = hkKeyLit(col, p, -0.4, vec2(0.3, 0.45), vec3(0.4, 1.0, 0.5), vec3(0.7, 1.0, 0.4), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.15, 0.4, 0.2)), 1.0);
 }

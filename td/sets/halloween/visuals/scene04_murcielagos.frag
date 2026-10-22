@@ -426,5 +426,7 @@ vec4 render(vec2 uv) {
     col = mix(col, nc, nr.a);
 
     col = audioLift(col, high * 0.08);
+    // LUZ DE TECLA (fase 37): la bandada brilla contra el cielo
+    col = hkKeyLit(col, p0, 0.05, vec2(0.28, 0.6), vec3(0.75, 0.55, 1.0), vec3(1.0, 0.8, 0.55), 0.05, 1.5);
     return vec4(hkFinish(col, uv, vec3(0.35, 0.3, 0.8)), 1.0);
 }
