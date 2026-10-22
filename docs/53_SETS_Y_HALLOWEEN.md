@@ -1,2 +1,2 @@
 
-| 17 esqueleto | El ∞ de la cadera es más chico |
+| 18 túnel de calaveras | JAY y ∞ de calaveras más chicos |
