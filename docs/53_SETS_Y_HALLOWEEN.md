@@ -1007,3 +1007,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 00 cementerio | Epitafio más chico y tenue en la lápida |
 
 | 01 calabaza | La boca queda como está; aparece un **∞** chico tallado entre los ojos |
+| 02 neón | El cartel JAY es más chico y tenue |
