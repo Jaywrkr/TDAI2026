@@ -350,6 +350,21 @@ vec4 render(vec2 uv) {
             col += hwTube(d * 0.20, nCol, se * buzzN, w * 0.8, haloW);
         }
     }
+    // EASTER EGG "JAY INFINITO" (fase 38): un cartel de neon viejo se
+    // prende con zumbido y se lee "JA_"; la Y llega tarde y se queda
+    vec2 EG = hkEgg(2.0);
+    if (EG.x > 0.0) {
+        vec2 jq = (p - vec2(0.85, 0.66)) / 0.15;
+        if (abs(jq.x) < 2.2 && abs(jq.y) < 1.2) {
+            float buzz = mix(step(0.35, hash21(vec2(floor(uRTime * 4.0), 9.0))), 1.0, smoothstep(0.2, 0.35, EG.y));
+            for (int k = 0; k < 3; k++) {
+                int c = k == 0 ? 74 : (k == 1 ? 65 : 89);
+                float d = hkText(jq - vec2(float(k - 1) * 0.85, 0.0), int[16](c, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.15;
+                float on = k < 2 ? buzz : smoothstep(0.62, 0.70, EG.y);
+                col += hwTube(d, palV, EG.x * on, w * 0.8, haloW);
+            }
+        }
+    }
     // columnas de calaveritas en cadena
     if (abs(p.x) > 2.05) {
         float side = sign(p.x);
