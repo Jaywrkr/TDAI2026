@@ -306,7 +306,7 @@ vec4 render(vec2 uv) {
     vec2 EG = hkEgg(25.0);
     if (EG.x > 0.0) {
         vec2 sealC = vec2(IC.x + HS.x + 0.34, 0.30);
-        vec2 q = p - sealC;
+        vec2 q = (p - sealC) / hkEggS;                       // fase 39: sello mas chico
         if (abs(q.x) < 0.5 && abs(q.y) < 0.28) {
             float r = length(q);
             float ring = abs(r - 0.17) - 0.006;
@@ -320,7 +320,7 @@ vec4 render(vec2 uv) {
             col = mix(col, col * 0.3, m);
             col += vec3(1.0, 0.35, 0.10) * m * (0.6 + bass * 0.6) + vec3(1.0, 0.3, 0.1) * exp(-max(d, 0.0) / 0.02) * 0.10 * burn * EG.x;
         }
-        float dj = hkText((p - sealC - vec2(0.0, -0.30)) / 0.07, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.07;
+        float dj = hkText((p - sealC - vec2(0.0, -0.30) * hkEggS) / (0.07 * hkEggS), int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.07 * hkEggS;
         float mj = (1.0 - smoothstep(0.004, 0.008, dj)) * smoothstep(0.35, 0.6, EG.y) * EG.x;
         col = mix(col, vec3(1.0, 0.45, 0.15) * (0.7 + bass * 0.5), mj);
     }

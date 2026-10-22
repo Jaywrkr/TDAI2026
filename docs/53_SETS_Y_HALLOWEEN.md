@@ -1030,3 +1030,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 22 se quema | En susurro el ∞ queda solo chamuscado (sin llama); arde en el nivel visible |
 | 23 película 1920 | Ya no es un intertítulo entero: un crédito chico abajo del cuadro, **JAY INFINITO ∞** |
 | 24 sangra | El ∞ de sangre es más chico |
+| 25 posesión | El sello es más chico |
