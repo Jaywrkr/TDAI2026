@@ -329,7 +329,7 @@ vec4 render(vec2 uv) {
     vec2 EG = hkEgg(15.0);
     if (EG.x > 0.0) {
         vec2 ic = vec2(0.0, 0.02);
-        float ia = 0.42;
+        float ia = 0.42 * hkEggS;                              // fase 39: mas chico
         vec2 iq = p - ic;
         if (abs(iq.x) < ia * 1.3 && abs(iq.y) < ia * 0.6) {
             float tEnd = smoothstep(0.05, 0.55, EG.y) * 6.2832;
@@ -342,7 +342,7 @@ vec4 render(vec2 uv) {
                 prev = cur;
             }
             float trail = exp(-dmin / 0.010) + exp(-dmin / 0.05) * 0.25;
-            col += glowC * trail * EG.x * 1.3;
+            col += glowC * trail * EG.x * 0.75;
             float head = exp(-length(iq - prev) / 0.025) * step(EG.y, 0.6);
             col += vec3(0.85, 1.0, 0.85) * head * EG.x * 1.5;
         }
