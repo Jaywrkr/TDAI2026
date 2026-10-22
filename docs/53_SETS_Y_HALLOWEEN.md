@@ -1036,3 +1036,8 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 28 bosque de faroles | ∞ más chico y estela más tenue |
 | 29 morgue | Ya era chico: el pie y la etiqueta no quedan a medias |
 | 30 carnaval | ∞ de focos y cartel JAY'S más chicos |
+
+Hoja del nivel susurro (el que sale 2 de cada 3 veces): `docs/img/jay_easter_eggs_susurro.jpg`
+(`python3 td/tools/render_jay.py hoja.png --susurro`). Pruebas: `render_jay.py --check` y
+`test_jay.py` pasan en las 31 escenas; validación de shaders sin errores. En TD: **Reconstruir Todo**
+(cambia common.glsl y todas las escenas). Aspecto real y FPS: probar en el TouchDesigner.
