@@ -117,6 +117,14 @@ vec4 render(vec2 uv) {
         f = min(f, length((m - sp) * vec2(ia, 1.0)) * 2.2 + 0.5 - hit * loco * 0.6);
     }
     float burnt = b - f;                                  // >0 ya quemado
+    // EASTER EGG "JAY INFINITO" (fase 38): una brasa recorre la foto y deja
+    // quemado un infinito (con el borde encendido); al final se apaga
+    vec2 EG = hkEgg(22.0);
+    if (EG.x > 0.0) {
+        float di = hkInfD((m - vec2(0.5, 0.5)) * vec2(ia, 1.0), 0.33 * max(ia, 1.0) * 0.9);
+        float infB = mix(-0.2, 0.05, smoothstep(0.05, 0.45, EG.y)) - di * 1.2;
+        burnt = max(burnt, mix(-1.0, infB, EG.x));
+    }
 
     // --- mesa ---
     vec2 wq = p * vec2(1.0, 6.0);
