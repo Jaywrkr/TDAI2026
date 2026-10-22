@@ -948,3 +948,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 01 calabaza | La boca tallada pasa a ser un **∞** por el que sale la luz de adentro |
 | 02 neón | Un cartel de neón viejo se prende con zumbido y se lee **JA_**; la **Y** llega tarde y se queda |
 | 03 ojos | Un par de ojos se abre en el medio de la oscuridad y el brillo de sus miradas traza un **∞** alrededor; parpadean una vez |
+| 04 murciélagos | Una fila de 30 murciélagos vuela frente a la luna dibujando un **∞**; la bandada normal deja libre la luna mientras tanto |
