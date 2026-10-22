@@ -970,3 +970,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 23 película 1920 | Aparece un intertítulo de cine mudo: **JAY INFINITO / PRESENTA** con un **∞** de adorno |
 | 24 sangra | En la pared, a la derecha de la imagen, la sangre corre dibujando un **∞** y después chorrea |
 | 25 posesión | Junto a la imagen aparece un sello quemado en la pared: un círculo de runas con un **∞** adentro y **JAY** debajo, que brilla como brasa |
+| 26 mansión | Las cuatro ventanas del medio del primer piso se prenden de a una y en cada vidrio hay una letra a contraluz: **J · A · Y · ∞** |

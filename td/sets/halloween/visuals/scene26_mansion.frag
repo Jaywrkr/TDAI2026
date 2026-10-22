@@ -316,6 +316,10 @@ vec4 render(vec2 uv) {
             if (dd < best) { best = dd; keyWin[k] = j; }
         }
     }
+    // EASTER EGG "JAY INFINITO" (fase 38): las cuatro ventanas del medio
+    // del primer piso se prenden de a una y en cada vidrio hay una letra
+    // pintada a contraluz: J, A, Y y el infinito
+    vec2 EG = hkEgg(26.0);
     for (int i = 0; i < MN_NW; i++) {
         vec4 w = MN_WIN[i];
         // lejos de esta ventana no llega ni su luz: nada que calcular
@@ -368,6 +372,9 @@ vec4 render(vec2 uv) {
                 sharp = max(sharp, keyVel(k));
             }
         }
+        int egL = (i >= 5 && i <= 8) ? i - 5 : -1;
+        float egK = egL >= 0 ? EG.x * smoothstep(0.05 + float(egL) * 0.12, 0.15 + float(egL) * 0.12, EG.y) : 0.0;
+        if (egK > 0.0) L = max(L, egK * 1.3);
         float wl = 0.0;
         for (int k = 0; k < 6; k++) {
             if (MN_WALK[k] == i) wl = cA * exp(-pow((walk - float(k)) * 1.5, 2.0)) * step(0.0, cph) * step(cph, 0.7);
@@ -397,6 +404,12 @@ vec4 render(vec2 uv) {
             room *= 0.88 + 0.12 * step(0.5, fract(q.x * 3.0 + 0.2 * sin(q.y * 9.0 + fi)));
             room *= mix(0.55, 1.0, smoothstep(-0.75, -0.65, q.y));            // piso
             room *= 1.0 - 0.92 * shadowK;                                       // la sombra que pasa
+            if (egK > 0.0) {
+                vec2 lq = q * w.zw / 0.115;
+                int ch = egL == 0 ? 74 : (egL == 1 ? 65 : (egL == 2 ? 89 : 8));
+                float dl = hkText(lq, int[16](ch, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1);
+                room = mix(room, room * 0.04, (1.0 - smoothstep(0.08, 0.14, dl)) * egK);
+            }
             // la silueta tapa la luz del cuarto (entre las cortinas)
             if (S > 0.002) {
                 float blur = mix(0.20, 0.025, clamp(sharp, 0.0, 1.0));
