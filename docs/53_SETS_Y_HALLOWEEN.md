@@ -1,2 +1,2 @@
 
-| 11 caldero | El ∞ de vapor es más chico y tenue |
+| 12 momia | La venda en J es más chica |
