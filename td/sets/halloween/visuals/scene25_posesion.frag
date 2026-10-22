@@ -300,6 +300,30 @@ vec4 render(vec2 uv) {
         col *= 1.0 - side * uD6 * 0.85;
     }
 
+    // EASTER EGG "JAY INFINITO" (fase 38): junto a la imagen aparece un sello
+    // quemado en la pared: un circulo de runas con un infinito adentro y
+    // JAY debajo, que brilla como brasa
+    vec2 EG = hkEgg(25.0);
+    if (EG.x > 0.0) {
+        vec2 sealC = vec2(IC.x + HS.x + 0.34, 0.30);
+        vec2 q = p - sealC;
+        if (abs(q.x) < 0.5 && abs(q.y) < 0.28) {
+            float r = length(q);
+            float ring = abs(r - 0.17) - 0.006;
+            float ra = atan(q.y, q.x) / 6.2832 + 0.5;
+            float tick = abs(fract(ra * 16.0) - 0.5) * 0.17 * 6.2832 / 16.0 * 2.0;
+            ring = min(ring, max(abs(r - 0.205) - 0.004, tick - 0.006));
+            float inf = hkInfD(q / 0.11, 0.85) * 0.11 - 0.008;
+            float d = min(ring, inf);
+            float burn = smoothstep(0.05, 0.4, EG.y);
+            float m = (1.0 - smoothstep(0.0, 0.006, d)) * burn * EG.x;
+            col = mix(col, col * 0.3, m);
+            col += vec3(1.0, 0.35, 0.10) * m * (0.6 + bass * 0.6) + vec3(1.0, 0.3, 0.1) * exp(-max(d, 0.0) / 0.02) * 0.10 * burn * EG.x;
+        }
+        float dj = hkText((p - sealC - vec2(0.0, -0.30)) / 0.07, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.07;
+        float mj = (1.0 - smoothstep(0.004, 0.008, dj)) * smoothstep(0.35, 0.6, EG.y) * EG.x;
+        col = mix(col, vec3(1.0, 0.45, 0.15) * (0.7 + bass * 0.5), mj);
+    }
     // --- candelabros y velas (adelante) ---
     for (int k = 0; k < 6; k++) {
         float fk = float(k);
