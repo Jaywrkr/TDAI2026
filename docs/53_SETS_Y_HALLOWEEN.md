@@ -1,2 +1,2 @@
 
-| 26 mansión | Letras más chicas y menos luz en las ventanas |
+| 27 reloj | El ∞ sobre el VIII es más chico |
