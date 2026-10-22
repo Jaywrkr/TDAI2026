@@ -310,6 +310,36 @@ vec4 render(vec2 uv) {
         vec2 gq = (p - vec2(gx, mix(IC.y + 0.2, FLOOR, D.y * D.y))) / vec2(1.0, 1.4);
         splat = max(splat, (1.0 - smoothstep(0.018, 0.024, length(gq))) * D.x);
     }
+    // EASTER EGG "JAY INFINITO" (fase 38): en la pared, a la derecha de la
+    // imagen, la sangre corre dibujando un infinito y despues chorrea
+    vec2 EG = hkEgg(24.0);
+    if (EG.x > 0.0) {
+        vec2 ic = vec2(IC.x + HS.x + 0.55, IC.y + 0.25);
+        vec2 iq = p - ic;
+        if (abs(iq.x) < 0.6 && iq.y > -1.2 && iq.y < 0.35) {
+            float ia = 0.36;
+            // el trazo avanza por el recorrido del infinito
+            float tEnd = smoothstep(0.05, 0.5, EG.y) * 6.2832;
+            float dmin = 1e3;
+            vec2 prev = hkInfPath(-1.5708, ia);
+            for (int i = 1; i <= 36; i++) {
+                vec2 cur = hkInfPath(-1.5708 + tEnd * float(i) / 36.0, ia);
+                dmin = min(dmin, hkSeg(iq, prev, cur));
+                prev = cur;
+            }
+            float st = 1.0 - smoothstep(0.016, 0.024, dmin + (noise21(iq * 40.0) - 0.5) * 0.008);
+            // chorreado debajo de cada lazo
+            for (int k = 0; k < 3; k++) {
+                float fx = (float(k) - 1.0) * 0.26 + 0.05 * sin(float(k) * 5.0);
+                float run = smoothstep(0.45, 1.0, EG.y) * (0.25 + 0.15 * fract(float(k) * 0.61));
+                float y0 = -0.06, y1 = y0 - run;
+                float dd = max(abs(iq.x - fx) - 0.008, max(iq.y - y0, y1 - iq.y));
+                dd = min(dd, length((iq - vec2(fx, y1)) / vec2(1.0, 1.3)) - 0.015);
+                st = max(st, (1.0 - smoothstep(0.0, 0.004, dd)) * step(0.01, run));
+            }
+            splat = max(splat, st * EG.x);
+        }
+    }
     float blood = clamp(max(dripA, splat), 0.0, 1.0);
     vec3 bloodC = vec3(0.28, 0.012, 0.015) * (0.6 + 0.4 * L * 3.0);
     bloodC += vec3(0.9, 0.5, 0.5) * pow(max(0.0, 1.0 - abs(fract(p.x / 0.028) - 0.4) * 4.0), 6.0) * (0.15 + high * 0.4) * lamp * dripA;   // brillo humedo
