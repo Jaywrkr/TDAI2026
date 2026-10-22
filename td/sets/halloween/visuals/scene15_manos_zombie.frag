@@ -323,6 +323,30 @@ vec4 render(vec2 uv) {
         vec2 fq = p - vec2((D.w - 0.5) * 4.0 + 0.3 * sin(D.y * 7.0), -0.35 + 0.15 * sin(D.y * 11.0));
         col += glowC * exp(-dot(fq, fq) * 20000.0) * D.x * (0.6 + 0.4 * sin(uRTime * 4.0)) * 1.5;
     }
+    // EASTER EGG "JAY INFINITO" (fase 38): una chispa verde de la tumba
+    // dibuja en el aire un infinito sobre las manos (como si una lo trazara
+    // con el dedo) y queda brillando hasta apagarse
+    vec2 EG = hkEgg(15.0);
+    if (EG.x > 0.0) {
+        vec2 ic = vec2(0.0, 0.02);
+        float ia = 0.42;
+        vec2 iq = p - ic;
+        if (abs(iq.x) < ia * 1.3 && abs(iq.y) < ia * 0.6) {
+            float tEnd = smoothstep(0.05, 0.55, EG.y) * 6.2832;
+            float dmin = 1e3;
+            vec2 prev = hkInfPath(-1.5708, ia);
+            for (int i = 1; i <= 40; i++) {
+                float tt = -1.5708 + tEnd * float(i) / 40.0;
+                vec2 cur = hkInfPath(tt, ia);
+                dmin = min(dmin, hkSeg(iq, prev, cur));
+                prev = cur;
+            }
+            float trail = exp(-dmin / 0.010) + exp(-dmin / 0.05) * 0.25;
+            col += glowC * trail * EG.x * 1.3;
+            float head = exp(-length(iq - prev) / 0.025) * step(EG.y, 0.6);
+            col += vec3(0.85, 1.0, 0.85) * head * EG.x * 1.5;
+        }
+    }
     // LUZ DE TECLA (fase 37): la tierra brilla verde donde sale la mano
     col = hkKeyLit(col, p, -0.4, vec2(0.3, 0.45), vec3(0.4, 1.0, 0.5), vec3(0.7, 1.0, 0.4), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.15, 0.4, 0.2)), 1.0);
