@@ -974,3 +974,19 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 27 reloj | Las agujas van a las **3:33** y el número VIII de la esfera se acuesta: queda un **∞** encendido |
 | 28 bosque de faroles | Dos faroles se sueltan y flotan cruzándose; sus luces dejan dibujado un **∞** en el aire |
 | 29 morgue | En la camilla de adelante asoma un pie por debajo de la sábana con la etiqueta colgando: **J.INFINITO** |
+| 30 carnaval | Dentro de la rueda de la fortuna se prende una guirnalda de focos con forma de **∞**, en carrera, y arriba un cartelito de feria: **JAY'S** |
+
+![Los 31 easter eggs](img/jay_easter_eggs.jpg)
+
+**Pruebas fuera de TD:**
+- **Escenas:** `test_jay.py` da OK en las 31. Cada easter egg cambia entre el 0,2 % (los más escondidos: la etiqueta de la morgue y la tele del VHS) y el 12 % de la pantalla, y ninguno suma destellos.
+- **Herramienta:** `render_jay.py` mide en otro instante si en el primero la escena está a oscuras por un suceso propio (el apagón del carnaval).
+- **Resto:** `validate_shaders` sin errores en los dos sets, la compilación para Metal también, y las demás pruebas en OK.
+
+**Costo:** fuera de los 5 s del easter egg, una cuenta por cuadro (`hkEgg`). Durante el easter egg, lo que dibuja cada escena (texto o ∞) solo en su zona de la pantalla.
+
+**En TD:**
+- **Pad 9:** hay que aprenderlo una vez (MIDI Learn de "Pad 9: Easter egg JAY INFINITO").
+- **Botón:** **Capas > Lanzar easter egg** lo muestra ya, sin MIDI.
+- **Reconstruir Todo:** canal nuevo `secret`, parámetros `Secreton` y `Secretoya`, y cambios en `common.glsl` y en los 31 `.frag`.
+

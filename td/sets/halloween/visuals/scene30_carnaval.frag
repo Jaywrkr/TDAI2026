@@ -250,6 +250,31 @@ vec4 render(vec2 uv) {
         }
     }
 
+    // --- EASTER EGG "JAY INFINITO" (fase 38): dentro de la rueda se prende
+    // una guirnalda de focos con forma de infinito, que se va encendiendo
+    // en carrera, y arriba del infinito un cartelito de feria: JAY'S ---
+    vec2 EG = hkEgg(30.0);
+    if (EG.x > 0.0) {
+        vec2 wcE = CV_WHEEL.xy;
+        vec2 iq = p - wcE;
+        if (abs(iq.x) < CV_WHEEL.z && abs(iq.y) < CV_WHEEL.z * 0.6) {
+            float ia = CV_WHEEL.z * 0.78;
+            for (int i = 0; i < 30; i++) {
+                float fi = float(i);
+                vec2 bp = hkInfPath(fi / 30.0 * 6.2831853, ia);
+                float on = step(fi / 30.0, smoothstep(0.05, 0.45, EG.y) * 1.02) * (0.75 + 0.25 * step(0.5, fract(uRTime * 2.0 + fi * 0.5)));
+                col += cvBulb(length(iq - bp), on * EG.x, mix(fair, hsv2rgb(vec3(fract(fi * 0.11 + hue), 0.55, 1.0)), 0.5), 0.9);
+            }
+        }
+        vec2 sq = p - (wcE + vec2(0.0, CV_WHEEL.z * 0.56));
+        if (abs(sq.x) < 0.30 && abs(sq.y) < 0.10) {
+            float plaque = hkBox(sq, vec2(0.25, 0.075)) - 0.01;
+            float dj = hkText(sq / 0.085, int[16](74, 65, 89, 39, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5) * 0.085;
+            float lit = smoothstep(0.4, 0.6, EG.y) * EG.x;
+            col = mix(col, vec3(0.35, 0.05, 0.06) * (0.3 + glow * 1.5), (1.0 - smoothstep(0.0, 0.004, plaque)) * EG.x);
+            col += mix(fair, vec3(1.0, 0.85, 0.55), 0.5) * (1.0 - smoothstep(0.004, 0.009, dj)) * lit * 1.4;
+        }
+    }
     // --- chispas del cable suelto (agudos; lluvia de chispas en el gran climax) ---
     float sd = length(p - CABLE);
     if (sd < 0.6 || grand > 0.0) {
