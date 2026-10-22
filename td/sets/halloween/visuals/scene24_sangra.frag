@@ -317,7 +317,7 @@ vec4 render(vec2 uv) {
         vec2 ic = vec2(IC.x + HS.x + 0.55, IC.y + 0.25);
         vec2 iq = p - ic;
         if (abs(iq.x) < 0.6 && iq.y > -1.2 && iq.y < 0.35) {
-            float ia = 0.36;
+            float ia = 0.36 * hkEggS;                          // fase 39: mas chico
             // el trazo avanza por el recorrido del infinito
             float tEnd = smoothstep(0.05, 0.5, EG.y) * 6.2832;
             float dmin = 1e3;
