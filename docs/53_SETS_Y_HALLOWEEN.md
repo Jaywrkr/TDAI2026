@@ -1031,3 +1031,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 23 película 1920 | Ya no es un intertítulo entero: un crédito chico abajo del cuadro, **JAY INFINITO ∞** |
 | 24 sangra | El ∞ de sangre es más chico |
 | 25 posesión | El sello es más chico |
+| 26 mansión | Letras más chicas y menos luz en las ventanas |

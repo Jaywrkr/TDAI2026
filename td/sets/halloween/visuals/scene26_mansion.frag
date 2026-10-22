@@ -373,8 +373,8 @@ vec4 render(vec2 uv) {
             }
         }
         int egL = (i >= 5 && i <= 8) ? i - 5 : -1;
-        float egK = egL >= 0 ? EG.x * smoothstep(0.05 + float(egL) * 0.12, 0.15 + float(egL) * 0.12, EG.y) : 0.0;
-        if (egK > 0.0) L = max(L, egK * 1.3);
+        float egK = egL >= 0 ? smoothstep(0.0, 0.3, EG.x) * smoothstep(0.05 + float(egL) * 0.12, 0.15 + float(egL) * 0.12, EG.y) : 0.0;
+        if (egK > 0.0) L = max(L, egK * 0.75);                // fase 39: menos luz
         float wl = 0.0;
         for (int k = 0; k < 6; k++) {
             if (MN_WALK[k] == i) wl = cA * exp(-pow((walk - float(k)) * 1.5, 2.0)) * step(0.0, cph) * step(cph, 0.7);
@@ -405,7 +405,7 @@ vec4 render(vec2 uv) {
             room *= mix(0.55, 1.0, smoothstep(-0.75, -0.65, q.y));            // piso
             room *= 1.0 - 0.92 * shadowK;                                       // la sombra que pasa
             if (egK > 0.0) {
-                vec2 lq = q * w.zw / 0.115;
+                vec2 lq = q * w.zw / (0.115 * hkEggS);           // fase 39: letras mas chicas
                 int ch = egL == 0 ? 74 : (egL == 1 ? 65 : (egL == 2 ? 89 : 8));
                 float dl = hkText(lq, int[16](ch, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1);
                 room = mix(room, room * 0.04, (1.0 - smoothstep(0.08, 0.14, dl)) * egK);
