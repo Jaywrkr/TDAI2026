@@ -238,6 +238,31 @@ vec4 render(vec2 uv) {
     col += (tubeC * sumT * 0.25 + 0.02) * drops * 1.5;
 
     col = audioLift(col, high * 0.05);
+    // EASTER EGG "JAY INFINITO" (fase 38): en la camilla de adelante asoma un
+    // pie por debajo de la sabana con la etiqueta colgando: "J.INFINITO"
+    vec2 EG = hkEgg(29.0);
+    if (EG.x > 0.0) {
+        vec3 lt = light * 1.6 + 0.05;
+        vec2 fq = p - vec2(0.42, -0.205);
+        float foot = length((fq - vec2(-0.02, 0.0)) / vec2(0.055, 0.032)) - 1.0;
+        for (int k = 0; k < 4; k++) foot = min(foot, length((fq - vec2(0.03, 0.022 - float(k) * 0.016)) / vec2(0.016, 0.009)) - 1.0);
+        float out_ = smoothstep(0.0, 0.25, EG.y) * EG.x;
+        col = mix(col, vec3(0.62, 0.66, 0.60) * lt, (1.0 - smoothstep(0.0, 0.08, foot)) * out_);
+        // hilo y etiqueta de carton que se balancea
+        float sw = 0.12 * sin(uRTime * 1.8) * (1.0 - EG.y);
+        vec2 knot = vec2(0.455, -0.22);
+        vec2 tc = knot + vec2(sin(sw), -cos(sw)) * 0.07;
+        float str = hkSeg(p, knot, tc) - 0.0015;
+        vec2 tq = p - tc - vec2(0.0, -0.035);
+        tq = mat2(cos(sw), sin(sw), -sin(sw), cos(sw)) * tq;
+        float tag = hkBox(tq, vec2(0.125, 0.032));
+        float dt = hkText((tq - vec2(0.008, 0.0)) / 0.024, int[16](74, 46, 73, 78, 70, 73, 78, 73, 84, 79, 0, 0, 0, 0, 0, 0), 10) * 0.024;
+        vec3 tagC = vec3(0.78, 0.66, 0.42) * lt;
+        tagC = mix(tagC, vec3(0.05, 0.04, 0.06), 1.0 - smoothstep(0.0012, 0.0028, dt));
+        tagC *= 1.0 - (1.0 - smoothstep(0.004, 0.006, length(tq - vec2(-0.112, 0.0)))) * 0.7;     // el ojalillo
+        col = mix(col, vec3(0.3) * lt, (1.0 - smoothstep(0.0, 0.002, str)) * out_);
+        col = mix(col, tagC, (1.0 - smoothstep(0.0, 0.002, tag)) * out_);
+    }
     // LUZ DE TECLA (fase 37): el tubo de esa zona se prende
     col = hkKeyLit(col, p, -0.05, vec2(0.3, 0.6), vec3(0.7, 1.0, 0.85), vec3(0.9, 1.0, 1.0), 0.04, 1.0);
     return vec4(hkFinish(col, uv, vec3(0.35, 0.5, 0.5)), 1.0);
