@@ -210,6 +210,16 @@ vec4 render(vec2 uv) {
         col += vec3(1.0, 0.12, 0.05) * (an.b * 3.0 + 0.18) * keyRing * exp(-th * 0.05);
         float wink = dv == 0 && abs(hash21(cell + 7.0) - D.w) < 0.06 ? 1.0 - D.x * step(0.4, D.y) * (1.0 - step(0.6, D.y)) : 1.0;
         col += lightC * an.b * on * wink * (0.35 + bass * 0.6 + high * 0.4 * sin(t * 20.0 + cell.x)) * exp(-th * 0.10);
+        // EASTER EGG "JAY INFINITO" (fase 38): las calaveras de la pared de la
+        // izquierda que caen dentro de JAY se encienden en rojo (ojos y
+        // hueso), y en la de la derecha las de un infinito
+        vec2 EG = hkEgg(18.0);
+        if (EG.x > 0.0) {
+            float dt = min(hkText((p - vec2(-1.70, 0.30)) / 0.62, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3),
+                           hkInfD((p - vec2(1.70, 0.30)) / 0.62, 0.80));
+            float inside = (1.0 - smoothstep(0.09, 0.14, dt)) * EG.x;
+            col = mix(col, vec3(1.0, 0.10, 0.04) * (0.10 + alb * 5.0 + an.b * 3.0) * (0.8 + bass * 0.4), inside * 0.85);
+        }
     }
     // antorchas visibles (llama y soporte)
     for (int k = -1; k <= 2; k++) {
