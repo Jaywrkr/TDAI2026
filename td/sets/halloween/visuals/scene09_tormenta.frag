@@ -223,6 +223,20 @@ vec4 render(vec2 uv) {
     float core = 1.0 - smoothstep(px * 0.8, px * 2.2, d);
     float glow = exp(-d * 60.0) * 0.6 + exp(-d * 12.0) * 0.25;
     col += (vec3(1.0) * core + boltC * glow) * flick * (0.8 + uD4 * 1.2);
+    // EASTER EGG "JAY INFINITO" (fase 38): entre las nubes queda un rayo
+    // quieto con forma de J (crepita, pero sin destellar)
+    vec2 EG = hkEgg(9.0);
+    if (EG.x > 0.0) {
+        vec2 jc = vec2(-0.95, 0.68), jq = (p - jc) / 0.42;
+        if (abs(jq.x) < 1.0 && abs(jq.y) < 1.0) {
+            jq.x += (noise21(vec2(jq.y * 9.0, 4.0)) - 0.5) * 0.10 + (noise21(vec2(jq.y * 31.0, 8.0)) - 0.5) * 0.03;
+            jq.y += (noise21(vec2(jq.x * 9.0, 6.0)) - 0.5) * 0.08;
+            float dj = hkText(jq, int[16](74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.42;
+            float crack = 0.85 + 0.15 * step(0.5, hash21(vec2(floor(rt * 2.0), 31.0)));
+            float cj = 1.0 - smoothstep(px * 0.8, px * 2.4, dj);
+            col += (vec3(1.0) * cj + boltC * (exp(-dj * 60.0) * 0.6 + exp(-dj * 12.0) * 0.2)) * EG.x * crack;
+        }
+    }
     // rayos del piano
     for (int k = 0; k < N_KEYS; k++) {
         float e = keyEnv(k, 0.01, 0.35);
