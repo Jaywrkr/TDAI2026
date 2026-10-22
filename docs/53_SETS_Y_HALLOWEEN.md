@@ -1,2 +1,2 @@
 
-| 18 túnel de calaveras | JAY y ∞ de calaveras más chicos |
+| 19 glitch demoníaco | El cartel de canal es más chico |
