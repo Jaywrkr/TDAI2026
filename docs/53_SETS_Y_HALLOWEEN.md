@@ -965,3 +965,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 18 túnel de calaveras | Las calaveras de la pared izquierda que caen dentro de **JAY** se encienden en rojo, y en la derecha las de un **∞** |
 | 19 glitch demoníaco | Aparece un cartel de canal de los de antes, con colores corridos: **CANAL ∞ - JAY** |
 | 20 galería | Bajo un cuadro aparece una placa de bronce con letras grabadas: **J.INFINITO 1666** |
+| 21 espejo | El espejo se empaña y alguien escribe con el dedo un **∞** y debajo **JAY**; el borde de cada trazo queda mojado y brilla |
