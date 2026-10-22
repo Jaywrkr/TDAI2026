@@ -227,11 +227,11 @@ vec4 render(vec2 uv) {
     // quieto con forma de J (crepita, pero sin destellar)
     vec2 EG = hkEgg(9.0);
     if (EG.x > 0.0) {
-        vec2 jc = vec2(-0.95, 0.68), jq = (p - jc) / 0.42;
+        vec2 jc = vec2(-0.95, 0.68), jq = (p - jc) / (0.42 * hkEggS);   // fase 39: mas chico
         if (abs(jq.x) < 1.0 && abs(jq.y) < 1.0) {
             jq.x += (noise21(vec2(jq.y * 9.0, 4.0)) - 0.5) * 0.10 + (noise21(vec2(jq.y * 31.0, 8.0)) - 0.5) * 0.03;
             jq.y += (noise21(vec2(jq.x * 9.0, 6.0)) - 0.5) * 0.08;
-            float dj = hkText(jq, int[16](74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.42;
+            float dj = hkText(jq, int[16](74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.42 * hkEggS;
             float crack = 0.85 + 0.15 * step(0.5, hash21(vec2(floor(rt * 2.0), 31.0)));
             float cj = 1.0 - smoothstep(px * 0.8, px * 2.4, dj);
             col += (vec3(1.0) * cj + boltC * (exp(-dj * 60.0) * 0.6 + exp(-dj * 12.0) * 0.2)) * EG.x * crack;

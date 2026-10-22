@@ -1,2 +1,2 @@
 
-| 08 araña | El ∞ tejido es más chico |
+| 09 tormenta | La J de rayo es más chica y tenue |
