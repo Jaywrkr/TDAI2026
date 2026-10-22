@@ -383,7 +383,7 @@ vec4 render(vec2 uv) {
     // "JAY" y un infinito, y el reloj de la videocasetera dice JAY8
     vec2 EG = hkEgg(6.0);
     if (EG.x > 0.0) {
-        vec2 oq = (p - SCR_C - vec2(-SCR_H.x * 0.28, SCR_H.y * 0.52)) / (SCR_H.y * 0.27);
+        vec2 oq = (p - SCR_C - vec2(-SCR_H.x * 0.28, SCR_H.y * 0.52)) / (SCR_H.y * 0.27 * hkEggS);   // fase 39: mas chico y tenue
         float od = hkText(oq, int[16](74, 65, 89, 32, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5);
         float osh = hkText(oq - vec2(0.08, -0.08), int[16](74, 65, 89, 32, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5);
         float on = EG.x;
