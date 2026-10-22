@@ -1018,3 +1018,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 10 portal | El anillo queda como está; adentro del vórtice arde un **∞** chico |
 | 11 caldero | El ∞ de vapor es más chico y tenue |
 | 12 momia | La venda en J es más chica |
+| 13 calabazas en hilera | Letras J A Y más chicas y sin encenderse de más |

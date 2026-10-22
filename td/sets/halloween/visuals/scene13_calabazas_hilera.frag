@@ -259,8 +259,8 @@ vec4 render(vec2 uv) {
         float lit = lits[k];
         // la letra de esta calabaza: J, A, Y en las tres del medio
         int L = int(idx + float(k - 2) - (floor(n * 0.5) - 1.0));
-        float egK = (L >= 0 && L <= 2) ? EG.x * smoothstep(0.05 + float(L) * 0.15, 0.15 + float(L) * 0.15, EG.y) : 0.0;
-        lit = max(lit, egK * 1.2);
+        float egK = (L >= 0 && L <= 2) ? smoothstep(0.0, 0.3, EG.x) * smoothstep(0.05 + float(L) * 0.15, 0.15 + float(L) * 0.15, EG.y) : 0.0;
+        lit = max(lit, egK * 0.5);                            // fase 39: no se encienden de mas
         float s = ss[k];
         vec2 qh = (p - cs[k]) / s;                 // unidades de la lamina
         vec2 huv = rUV(qh, HERO_R);
@@ -274,7 +274,7 @@ vec4 render(vec2 uv) {
         float holeD = hwFace(q - vec2(lookX, moonJ * 0.06), hsh, max(hit * loco, max(keyBoost[k], cAy)));
         if (egK > 0.0) {
             int ch = L == 0 ? 74 : (L == 1 ? 65 : 89);
-            float dl = hkText((q - vec2(0.0, -0.02)) / 0.62, int[16](ch, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.62 - 0.055;
+            float dl = hkText((q - vec2(0.0, -0.02)) / (0.62 * hkEggS), int[16](ch, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.62 * hkEggS - 0.055 * hkEggS;
             holeD = mix(holeD, dl, smoothstep(0.0, 1.0, egK));
         }
         float hole = (1.0 - smoothstep(-0.02, 0.02, holeD)) * step(qh.y, 0.40);
