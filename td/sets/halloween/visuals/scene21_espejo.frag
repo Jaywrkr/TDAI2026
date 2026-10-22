@@ -211,13 +211,27 @@ vec4 render(vec2 uv) {
             float stroke = min(max(eyes, step(draw, 0.3) * 9.0), smile);
             wipe = max(wipe, (1.0 - smoothstep(0.03, 0.09, stroke)) * se);
         }
+        // EASTER EGG "JAY INFINITO" (fase 38): el espejo se empana y alguien
+        // escribe con el dedo un infinito y debajo JAY
+        vec2 EG = hkEgg(21.0);
+        float egFog = 0.0, egD = 1e3;
+        if (EG.x > 0.0) {
+            egFog = EG.x * 0.85;
+            float draw = smoothstep(0.08, 0.45, EG.y);
+            vec2 iq = (mm - vec2(0.5, 0.70)) / vec2(1.0, 0.75);
+            float di = hkInfD(iq, 0.26) + step(draw * 1.6, (iq.x + 0.3) / 0.6 * 1.0) * 9.0;
+            float dj = hkText((mm - vec2(0.5, 0.33)) * vec2(MR.x / MR.y, 1.0) / 0.13, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.13
+                     + step(smoothstep(0.40, 0.75, EG.y) * 1.2, (mm.x - 0.32) / 0.36) * 9.0;
+            egD = min(di, dj);
+            wipe = max(wipe, (1.0 - smoothstep(0.012, 0.024, egD)) * EG.x);
+        }
         if (dv == 3) {                                                  // huella de mano
             vec2 hq = (mm - vec2(0.3 + D.w * 0.4, 0.35)) / 0.07;
             float palm = length(hq * vec2(1.0, 1.1)) - 0.9;
             for (int i = 0; i < 4; i++) palm = min(palm, hkSeg(hq, vec2(-0.6 + float(i) * 0.4, 0.6), vec2(-0.7 + float(i) * 0.45, 1.9)) - 0.22);
             wipe = max(wipe, (1.0 - smoothstep(-0.1, 0.1, palm)) * D.x * 0.8);
         }
-        float steam = clamp(max(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)) + EST.z * 0.5, fogUp * 1.1) - wipe, 0.0, 1.0);
+        float steam = clamp(max(max(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)) + EST.z * 0.5, fogUp * 1.1), egFog) - wipe, 0.0, 1.0);
         steam *= 1.0 - grow * 0.8;
         float fogN = fbm(mm * 5.0 + vec2(0.0, t * 0.03), 4, 0.55);
         vec3 im = hkMediaGet(muv, steam * 3.5, has);
@@ -230,6 +244,8 @@ vec4 render(vec2 uv) {
         im *= 0.8 + 0.6 * bulb * 0.5;
         im *= 1.0 - 0.45 * pow(mr, 3.0);                               // oscurece el borde del ovalo
         im = mix(im, vec3(0.20, 0.21, 0.22) * (0.4 + 0.6 * fogN) * (L * 3.0 + 0.1), steam * (0.35 + 0.5 * fogN));
+        // easter egg: el borde de cada trazo queda mojado y brilla
+        im += vec3(0.55, 0.60, 0.66) * (L * 3.0 + 0.25) * exp(-abs(egD - 0.022) / 0.005) * EG.x * 0.9;
         // gotas que corren por el vapor
         float dc = floor(mm.x * 40.0);
         float dy = fract(mm.y * 1.5 + t * (0.05 + 0.1 * hash21(vec2(dc, 3.0))) + hash21(vec2(dc, 4.0)));
