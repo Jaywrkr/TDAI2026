@@ -1016,3 +1016,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 08 araña | El ∞ tejido es más chico |
 | 09 tormenta | La J de rayo es más chica y tenue |
 | 10 portal | El anillo queda como está; adentro del vórtice arde un **∞** chico |
+| 11 caldero | El ∞ de vapor es más chico y tenue |
