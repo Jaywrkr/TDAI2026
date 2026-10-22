@@ -1,2 +1,2 @@
 
-| 12 momia | La venda en J es más chica |
+| 13 calabazas en hilera | Letras J A Y más chicas y sin encenderse de más |
