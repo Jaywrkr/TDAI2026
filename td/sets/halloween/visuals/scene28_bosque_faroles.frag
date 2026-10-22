@@ -263,16 +263,16 @@ vec4 render(vec2 uv) {
     vec2 EG = hkEgg(28.0);
     if (EG.x > 0.0) {
         vec2 ic = vec2(0.0, 0.22);
-        float ia = 0.62;
+        float ia = 0.62 * hkEggS;                              // fase 39: mas chico
         vec2 iq = p0 - ic;
         float tr = exp(-hkInfD(iq, ia) / 0.006) * smoothstep(0.1, 0.5, EG.y);
-        col += vec3(1.0, 0.55, 0.25) * (tr * 0.8 + exp(-hkInfD(iq, ia) / 0.06) * 0.08) * EG.x;
+        col += vec3(1.0, 0.55, 0.25) * (tr * 0.45 + exp(-hkInfD(iq, ia) / 0.06) * 0.08) * EG.x;
         for (int k = 0; k < 2; k++) {
             vec2 lp = hkInfPath(uRTime * 1.4 + float(k) * 3.14159, ia);
-            vec2 lq = (iq - lp) / 0.05;
+            vec2 lq = (iq - lp) / (0.05 * hkEggS);
             float body = 1.0 - smoothstep(0.8, 1.0, length(lq * vec2(1.0, 0.75)));
             vec3 paper = vec3(1.0, 0.45, 0.25) * (0.9 + 0.4 * (1.0 - length(lq) * 0.6));
-            col = mix(col, paper * 1.4, body * EG.x);
+            col = mix(col, paper * 1.4, body * smoothstep(0.0, 0.3, EG.x));
             col += vec3(1.0, 0.6, 0.3) * exp(-length(iq - lp) / 0.10) * 0.35 * EG.x;
         }
     }

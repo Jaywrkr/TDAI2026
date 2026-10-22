@@ -1033,3 +1033,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 25 posesión | El sello es más chico |
 | 26 mansión | Letras más chicas y menos luz en las ventanas |
 | 27 reloj | El ∞ sobre el VIII es más chico |
+| 28 bosque de faroles | ∞ más chico y estela más tenue |
