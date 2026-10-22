@@ -334,7 +334,7 @@ vec4 render(vec2 uv) {
         float land = revealAt(nP, mod(k * 5.0, 8.0)) * (1.0 - perchGone);
         if (land < 0.01) continue;
         float x = -0.95 + (k + 0.5) * spacing + (h - 0.5) * spacing * 0.4;
-        land *= 1.0 - EG.x * step(abs(x), 0.62);
+        land *= 1.0 - smoothstep(0.0, 0.3, EG.x) * step(abs(x), 0.62 * hkEggS);
         if (land < 0.01) continue;
         float s = 0.26 + 0.06 * h;
         float yTop = c14PerchTop(x);
@@ -370,12 +370,12 @@ vec4 render(vec2 uv) {
     // en la rama y sus siluetas son las letras J, A, Y (con cabeza y pico)
     if (EG.x > 0.0 && p.x > -0.6 && p.x < 0.9) {
         for (int L = 0; L < 3; L++) {
-            float x = 0.0 + float(L - 1) * 0.30;
-            float land = smoothstep(0.05 + float(L) * 0.12, 0.25 + float(L) * 0.12, EG.y) * EG.x;
+            float x = 0.0 + float(L - 1) * 0.30 * hkEggS;           // fase 39: mas chicos
+            float land = smoothstep(0.05 + float(L) * 0.12, 0.25 + float(L) * 0.12, EG.y) * smoothstep(0.0, 0.3, EG.x);
             if (land < 0.01) continue;
             float yb = c14PerchTop(x) + bend * 0.04;
-            vec2 c = vec2(x, yb + 0.14 + (1.0 - land) * 0.6);
-            vec2 q = (p - c) / 0.26;
+            vec2 c = vec2(x, yb + 0.14 * hkEggS + (1.0 - land) * 0.6);
+            vec2 q = (p - c) / (0.26 * hkEggS);
             int ch = L == 0 ? 74 : (L == 1 ? 65 : 89);
             float dl = hkText(q, int[16](ch, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) - 0.09;
             // cabeza con pico arriba a la derecha de cada letra y una cola
