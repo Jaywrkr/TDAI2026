@@ -219,8 +219,8 @@ vec4 render(vec2 uv) {
             egFog = EG.x * 0.85;
             float draw = smoothstep(0.08, 0.45, EG.y);
             vec2 iq = (mm - vec2(0.5, 0.70)) / vec2(1.0, 0.75);
-            float di = hkInfD(iq, 0.26) + step(draw * 1.6, (iq.x + 0.3) / 0.6 * 1.0) * 9.0;
-            float dj = hkText((mm - vec2(0.5, 0.33)) * vec2(MR.x / MR.y, 1.0) / 0.13, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.13
+            float di = hkInfD(iq, 0.26 * hkEggS) + step(draw * 1.6, (iq.x + 0.3) / 0.6 * 1.0) * 9.0;
+            float dj = hkText((mm - vec2(0.5, 0.33)) * vec2(MR.x / MR.y, 1.0) / (0.13 * hkEggS), int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.13 * hkEggS   // fase 39: mas chico
                      + step(smoothstep(0.40, 0.75, EG.y) * 1.2, (mm.x - 0.32) / 0.36) * 9.0;
             egD = min(di, dj);
             wipe = max(wipe, (1.0 - smoothstep(0.012, 0.024, egD)) * EG.x);

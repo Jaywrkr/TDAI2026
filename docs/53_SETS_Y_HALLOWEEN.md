@@ -1,2 +1,2 @@
 
-| 20 galería | La placa es más chica |
+| 21 espejo | El ∞ y JAY del vapor son más chicos |
