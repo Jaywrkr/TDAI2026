@@ -889,3 +889,41 @@ Hasta ahora el calendario de sucesos y clímax era solo reloj: un suceso cada ~5
 
 **Reconstruir Todo:** canales nuevos en la textura de control (`mbeat` … `mclxarm`), parámetros nuevos y cambios en `media_logic`, `diagnostics` y `control_script`.
 
+## Fase 37: todas las escenas responden a las teclas
+
+Al tocar se notaba poco en varias escenas. Para medirlo, `td/tools/medir_teclas.py` renderiza cada escena en el mismo instante sin teclas y con un acorde de 3 teclas sostenidas (grave, medio y agudo), y mide cuánta imagen cambia. Usa el peor de tres instantes.
+
+- **Antes:** 17 de las 31 escenas cambiaban menos del 1–3 % de la pantalla: 00, 03, 04, 05, 08, 11, 12, 14, 15, 17, 21, 23, 24, 26, 28, 29 y 30. Todas tenían su reacción programada (el alma, la bandadita, la burbuja, el chorro), pero el objeto era tan chico que desde lejos no se leía.
+- **Ahora:** cada tecla además **ilumina la escena en su posición**, con la luz propia de esa escena. Es `hkKeyLit` en `common.glsl`: multiplica lo que ya hay (los negros siguen negros), con un color en el grave y otro en el agudo, y la forma que pide cada escena. La fuerza agranda y aviva la luz.
+
+| Escena | Luz de la tecla |
+|---|---|
+| 00 cementerio | el alma ilumina las lápidas (verde a celeste) |
+| 03 ojos | rojo a ámbar alrededor de los ojos |
+| 04 murciélagos | violeta a luna cálida contra el cielo |
+| 05 y 24 sangre | columna roja donde cae la sangre |
+| 08 araña | la tela se ilumina donde baja la araña |
+| 11 caldero | la poción ilumina la pared (verde a violeta) |
+| 12 momia | una antorcha se aviva |
+| 14 cuervos | el cielo arde detrás del cuervo |
+| 15 manos | la tierra brilla verde donde sale la mano |
+| 17 esqueleto | un foco por tecla (blanco a luz negra) |
+| 21 espejo, 23 película | luz fría o del proyector en esa zona |
+| 26 mansión | se enciende la zona de una ventana |
+| 28 faroles | el farol se aviva |
+| 29 morgue | el tubo de esa zona se prende |
+| 30 carnaval | luces de feria (rosa a celeste) |
+
+**Resultado:** las 17 pasan a cambiar entre el 14 y el 45 % de la imagen con el acorde. Ninguna queda floja. Hoja: `docs/img/teclas_luz.jpg` (sin teclas, con acorde y la diferencia).
+
+**Pruebas:**
+- **Medición:** `test_teclas.py` corre `medir_teclas.py --check` sobre las 31 escenas y falla si alguna vuelve a quedar floja. Tarda ~1 min.
+- **Destellos:** sin teclas las escenas no cambian, así que la medición de destellos sigue igual.
+- **Resto:** `validate_shaders` sin errores en los dos sets, la compilación para Metal también, y las demás pruebas en OK.
+
+**Costo:** sin teclas, nada (la voz que no suena corta enseguida). Con teclas, un óvalo por voz.
+
+**En TD:** probar con el piano real que la luz se lea bien en cada escena y que no tape lo que hace cada una. Si alguna queda muy fuerte, se baja en la línea `hkKeyLit` de esa escena.
+
+**Reconstruir Todo:** cambiaron `common.glsl` y 17 `.frag`. Con **Recargar Shaders** también alcanza.
+

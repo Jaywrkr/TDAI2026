@@ -360,5 +360,7 @@ vec4 render(vec2 uv) {
     // telarana y gotas de agua en la esquina
     col = mix(col, vec3(0.45) * (L * 4.0 + 0.1), clamp(hkCornerWeb(p, vec2(-uAspect, 1.0), 0.6), 0.0, 1.0) * 0.6);
     col *= 1.0 - darkE * 0.7 * step(frameIn, mr);
+    // LUZ DE TECLA (fase 37): luz en el espejo
+    col = hkKeyLit(col, p, 0.05, vec2(0.3, 0.5), vec3(0.9, 0.95, 1.0), vec3(1.0, 0.75, 0.5), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.25, 0.3, 0.35)), 1.0);
 }

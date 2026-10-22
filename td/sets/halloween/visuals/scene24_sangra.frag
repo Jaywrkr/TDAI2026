@@ -347,5 +347,7 @@ vec4 render(vec2 uv) {
         col += vec3(1.0, 0.9, 0.75) * lamp * exp(-length(q) * 7.0) * 0.12;
         col = mix(col, vec3(0.02), (1.0 - smoothstep(0.0, 0.003, abs(p.x) - 0.004)) * step(lp.y + 0.07, p.y));
     }
+    // LUZ DE TECLA (fase 37): columna roja en la pared
+    col = hkKeyLit(col, p, 0.05, vec2(0.18, 0.8), vec3(1.0, 0.15, 0.1), vec3(1.0, 0.3, 0.15), 0.03, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.3, 0.06, 0.06)), 1.0);
 }

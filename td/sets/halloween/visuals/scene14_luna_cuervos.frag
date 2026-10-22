@@ -372,5 +372,7 @@ vec4 render(vec2 uv) {
             col = mix(col, vec3(0.03, 0.01, 0.005), (1.0 - smoothstep(-0.003, 0.003, length(lq * vec2(1.0, 2.4)) - 0.018)) * D.x);
         }
     }
+    // LUZ DE TECLA (fase 37): el cielo arde detras del cuervo
+    col = hkKeyLit(col, p, 0.15, vec2(0.35, 0.6), vec3(1.0, 0.45, 0.15), vec3(1.0, 0.2, 0.1), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.5, 0.1, 0.1)), 1.0);
 }

@@ -344,5 +344,7 @@ vec4 render(vec2 uv) {
         col += mix(potion, vec3(1.0), 0.4) * sp * 1.2;
     }
 
+    // LUZ DE TECLA (fase 37): la pocion ilumina el caldero
+    col = hkKeyLit(col, p, -0.3, vec2(0.35, 0.3), vec3(0.35, 1.0, 0.3), vec3(0.6, 0.4, 1.0), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.2, 0.6, 0.2)), 1.0);
 }

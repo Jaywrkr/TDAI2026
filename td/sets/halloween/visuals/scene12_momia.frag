@@ -348,5 +348,7 @@ vec4 render(vec2 uv) {
     float tl = exp(-length(p - T0) * 0.9) * f0 + exp(-length(p - T1) * 0.9) * f1;
     col += vec3(1.0, 0.8, 0.55) * dust * (0.05 + 1.2 * tl) * (0.5 + high * 0.8);
 
+    // LUZ DE TECLA (fase 37): una antorcha se aviva
+    col = hkKeyLit(col, p, -0.1, vec2(0.3, 0.6), vec3(1.0, 0.7, 0.3), vec3(1.0, 0.9, 0.5), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.6, 0.45, 0.2)), 1.0);
 }

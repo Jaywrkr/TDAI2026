@@ -461,6 +461,24 @@ vec4 hkEstado(float seed, int n) {
 // coordenadas que centered(): -aspect..aspect.
 float hkKeyX(int i) { return mix(-uAspect * 0.85, uAspect * 0.85, keyPos(i)); }
 
+// LUZ DE TECLA (fase 37): cada tecla ILUMINA la escena en su posicion,
+// con la luz propia de la escena: color c1 en el grave a c2 en el agudo,
+// un ovalo centrado en (hkKeyX, y) de radios r (columna alta, halo bajo,
+// foco...). Multiplica lo que ya hay (los negros siguen negros) y suma
+// un poco de aire iluminado. La fuerza agranda y aviva la luz; att/rel:
+// entrada y salida de la voz (keyEnv). Va al final, antes de hkFinish.
+vec3 hkKeyLit(vec3 col, vec2 p, float y, vec2 r, vec3 c1, vec3 c2, float att, float rel) {
+    vec3 L = vec3(0.0);
+    for (int k = 0; k < N_KEYS; k++) {
+        float e = keyEnv(k, att, rel);
+        if (e < 0.01) continue;
+        float v = keyVel(k);
+        vec2 q = (p - vec2(hkKeyX(k), y)) / (r * (0.75 + 0.5 * v));
+        L += mix(c1, c2, keyPos(k)) * (e * (0.5 + 0.8 * v) * exp(-dot(q, q)));
+    }
+    return col * (1.0 + L * 1.8) + L * 0.07;
+}
+
 // Camara lenta de documental: cada acto encuadra un poco distinto
 // (acercamiento y paneo suaves). Mantiene el centro de interes.
 vec2 hkCam(vec2 p) {

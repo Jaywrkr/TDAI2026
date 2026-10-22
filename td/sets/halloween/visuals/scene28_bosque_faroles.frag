@@ -258,5 +258,7 @@ vec4 render(vec2 uv) {
     }
 
     col = audioLift(col, high * 0.05);
+    // LUZ DE TECLA (fase 37): el farol se aviva
+    col = hkKeyLit(col, p0, 0.2, vec2(0.3, 0.5), vec3(1.0, 0.45, 0.25), vec3(1.0, 0.75, 0.35), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.5, 0.3, 0.5)), 1.0);
 }

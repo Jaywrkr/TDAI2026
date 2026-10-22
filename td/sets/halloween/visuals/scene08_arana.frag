@@ -413,5 +413,7 @@ vec4 render(vec2 uv) {
     }
 
     col = audioLift(col, high * 0.08);
+    // LUZ DE TECLA (fase 37): la tela se ilumina donde baja la arana
+    col = hkKeyLit(col, p, 0.45, vec2(0.22, 0.55), vec3(0.7, 0.8, 1.0), vec3(0.85, 1.0, 0.85), 0.05, 0.9);
     return vec4(hkFinish(col, uv, vec3(0.5, 0.5, 0.8)), 1.0);
 }
