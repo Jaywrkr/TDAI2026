@@ -326,6 +326,29 @@ vec4 render(vec2 uv) {
         vec2 ep = vec2(abs(q.x) - 0.11, q.y - 0.22);
         col = mix(col, col * 0.15, (1.0 - smoothstep(0.045, 0.06, length(ep / vec2(0.8, 1.3)))) * body * pk);
     }
+    // EASTER EGG "JAY INFINITO" (fase 38): un fantasmita da una vuelta en
+    // infinito por el pasillo dejando una estela, y se desvanece
+    vec2 EG = hkEgg(7.0);
+    if (EG.x > 0.0) {
+        vec2 ic = VP + vec2(0.0, 0.02);
+        float ia = 0.62;
+        float ph = EG.y * 6.2832 * 1.1 - 1.2;
+        vec2 gpos = ic + hkInfPath(ph, ia);
+        // estela: el tramo del infinito ya recorrido, que se apaga de a poco
+        vec2 iq = p - ic;
+        float trail = exp(-hkInfD(iq, ia) / 0.008) * EG.x * smoothstep(0.05, 0.5, EG.y);
+        col += gc * trail * 0.55;
+        col += gc * exp(-hkInfD(iq, ia) / 0.05) * EG.x * 0.06;
+        float gs = 0.22 * (1.0 - smoothstep(0.85, 1.0, EG.y) * 0.6);
+        vec2 q = (p - gpos) / gs;
+        if (dot(q, q) < 2.0) {
+            float d = hwGhost(q, t, 0.8, 21.0);
+            float body = (1.0 - smoothstep(-0.03, 0.03, d)) * smoothstep(-0.5, -0.1, q.y);
+            col = mix(col, col * 0.4 + gc * 0.9, body * 0.8 * EG.x);
+            vec2 ep = vec2(abs(q.x) - 0.11, q.y - 0.22);
+            col = mix(col, col * 0.15, (1.0 - smoothstep(0.045, 0.06, length(ep / vec2(0.8, 1.3)))) * body * EG.x);
+        }
+    }
     // C: el ultimo te atraviesa: el cuadro se llena de sabana un momento
     col = mix(col, gc * 0.30 + col * 0.4, cC * smoothstep(0.60, 0.68, C.w) * (1.0 - smoothstep(0.70, 0.80, C.w)) * 0.7);
 
