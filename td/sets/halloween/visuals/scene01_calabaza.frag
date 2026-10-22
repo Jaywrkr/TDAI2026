@@ -101,6 +101,10 @@ float hwTri(vec2 p, vec2 a, vec2 b, vec2 c) {
     return -sqrt(d.x) * sign(d.y);
 }
 
+// EASTER EGG "JAY INFINITO" (fase 38): 0..1, la boca tallada pasa a ser
+// un infinito (la luz de adentro sale por el)
+float gInfMouth = 0.0;
+
 float hwFace(vec2 q, float smile, float rage) {
     float eh = 0.24 + rage * 0.08;
     float eyeL = hwTri(q, vec2(-0.42, 0.10), vec2(-0.10, 0.10), vec2(-0.30, 0.10 + eh));
@@ -117,6 +121,7 @@ float hwFace(vec2 q, float smile, float rage) {
     float lower = max(q.y - (curve - halfH + 0.060), colDn + 0.012);
     float mouth = max(band, -min(upper, lower));
     mouth = max(mouth, abs(x) - 0.52);
+    if (gInfMouth > 0.0) mouth = mix(mouth, hkInfD(q - vec2(0.0, -0.25), 0.36) - 0.04, gInfMouth);
     return min(min(eyeL, eyeR), min(nose, mouth));
 }
 
@@ -351,6 +356,8 @@ vec4 render(vec2 uv) {
     col += orange * aura * (0.08 + uD6 * 0.30) * (0.6 + inner * 0.5) * (1.0 - hc.a);
     float rage = max(max(hit * loco, relight * 0.85 * (1.0 - smoothstep(0.80, 0.97, C.w))), talk * (0.25 + hit * 0.6));
     float smileK = clamp(uD4 + laugh * 0.6 + talk * (bass * 0.9 + mid * 0.4 - 0.2), 0.0, 1.2);
+    vec2 EG = hkEgg(1.0);
+    gInfMouth = smoothstep(0.0, 1.0, EG.x);
     float faceD = hwFace(q, smileK, rage);
     if (hc.a > 0.0) {
         vec4 hn = plate4(huv);
