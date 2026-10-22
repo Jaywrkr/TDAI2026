@@ -972,3 +972,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 25 posesión | Junto a la imagen aparece un sello quemado en la pared: un círculo de runas con un **∞** adentro y **JAY** debajo, que brilla como brasa |
 | 26 mansión | Las cuatro ventanas del medio del primer piso se prenden de a una y en cada vidrio hay una letra a contraluz: **J · A · Y · ∞** |
 | 27 reloj | Las agujas van a las **3:33** y el número VIII de la esfera se acuesta: queda un **∞** encendido |
+| 28 bosque de faroles | Dos faroles se sueltan y flotan cruzándose; sus luces dejan dibujado un **∞** en el aire |

@@ -258,6 +258,24 @@ vec4 render(vec2 uv) {
     }
 
     col = audioLift(col, high * 0.05);
+    // EASTER EGG "JAY INFINITO" (fase 38): dos faroles se sueltan y flotan
+    // cruzandose: sus luces dejan dibujado un infinito en el aire
+    vec2 EG = hkEgg(28.0);
+    if (EG.x > 0.0) {
+        vec2 ic = vec2(0.0, 0.22);
+        float ia = 0.62;
+        vec2 iq = p0 - ic;
+        float tr = exp(-hkInfD(iq, ia) / 0.006) * smoothstep(0.1, 0.5, EG.y);
+        col += vec3(1.0, 0.55, 0.25) * (tr * 0.8 + exp(-hkInfD(iq, ia) / 0.06) * 0.08) * EG.x;
+        for (int k = 0; k < 2; k++) {
+            vec2 lp = hkInfPath(uRTime * 1.4 + float(k) * 3.14159, ia);
+            vec2 lq = (iq - lp) / 0.05;
+            float body = 1.0 - smoothstep(0.8, 1.0, length(lq * vec2(1.0, 0.75)));
+            vec3 paper = vec3(1.0, 0.45, 0.25) * (0.9 + 0.4 * (1.0 - length(lq) * 0.6));
+            col = mix(col, paper * 1.4, body * EG.x);
+            col += vec3(1.0, 0.6, 0.3) * exp(-length(iq - lp) / 0.10) * 0.35 * EG.x;
+        }
+    }
     // LUZ DE TECLA (fase 37): el farol se aviva
     col = hkKeyLit(col, p0, 0.2, vec2(0.3, 0.5), vec3(1.0, 0.45, 0.25), vec3(1.0, 0.75, 0.35), 0.05, 1.2);
     return vec4(hkFinish(col, uv, vec3(0.5, 0.3, 0.5)), 1.0);
