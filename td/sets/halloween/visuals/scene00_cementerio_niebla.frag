@@ -574,9 +574,10 @@ vec4 render(vec2 uv) {
     // surco brilla verde, mas fuerte con el relampago
     vec2 EG = hkEgg(0.0);
     if (EG.x > 0.0) {
-        float dj = hkText((pN - vec2(-1.50, -0.02)) / 0.14, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * 0.14;
-        float di = hkInfD((pN - vec2(-1.50, -0.28)) / 0.14, 0.85) * 0.14;
-        float m = (1.0 - smoothstep(0.012, 0.020, min(dj, di))) * nn.a * nr.a * EG.x;
+        float js = 0.14 * hkEggS;                           // fase 39: mas chico (y tenue en EG.x)
+        float dj = hkText((pN - vec2(-1.50, -0.02 + 0.07 * (1.0 - hkEggS))) / js, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3) * js;
+        float di = hkInfD((pN - vec2(-1.50, -0.02 - 0.26 * hkEggS)) / js, 0.85) * js;
+        float m = (1.0 - smoothstep(0.012 * hkEggS, 0.020 * hkEggS, min(dj, di))) * nn.a * nr.a * EG.x;
         col = mix(col, col * 0.2, m);
         col += vec3(0.55, 1.0, 0.8) * m * (0.35 + 1.4 * flash) * (0.7 + 0.3 * sin(EG.y * 6.2832 * 2.0));
     }
