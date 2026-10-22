@@ -235,6 +235,24 @@ vec4 render(vec2 uv) {
     float inv = max(hit * step(0.75, loco), G.y) * step(0.6, noise21(vec2(floor(rt * 2.0), 5.0)));
     col = mix(col, (vec3(1.0) - col) * fireC, inv * 0.7);
     // bloques corridos: un poco de color crudo en los bordes del bloque
+    // EASTER EGG "JAY INFINITO" (fase 38): un cartel de canal de los de
+    // antes, con colores corridos: "CANAL (infinito) - JAY"
+    vec2 EG = hkEgg(19.0);
+    if (EG.x > 0.0) {
+        vec2 oq = (uv - vec2(0.27, 0.86)) * vec2(uAspect, 1.0) / 0.075;
+        if (abs(oq.y) < 1.2 && abs(oq.x) < 7.0) {
+            int s13[16] = int[16](67, 65, 78, 65, 76, 32, 8, 32, 45, 32, 74, 65, 89, 0, 0, 0);
+            float jit = (hash21(vec2(floor(rt * 2.0), 77.0)) - 0.5) * 0.25 * (1.0 - EG.y);
+            float dR = hkText(oq + vec2(0.10 + jit, 0.0), s13, 13);
+            float dG = hkText(oq + vec2(jit, 0.0), s13, 13);
+            float dB = hkText(oq - vec2(0.10 - jit, 0.0), s13, 13);
+            vec3 txt = vec3(1.0 - smoothstep(0.06, 0.11, dR), 1.0 - smoothstep(0.06, 0.11, dG), 1.0 - smoothstep(0.06, 0.11, dB));
+            float scan = 0.85 + 0.15 * sin(uv.y * uResH * 3.14159);
+            float band = smoothstep(1.2, 0.9, abs(oq.y)) * smoothstep(7.0, 6.4, abs(oq.x));
+            col = mix(col, col * 0.35, band * 0.6 * EG.x);
+            col = max(col, txt * scan * 1.1 * EG.x);
+        }
+    }
 
     return vec4(hkFinish(col, uv, vec3(0.5, 0.05, 0.05)), 1.0);
 }
