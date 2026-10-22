@@ -246,7 +246,7 @@ vec4 render(vec2 uv) {
         vec2 fq = p - vec2(0.42, -0.205);
         float foot = length((fq - vec2(-0.02, 0.0)) / vec2(0.055, 0.032)) - 1.0;
         for (int k = 0; k < 4; k++) foot = min(foot, length((fq - vec2(0.03, 0.022 - float(k) * 0.016)) / vec2(0.016, 0.009)) - 1.0);
-        float out_ = smoothstep(0.0, 0.25, EG.y) * EG.x;
+        float out_ = smoothstep(0.0, 0.25, EG.y) * smoothstep(0.0, 0.3, EG.x);   // fase 39: ya era chico; el pie no queda a medias
         col = mix(col, vec3(0.62, 0.66, 0.60) * lt, (1.0 - smoothstep(0.0, 0.08, foot)) * out_);
         // hilo y etiqueta de carton que se balancea
         float sw = 0.12 * sin(uRTime * 1.8) * (1.0 - EG.y);

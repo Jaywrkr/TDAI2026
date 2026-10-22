@@ -1,2 +1,2 @@
 
-| 28 bosque de faroles | ∞ más chico y estela más tenue |
+| 29 morgue | Ya era chico: el pie y la etiqueta no quedan a medias |
