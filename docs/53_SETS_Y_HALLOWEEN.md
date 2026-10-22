@@ -1,2 +1,2 @@
 
-| 22 se quema | En susurro el ∞ queda solo chamuscado (sin llama); arde en el nivel visible |
+| 23 película 1920 | Ya no es un intertítulo entero: un crédito chico abajo del cuadro, **JAY INFINITO ∞** |
