@@ -849,3 +849,43 @@ Pedido del VJ: a mano en TD usaba **Bloom + Level** que suben con el bajo, para 
 
 **Reconstruir Todo:** canal nuevo en la textura de control (`glow`), parámetro nuevo y shaders del bloom cambiados.
 
+## Fase 36: el show sigue a la música (frases, break y drop)
+
+Hasta ahora el calendario de sucesos y clímax era solo reloj: un suceso cada ~55 s y un clímax cada ~4 min, en momentos al azar. Ahora sigue el pulso del bombo:
+
+| Qué | Cómo |
+|---|---|
+| **Sucesos y detalles** | Arrancan en el "1": de una frase de 8 compases, o de 4, 2 o 1 compás, el más largo que entre en el lugar que tiene cada uno (a 128 BPM suele ser cada 4 compases) |
+| **Break** (la música sigue, sin bombo) | Los sucesos y detalles se apagan en 1,5 s: la escena respira |
+| **Drop** (vuelve el bombo después de un break de 4 s o más) | Si toca clímax, el aviso crece durante el break y el **pico cae justo en el drop**. La frase arranca de nuevo en ese golpe |
+| **Sin drops** | Si pasan 5,5 min sin clímax, cae igual: el pico en el "1" de una frase |
+| **Espaciado** | Nunca dos clímax a menos de 2,5 min (el Momento a mano también cuenta, y cancela el que estaba por venir). Uno de cada tres sigue siendo el gran clímax |
+| **Sin pulso** (sin bombo, sin audio o el control apagado) | Vuelve solo al calendario de reloj de siempre |
+
+- **Dónde está:** la lógica es Python puro en `td/vjcore/ritmo.py`. Recibe cada golpe por `media_logic` (canal `beat`) y un aviso cada ~0,2 s desde `diagnostics`.
+- **Cómo mide el tempo:** con una recta sobre los últimos 48 golpes (tiempo contra número de golpe), así el jitter de cada golpe se promedia. Ignora contratiempos y golpes perdidos y vuelve a enganchar si cambia el tempo.
+- **Qué recibe el shader:** los canales `mbeat`, `manchor`, `mbrk0/1` y `mclx*`. Las funciones de `common.glsl` (`hkSuceso`, `hkDetalle`, `hkClimaxV`, `hkGrandV`, `hkClimaxVar`) los usan, así que las 27 escenas con repertorio lo toman sin cambiar su `.frag`. Con todos en 0, el calendario es idéntico al anterior: lo comparé en las escenas 26, 00 y 22.
+- **La grilla es estable:** se publica de nuevo solo si el pulso real se corrió más de 40 ms o el tempo cambió más del 1 %. Si se publicara en cada golpe, un suceso que cae cerca de un "1" saltaría al siguiente y titilaría.
+- **Control:** página Capas, **Seguir la música** (`Ritmoon`, prendido) y **BPM detectado**. El dashboard muestra `RITMO 128 BPM`, `BREAK -> climax en el drop` o `buscando el pulso`.
+
+**Límites:**
+- **El "1":** sin un drop no hay forma de saber dónde está el "1" real del tema. Hasta el primer drop, la frase arranca donde se enganchó el pulso.
+- **Drops sin break:** un drop sin un break de al menos 4 s sin bombo no se detecta como drop. En esos temas el clímax cae por frase.
+- **Escenas 27–30:** usan la versión vieja del clímax, que sigue por reloj. Pasan al motor nuevo cuando tengan su repertorio.
+- **Movimiento a tempo:** que los ciclos de cámara y luz completen 1, 2 o 4 compases queda para otra fase.
+
+**Pruebas fuera de TD:** `test_ritmo.py` da OK. Usa música sintética con ±12 ms de jitter, 5 % de golpes perdidos y contratiempos sueltos:
+- **Pulso:** engancha en ~5 s y mide 128,0 BPM.
+- **Frases:** caen cada 32 tiempos, sobre un tiempo real.
+- **Break y drop:** el break y el drop se detectan, y el pico del clímax cae en el drop.
+- **Clímax:** nunca hay dos a menos de 150 s, y sin drops el pico cae en el "1" de una frase.
+- **Tempo y huecos:** un hueco corto no corre las frases, y un cambio de 128 a 100 BPM se re-engancha en menos de 5 s.
+- **Sin bombo:** vuelve al reloj.
+- **control_script:** publica los parámetros y apagado los deja en 0.
+- **Shader real:** en las escenas 26, 00 y 18, con 9 minutos de tema, cada suceso y detalle arranca en un "1", hay respiro en el break, el pico cae en el drop y ningún suceso cae encima de un clímax.
+- **Resto:** `validate_shaders` sin errores en los dos sets, la compilación para Metal también, y las demás pruebas en OK.
+
+**Hay que probarlo en TD con música real.** La detección depende de que el bombo dispare bien `beat` (el umbral es `Kickthreshold`, página Audio). Si el BPM del dashboard salta o queda en "buscando el pulso" con un tema de bombo claro, hay que ajustar ese umbral.
+
+**Reconstruir Todo:** canales nuevos en la textura de control (`mbeat` … `mclxarm`), parámetros nuevos y cambios en `media_logic`, `diagnostics` y `control_script`.
+

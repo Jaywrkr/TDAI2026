@@ -353,6 +353,16 @@ CTRL_CHANNELS = [
     # bloom de siempre; 0 = sin brillo; 1 = "solo lo que brilla": lo
     # oscuro desaparece, el glow crece con el bajo y sube el grano.
     'glow',       # 81
+    # RITMO (vjcore/ritmo.py, fase 36): el calendario de Halloween sigue
+    # a la musica. Todos en 0 = calendario de reloj. Ver common.glsl.
+    'mbeat',      # 82 s por tiempo (0 = sin pulso)
+    'manchor',    # 83 rtime de un "1" de frase
+    'mbrk0',      # 84 rtime del comienzo del break
+    'mbrk1',      # 85 rtime del final del break
+    'mclx',       # 86 1 = climax por la musica
+    'mclxt',      # 87 rtime del pico del climax
+    'mclxn',      # 88 indice del climax
+    'mclxarm',    # 89 rtime del aviso en un break
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -413,6 +423,8 @@ PAR_CHANNELS = [
     ('Capaon', 'capaon'),       # Lag en control.py
     ('Miedo', 'fear'),          # Lag en control.py
     ('Resplandor', 'glow'),
+    ('Mbeat', 'mbeat'), ('Manchor', 'manchor'), ('Mbrk0', 'mbrk0'), ('Mbrk1', 'mbrk1'),
+    ('Mclx', 'mclx'), ('Mclxt', 'mclxt'), ('Mclxn', 'mclxn'), ('Mclxarm', 'mclxarm'),
 ]
 
 # Voces del piano polifonico y su suavizado de perillas Detail

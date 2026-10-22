@@ -409,6 +409,10 @@ def update():
         updateNight()
     except Exception:
         pass
+    try:
+        op('/project1/control_script').module.ritmoTick()
+    except Exception:
+        pass
     p = _p()
     status = op('/project1/dashboard_ui/system_status_src')
     if not p or not status:
@@ -507,6 +511,10 @@ def update():
         _bar(bass, 8), bass, _bar(mid, 8), mid))
     lines.append('High {} {:.2f}   Kick {} {:.2f}'.format(
         _bar(high, 8), high, _bar(kick, 8), kick))
+    try:
+        lines.append(op('/project1/control_script').module.ritmoStatus())
+    except Exception:
+        pass
     low = _lowInput()
     if low:
         lines.append(low)

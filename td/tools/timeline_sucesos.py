@@ -40,7 +40,9 @@ def names(body):
     return out
 
 
-def sample(index, minutes, night, fear, t0=600.0):
+def sample(index, minutes, night, fear, t0=600.0, extra=None):
+    """extra(t) -> {canal: valor}: canales que se pisan en cada instante
+    (test_ritmo.py le pasa los del ritmo)."""
     import moderngl
     ctx = moderngl.create_standalone_context(backend='egl', require=330)
     body, path = shader.read_body(index)
@@ -67,6 +69,9 @@ def sample(index, minutes, night, fear, t0=600.0):
         t = t0 + k * STEP
         v = R.ctrl_values(t, 'musica', 0.5)
         for name, val in (('night', night), ('fear', fear), ('kclock', t), ('moment', -1.0)):
+            if name in ch:
+                v[ch.index(name)] = val
+        for name, val in (extra(t) if extra else {}).items():
             if name in ch:
                 v[ch.index(name)] = val
         ctrl.write(v.tobytes())
