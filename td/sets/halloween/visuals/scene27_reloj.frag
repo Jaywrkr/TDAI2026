@@ -283,8 +283,8 @@ vec4 render(vec2 uv) {
         vec2 nc8 = dc + vec2(sin(a8), cos(a8)) * RJ_RNUM;
         vec2 iq = p - nc8;
         float k8 = smoothstep(0.1, 0.4, EG.y) * EG.x;
-        col = mix(col, col * 0.25, (1.0 - smoothstep(0.05, 0.07, length(iq * vec2(0.75, 1.4)))) * k8);   // tapa el numero
-        float di = hkInfD(iq, 0.062);
+        col = mix(col, col * 0.25, (1.0 - smoothstep(0.05 * hkEggS, 0.07 * hkEggS, length(iq * vec2(0.75, 1.4)))) * k8);   // tapa el numero
+        float di = hkInfD(iq, 0.062 * hkEggS);                // fase 39: mas chico
         col += mix(warm, vec3(1.0, 0.85, 0.5), 0.4) * (1.0 - smoothstep(0.005, 0.009, di)) * k8 * 1.6;
         col += warm * exp(-di / 0.02) * 0.25 * k8;
     }
@@ -305,7 +305,7 @@ vec4 render(vec2 uv) {
         }
     }
     if (EG.x > 0.0) {            // easter egg: las 3:33
-        float go = smoothstep(0.0, 0.3, EG.y) * EG.x;
+        float go = smoothstep(0.0, 0.3, EG.y) * smoothstep(0.0, 0.3, EG.x);
         hA = mix(hA, (3.0 + 33.0 / 60.0) / 12.0 * 6.2831853, go);
         mA = mix(mA, 33.0 / 60.0 * 6.2831853, go);
     }
