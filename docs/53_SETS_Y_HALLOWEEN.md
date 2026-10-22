@@ -1034,3 +1034,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 26 mansión | Letras más chicas y menos luz en las ventanas |
 | 27 reloj | El ∞ sobre el VIII es más chico |
 | 28 bosque de faroles | ∞ más chico y estela más tenue |
+| 29 morgue | Ya era chico: el pie y la etiqueta no quedan a medias |
