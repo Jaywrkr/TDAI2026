@@ -275,6 +275,19 @@ vec4 render(vec2 uv) {
         col = mix(inside, col, smoothstep(-0.004, 0.0, ad));
     }
 
+    // EASTER EGG "JAY INFINITO" (fase 38): las agujas van a las 3:33 y el
+    // numero VIII de la esfera se acuesta: queda un infinito encendido
+    vec2 EG = hkEgg(27.0);
+    if (EG.x > 0.0) {
+        float a8 = 8.0 / 12.0 * 6.2831853;
+        vec2 nc8 = dc + vec2(sin(a8), cos(a8)) * RJ_RNUM;
+        vec2 iq = p - nc8;
+        float k8 = smoothstep(0.1, 0.4, EG.y) * EG.x;
+        col = mix(col, col * 0.25, (1.0 - smoothstep(0.05, 0.07, length(iq * vec2(0.75, 1.4)))) * k8);   // tapa el numero
+        float di = hkInfD(iq, 0.062);
+        col += mix(warm, vec3(1.0, 0.85, 0.5), 0.4) * (1.0 - smoothstep(0.005, 0.009, di)) * k8 * 1.6;
+        col += warm * exp(-di / 0.02) * 0.25 * k8;
+    }
     // --- agujas: la hora de la fiesta (las 12 en el climax) ---
     float hrs = 22.0 + clamp(uNight, 0.0, 1.0) * 7.5;
     float hR = mod(hrs, 12.0) / 12.0 * 6.2831853;
@@ -290,6 +303,11 @@ vec4 render(vec2 uv) {
             mA = mR * back;
             hA = hR * back;
         }
+    }
+    if (EG.x > 0.0) {            // easter egg: las 3:33
+        float go = smoothstep(0.0, 0.3, EG.y) * EG.x;
+        hA = mix(hA, (3.0 + 33.0 / 60.0) / 12.0 * 6.2831853, go);
+        mA = mix(mA, 33.0 / 60.0 * 6.2831853, go);
     }
     float secA = floor(uRTime) / 60.0 * 6.2831853 + hit * uD4 * 0.35;
     if (r < RJ_DIAL.z) {
