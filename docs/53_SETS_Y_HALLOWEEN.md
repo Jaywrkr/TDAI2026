@@ -974,3 +974,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 27 reloj | Las agujas van a las **3:33** y el número VIII de la esfera se acuesta: queda un **∞** encendido |
 | 28 bosque de faroles | Dos faroles se sueltan y flotan cruzándose; sus luces dejan dibujado un **∞** en el aire |
 | 29 morgue | En la camilla de adelante asoma un pie por debajo de la sábana con la etiqueta colgando: **J.INFINITO** |
+| 30 carnaval | Dentro de la rueda de la fortuna se prende una guirnalda de focos con forma de **∞**, en carrera, y arriba un cartelito de feria: **JAY'S** |

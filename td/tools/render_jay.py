@@ -50,7 +50,13 @@ def lum(img):
 
 def scene_check(ctx, idx, media, fps=30):
     sc = TD.Scene(ctx, idx, media)
+    # si en T0 la escena esta a oscuras por un suceso propio (un apagon), se
+    # mira en otro momento: el easter egg se mide sobre la escena encendida
     t = T0
+    for cand in (T0, T0 + 13.0, T0 + 43.0):
+        if float(lum(sc.frame(values(cand, -1.0))).mean()) > 0.012:
+            t = cand
+            break
     base = sc.frame(values(t, -1.0))
     mid = sc.frame(values(t, t - EGG_LEN * 0.5))
     late = sc.frame(values(t, t - EGG_LEN * 0.8))
