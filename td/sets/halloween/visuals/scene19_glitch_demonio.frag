@@ -239,7 +239,7 @@ vec4 render(vec2 uv) {
     // antes, con colores corridos: "CANAL (infinito) - JAY"
     vec2 EG = hkEgg(19.0);
     if (EG.x > 0.0) {
-        vec2 oq = (uv - vec2(0.27, 0.86)) * vec2(uAspect, 1.0) / 0.075;
+        vec2 oq = (uv - vec2(0.27, 0.86)) * vec2(uAspect, 1.0) / (0.075 * hkEggS);   // fase 39: mas chico
         if (abs(oq.y) < 1.2 && abs(oq.x) < 7.0) {
             int s13[16] = int[16](67, 65, 78, 65, 76, 32, 8, 32, 45, 32, 74, 65, 89, 0, 0, 0);
             float jit = (hash21(vec2(floor(rt * 2.0), 77.0)) - 0.5) * 0.25 * (1.0 - EG.y);
