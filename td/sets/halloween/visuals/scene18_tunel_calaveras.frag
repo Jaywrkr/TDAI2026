@@ -215,8 +215,8 @@ vec4 render(vec2 uv) {
         // hueso), y en la de la derecha las de un infinito
         vec2 EG = hkEgg(18.0);
         if (EG.x > 0.0) {
-            float dt = min(hkText((p - vec2(-1.70, 0.30)) / 0.62, int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3),
-                           hkInfD((p - vec2(1.70, 0.30)) / 0.62, 0.80));
+            float dt = min(hkText((p - vec2(-1.70, 0.30)) / (0.62 * hkEggS), int[16](74, 65, 89, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 3),
+                           hkInfD((p - vec2(1.70, 0.30)) / (0.62 * hkEggS), 0.80));   // fase 39: mas chicos
             float inside = (1.0 - smoothstep(0.09, 0.14, dt)) * EG.x;
             col = mix(col, vec3(1.0, 0.10, 0.04) * (0.10 + alb * 5.0 + an.b * 3.0) * (0.8 + bass * 0.4), inside * 0.85);
         }
