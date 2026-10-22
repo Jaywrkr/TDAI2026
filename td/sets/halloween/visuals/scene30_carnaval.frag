@@ -258,7 +258,7 @@ vec4 render(vec2 uv) {
         vec2 wcE = CV_WHEEL.xy;
         vec2 iq = p - wcE;
         if (abs(iq.x) < CV_WHEEL.z && abs(iq.y) < CV_WHEEL.z * 0.6) {
-            float ia = CV_WHEEL.z * 0.78;
+            float ia = CV_WHEEL.z * 0.78 * hkEggS;             // fase 39: mas chico
             for (int i = 0; i < 30; i++) {
                 float fi = float(i);
                 vec2 bp = hkInfPath(fi / 30.0 * 6.2831853, ia);
@@ -268,8 +268,8 @@ vec4 render(vec2 uv) {
         }
         vec2 sq = p - (wcE + vec2(0.0, CV_WHEEL.z * 0.56));
         if (abs(sq.x) < 0.30 && abs(sq.y) < 0.10) {
-            float plaque = hkBox(sq, vec2(0.25, 0.075)) - 0.01;
-            float dj = hkText(sq / 0.085, int[16](74, 65, 89, 39, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5) * 0.085;
+            float plaque = hkBox(sq, vec2(0.25, 0.075) * hkEggS) - 0.01 * hkEggS;
+            float dj = hkText(sq / (0.085 * hkEggS), int[16](74, 65, 89, 39, 83, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5) * 0.085 * hkEggS;
             float lit = smoothstep(0.4, 0.6, EG.y) * EG.x;
             col = mix(col, vec3(0.35, 0.05, 0.06) * (0.3 + glow * 1.5), (1.0 - smoothstep(0.0, 0.004, plaque)) * EG.x);
             col += mix(fair, vec3(1.0, 0.85, 0.55), 0.5) * (1.0 - smoothstep(0.004, 0.009, dj)) * lit * 1.4;

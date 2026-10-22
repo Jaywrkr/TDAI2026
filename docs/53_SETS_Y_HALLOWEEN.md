@@ -1,2 +1,2 @@
 
-| 29 morgue | Ya era chico: el pie y la etiqueta no quedan a medias |
+| 30 carnaval | ∞ de focos y cartel JAY'S más chicos |
