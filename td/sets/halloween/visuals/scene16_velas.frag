@@ -205,6 +205,32 @@ vec4 render(vec2 uv) {
         col += moonC * beam * moonE * 0.08 * (0.6 + 0.4 * fbm(p * 3.0 + vec2(0.0, t * 0.1), 3, 0.5));
     }
 
+    // EASTER EGG "JAY INFINITO" (fase 38): el humo de las dos velas del
+    // medio sube, se cruza y forma un infinito en el aire
+    vec2 EG = hkEgg(16.0);
+    if (EG.x > 0.0) {
+        int iL = 0, iR = 0;
+        float bL = 1e3, bR = 1e3;
+        for (int i = 0; i < 12; i++) {
+            float x = tip[i].x;
+            if (x < 0.0 && -x < bL) { bL = -x; iL = i; }
+            if (x >= 0.0 && x < bR) { bR = x; iR = i; }
+        }
+        vec2 tl = tip[iL], tr = tip[iR];
+        vec2 ic = vec2((tl.x + tr.x) * 0.5, max(tl.y, tr.y) + 0.45);
+        float ia = max(abs(tr.x - tl.x) * 0.55, 0.28);
+        vec2 iq = p - ic;
+        float sm = fbm(vec2(p.x * 7.0, p.y * 4.0 - uRTime * 0.4), 3, 0.5);
+        float grow = smoothstep(0.0, 0.5, EG.y);
+        // dos hilos que suben desde las mechas hasta el cruce
+        vec2 pw = p + vec2(0.025 * sin(p.y * 16.0 - uRTime * 2.5) * smoothstep(0.0, 0.3, p.y - tl.y), 0.0);
+        float topY = mix(tl.y, ic.y, grow);
+        float th = min(hkSeg(pw, tl, vec2(tl.x, topY)), hkSeg(pw, tr, vec2(tr.x, topY)));
+        th += smoothstep(0.55, 0.85, EG.y) * 0.3;                    // los hilos se van cuando aparece el infinito
+        float shapeD = min(th + 0.004, mix(1e3, hkInfD(iq, ia), smoothstep(0.35, 0.6, EG.y)));
+        float smoke = exp(-shapeD / (0.012 + 0.01 * sm)) * (0.6 + 0.6 * sm);
+        col += vec3(0.32, 0.30, 0.28) * smoke * EG.x * (L.r * 6.0 + 0.35);
+    }
     // --- llamas, halos, humo y chispas ---
     for (int i = 0; i < 12; i++) {
         vec2 tp = tip[i];
