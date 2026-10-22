@@ -1,2 +1,2 @@
 
-| 24 sangra | El ∞ de sangre es más chico |
+| 25 posesión | El sello es más chico |
