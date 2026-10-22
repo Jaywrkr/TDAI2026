@@ -18,11 +18,27 @@
 //   posicion (grave a la izquierda) que baja hasta el piso; la fuerza: mas
 //   grueso y rapido; apretada sigue manando; al soltarla el chorro cae.
 // Speed marca el ritmo de cada vuelta (llegar, sangrar, caer).
-// HISTORIA: cada ~50 s la pared entera llora sangre desde arriba.
-// CLIMAX (~79 s, 18 s, en tres tiempos): la lampara titila y la imagen
-//   empieza a sangrar; la imagen llora sangre a chorros; la lampara se
-//   apaga y solo queda el brillo de la sangre. Cada ~4.5 min con la pared
-//   llorando (gran climax).
+// REPERTORIO (fase 34, motor hkSuceso del kit, version liviana):
+//   ESTADOS (~5 min): lampara, penumbra (la lampara baja) y la sangre sube
+//     (mas sangre y charco).
+//   SUCESOS (~55 s, 5): la pared entera llora sangre; la lampara se apaga
+//     y vuelve; aparece una mano ensangrentada en la pared; algunos pedazos
+//     se despegan y cuelgan; el charco crece.
+//   DETALLES (~30 s, 4): una gota gruesa, una salpicadura chica, una
+//     polilla en la lampara, el revoque se descascara.
+//   CLIMAX (~4 min, 18 s, rotan 3 guiones en tres tiempos):
+//     A la imagen sangra: la lampara titila, la imagen llora a chorros y
+//       se apaga la lampara; queda el brillo de la sangre.
+//     B la ronda: la imagen da una vuelta entera abriendose en pedazos
+//       con huecos; al terminar se vuelve a armar.
+//     C el ojo: los pedazos se abren como una puerta y detras, en la
+//       pared, hay un ojo enorme que mira.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con la pared
+//     llorando.
+// @EST: lampara | penumbra | la sangre sube
+// @SUC: la pared llora | se apaga | la mano | se despegan | el charco
+// @DET: una gota | salpicadura | polilla | revoque
+// @CLX: A la imagen sangra | B la ronda | C el ojo
 //
 // @D1: cantidad de cortes (los pedazos sin cortar quedan pegados como una hoja)
 // @D2: sangre
@@ -44,22 +60,44 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
     float has = hkMediaHas();
-    vec4 G = hkGrandClimax(61.0);
-    vec4 C = hkClimaxOr(G, hkClimax(61.0, 79.0, 18.0));
-    float flickC = C.x * (1.0 - C.y) * (1.0 - C.z);
-    float cryE = max(hkEvent(60.0, 50.0, 9.0), max(C.y, G.y));
-    float darkE = C.z * (1.0 - smoothstep(0.92, 1.0, C.w));
+    // --- calendario (fase 34) ---
+    hkSetClimax(61.0, 18.0, 22.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(61.0, 5, 9.0);
+    int sv = int(S.z);
+    float se = S.x, sph = S.y, ss = S.w;
+    vec4 D = hkDetalle(61.0, 4, 3.0);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(61.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(61.0, 3));
+    float flickC = cA * C.x * (1.0 - C.y) * (1.0 - C.z);
+    float cryE = max(sv == 0 ? se : 0.0, max(cA * C.y, G.y));
+    float darkE = cA * C.z * (1.0 - smoothstep(0.92, 1.0, C.w));
+    // suceso: la lampara se apaga un rato y vuelve
+    darkE = max(darkE, sv == 1 ? se * smoothstep(0.25, 0.30, sph) * (1.0 - smoothstep(0.70, 0.75, sph)) : 0.0);
+    float ronda = cB * smoothstep(0.08, 0.40, C.w) * (1.0 - smoothstep(0.72, 0.92, C.w));
+    float eyeK = cC * smoothstep(0.08, 0.40, C.w) * (1.0 - smoothstep(0.75, 0.94, C.w));
+    float dropAgain = sv == 3 ? se * sin(clamp(sph * 1.15, 0.0, 1.0) * PI) : 0.0;
 
     // vuelta: llegan (0..0.18), sangran, se despegan (0.92..1)
     float cyc = t / 32.0;
     float cid = floor(cyc);
     float ph = fract(cyc);
-    float bleed = smoothstep(0.15, 0.85, ph) * (0.3 + uD2 * 0.9) + cryE * 0.4 + C.x * 0.35;
+    // en B, C y "se despegan" la imagen tiene que estar: si toca el hueco
+    // entre vueltas, los pedazos llegan antes y se quedan hasta el final
+    float hold = max((cB + cC) * smoothstep(0.0, 0.08, C.w) * (1.0 - smoothstep(0.92, 1.0, C.w)), sv == 3 ? se : 0.0);
+    float bleed = smoothstep(0.15, 0.85, ph) * (0.3 + uD2 * 0.9) + cryE * 0.4 + cA * C.x * 0.35 + EST.z * 0.3;
 
     // lampara de jaula
     vec2 lp = vec2(0.0, 0.92);
     float lamp = (0.75 + bass * 0.4) * (1.0 - darkE * 0.95) * (0.92 + 0.08 * noise21(vec2(t * 7.0, 1.0)))
-               * (1.0 - flickC * 0.8 * step(0.5, noise21(vec2(uRTime * 13.0, 5.0))));
+               * (1.0 - flickC * 0.8 * step(0.5, noise21(vec2(floor(uRTime * 4.0), 5.0)))) * (1.0 - EST.y * 0.5);   // titila a lo sumo 2 veces/s
     vec2 ld = p - lp;
     float cone = smoothstep(1.25, 0.2, abs(ld.x) / max(-ld.y + 0.25, 0.05));
     float L = 0.09 + lamp * (0.25 / (0.25 + dot(ld, ld) * 0.6)) * (0.35 + 0.65 * cone);
@@ -85,6 +123,26 @@ vec4 render(vec2 uv) {
         if (scrap < 0.0) wall = mix(vec3(0.42, 0.40, 0.36) * (0.6 + 0.4 * noise21(sq * 30.0)), vec3(0.20, 0.19, 0.17), smoothstep(-0.03, 0.0, scrap)) * (0.6 + 0.4 * n1);
         wall = mix(wall, vec3(0.03), 1.0 - smoothstep(0.006, 0.010, length(p - sp - vec2(0.0, 0.18))));   // clavo
     }
+    // detalle: el revoque se descascara
+    if (dv == 3) {
+        vec2 fq = p - vec2((D.w - 0.5) * 3.6, 0.6 - D.w * 0.8);
+        float flake = hkBox(fq, vec2(0.07, 0.05) * D.x) + (noise21(fq * 50.0) - 0.5) * 0.02;
+        wall = mix(wall, vec3(0.10, 0.08, 0.06), (1.0 - smoothstep(0.0, 0.005, flake)));
+    }
+    // C: el ojo enorme en la pared, detras de la imagen
+    if (eyeK > 0.0) {
+        vec2 eq = (p - vec2(0.0, 0.05)) / vec2(0.62, 0.42);
+        float open = smoothstep(0.15, 0.6, eyeK);
+        float lid = length(vec2(eq.x, eq.y / max(open * 0.75, 0.02))) - 1.0;
+        float look = sin(uRTime * 0.7) * 0.35;
+        float iris = length(eq - vec2(look, 0.0)) - 0.45;
+        vec3 ew = vec3(0.75, 0.68, 0.60) * (0.7 + 0.3 * noise21(eq * 12.0));
+        ew = mix(ew, vec3(0.6, 0.05, 0.04), smoothstep(0.75, 1.0, length(eq)) * 0.6);          // venitas al borde
+        ew = mix(ew, vec3(0.25, 0.12, 0.05) * (0.6 + 0.6 * noise21(eq * 25.0)), 1.0 - smoothstep(-0.02, 0.02, iris));
+        ew = mix(ew, vec3(0.01), 1.0 - smoothstep(-0.02, 0.02, length(eq - vec2(look, 0.0)) - 0.18 - bass * 0.05));
+        wall = mix(wall, ew, (1.0 - smoothstep(-0.03, 0.03, lid)) * eyeK);
+        wall *= 1.0 - (1.0 - smoothstep(0.0, 0.05, abs(lid))) * 0.7 * eyeK;
+    }
     vec3 col = wall * L * 2.2;
     // piso
     if (p.y < FLOOR) {
@@ -101,7 +159,17 @@ vec4 render(vec2 uv) {
     float cols = floor(4.0 * ia + 0.5);
     const float rows = 4.0;
     vec2 cell = 2.0 * HS / vec2(cols, rows);
-    vec2 gl = (p - IC + HS) / cell;
+    // B y C mueven toda la grilla (la busqueda es de 3x3 celdas, por eso se
+    // transforma el punto y no cada pedazo):
+    //   B gira una vuelta entera y se abre en ronda (los pedazos quedan con
+    //     su tamano y aparecen huecos);
+    //   C abre las dos mitades como una puerta.
+    float rs = 1.0 + ronda * 0.6;
+    float ra = cB * 6.2832 * smoothstep(0.08, 0.92, C.w);
+    vec2 pg = IC + b24rot(-ra) * (p - IC) / rs;
+    float side = sign(p.x - IC.x + 1e-4);
+    pg.x -= side * eyeK * 1.25;
+    vec2 gl = (pg - IC + HS) / cell;
     vec2 g0 = floor(gl);
     float paperA = 0.0;
     vec3 paperC = vec3(0.0);
@@ -120,17 +188,22 @@ vec4 render(vec2 uv) {
         vec2 cc = (id + 0.5) / vec2(cols, rows) - 0.5;
         vec2 from = abs(cc.x) * 1.0 > abs(cc.y) * ia ? vec2(sign(cc.x + 1e-3) * (uAspect + 1.2), 0.0) : vec2(0.0, sign(cc.y + 1e-3) * 2.2);
         float arrive = smoothstep(0.02 + h.x * 0.10, 0.08 + h.x * 0.10, ph);
-        float fall = smoothstep(0.92 + h.y * 0.05, 0.99, ph);
+        float fall = smoothstep(0.92 + h.y * 0.05, 0.99, ph) * (1.0 - hold);
+        arrive = max(arrive, smoothstep(h.x * 0.4, h.x * 0.4 + 0.5, hold));
+        float sag = dropAgain * step(0.45, h.y);                               // suceso: se despegan y cuelgan
         float jump = hit * loco * step(0.6, h.x) * 0.15;
         vec2 off = from * (1.0 - arrive) + vec2(0.0, -2.5) * fall * fall + (h - 0.5) * cell * uD4 * 0.12;
         off += vec2(sin(t * 0.8 + h.x * 6.0), cos(t * 0.7 + h.y * 6.0)) * 0.004 * (0.3 + mid * 2.0) + vec2(0.0, jump);
-        float rot = (h.y - 0.5) * (0.04 + uD4 * 0.18) * (1.0 + (1.0 - arrive) * 3.0) + fall * (h.x - 0.5) * 2.0;
+        float rot = (h.y - 0.5) * (0.04 + uD4 * 0.18) * (1.0 + (1.0 - arrive) * 3.0) + fall * (h.x - 0.5) * 2.0 + sag * (h.x - 0.5) * 1.2;
+        off.y -= sag * cell.y * 0.7;
         // la hoja sin cortar llega toda junta desde abajo
         off = mix(vec2(0.0, -2.2) * (1.0 - arrive) + vec2(0.0, -2.5) * fall * fall, off, torn);
         vec2 ctr = IC - HS + (id + 0.5) * cell + off;
-        vec2 lq = b24rot(-rot) * (p - ctr);
+        rot += ronda * (h.x - 0.5) * 0.8;
+        if (eyeK > 0.0 && sign(cc.x + 1e-3) != side) continue;   // C: cada mitad en su lado
+        vec2 lq = b24rot(-rot) * (pg - ctr);
         // borde rasgado (fibras blancas del papel)
-        float d0 = hkBox(lq, cell * 0.5 * (1.0 + 0.08 * uD4 * torn + 0.02 * (1.0 - torn)));
+        float d0 = hkBox(lq, cell * 0.5 / rs * (1.0 + 0.08 * uD4 * torn + 0.02 * (1.0 - torn)));
         if (d0 > 0.03) continue;
         float rag = (fbm(lq * 18.0 + id * 7.0, 3, 0.5) - 0.5) * 0.035 + (noise21(lq * 90.0 + id) - 0.5) * 0.006;
         float d = d0 + rag;
@@ -173,7 +246,7 @@ vec4 render(vec2 uv) {
             vec3 sim = hkMediaGet(hkMediaCover(ms, ia), 2.0, has);
             srcDark = smoothstep(0.05, 0.005, dot(sim, vec3(0.33)));
         }
-        float cryS = cryE * step(0.72, hx);
+        float cryS = max(cryE, EST.z * 0.4) * step(0.72, hx);
         if (cryS > 0.0) ys = 1.05;
         float on = max(step(0.25, hx) * srcDark, cryS);
         float speed = (0.4 + hx * 0.6) * (0.6 + bass * 0.8);
@@ -218,6 +291,25 @@ vec4 render(vec2 uv) {
         float burst = (1.0 - smoothstep(0.03, 0.05 + vel * 0.04, length(p - vec2(x0, ys)))) * exp(-age * 2.0);
         dripA = max(dripA, max(max(body, head), burst) * e);
     }
+    // suceso: una mano ensangrentada aparece en la pared; detalles
+    if (sv == 2 && se > 0.0) {
+        vec2 hq = (p - vec2((ss > 0.5 ? 1.0 : -1.0) * (HS.x + 0.35), 0.10)) / 0.13;
+        float palm = length(hq * vec2(1.0, 1.1)) - 0.8;
+        for (int i = 0; i < 4; i++) palm = min(palm, hkSeg(hq, vec2(-0.55 + float(i) * 0.37, 0.5), vec2(-0.65 + float(i) * 0.42, 1.65)) - 0.2);
+        palm = min(palm, hkSeg(hq, vec2(0.7, -0.1), vec2(1.3, 0.5)) - 0.2);
+        palm += (noise21(hq * 9.0) - 0.5) * 0.25;
+        splat = max(splat, (1.0 - smoothstep(-0.05, 0.05, palm)) * se * smoothstep(0.1, 0.2, sph));
+    }
+    if (dv == 1) {
+        vec2 sq = p - IC - (vec2(D.w, fract(D.w * 7.0)) - 0.5) * HS * 1.6;
+        float r = length(sq) + (noise21(vec2(atan(sq.y, sq.x) * 3.0, D.w * 9.0)) - 0.5) * 0.02;
+        splat = max(splat, (1.0 - smoothstep(0.025, 0.035, r)) * D.x);
+    }
+    if (dv == 0) {
+        float gx = (D.w - 0.5) * HS.x * 1.6;
+        vec2 gq = (p - vec2(gx, mix(IC.y + 0.2, FLOOR, D.y * D.y))) / vec2(1.0, 1.4);
+        splat = max(splat, (1.0 - smoothstep(0.018, 0.024, length(gq))) * D.x);
+    }
     float blood = clamp(max(dripA, splat), 0.0, 1.0);
     vec3 bloodC = vec3(0.28, 0.012, 0.015) * (0.6 + 0.4 * L * 3.0);
     bloodC += vec3(0.9, 0.5, 0.5) * pow(max(0.0, 1.0 - abs(fract(p.x / 0.028) - 0.4) * 4.0), 6.0) * (0.15 + high * 0.4) * lamp * dripA;   // brillo humedo
@@ -226,7 +318,7 @@ vec4 render(vec2 uv) {
 
     // --- charco en el piso ---
     if (uD6 > 0.02 && p.y < FLOOR + 0.01) {
-        float pool = fbm(vec2(p.x * 1.5, 0.0) + cid, 3, 0.5) * 1.6 - 1.2 + bleed * uD6 * 1.3;
+        float pool = fbm(vec2(p.x * 1.5, 0.0) + cid, 3, 0.5) * 1.6 - 1.2 + bleed * uD6 * 1.3 + (sv == 4 ? se * smoothstep(0.0, 0.8, sph) * 1.2 : 0.0) + EST.z * 0.3;
         float pd = length(vec2((p.x - IC.x) / (HS.x * 1.3), (p.y - FLOOR + 0.07) / 0.09)) - (0.6 + pool * 0.5) - (noise21(vec2(p.x * 6.0, cid)) - 0.5) * 0.25;
         float wetA = 1.0 - smoothstep(0.0, 0.05, pd);
         vec2 rq = vec2(p.x, 2.0 * FLOOR - p.y);
@@ -247,6 +339,10 @@ vec4 render(vec2 uv) {
         float cage = hkLine(abs(fract(atan(q.x, q.y + 0.02) * 1.6) - 0.5) * length(q) - 0.0, 0.8) * step(length(q * vec2(1.0, 0.8)), 0.075) * step(-0.06, q.y);
         float shade = max(hkRBox(q - vec2(0.0, 0.06), vec2(0.07, 0.02), 0.01), -1.0);
         col = mix(col, vec3(0.05), (1.0 - smoothstep(0.0, 0.004, shade)) + cage * 0.7);
+        if (dv == 2) {                                       // una polilla da vueltas
+            vec2 mq = (q - vec2(cos(uRTime * 3.0), sin(uRTime * 3.0) * 0.5) * 0.14) / 0.03;
+            col = mix(col, vec3(0.05), (1.0 - smoothstep(0.6, 1.0, length(vec2(abs(mq.x) - 0.6 * (0.5 + 0.5 * sin(uRTime * 40.0)), mq.y)))) * D.x);
+        }
         col += vec3(1.0, 0.93, 0.8) * lamp * (1.0 - smoothstep(0.0, 0.01, bulbD)) * 1.4;
         col += vec3(1.0, 0.9, 0.75) * lamp * exp(-length(q) * 7.0) * 0.12;
         col = mix(col, vec3(0.02), (1.0 - smoothstep(0.0, 0.003, abs(p.x) - 0.004)) * step(lp.y + 0.07, p.y));

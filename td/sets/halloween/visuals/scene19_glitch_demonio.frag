@@ -17,12 +17,28 @@
 //   de glitch a la altura de la nota (la fuerza: mas ancha y corrida);
 //   apretada, la franja repta y los ojos siguen ardiendo.
 // Speed hace respirar el rostro y mover el ruido aun en silencio.
-// HISTORIA: cada ~43 s el rostro se derrite; cada acto cambia la textura
-// de la senal.
-// CLIMAX (~89 s, 20 s, en tres tiempos): la interferencia crece y el
-//   rostro empieza a derretirse; posesion: se rompe entero en bloques con
-//   copias fantasma; vuelve limpio con los ojos ardiendo. Cada ~4.5 min
-//   mas largo y con la imagen invertida (gran climax).
+// Cada acto cambia la textura de la senal.
+// REPERTORIO (fase 34, motor hkSuceso del kit, version liviana):
+//   ESTADOS (~5 min): senal estable, interferencia (mas estatica y
+//     rasgado) y fuego alto (el fuego de abajo y las brasas crecen).
+//   SUCESOS (~55 s, 5): el rostro se derrite; llora fuego; se corta la
+//     senal (barras de color con el rostro detras); el rostro se acerca a
+//     la camara; mosaico de rostros.
+//   DETALLES (~30 s, 4): parpadea, chispas, una linea de tracking, la
+//     imagen en espejo.
+//   CLIMAX (~4 min, 20 s, rotan 3 guiones en tres tiempos):
+//     A la posesion: interferencia, se derrite, se rompe en bloques con
+//       copias fantasma y vuelve limpio con los ojos ardiendo.
+//     B el tercer ojo: se abre un ojo en la frente que echa rayos y mira
+//       a los lados; despues se cierra.
+//     C partido al medio: la cara se abre en dos mitades y detras hay
+//       fuego; despues se vuelve a cerrar.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con la imagen
+//     invertida.
+// @EST: senal estable | interferencia | fuego alto
+// @SUC: se derrite | llora fuego | sin senal | se acerca | mosaico
+// @DET: parpadea | chispas | linea de tracking | espejo
+// @CLX: A la posesion | B el tercer ojo | C partido al medio
 //
 // @D1: cantidad de lineas de barrido
 // @D2: cuanto se rompe con el golpe
@@ -63,15 +79,32 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    vec4 G = hkGrandClimax(20.0);
-    vec4 C = hkClimaxOr(G, hkClimax(20.0, 89.0, 20.0));
-    float cph = C.w;
-    float interf = C.x * (1.0 - C.y) * (1.0 - C.z);          // aviso: interferencia
-    // se derrite al final del aviso (o en su evento propio)
+    // --- calendario (fase 34) ---
+    hkSetClimax(20.0, 20.0, 24.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(20.0, 5, 9.0);
+    int sv = int(S.z);
+    float se = S.x, sp = S.y, ss = S.w;
+    vec4 D = hkDetalle(20.0, 4, 3.0);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(20.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(20.0, 3));
+    float cph = cA * C.w;
+    float interf = cA * C.x * (1.0 - C.y) * (1.0 - C.z) + EST.y * 0.35;          // aviso: interferencia
+    // se derrite al final del aviso (o en su suceso)
     float meltC = smoothstep(0.18, 0.33, cph) * (1.0 - smoothstep(0.36, 0.42, cph));
-    float meltE = max(hkEvent(19.0, 43.0, 8.0), meltC);
-    float meltPh = meltC > 0.0 ? clamp((cph - 0.18) / 0.20, 0.0, 1.0) : hkEventPhase(19.0, 43.0, 8.0);
-    float possE = C.y;
+    float meltE = max(sv == 0 ? se : 0.0, meltC);
+    float meltPh = meltC > 0.0 ? clamp((cph - 0.18) / 0.20, 0.0, 1.0) : sp;
+    float possE = cA * C.y;
+    float eye3 = cB * smoothstep(0.10, 0.40, C.w) * (1.0 - smoothstep(0.75, 0.92, C.w));
+    float gap = cC * smoothstep(0.10, 0.45, C.w) * (1.0 - smoothstep(0.70, 0.92, C.w)) * 0.55;
+    float mosaic = sv == 4 ? se * step(0.15, sp) * (1.0 - step(0.85, sp)) : 0.0;
     // piano: ojos y franjas de glitch
     float keyEyes = 0.0;
     for (int k = 0; k < N_KEYS; k++) keyEyes = max(keyEyes, keyEnv(k, 0.02, 0.6) * (0.5 + keyVel(k)));
@@ -81,6 +114,7 @@ vec4 render(vec2 uv) {
 
     // --- glitch de pantalla: bloques, filas que se rasgan ---
     vec2 g = uv;
+    if (dv == 3 && D.x > 0.5) g.x = 1.0 - g.x;                      // detalle: espejo
     vec2 bid = floor(uv * vec2(14.0, 8.0) + hkActVal(6.0) * 3.0);
     vec2 bh = hash22(bid + floor(rt * (6.0 + possE * 10.0)));
     float on = step(1.0 - brk * 0.40, bh.x);
@@ -104,20 +138,35 @@ vec4 render(vec2 uv) {
     // --- fondo: humo rojo, brasas ---
     float sm = fbm(vec2(p.x * 1.2, p.y * 1.5 - t * 0.12), 4, 0.55);
     vec3 col = fireC * 0.06 * smoothstep(0.35, 0.85, sm) * (0.4 + 0.6 * smoothstep(1.0, -1.0, p.y));
-    col += fireC * exp(-pow((p.y + 1.1) / 0.45, 2.0)) * (0.25 + bass * 0.4);
-    float emb = hkParticles(p * 0.8, t * 0.5, 0.08 + high * 0.1, vec2(0.1, 1.0), 0.035);
+    col += fireC * exp(-pow((p.y + 1.1) / (0.45 + EST.z * 0.3), 2.0)) * (0.25 + bass * 0.4 + EST.z * 0.3);
+    float emb = hkParticles(p * 0.8, t * 0.5, 0.08 + high * 0.1 + EST.z * 0.08 + (dv == 1 ? D.x * 0.25 : 0.0), vec2(0.1, 1.0), 0.035);
     col += mix(fireC, vec3(1.0, 0.8, 0.4), 0.5) * emb * 0.4;
 
     // --- rostro (respira; se derrite en el evento) ---
-    float breath = 1.0 + 0.025 * sin(t * 0.9) + mid * 0.02;
+    float breath = (1.0 + 0.025 * sin(t * 0.9) + mid * 0.02) * (1.0 + (sv == 3 ? se * sin(sp * PI) * 0.7 : 0.0));
     vec2 q = p / (0.80 * breath) + vec2(0.0, 0.06);
+    // suceso: mosaico de rostros (3 x 3)
+    if (mosaic > 0.5) {
+        vec2 cell = vec2(2.0 * uAspect / 3.0, 2.0 / 3.0);
+        vec2 lp = (fract(p / cell + 0.5) - 0.5) * cell;
+        q = lp * 3.0 / 0.80 + vec2(0.0, 0.06);
+    }
+    // C: partido al medio, cada mitad para su lado
+    float inGap = 0.0;
+    if (gap > 0.0) {
+        inGap = 1.0 - step(gap, abs(q.x));
+        q.x -= sign(q.x) * gap;
+        float fz = fbm(vec2(p.x * 4.0, p.y * 2.0 - uRTime * 1.5), 3, 0.6);
+        col += mix(fireC, vec3(1.0, 0.8, 0.4), fz) * (0.4 + fz) * exp(-abs(p.x) / (gap * 0.8 + 0.02)) * smoothstep(1.1, 0.0, abs(p.y)) * (gap / 0.55) * 1.2;
+    }
     if (meltE > 0.01) {
         float cx = floor(q.x * 40.0);
         float drip = meltE * meltPh * (0.15 + 0.5 * hash21(vec2(cx, 9.0))) * smoothstep(-1.0, 0.8, q.y);
         q.y += drip;
         q.x += sin(q.y * 6.0 + t) * 0.02 * meltE;
     }
-    float eyesK = (0.25 + uD4 * 0.9) * (0.6 + bass * 1.0 + hit * 0.4) + keyEyes * 1.6 + C.z * 2.2;
+    float eyesK = (0.25 + uD4 * 0.9) * (0.6 + bass * 1.0 + hit * 0.4) + keyEyes * 1.6 + cA * C.z * 2.2 + eye3 * 0.8;
+    if (dv == 0) eyesK *= 1.0 - D.x * step(0.4, D.y) * (1.0 - step(0.55, D.y));
     float split = (0.004 + uD3 * 0.03) * (1.0 + brk * 2.0 + bass * 0.5 + interf * 2.0) + keyBand * 0.03;
     vec4 fc = g19Face(q, fireC, rimC, eyesK);
     vec3 face = fc.rgb;
@@ -127,7 +176,33 @@ vec4 render(vec2 uv) {
         face = vec3(fr.r, fc.g, fb.b);
         fc.a = max(fc.a, max(fr.a, fb.a) * 0.8);
     }
-    col = mix(col, face, clamp(fc.a, 0.0, 1.0));
+    col = mix(col, face, clamp(fc.a, 0.0, 1.0) * (1.0 - inGap));
+    // B: el tercer ojo en la frente
+    if (eye3 > 0.0) {
+        vec2 ec = vec2(0.0, 0.50) * 0.80 * breath - vec2(0.0, 0.06) * 0.80 * breath;
+        vec2 eq = (p - ec) / (0.13 * breath);
+        float open = smoothstep(0.0, 0.6, eye3);
+        float lid = length(eq / vec2(1.0, max(open * 0.55, 0.02))) - 1.0;
+        float lookX = sin(uRTime * 0.8) * 0.4;
+        float iris = length(eq - vec2(lookX, 0.0)) - 0.42;
+        float pupil = abs(eq.x - lookX) - 0.08;
+        vec3 ec3 = mix(vec3(1.0, 0.85, 0.4), fireC * 1.5, smoothstep(-0.4, 0.0, iris));
+        ec3 = mix(ec3, vec3(0.0), (1.0 - smoothstep(0.0, 0.04, pupil)) * step(iris, 0.0));
+        col = mix(col, ec3 * (1.0 + bass * 0.6), (1.0 - smoothstep(-0.04, 0.04, lid)) * eye3);
+        float ang = atan(eq.y, eq.x);
+        col += fireC * (0.5 + 0.5 * sin(ang * 12.0 + uRTime * 2.0)) * exp(-length(eq) * 0.9) * 0.18 * eye3 * step(0.0, lid);
+    }
+    // suceso: llora fuego
+    if (sv == 1 && se > 0.0) {
+        for (int s2 = -1; s2 <= 1; s2 += 2) {
+            vec2 eo = vec2(float(s2) * 0.20, 0.06) * breath;
+            vec2 tq = p - eo;
+            float flow = smoothstep(0.0, 0.6, sp) * 0.9;
+            float w = 0.018 + 0.01 * sin(tq.y * 20.0 - uRTime * 6.0);
+            float tear = (1.0 - smoothstep(w, w + 0.01, abs(tq.x + 0.02 * sin(tq.y * 9.0)))) * step(-flow, tq.y) * step(tq.y, 0.0);
+            col += mix(fireC, vec3(1.0, 0.75, 0.3), 0.25) * tear * se * 0.8 * (1.0 + 0.5 * noise21(vec2(tq.y * 10.0 - uRTime * 5.0, float(s2))));
+        }
+    }
     // copias fantasma a los costados con la locura / posesion
     float ghostK = clamp(hit * loco * step(0.5, loco) + possE, 0.0, 1.0);
     if (ghostK > 0.01) {
@@ -145,7 +220,19 @@ vec4 render(vec2 uv) {
     col = mix(col, vec3(st) * 0.5, (0.03 + uD6 * 0.20 + high * 0.08 + brk * 0.06 + interf * 0.25 + keyBand * 0.3) * step(0.5, st + 0.3));
     float bar = smoothstep(0.02, 0.0, abs(fract(uv.y - rt * 0.07) - 0.5) - 0.06);
     col += vec3(0.04) * bar * (0.5 + uD6);
-    float inv = max(hit * step(0.75, loco), G.y) * step(0.6, noise21(vec2(floor(rt * 14.0), 5.0)));
+    // detalle: una linea de tracking que sube
+    if (dv == 2) col = mix(col, vec3(st * 0.7), exp(-pow((uv.y - D.y) / 0.02, 2.0)) * D.x * 0.8);
+    // suceso: se corta la senal (barras de color con el rostro detras)
+    if (sv == 2) {
+        float bk = se * smoothstep(0.15, 0.22, sp) * (1.0 - smoothstep(0.75, 0.82, sp));
+        float bi = floor(uv.x * 7.0);
+        vec3 bars = vec3(step(0.5, mod(bi + 1.0, 2.0) < 0.5 ? 0.0 : 1.0) * 0.0);
+        bars = vec3(bi < 4.0 ? 0.75 : 0.0, mod(bi, 4.0) < 2.0 ? 0.75 : 0.0, mod(bi, 2.0) < 0.5 ? 0.75 : 0.0);
+        if (uv.y < 0.25) bars = vec3(0.04 + 0.7 * step(0.5, fract(uv.x * 3.5)) * step(uv.x, 0.6));
+        col = mix(col, bars * 0.45 + col * 0.35, bk);
+    }
+    // (a lo sumo dos cambios por segundo: limite de destellos)
+    float inv = max(hit * step(0.75, loco), G.y) * step(0.6, noise21(vec2(floor(rt * 2.0), 5.0)));
     col = mix(col, (vec3(1.0) - col) * fireC, inv * 0.7);
     // bloques corridos: un poco de color crudo en los bordes del bloque
 

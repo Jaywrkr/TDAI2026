@@ -17,13 +17,28 @@
 //   estira y se hunde, pasa a negativo un instante) y su lampara se aviva;
 //   la fuerza: mas grito; apretada sigue gritando.
 // Speed mueve las llamas, el polvo y el balanceo aun en silencio.
-// HISTORIA: cada ~53 s apagon (solo quedan las imagenes, palidas, como
-// si brillaran solas); cada ~67 s un cuadro se suelta de un lado y
-// queda torcido.
-// CLIMAX (~89 s, 18 s, en tres tiempos): apagon y los cuadros se tuercen
-//   de a uno; todos los retratos pasan a negativo a la vez y gritan;
-//   vuelven parpadeando y se enderezan. Cada ~4.5 min con un cuadro que
-//   se suelta (gran climax).
+// REPERTORIO (fase 34, motor hkSuceso del kit, version liviana):
+//   ESTADOS (~5 min): lamparas, velas (lamparas bajas) y penumbra (mas
+//     polvo, todo mas oscuro).
+//   SUCESOS (~55 s, 5): apagon (solo quedan las imagenes, palidas); un
+//     cuadro se suelta de un lado; las imagenes se corren dentro de los
+//     marcos, como si miraran; pasa una sombra por la pared; un cuadro
+//     sangra por debajo del marco.
+//   DETALLES (~30 s, 4): una vela se apaga, una lampara titila, cae
+//     polvo, una arana baja por su hilo.
+//   CLIMAX (~4 min, 18 s, rotan 3 guiones en tres tiempos):
+//     A el negativo: apagon, los cuadros se tuercen de a uno, todos pasan
+//       a negativo y gritan; vuelven parpadeando.
+//     B la ronda: los cuadros giran una vuelta entera en sus clavos, cada
+//       uno a su tiempo.
+//     C el cuadro gigante: la imagen del centro crece hasta llenar la
+//       pared y los demas se apagan; despues vuelve a su marco.
+//   GRAN CLIMAX (uno de cada tres o el pad Momento): A con un cuadro que
+//     se suelta.
+// @EST: lamparas | velas | penumbra
+// @SUC: apagon | se suelta | se corren | una sombra | sangra
+// @DET: una vela | lampara titila | polvo | arana
+// @CLX: A el negativo | B la ronda | C el cuadro gigante
 //
 // @D1: cantidad de cuadros (3 <-> 5; se reacomodan y el nuevo crece)
 // @D2: balanceo con el golpe
@@ -75,14 +90,31 @@ vec4 render(vec2 uv) {
     float loco = hkLoco();
     float has = hkMediaHas();
 
-    vec4 G = hkGrandClimax(22.0);
-    vec4 C = hkClimaxOr(G, hkClimax(22.0, 89.0, 18.0));
-    float cph = C.w;
-    float dark = max(hkEvent(20.0, 53.0, 6.0), C.x * (1.0 - C.z) * 0.9);   // apagon
-    float fallE = max(hkEvent(21.0, 67.0, 14.0), G.x);                      // un cuadro se suelta
-    // pico: todos negativos; secuelas: vuelven parpadeando
-    float negE = max(C.y, C.z * step(0.55, noise21(vec2(uRTime * 9.0, 3.0))) * (1.0 - smoothstep(0.85, 0.95, cph)));
-    float fallPh = G.w > 0.0 ? G.w : hkEventPhase(21.0, 67.0, 14.0);
+    // --- calendario (fase 34) ---
+    hkSetClimax(22.0, 18.0, 22.0);
+    vec4 G = hkGrandV();
+    vec4 C = hkClimaxOr(G, hkClimaxV());
+    float grand = G.w > 0.0 ? 1.0 : 0.0;
+    int cv = grand > 0.0 ? 0 : hkClimaxVar(3);
+    float cA = (C.w > 0.0 && cv == 0) ? 1.0 : 0.0;
+    float cB = (C.w > 0.0 && cv == 1) ? 1.0 : 0.0;
+    float cC = (C.w > 0.0 && cv == 2) ? 1.0 : 0.0;
+    vec4 S = hkSuceso(22.0, 5, 10.0);
+    int sv = int(S.z);
+    float se = S.x, sp = S.y, ss = S.w;
+    vec4 D = hkDetalle(22.0, 4, 3.5);
+    int dv = int(D.z);
+    vec4 EST = hkEstado(22.0, 3);
+    hkTimeline(S, D, C, cv, grand, hkEstadoIdx(22.0, 3));
+    float cph = cA * C.w;
+    float dark = max(sv == 0 ? se : 0.0, cA * C.x * (1.0 - C.z) * 0.9);   // apagon
+    float fallE = max(sv == 1 ? se : 0.0, G.x);                          // un cuadro se suelta
+    // pico: todos negativos; secuelas: vuelven parpadeando (a lo sumo dos veces por segundo)
+    float negE = cA * max(C.y, C.z * step(0.55, noise21(vec2(floor(uRTime * 3.0), 3.0))) * (1.0 - smoothstep(0.85, 0.95, cph)));
+    float fallPh = G.w > 0.0 ? G.w : sp;
+    float spinK = cB * smoothstep(0.08, 0.85, C.w);
+    float bigK = cC * smoothstep(0.08, 0.40, C.w) * (1.0 - smoothstep(0.75, 0.95, C.w));
+    float lookM = sv == 2 ? se * sin(sp * TAU) * 0.12 : 0.0;
 
     // cantidad continua de cuadros: se reacomodan sin saltar y el nuevo crece
     float n = 3.0 + uD1 * 2.0;
@@ -94,8 +126,9 @@ vec4 render(vec2 uv) {
     float fw = min(fh * ia, cw * 0.78);          // ancho del marco
     fh = fw / ia;
     float cy = 0.12;
-    float lampOn = (0.25 + uD4 * 0.75) * (1.0 - dark * 0.92);
-    float fallK = floor(hash21(vec2(floor(uRTime / 67.0), 4.0)) * 3.0);
+    float lampOn = (0.25 + uD4 * 0.75) * (1.0 - dark * 0.92) * (1.0 - EST.y * 0.55) * (1.0 - EST.z * 0.35) * (1.0 - bigK * 0.6);
+    if (dv == 1) lampOn *= 1.0 - D.x * 0.5 * step(0.5, noise21(vec2(floor(uRTime * 4.0), 6.0)));
+    float fallK = floor(ss * 2.99);
 
     // --- pared ---
     float dm = g20Damask(p);
@@ -126,7 +159,8 @@ vec4 render(vec2 uv) {
         float fk = float(k);
         if (fk > nSlots) break;
         float x = -span * 0.5 + fk * cw;
-        float fl = 0.8 + 0.2 * noise21(vec2(t * 5.0, fk * 3.1));
+        float fl = (0.8 + 0.2 * noise21(vec2(t * 5.0, fk * 3.1))) * (1.0 + EST.y * 0.8);
+        if (dv == 0 && abs(fk - floor(D.w * nSlots)) < 0.5) fl *= 1.0 - D.x;
         vec2 cp = vec2(x, cy + 0.10);
         float d2 = dot((pw - cp) * vec2(0.8, 1.0), (pw - cp) * vec2(0.8, 1.0));
         light += warm * fl * lampOn * (0.55 + bass * 0.5) * 0.10 / (0.04 + d2);
@@ -144,14 +178,21 @@ vec4 render(vec2 uv) {
 
     // --- cuadros ---
     float idx = clamp(floor((pw.x + span * 0.5) / cw), 0.0, nSlots - 1.0);
-    for (int kk = -1; kk <= 1; kk++) {
-        float k = idx + float(kk);
+    // (C: el cuadro del centro se dibuja ultimo y desde cualquier pixel)
+    float midK = floor((nSlots - 1.0) * 0.5);
+    for (int kk = -1; kk <= 2; kk++) {
+        float k = kk == 2 ? midK : idx + float(kk);
+        if (kk == 2 && bigK <= 0.0 && abs(midK - idx) <= 1.0) continue;
+        if (kk == 2 && bigK <= 0.0) continue;
+        if (kk < 2 && bigK > 0.0 && k == midK) continue;
         if (k < 0.0 || k >= nSlots) continue;
         float grow = revealAt(n, k);
         float hs = hash21(vec2(k, 2.0));
         float kb = g20Key(k, nSlots);
         // climax: se tuercen de a uno en el aviso y se enderezan al final
         float tilt = cph > 0.0 ? smoothstep(0.05 + k * 0.06, 0.12 + k * 0.06, cph) * (1.0 - smoothstep(0.80, 0.92, cph)) : 0.0;
+        // B: una vuelta entera, cada uno a su tiempo
+        float spin = TAU * smoothstep(0.0, 1.0, clamp((spinK - k * 0.08) / 0.6, 0.0, 1.0));
         float x = -span * 0.5 + (k + 0.5) * cw;
         vec2 nail = vec2(x, cy + fh * 0.5 + 0.06);
         // balanceo: medios + tiron del golpe con retraso propio
@@ -160,9 +201,13 @@ vec4 render(vec2 uv) {
         sw += hit * loco * (hs - 0.5) * 0.25;
         float fallen = step(abs(k - fallK), 0.1) * smoothstep(0.0, 0.08, fallPh) * fallE;
         sw += fallen * (hs > 0.5 ? 0.42 : -0.42) * (1.0 + 0.03 * sin(uRTime * 3.0));
-        sw += tilt * (hs - 0.5) * 0.55;
-        // el cuadro nuevo crece desde su clavo
-        vec2 q = g20rot(-sw) * (pw - nail) / max(grow, 0.05) + vec2(0.0, fh * 0.5 + 0.06);
+        sw += tilt * (hs - 0.5) * 0.55 + spin;
+        // el cuadro nuevo crece desde su clavo; C: el del centro crece hasta
+        // llenar la pared y los demas se apagan
+        float isMid = 1.0 - step(0.5, abs(k - floor((nSlots - 1.0) * 0.5)));
+        float bigS = 1.0 + bigK * isMid * 1.3;
+        vec2 bigOff = vec2(-x * bigK * isMid, (fh * 0.5 + 0.06) * (bigS - 1.0) - 0.08 * bigK * isMid);   // el centro del cuadro queda en el centro
+        vec2 q = g20rot(-sw) * (pw - nail - bigOff) / max(grow * bigS, 0.05) + vec2(0.0, fh * 0.5 + 0.06);
         // alambre al clavo
         if (!floorPx) {
             vec2 qa = g20rot(-sw) * (pw - nail);
@@ -196,6 +241,7 @@ vec4 render(vec2 uv) {
             vec2 dm2 = m - c;
             m = c + dm2 * (1.0 + scream * 0.35 * exp(-dot(dm2, dm2) * 9.0)) * vec2(1.0, 1.0 + scream * 0.25);
             m += (vec2(noise21(m * 6.0 + uRTime), noise21(m * 6.0 - uRTime)) - 0.5) * hit * loco * 0.03;
+            m.x += lookM;                                    // suceso: se corren
             // cada cuadro con su encuadre: mas cerca, corrido, en espejo
             float zk = 1.0 - 0.32 * hash21(vec2(k, 5.0)) * step(0.5, k);
             vec2 mk = (m - 0.5) * zk + 0.5 + (hash22(vec2(k, 6.0)) - 0.5) * (1.0 - zk) * vec2(0.8, 0.6) + vec2(0.0, (1.0 - zk) * 0.2);
@@ -211,13 +257,39 @@ vec4 render(vec2 uv) {
             oil *= 1.0 - crack * 0.35;
             oil *= 0.75 + 0.25 * noise21(m * 4.0 + k);          // barniz desparejo
             float glowSelf = dark * 0.35 + negE * 0.2;
-            col = oil * (lt * 0.85 + glowSelf);
+            col = oil * (lt * 0.85 + glowSelf + bigK * isMid * 0.6) * (1.0 - bigK * (1.0 - isMid) * 0.7);
             col *= 1.0 - 0.35 * smoothstep(0.25, 0.75, length((m - 0.5) * vec2(1.0, 0.8)));   // marco hace sombra
         }
     }
 
+    // --- suceso: un cuadro sangra por debajo del marco ---
+    if (sv == 4 && se > 0.0 && !floorPx) {
+        float k5 = floor(ss * (nSlots - 0.01));
+        float x5 = -span * 0.5 + (k5 + 0.5) * cw;
+        float bottom = cy - fh * 0.5 + 0.06 - 0.06;
+        float cx5 = floor((p.x - x5) / 0.035);
+        float h5 = hash21(vec2(cx5, k5));
+        float len = smoothstep(0.05, 0.8, sp) * (0.15 + 0.5 * h5) * step(abs(p.x - x5), fw * 0.4) * step(0.3, h5);
+        float xd = (cx5 + 0.5) * 0.035 + x5;
+        float dd = max(abs(p.x - xd) - 0.006 * (1.0 + h5), max(p.y - bottom, bottom - len - p.y));
+        dd = min(dd, length(vec2(p.x - xd, (p.y - (bottom - len)) * 0.8)) - 0.009 * (1.0 + h5));
+        col = mix(col, vec3(0.20, 0.0, 0.0) * (0.4 + light * 2.0), (1.0 - smoothstep(-0.002, 0.002, dd)) * step(0.01, len) * se);
+    }
+    // --- suceso: pasa una sombra por la pared ---
+    if (sv == 3 && se > 0.0 && !floorPx) {
+        vec2 sq = (p - vec2(mix(-uAspect - 0.5, uAspect + 0.5, ss > 0.5 ? sp : 1.0 - sp), -0.05)) / 0.55;
+        float sh = min(length(sq - vec2(0.0, 0.62)) - 0.16, length(max(abs(sq - vec2(0.0, -0.1)) - vec2(0.22 - sq.y * 0.08, 0.6), 0.0)) - 0.08);
+        col *= 1.0 - 0.75 * (1.0 - smoothstep(-0.08, 0.08, sh)) * se;
+    }
+    // --- detalle: una arana baja por su hilo ---
+    if (dv == 3) {
+        vec2 ap = vec2((D.w - 0.5) * span, 1.0 - D.y * 0.7);
+        col += vec3(0.4) * (1.0 - smoothstep(0.0, 0.002, abs(p.x - ap.x))) * step(ap.y, p.y) * 0.3 * D.x * lampOn;
+        col = mix(col, vec3(0.01), (1.0 - smoothstep(0.012, 0.018, length((p - ap) * vec2(1.0, 1.3)))) * D.x);
+    }
+
     // --- candelabros de pared (entre cuadros) ---
-    if (!floorPx && uD4 > 0.02) {
+    if (!floorPx && uD4 > 0.02 && bigK < 0.15) {        // (con el cuadro gigante no se ven)
         float k2 = floor((p.x + span * 0.5) / cw + 0.5);
         if (k2 >= 0.0 && k2 <= nSlots) {
             float x = -span * 0.5 + k2 * cw;
@@ -287,7 +359,7 @@ vec4 render(vec2 uv) {
     }
 
     // --- polvo en la luz y telaranas ---
-    float dust = hkParticles(p * 0.8, t * 0.4, 0.10 + uD6 * 0.25, vec2(0.15, -0.3), 0.05);
+    float dust = hkParticles(p * 0.8, t * 0.4, 0.10 + uD6 * 0.25 + EST.z * 0.2 + (dv == 2 ? D.x * 0.3 : 0.0), vec2(0.15, -0.3), 0.05);
     col += vec3(0.9, 0.8, 0.65) * dust * (0.02 + high * 0.05 + uD6 * 0.03) * (0.3 + lampOn);
     float web = hkCornerWeb(p, vec2(-uAspect, 1.0), 0.55 + uD6 * 0.35) + hkCornerWeb(p, vec2(uAspect, 1.0), 0.45 + uD6 * 0.4);
     col = mix(col, vec3(0.45, 0.43, 0.40) * (0.15 + light * 2.0), clamp(web, 0.0, 1.0) * (0.25 + uD6 * 0.6));
