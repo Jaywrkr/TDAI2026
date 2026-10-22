@@ -56,9 +56,17 @@ from .tdutil import (safe_set, safe_set_first, safe_expr, safe_expr_first,
 # (ver _build_bloom); si esa build de TD no lo acepta, las muestras
 # desplazadas por nivel igual dan un blur -- mas grueso, no negro.
 #
-# Umbral/cantidad quedan fijos (no son perillas en vivo) -- es un acabado
-# estetico del programa completo, no un parametro de performance que el
-# VJ necesite tocar escena por escena.
+# RESPLANDOR (canal 'glow', parametro Resplandor; en Halloween la tira de
+# Mod): pedido del VJ, que a mano usaba Bloom + Level subiendo con el
+# bajo para que "solo los detalles mas claros brillen y lo demas no".
+#   0.5 = el bloom de siempre, EXACTO (render_resplandor.py --check).
+#   0.5 -> 0: el glow baja hasta desaparecer (nada brilla).
+#   0.5 -> 1: "solo lo que brilla": sube el umbral (solo lo mas claro
+#     entra al glow), lo oscuro de la imagen se hunde a negro (nivel de
+#     negro, como el Level TOP), el glow crece y sube el grano. El BAJO
+#     empuja las tres cosas: en cada bajo queda aun menos y brilla mas.
+#     Usa el bajo (envolvente suave) y no el kick: late con la musica sin
+#     cortar a negro de golpe, y no suma destellos.
 _BLOOM_PREFILTER_FRAG = """
 out vec4 fragColor;
 
@@ -81,6 +89,10 @@ void main() {
     const float THRESH = 0.35;
     const float KNEE = 0.2;
     float thresh = THRESH - clamp(uKick, 0.0, 1.0) * 0.16;
+    // Resplandor arriba de 0.5: solo lo mas claro entra al glow
+    float hi = clamp(clamp(uGlow, 0.0, 1.0) * 2.0 - 1.0, 0.0, 1.0);
+    float bassG = clamp(uBass, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0);
+    thresh += hi * (0.22 + 0.10 * bassG);
 
     vec3 c = texture(sTD2DInputs[0], vUV.st).rgb;
     float l = luminance(c);
@@ -127,7 +139,7 @@ void main() {
     // textureLod 0 explicito: la entrada tiene filtro mipmap y no hace
     // falta que el GPU adivine el nivel por derivadas.
     vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb;
-    vec2 texel = uTD2DInfos[1].res.zw;
+    vec2 texel = uTD2DInfos[1].res.xy;   // res = (1/ancho, 1/alto, ancho, alto)
 
     vec3 glow = vec3(0.0);
     float wsum = 0.0;
@@ -152,7 +164,29 @@ void main() {
     }
     glow /= wsum;
 
-    vec3 col = (base + glow * AMOUNT * (1.0 + kick * KICK_GLOW)) * pump;
+    // RESPLANDOR (ver la nota arriba de _BLOOM_PREFILTER_FRAG)
+    float g = clamp(uGlow, 0.0, 1.0);
+    float lo = clamp(1.0 - g * 2.0, 0.0, 1.0);       // 1 en 0: sin brillo
+    float hi = clamp(g * 2.0 - 1.0, 0.0, 1.0);       // 1 en 1: solo lo que brilla
+    float bassG = clamp(uBass, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0);
+    float amount = AMOUNT * (1.0 - lo) * (1.0 + hi * (1.6 + 1.8 * bassG));
+    if (hi > 0.0) {
+        // nivel de negro: lo que no es claro se hunde (sin cambiar el tono)
+        float l = dot(base, vec3(0.299, 0.587, 0.114));
+        float bp = hi * (0.15 + 0.11 * bassG);
+        base *= smoothstep(bp, bp + 0.18 + 0.20 * (1.0 - hi), l) * (1.0 + hi * (0.25 + 0.35 * bassG));
+    }
+
+    vec3 col = (base + glow * amount * (1.0 + kick * KICK_GLOW)) * pump;
+
+    // grano de pelicula, mas fuerte en los medios: con lo oscuro hundido
+    // es lo que mantiene la textura del cuadro
+    if (hi > 0.0) {
+        vec2 px = floor(gl_FragCoord.xy);
+        float n = fract(sin(dot(px + floor(uRTime * 24.0) * vec2(17.0, 31.0), vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+        float lc = dot(col, vec3(0.299, 0.587, 0.114));
+        col = max(col + n * hi * 0.10 * (0.25 + sqrt(clamp(lc, 0.0, 1.0))), 0.0);
+    }
 
     // Tonemap de hombro suave. El footer de las escenas ya comprime lo
     // que pasa de 1.0, pero el glow se suma DESPUES de eso y nadie lo
@@ -171,7 +205,8 @@ void main() {
 
 
 _BLOOM_NOCTRL = ('#define uKick 0.0\n#define uBeat 0.0\n'
-                 '#define uGroove 0.0\n#define uAudioamt 0.0\n')
+                 '#define uGroove 0.0\n#define uAudioamt 0.0\n'
+                 '#define uGlow 0.5\n#define uBass 0.0\n#define uRTime 0.0\n')
 
 
 def _build_bloom(proj, src_top, ctrl_tex=None, channels=None):
@@ -363,7 +398,7 @@ void main() {
 
     float textCov = texture(sTD2DInputs[1], uv).a;
 
-    vec2 texel = uTD2DInfos[1].res.zw;
+    vec2 texel = uTD2DInfos[1].res.xy;   // res = (1/ancho, 1/alto, ancho, alto)
     const float TAU = 6.2831853072;
     const int N = 8;
     const float THICK = 2.5;
@@ -396,7 +431,7 @@ void main() {
         halo2 += texture(sTD2DInputs[1], uv + vec2(cos(ang + 0.26), sin(ang + 0.26)) * texel * 22.0).a;
     }
     float halo = (halo1 * 0.6 + halo2 * 0.4) / float(NH);
-    vec2 texel0 = uTD2DInfos[0].res.zw;
+    vec2 texel0 = uTD2DInfos[0].res.xy;
     vec3 amb = vec3(0.0);
     for (int i = 0; i < 8; i++) {
         float ang = (float(i) / 8.0 + 0.0625) * TAU;

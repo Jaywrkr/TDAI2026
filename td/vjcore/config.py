@@ -349,6 +349,10 @@ CTRL_CHANNELS = [
     'capa',       # 78
     'capaon',     # 79  pasa por un Lag en control.py
     'fear',       # 80  pasa por un Lag en control.py
+    # RESPLANDOR (program.py, bloom): cuanto brilla lo claro. 0.5 = el
+    # bloom de siempre; 0 = sin brillo; 1 = "solo lo que brilla": lo
+    # oscuro desaparece, el glow crece con el bajo y sube el grano.
+    'glow',       # 81
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -408,6 +412,7 @@ PAR_CHANNELS = [
     ('Capasel', 'capa'),
     ('Capaon', 'capaon'),       # Lag en control.py
     ('Miedo', 'fear'),          # Lag en control.py
+    ('Resplandor', 'glow'),
 ]
 
 # Voces del piano polifonico y su suavizado de perillas Detail

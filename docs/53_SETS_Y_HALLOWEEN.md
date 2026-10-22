@@ -143,8 +143,9 @@ En Halloween varias perillas casi no aportaban (Density la usan 4 de 31 escenas;
 | Perilla 9 (clic) | **Lanzar** la escena elegida con su transición | Take (preview) |
 | Pad 14 (banco B) | **Capa encima ON/OFF** (LED con el color de la capa) | Mirror |
 | Pad 15 (banco B) | **Siguiente capa** (LED = la capa elegida) | Zoom |
+| Tira de Mod | **Resplandor**: abajo nada brilla, al centro el bloom normal, arriba solo lo que brilla (fase 35) | Recorrer la carpeta de imágenes |
 
-Todo lo demás queda igual: Speed, Chaos (locura), Audio, Estela, Master, Detail 2–6, Shift+1/Shift+9, tira de Mod (imagen), los pads del show y el resto del banco B de efectos. Detail 1 queda en el preset de cada escena (se mueve desde el dashboard). Los **clics** de las perillas 1 y 9 hay que aprenderlos una vez (Learn Clic1 / Learn Clic9, apretando la perilla): cada uno manda su propio número de control según la memoria del MiniLab. La página MIDI Mapping muestra los nombres nuevos. Para volver a lo de siempre en Halloween, borrar `"midi_redirect"` del `set.json`.
+Todo lo demás queda igual: Speed, Chaos (locura), Audio, Estela, Master, Detail 2–6, Shift+1/Shift+9, los pads del show y el resto del banco B de efectos. Detail 1 queda en el preset de cada escena (se mueve desde el dashboard). Los **clics** de las perillas 1 y 9 hay que aprenderlos una vez (Learn Clic1 / Learn Clic9, apretando la perilla): cada uno manda su propio número de control según la memoria del MiniLab. La página MIDI Mapping muestra los nombres nuevos. Para volver a lo de siempre en Halloween, borrar `"midi_redirect"` del `set.json`.
 
 Idea para más adelante (no hecha): el banco B podría pasar a efectos propios de Halloween.
 
@@ -817,4 +818,34 @@ Mismo motor que en las fases 30–33, con menos piezas por escena para cuidar lo
 
 Los FPS reales hay que mirarlos en TD, sobre todo en la 20, la 24 y la 25 (las de imagen son las más caras).
 
-**Reconstruir Todo:** cambiaron los `.frag` de 18 a 25. Sigue la fase 35 (escenas 27–30) y después la 36 (control en vivo y arco de la noche).
+**Reconstruir Todo:** cambiaron los `.frag` de 18 a 25. Sigue la fase 35 (Resplandor); las escenas 27–30 pasan a la 36 y el control en vivo a la 37.
+
+## Fase 35: Resplandor (cuánto brilla lo claro)
+
+![Resplandor en 0, 0,5, 0,75, 1 y 1 con el bajo a fondo](img/resplandor.jpg)
+
+Pedido del VJ: a mano en TD usaba **Bloom + Level** que suben con el bajo, para que solo brillen los detalles más claros y el resto desaparezca. Ahora es un control del bloom del programa (`program.py`, canal `glow`, parámetro **Resplandor** en la página Capas). En Halloween lo mueve la **tira de Mod** del MiniLab (`set.json` → `midi_redirect`). La tira deja de recorrer la carpeta de imágenes; para cambiar de imagen queda el pad 6.
+
+| Tira | Qué pasa |
+|---|---|
+| Abajo (0) | Nada brilla: se apaga el bloom y queda la escena tal cual |
+| Centro (0,5, al arrancar) | El bloom de siempre |
+| Arriba (1) | **Solo lo que brilla**: sube el umbral del glow (entra solo lo más claro), lo oscuro de la imagen se hunde a negro (nivel de negro, sin cambiar el tono), el glow crece y sube el grano de película |
+
+- **El bajo:** arriba del centro, el bajo empuja las tres cosas a la vez: el umbral, el nivel de negro y el glow. En cada bajo queda aún menos imagen y lo claro brilla más. Usa el bajo (que es suave) y no el golpe, así late con la música sin cortar a negro de golpe ni sumar destellos. Con la perilla Audio en 0 no late.
+- **El grano:** con lo oscuro hundido, el grano es lo que mantiene la textura del cuadro. Es más fuerte en los medios tonos.
+- **La otra tira:** si se prefiere que vuelva solo al centro al soltarla, se puede aprender la tira de Pitch en el mismo parámetro (vuelve sola a 0,5 = normal).
+
+**Arreglo del bloom (afecta a los dos sets):** el bloom y el contorno del texto calculaban el tamaño de un pixel con `uTD2DInfos[i].res.zw`. En TD, `res` es (1/ancho, 1/alto, ancho, alto), así que `.zw` es el tamaño en pixeles y no el de un pixel. Las muestras caían lejísimos y el glow armaba copias fantasma corridas de la imagen en lugar de un halo. Ahora usa `.xy`. En el centro de la tira el bloom se ve distinto que antes: halos limpios alrededor de lo claro y sin fantasmas.
+
+![Bloom antes y después del arreglo](img/bloom_antes_despues.jpg)
+
+**Pruebas fuera de TD:**
+- **Control:** `test_resplandor.py` da OK. Revisa el canal y el parámetro (0,5 por defecto), que la tira escriba Resplandor sin mover la carpeta y el GLSL: 0 = escena sin glow, 0,5 suma glow, 1 hunde lo oscuro y el bajo hunde aún más.
+- **Hoja:** `render_resplandor.py salida.png --set halloween`.
+- **Resto:** `validate_shaders` sin errores en los dos sets y todas las demás pruebas en OK.
+
+**Costo:** de 0 a 0,5 es el mismo que antes. Arriba de 0,5 suma una cuenta de nivel y una de grano por pixel, muy poco al lado del bloom. Confirmar en TD.
+
+**Reconstruir Todo:** canal nuevo en la textura de control (`glow`), parámetro nuevo y shaders del bloom cambiados.
+
