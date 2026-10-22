@@ -241,8 +241,8 @@ vec4 render(vec2 uv) {
         vec2 iq = vp - vec2(0.0, 0.48 + up * 0.25);
         iq.x += 0.04 * sin(iq.y * 12.0 - uRTime * 2.0) * (0.5 + up * 2.0);
         float wisp = plate4Wrap(iq * vec2(0.25, 0.25) + vec2(0.0, -uRTime * 0.04)).g;
-        float band = 0.035 + 0.025 * wisp + up * 0.05;
-        float inf = smoothstep(band, band * 0.3, hkInfD(iq, 0.40) + (wisp - 0.5) * 0.03);
+        float band = (0.035 + 0.025 * wisp + up * 0.05) * hkEggS;   // fase 39: mas chico
+        float inf = smoothstep(band, band * 0.3, hkInfD(iq, 0.40 * hkEggS) + (wisp - 0.5) * 0.03 * hkEggS);
         sAmt = max(sAmt, inf * EG.x * (1.0 - up * 0.8) * (0.7 + 0.5 * wisp));
     }
     // detalle: humo por la boca del caldero

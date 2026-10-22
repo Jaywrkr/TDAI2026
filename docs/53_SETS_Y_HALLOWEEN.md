@@ -1,2 +1,2 @@
 
-| 10 portal | El anillo queda como está; adentro del vórtice arde un **∞** chico |
+| 11 caldero | El ∞ de vapor es más chico y tenue |
