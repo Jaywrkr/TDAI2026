@@ -956,3 +956,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 09 tormenta | Entre las nubes queda un rayo quieto con forma de **J** que crepita sin destellar |
 | 10 portal | El anillo de fuego del portal se estira en un **∞**, dos aros de fuego unidos, y vuelve |
 | 11 caldero | El vapor se enrosca en un **∞** sobre el caldero y después se deshace hacia arriba |
+| 12 momia | Una venda se desenrolla del hombro de la momia y queda colgando en el aire con forma de **J** |
