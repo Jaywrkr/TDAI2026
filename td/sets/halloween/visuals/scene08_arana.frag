@@ -206,6 +206,23 @@ vec4 render(vec2 uv) {
     float back = 0.55 + 0.45 * smoothstep(-1.0, 1.0, wp.x + wp.y) + bass * 0.4;
     vec3 irid = 0.5 + 0.5 * cos(TAU * (a * 0.3 + r * 2.0 + vec3(0.0, 0.33, 0.67)));
     col += silk * web * back * 0.32 * (0.6 + 0.4 * smoothstep(webR, 0.2, r)) + irid * web * 0.05;
+    // EASTER EGG "JAY INFINITO" (fase 38): en el centro de la tela se teje
+    // un infinito de hilo (primero un lazo, despues el otro) con rocio
+    vec2 EG = hkEgg(8.0);
+    if (EG.x > 0.0 && r < 0.6) {
+        float ia = 0.42;
+        float side = wp.x < 0.0 ? 0.0 : 1.0;
+        vec2 lc = wp - vec2((side * 2.0 - 1.0) * ia * 0.62, 0.0);
+        float ang = fract((atan(lc.y, -lc.x * (side * 2.0 - 1.0)) + PI) / TAU);
+        float u = smoothstep(0.0, 0.7, EG.y) * 2.0 - side;          // cuanto del lazo ya esta tejido
+        float woven = step(ang, u);
+        float th = hkInfD(wp, ia);
+        float thread = (1.0 - smoothstep(px * 0.6, px * 1.8, th)) * woven * EG.x;
+        col += silk * thread * (0.9 + bass * 0.5);
+        // gotitas de rocio sobre el hilo
+        float dewI = step(0.82, hash21(floor(wp * 60.0))) * (1.0 - smoothstep(0.0, px * 2.5, th)) * woven;
+        col += vec3(0.9, 0.95, 1.0) * dewI * EG.x * 1.2;
+    }
     // suceso: la arana teje una vuelta nueva (brilla mientras se traza)
     if (sv == 3 && se > 0.0) {
         float rr0 = mix(0.25, 0.95, ss);
