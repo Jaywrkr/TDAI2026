@@ -278,6 +278,25 @@ vec4 render(vec2 uv) {
         float strip = step(0.0, dx) * step(dx, 0.75 * out_) * (1.0 - smoothstep(0.018, 0.028, abs(p.y - yy)));
         col = mix(col, vec3(0.42, 0.35, 0.24) * (0.25 + 0.35 * (f0 + f1) * 0.5), strip * 0.9 * se);
     }
+    // --- EASTER EGG "JAY INFINITO" (fase 38): una venda se desenrolla del
+    // hombro y queda colgando en el aire con forma de J ---
+    vec2 EG = hkEgg(12.0);
+    if (EG.x > 0.0) {
+        vec2 jc = vec2(0.78, -0.18);
+        vec2 jq = (p - jc) / 0.55;
+        if (abs(jq.x) < 0.9 && abs(jq.y) < 0.9) {
+            jq.x += 0.03 * sin(jq.y * 8.0 - uRTime * 3.0);           // flamea un poco
+            float dj = hkText(jq, int[16](74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) * 0.55;
+            float unroll = smoothstep(0.0, 0.5, EG.y) * 1.3 - 0.15;      // baja de arriba hacia abajo
+            float shown;
+            shown = step(1.0 - unroll * 1.25, jq.y + 0.5);
+            float link = hkSeg(p, vec2(0.36, 0.12), vec2(jc.x - 0.10, jc.y + 0.275)) + 0.004 * sin(p.x * 40.0);
+            float strip = max((1.0 - smoothstep(0.022, 0.032, dj)) * shown,
+                              (1.0 - smoothstep(0.020, 0.030, link)) * smoothstep(0.0, 0.15, EG.y));
+            float weave = 0.75 + 0.25 * sin((jq.x + jq.y) * 90.0);
+            col = mix(col, vec3(0.42, 0.35, 0.24) * (0.55 + 0.6 * (f0 + f1) * 0.5) * weave, strip * 0.95 * EG.x);
+        }
+    }
     // --- suceso: la momia levanta un brazo ---
     if (sv == 4 && se > 0.0) {
         float up = sin(clamp(sp * 1.1, 0.0, 1.0) * PI);
