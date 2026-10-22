@@ -222,7 +222,7 @@ vec4 render(vec2 uv) {
     // EASTER EGG "JAY INFINITO" (fase 38): el esqueleto del centro mueve la
     // cadera dibujando un infinito y deja una estela de luz
     vec2 EG = hkEgg(17.0);
-    float egA = 0.34 * s;
+    float egA = 0.34 * s * hkEggS;                           // fase 39: mas chico
     vec2 egOff = EG.x > 0.0 ? hkInfPath(uRTime * 3.2, egA) * EG.x : vec2(0.0);
     vec2 hip0 = hip;
     float s0 = s;

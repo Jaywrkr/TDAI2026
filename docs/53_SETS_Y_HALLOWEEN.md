@@ -1,2 +1,2 @@
 
-| 16 velas | El ∞ de humo es más chico |
+| 17 esqueleto | El ∞ de la cadera es más chico |
