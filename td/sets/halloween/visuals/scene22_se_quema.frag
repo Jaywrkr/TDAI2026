@@ -121,9 +121,10 @@ vec4 render(vec2 uv) {
     // quemado un infinito (con el borde encendido); al final se apaga
     vec2 EG = hkEgg(22.0);
     if (EG.x > 0.0) {
-        float di = hkInfD((m - vec2(0.5, 0.5)) * vec2(ia, 1.0), 0.33 * max(ia, 1.0) * 0.9);
-        float infB = mix(-0.2, 0.05, smoothstep(0.05, 0.45, EG.y)) - di * 1.2;
-        burnt = max(burnt, mix(-1.0, infB, EG.x));
+        float di = hkInfD((m - vec2(0.5, 0.5)) * vec2(ia, 1.0), 0.33 * max(ia, 1.0) * 0.9 * hkEggS);   // fase 39: mas chico
+        // en susurro queda solo chamuscado (sin llama); arde en el nivel visible
+        float infB = mix(-0.2, mix(-0.03, 0.05, smoothstep(0.5, 0.7, EG.x)), smoothstep(0.05, 0.45, EG.y)) - di * 1.2;
+        burnt = max(burnt, mix(-1.0, infB, smoothstep(0.0, 0.3, EG.x)));
     }
 
     // --- mesa ---
