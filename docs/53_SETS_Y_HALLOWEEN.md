@@ -950,3 +950,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 03 ojos | Un par de ojos se abre en el medio de la oscuridad y el brillo de sus miradas traza un **∞** alrededor; parpadean una vez |
 | 04 murciélagos | Una fila de 30 murciélagos vuela frente a la luna dibujando un **∞**; la bandada normal deja libre la luna mientras tanto |
 | 05 sangre | Alguien escribe **JAY** con sangre en la pared, de izquierda a derecha, y después las letras chorrean |
+| 06 VHS | La tele muestra un cartel de videocasetera (letras blancas con sombra) **JAY ∞** y el reloj de la videocasetera dice **JAY∞** en vez de 12:00 |

@@ -378,6 +378,18 @@ vec4 render(vec2 uv) {
         col += glowC * 0.25 * (1.0 - smoothstep(0.0, 0.006, abs(fig))) * figure * step(fq.x, 0.0);
     }
 
+    // EASTER EGG "JAY INFINITO" (fase 38): la tele muestra el cartel de la
+    // videocasetera (letras blancas con sombra, como un OSD de VHS) con
+    // "JAY" y un infinito, y el reloj de la videocasetera dice JAY8
+    vec2 EG = hkEgg(6.0);
+    if (EG.x > 0.0) {
+        vec2 oq = (p - SCR_C - vec2(-SCR_H.x * 0.28, SCR_H.y * 0.52)) / (SCR_H.y * 0.27);
+        float od = hkText(oq, int[16](74, 65, 89, 32, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5);
+        float osh = hkText(oq - vec2(0.08, -0.08), int[16](74, 65, 89, 32, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 5);
+        float on = EG.x;
+        screen = mix(screen, vec3(0.0), (1.0 - smoothstep(0.07, 0.12, osh)) * on * 0.8);
+        screen = mix(screen, vec3(0.95, 0.97, 1.0), (1.0 - smoothstep(0.07, 0.12, od)) * on);
+    }
     // --- tele y videocasetera ---
     vec4 tv = plate1(rUV(p, TV_R));
     vec3 tvc = plateCol(tv.rgb) * (0.35 + glowC * glowFall * 2.2);
@@ -399,6 +411,11 @@ vec4 render(vec2 uv) {
         dig = max(dig, hwSeg7(cq - vec2(1.0, 0.0), 0));
         dig = max(dig, hwSeg7(cq - vec2(2.7, 0.0), 0));
         dig = max(dig, (1.0 - smoothstep(0.1, 0.2, length(vec2(cq.x + 0.45, abs(cq.y) - 0.45)))));
+        if (EG.x > 0.0) {                               // easter egg: el reloj dice JAY8
+            float jd = hkText(cq / 1.9 + vec2(0.1, 0.0), int[16](74, 65, 89, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 4);
+            dig = mix(dig, 1.0 - smoothstep(0.06, 0.12, jd), EG.x);
+            blinkC = mix(blinkC, 1.0, EG.x);
+        }
         col += mix(vec3(0.2, 1.0, 0.6), vec3(1.0, 0.15, 0.1), zero ? 1.0 : 0.0) * dig * blinkC * 0.9;
     }
     // C: la sangre sale de la pantalla y baja por el mueble hasta el piso
