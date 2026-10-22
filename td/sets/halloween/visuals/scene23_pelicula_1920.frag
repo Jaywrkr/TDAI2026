@@ -221,20 +221,17 @@ vec4 render(vec2 uv) {
             card *= 0.8 + 0.4 * gr;
             film = mix(film, card * flick * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.8, 0.55), d5), cardE);
         }
-        // EASTER EGG "JAY INFINITO" (fase 38): un intertitulo de cine mudo,
-        // "JAY INFINITO / PRESENTA" con un infinito de adorno
+        // EASTER EGG "JAY INFINITO" (fase 38; en la 39 ya no es un cartel
+        // entero): un credito chico abajo del cuadro, como en los rollos
+        // viejos, "JAY INFINITO" y un infinito
         vec2 EG = hkEgg(23.0);
         if (EG.x > 0.0) {
-            vec2 cq = vc;
-            float bord = abs(hkBox(cq, vec2(0.58, 0.40))) - 0.006;
-            float orn = abs(hkBox(cq, vec2(0.55, 0.37))) - 0.002;
-            float d1 = hkText((cq - vec2(0.0, 0.12)) / 0.085, int[16](74, 65, 89, 32, 73, 78, 70, 73, 78, 73, 84, 79, 0, 0, 0, 0), 12) * 0.085;
-            float d2 = hkText((cq - vec2(0.0, -0.05)) / 0.055, int[16](80, 82, 69, 83, 69, 78, 84, 65, 0, 0, 0, 0, 0, 0, 0, 0), 8) * 0.055;
-            float d3 = hkInfD((cq - vec2(0.0, -0.22)) / 0.055, 0.9) * 0.055;
-            float ink = max(max(1.0 - smoothstep(0.0, 0.004, bord), 1.0 - smoothstep(0.0, 0.003, orn)),
-                            1.0 - smoothstep(0.004, 0.008, min(min(d1, d2), d3)));
-            vec3 card = (vec3(0.02) + vec3(0.88) * ink) * (0.8 + 0.4 * gr);
-            film = mix(film, card * flick * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.8, 0.55), d5), EG.x);
+            float h = 0.045 * hkEggS / 0.6;
+            vec2 cq = vc - vec2(-0.05, -0.31);
+            float d1 = hkText(cq / h, int[16](74, 65, 89, 32, 73, 78, 70, 73, 78, 73, 84, 79, 0, 0, 0, 0), 12) * h;
+            float d3 = hkInfD((cq - vec2(h * 6.2, 0.0)) / h, 0.75) * h;
+            float ink = 1.0 - smoothstep(0.08 * h, 0.16 * h, min(d1, d3));
+            film = mix(film, vec3(0.92) * flick * mix(vec3(0.92, 0.95, 1.0), vec3(1.0, 0.8, 0.55), d5), ink * EG.x * 1.6);
         }
         // la cinta se quema / se traba con locura
         float melt = burnE * smoothstep(0.0, 1.0, burnPh) + hit * loco * step(0.75, loco) * 0.5;

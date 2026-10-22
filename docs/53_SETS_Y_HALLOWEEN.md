@@ -1028,3 +1028,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 20 galería | La placa es más chica |
 | 21 espejo | El ∞ y JAY del vapor son más chicos |
 | 22 se quema | En susurro el ∞ queda solo chamuscado (sin llama); arde en el nivel visible |
+| 23 película 1920 | Ya no es un intertítulo entero: un crédito chico abajo del cuadro, **JAY INFINITO ∞** |
