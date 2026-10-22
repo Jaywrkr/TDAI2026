@@ -318,6 +318,7 @@ vec4 render(vec2 uv) {
         col = mix(col, tc * hkStyleSil(), ta.a);
     }
 
+    vec2 EG = hkEgg(14.0);          // easter egg (abajo): libera el tramo del medio
     // --- cuervos posados en la rama ---
     // 8 lugares FIJOS en la rama; D4 decide cuales estan ocupados (cada uno
     // con su punto de la perilla) y el nuevo llega volando desde arriba
@@ -333,6 +334,8 @@ vec4 render(vec2 uv) {
         float land = revealAt(nP, mod(k * 5.0, 8.0)) * (1.0 - perchGone);
         if (land < 0.01) continue;
         float x = -0.95 + (k + 0.5) * spacing + (h - 0.5) * spacing * 0.4;
+        land *= 1.0 - EG.x * step(abs(x), 0.62);
+        if (land < 0.01) continue;
         float s = 0.26 + 0.06 * h;
         float yTop = c14PerchTop(x);
         // se asustan con el golpe: saltan (cada uno con su retraso); con
@@ -363,6 +366,29 @@ vec4 render(vec2 uv) {
         col = mix(col, crowC * hkStyleSil(), cc.a);
     }
 
+    // EASTER EGG "JAY INFINITO" (fase 38): tres cuervos se posan de a uno
+    // en la rama y sus siluetas son las letras J, A, Y (con cabeza y pico)
+    if (EG.x > 0.0 && p.x > -0.6 && p.x < 0.9) {
+        for (int L = 0; L < 3; L++) {
+            float x = 0.0 + float(L - 1) * 0.30;
+            float land = smoothstep(0.05 + float(L) * 0.12, 0.25 + float(L) * 0.12, EG.y) * EG.x;
+            if (land < 0.01) continue;
+            float yb = c14PerchTop(x) + bend * 0.04;
+            vec2 c = vec2(x, yb + 0.14 + (1.0 - land) * 0.6);
+            vec2 q = (p - c) / 0.26;
+            int ch = L == 0 ? 74 : (L == 1 ? 65 : 89);
+            float dl = hkText(q, int[16](ch, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), 1) - 0.09;
+            // cabeza con pico arriba a la derecha de cada letra y una cola
+            vec2 hq = q - vec2(0.22, 0.58);
+            dl = min(dl, length(hq) - 0.13);
+            dl = min(dl, max(abs(hq.y + 0.01) - 0.035 + (hq.x - 0.13) * 0.25, abs(hq.x - 0.22) - 0.10));
+            dl = min(dl, hkSeg(q, vec2(-0.30, -0.35), vec2(-0.55, -0.55)) - 0.04);
+            float m = (1.0 - smoothstep(0.0, 0.02, dl)) * land;
+            col = mix(col, vec3(0.012, 0.01, 0.014) * hkStyleSil(), m);
+            // el ojo brilla con la luna
+            col += moonC * (1.0 - smoothstep(0.02, 0.035, length(hq - vec2(0.03, 0.03)))) * land * 0.8;
+        }
+    }
     // detalle: caen hojas de la rama
     if (dv == 4) {
         for (int i = 0; i < 3; i++) {

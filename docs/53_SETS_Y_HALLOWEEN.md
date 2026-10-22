@@ -958,3 +958,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 11 caldero | El vapor se enrosca en un **∞** sobre el caldero y después se deshace hacia arriba |
 | 12 momia | Una venda se desenrolla del hombro de la momia y queda colgando en el aire con forma de **J** |
 | 13 calabazas en hilera | Las tres calabazas del medio se encienden de a una y en vez de caras tienen tallado **J · A · Y** |
+| 14 luna y cuervos | Tres cuervos se posan de a uno en la rama y sus siluetas son las letras **J · A · Y**, con cabeza, pico y un ojo que brilla con la luna; los otros cuervos dejan libre ese tramo |
