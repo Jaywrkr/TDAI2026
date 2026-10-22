@@ -955,3 +955,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 08 araña | En el centro de la tela se teje un **∞** de hilo, primero un lazo y después el otro, con gotitas de rocío |
 | 09 tormenta | Entre las nubes queda un rayo quieto con forma de **J** que crepita sin destellar |
 | 10 portal | El anillo de fuego del portal se estira en un **∞**, dos aros de fuego unidos, y vuelve |
+| 11 caldero | El vapor se enrosca en un **∞** sobre el caldero y después se deshace hacia arriba |
