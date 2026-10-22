@@ -1,2 +1,2 @@
 
-| 21 espejo | El ∞ y JAY del vapor son más chicos |
+| 22 se quema | En susurro el ∞ queda solo chamuscado (sin llama); arde en el nivel visible |
