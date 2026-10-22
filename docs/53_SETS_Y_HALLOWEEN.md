@@ -1021,3 +1021,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 13 calabazas en hilera | Letras J A Y más chicas y sin encenderse de más |
 | 14 luna y cuervos | Cuervos-letra más chicos |
 | 15 manos zombie | El ∞ de chispa es más chico y tenue |
+| 16 velas | El ∞ de humo es más chico |
