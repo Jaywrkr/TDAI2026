@@ -1,2 +1,2 @@
 
-| 02 neón | El cartel JAY es más chico y tenue |
+| 03 ojos | Ojos y ∞ más chicos |
