@@ -218,7 +218,7 @@ vec4 render(vec2 uv) {
         }
         vec2 tl = tip[iL], tr = tip[iR];
         vec2 ic = vec2((tl.x + tr.x) * 0.5, max(tl.y, tr.y) + 0.45);
-        float ia = max(abs(tr.x - tl.x) * 0.55, 0.28);
+        float ia = max(abs(tr.x - tl.x) * 0.55, 0.28) * hkEggS;   // fase 39: mas chico
         vec2 iq = p - ic;
         float sm = fbm(vec2(p.x * 7.0, p.y * 4.0 - uRTime * 0.4), 3, 0.5);
         float grow = smoothstep(0.0, 0.5, EG.y);

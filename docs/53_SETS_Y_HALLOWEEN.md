@@ -1,2 +1,2 @@
 
-| 15 manos zombie | El ∞ de chispa es más chico y tenue |
+| 16 velas | El ∞ de humo es más chico |
