@@ -366,5 +366,22 @@ vec4 render(vec2 uv) {
 
     // apagon: casi negro, las imagenes quedan
     col *= 1.0 - dark * 0.35;
+    // --- EASTER EGG "JAY INFINITO" (fase 38): bajo el cuadro del medio
+    // (el de la derecha) aparece una placa de bronce: "J.INFINITO 1666" ---
+    vec2 EG = hkEgg(20.0);
+    if (EG.x > 0.0 && !floorPx) {
+        float xm = -span * 0.5 + (min(midK + 1.0, nSlots - 1.0) + 0.5) * cw;   // el de al lado: el del medio tiene el candelabro adelante
+        vec2 pq = p - vec2(xm, cy - fh * 0.5 - 0.08);
+        float plate = hkBox(pq, vec2(0.30, 0.050));
+        if (plate < 0.02) {
+            vec3 brass = vec3(0.55, 0.40, 0.16) * (0.35 + light * 2.6) * (0.85 + 0.15 * sin(pq.x * 60.0 + pq.y * 20.0));
+            brass += vec3(1.0, 0.85, 0.5) * exp(-pow((pq.y - 0.03) / 0.01, 2.0)) * 0.15 * (0.3 + light * 3.0);  // canto de arriba
+            float dt = hkText(pq / 0.042, int[16](74, 46, 73, 78, 70, 73, 78, 73, 84, 79, 32, 49, 54, 54, 54, 0), 15) * 0.042;
+            brass = mix(brass, brass * 0.25, 1.0 - smoothstep(0.0025, 0.005, dt));        // letras grabadas
+            float a = (1.0 - smoothstep(0.0, 0.003, plate)) * EG.x;
+            col = mix(col, col * 0.5, (1.0 - smoothstep(0.0, 0.02, plate - 0.004)) * EG.x * 0.5);   // sombra
+            col = mix(col, brass, a);
+        }
+    }
     return vec4(hkFinish(col, uv, vec3(0.35, 0.3, 0.25)), 1.0);
 }
