@@ -1013,3 +1013,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 05 sangre | JAY de sangre más chico, con chorreado más corto |
 | 06 VHS | El cartel de la tele es más chico y tenue |
 | 07 fantasmas | Fantasmita y estela más chicos |
+| 08 araña | El ∞ tejido es más chico |
