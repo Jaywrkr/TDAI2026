@@ -1026,3 +1026,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 18 túnel de calaveras | JAY y ∞ de calaveras más chicos |
 | 19 glitch demoníaco | El cartel de canal es más chico |
 | 20 galería | La placa es más chica |
+| 21 espejo | El ∞ y JAY del vapor son más chicos |
