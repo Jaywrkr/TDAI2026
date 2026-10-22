@@ -219,6 +219,11 @@ vec4 render(vec2 uv) {
 
     // --- esqueletos, pieza por pieza (de atras hacia adelante); el 0 es el
     // del centro, el 1 y el 2 salen a los costados en el climax ---
+    // EASTER EGG "JAY INFINITO" (fase 38): el esqueleto del centro mueve la
+    // cadera dibujando un infinito y deja una estela de luz
+    vec2 EG = hkEgg(17.0);
+    float egA = 0.34 * s;
+    vec2 egOff = EG.x > 0.0 ? hkInfPath(uRTime * 3.2, egA) * EG.x : vec2(0.0);
     vec2 hip0 = hip;
     float s0 = s;
     float t0 = t;
@@ -230,6 +235,7 @@ vec4 render(vec2 uv) {
     t = t0 + float(inst) * 0.37;
     // entran desde afuera del cuadro hacia su lugar
     hip = vec2(hip0.x * (inst == 0 ? 1.0 : 0.6) + sideX * mix(uAspect + 0.6, 1.25, app), floorY + 0.92 * s + 0.04 * abs(sin(t * 3.0)) * e + jump + hopK * 0.06 * float(inst == 0));
+    if (inst == 0) hip += egOff;
     gHip = hip;
     lean = 0.10 * sin(t * 1.5) * e;
     up = vec2(sin(lean), cos(lean));
@@ -308,6 +314,10 @@ vec4 render(vec2 uv) {
     if (dv == 2 && inst == 0) col += spotC * exp(-dot(p - headC - vec2(-0.05, 0.08) * s, p - headC - vec2(-0.05, 0.08) * s) / (0.0006 * s * s)) * D.x * sin(D.y * PI) * 1.2;
     }
     s = s0; t = t0; hip = hip0;
+    if (EG.x > 0.0) {
+        float id = hkInfD(p - vec2(hip0.x, hip0.y), egA);
+        col += spotC * (exp(-id / 0.006) * 0.9 + exp(-id / 0.04) * 0.15) * EG.x * smoothstep(0.1, 0.35, EG.y);
+    }
     // --- suceso: lluvia de huesos ---
     if (sv == 6 && se > 0.0) {
         for (int i = 0; i < 2; i++) {

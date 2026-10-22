@@ -961,3 +961,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 14 luna y cuervos | Tres cuervos se posan de a uno en la rama y sus siluetas son las letras **J · A · Y**, con cabeza, pico y un ojo que brilla con la luna; los otros cuervos dejan libre ese tramo |
 | 15 manos zombie | Una chispa verde de la tumba dibuja en el aire un **∞** justo sobre las manos y queda brillando hasta apagarse |
 | 16 velas | El humo de las dos velas del medio sube ondulando y arriba se cruza en un **∞** |
+| 17 esqueleto | El esqueleto del centro mueve la cadera dibujando un **∞** y deja una estela de luz |
