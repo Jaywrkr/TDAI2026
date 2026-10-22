@@ -347,6 +347,9 @@ def _parameters(proj):
         '{} {}'.format(i + 1, n) for i, n in enumerate(c.CAPAS)), 1, 1, len(c.CAPAS))
     add_float(cp, 'Miedo', 'Miedo (calma -> terror)', 0.0, 0.0, 1.0)
     add_float(cp, 'Navegador', 'Navegador de escenas (perilla)', 0.0, 0.0, 1.0)
+    # RESPLANDOR: cuanto brilla lo claro (bloom de program.py). En
+    # Halloween lo mueve la tira de Mod (set.json midi_redirect).
+    add_float(cp, 'Resplandor', 'Resplandor (0 sin brillo, 0.5 normal, 1 solo lo que brilla)', 0.5, 0.0, 1.0)
 
     # GUARDIAN DE FPS: baja la escala de render de a pasos cuando el FPS
     # real lleva un rato bajo, y la vuelve a subir cuando sobra (con
