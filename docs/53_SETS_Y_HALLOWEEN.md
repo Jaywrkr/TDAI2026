@@ -1,2 +1,2 @@
 
-| 09 tormenta | La J de rayo es más chica y tenue |
+| 10 portal | El anillo queda como está; adentro del vórtice arde un **∞** chico |

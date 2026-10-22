@@ -251,10 +251,13 @@ vec4 render(vec2 uv) {
         float eyesOn = max(hit * smoothstep(0.35, 0.9, loco), G.y);
         // anillo de fuego
         float ringD = r - R;
-        // EASTER EGG "JAY INFINITO" (fase 38): el anillo de fuego se estira
-        // en un infinito (dos aros unidos) y vuelve
+        // EASTER EGG "JAY INFINITO" (fase 38, mas sutil en la 39): adentro del
+        // vortice arde un infinito de fuego chico (el anillo queda como esta)
         vec2 EG = hkEgg(10.0);
-        if (EG.x > 0.0) ringD = mix(ringD, hkInfD(p, R * 1.30) * 2.6 - 0.01, smoothstep(0.0, 1.0, EG.x));
+        if (EG.x > 0.0) {
+            float id = hkInfD(p, R * 0.62 * hkEggS);
+            pc += fireB * (exp(-id / 0.006) * 0.9 + exp(-id / 0.04) * 0.15) * EG.x * (0.8 + bass * 0.4);
+        }
         float flameH = 0.08 + uD2 * 0.16 + bass * 0.08;
         float fn = abs(ringD) < 0.45 ? fbm(vec2(a * 6.0 + sin(a * 2.0), ringD * 8.0 - t * 2.4), 3, 0.6) : 0.0;
         float fn2 = noise21(vec2(a * 18.0, ringD * 20.0 - t * 4.0));
