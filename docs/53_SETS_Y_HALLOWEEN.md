@@ -1,2 +1,2 @@
 
-| 05 sangre | JAY de sangre más chico, con chorreado más corto |
+| 06 VHS | El cartel de la tele es más chico y tenue |
