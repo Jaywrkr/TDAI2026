@@ -973,3 +973,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 26 mansión | Las cuatro ventanas del medio del primer piso se prenden de a una y en cada vidrio hay una letra a contraluz: **J · A · Y · ∞** |
 | 27 reloj | Las agujas van a las **3:33** y el número VIII de la esfera se acuesta: queda un **∞** encendido |
 | 28 bosque de faroles | Dos faroles se sueltan y flotan cruzándose; sus luces dejan dibujado un **∞** en el aire |
+| 29 morgue | En la camilla de adelante asoma un pie por debajo de la sábana con la etiqueta colgando: **J.INFINITO** |
