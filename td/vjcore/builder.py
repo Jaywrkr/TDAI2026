@@ -349,6 +349,10 @@ def _parameters(proj):
     add_float(cp, 'Navegador', 'Navegador de escenas (perilla)', 0.0, 0.0, 1.0)
     # RESPLANDOR: cuanto brilla lo claro (bloom de program.py). En
     # Halloween lo mueve la tira de Mod (set.json midi_redirect).
+    # RITMO: seguir la musica (frases, break, drop). Apagado = el
+    # calendario de reloj de siempre.
+    add_toggle(cp, 'Ritmoon', 'Seguir la musica (frases, break y drop)', True)
+    add_float(cp, 'Ritmobpm', 'BPM detectado (solo lectura)', 0.0, 0.0, 220.0)
     add_float(cp, 'Resplandor', 'Resplandor (0 sin brillo, 0.5 normal, 1 solo lo que brilla)', 0.5, 0.0, 1.0)
 
     # GUARDIAN DE FPS: baja la escala de render de a pasos cuando el FPS
@@ -499,6 +503,13 @@ def _parameters(proj):
     # Momento (pad de climax a mano, control_script.triggerMoment): kclock
     # en que se pidio; -1 = nunca.
     add_float(s, 'Momenton', 'Momento pedido en (interno)', -1.0)
+    # RITMO (fase 36, vjcore/ritmo.py): lo escribe control_script con cada
+    # golpe de bombo; el shader de Halloween encaja el calendario ahi.
+    for _n, _l in (('Mbeat', 's por tiempo'), ('Manchor', 'inicio de frase'),
+                   ('Mbrk0', 'inicio del break'), ('Mbrk1', 'fin del break'),
+                   ('Mclx', 'climax por la musica'), ('Mclxt', 'pico del climax'),
+                   ('Mclxn', 'indice del climax'), ('Mclxarm', 'aviso en el break')):
+        add_float(s, _n, 'Ritmo: {} (interno)'.format(_l), 0.0)
     # Efectos de pad (Fase 3, 8 pads del banco B del MiniLab mkII, ver
     # config.DEFAULT_MIDI) -- se escriben desde midi_logic.py
     # (EFFECT_TRIGGERS).

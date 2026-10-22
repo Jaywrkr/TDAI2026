@@ -20,6 +20,7 @@ def onOffToOn(channel, sampleIndex, val, prev):
     ctrl = op('/project1/control_script')
     if ctrl:
         ctrl.module.mediaBeat()
+        ctrl.module.ritmoBeat()       # fase 36: el calendario sigue al pulso
     return
 
 

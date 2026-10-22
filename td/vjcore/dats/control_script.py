@@ -1104,6 +1104,7 @@ def triggerMoment():
         print('MOMENTO ya en curso')
         return
     p.par.Momenton = max(_momentClock(), 1e-3)
+    _ritmo().moment(_ctrlVal('rtime'))          # cuenta para espaciar los climax
     print('MOMENTO')
     # LED verde mientras dura; se apaga solo al terminar.
     try:
@@ -1113,6 +1114,93 @@ def triggerMoment():
     refreshPadLeds(True)
     run("op('/project1/control_script').module.refreshPadLeds(True)",
         delayFrames=int(MOMENT_SECONDS * fps) + 5)
+
+
+# ---------------------------------------------------------------
+# RITMO (fase 36): el calendario de Halloween sigue a la musica. La
+# logica vive en vjcore/ritmo.py (Python puro, test_ritmo.py); aca solo
+# se le pasan los golpes (media_logic, canal 'beat') y el tick de
+# diagnostics, y se publican sus canales en los parametros M* (que el
+# Parameter CHOP lleva a la textura de control).
+# ---------------------------------------------------------------
+_RITMO = None
+
+
+def _ritmo():
+    global _RITMO
+    if _RITMO is None:
+        from vjcore import ritmo as _rm
+        _RITMO = _rm.Ritmo()
+    return _RITMO
+
+
+def _ritmoOn(p):
+    par = getattr(p.par, 'Ritmoon', None)
+    return bool(par.eval()) if par is not None else False
+
+
+def _ctrlVal(name, default=0.0):
+    c = op('/project1/ctrl')
+    try:
+        return float(c[name].eval())
+    except Exception:
+        return default
+
+
+def _ritmoPublish(p, r):
+    on = _ritmoOn(p)
+    vals = r.values()
+    for chan, v in vals.items():
+        par = getattr(p.par, chan[0].upper() + chan[1:], None)
+        if par is None:
+            continue
+        v = float(v) if on else 0.0
+        if abs(float(par.eval()) - v) > 1e-6:
+            par.val = v
+    bpm = getattr(p.par, 'Ritmobpm', None)
+    if bpm is not None:
+        b = round(r.bpm(), 1) if on else 0.0
+        if abs(float(bpm.eval()) - b) > 1e-6:
+            bpm.val = b
+
+
+def ritmoBeat():
+    """Un golpe de bombo (dats/media_logic.py)."""
+    p = _p()
+    if not p or not _ritmoOn(p):
+        return
+    r = _ritmo()
+    r.beat(float(absTime.seconds), _ctrlVal('rtime'))
+    _ritmoPublish(p, r)
+
+
+def ritmoTick():
+    """Cada ~0.5 s (diagnostics.update): break, aviso, pulso perdido."""
+    p = _p()
+    if not p:
+        return
+    r = _ritmo()
+    if _ritmoOn(p):
+        r.tick(float(absTime.seconds), _ctrlVal('rtime'), _ctrlVal('music', 1.0) > 0.5)
+    else:
+        r.reset()
+    _ritmoPublish(p, r)
+
+
+def ritmoStatus():
+    """Una linea para el dashboard."""
+    p = _p()
+    if not p or not _ritmoOn(p):
+        return 'RITMO apagado (calendario de reloj)'
+    r = _ritmo()
+    if not r.locked:
+        return 'RITMO buscando el pulso (calendario de reloj)'
+    s = 'RITMO {:.0f} BPM'.format(r.bpm())
+    if r.in_break:
+        s += '  BREAK'
+        if r.clx_arm > r.clx_t:
+            s += ' -> climax en el drop'
+    return s
 
 
 def toggleNight():

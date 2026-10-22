@@ -186,6 +186,48 @@ float hkCLen = 20.0;
 float hkGLen = 26.0;
 void hkSetClimax(float seed, float len, float grandLen) { hkCSeed = seed; hkCLen = len; hkGLen = grandLen; }
 
+// RITMO (fase 36, td/vjcore/ritmo.py): con pulso, el calendario sigue a
+// la musica. Todos los canales en 0 = el reloj de siempre.
+//   uMbeat   s por tiempo (0 = sin pulso: no se encaja nada)
+//   uManchor uRTime de un "1" de frase (8 compases)
+//   uMbrk0/1 uRTime en que empezo / termino el ultimo break
+//   uMclx    1 = el climax lo decide la musica (pico en el drop)
+//   uMclxt   uRTime del pico del climax actual o pendiente
+//   uMclxn   indice de ese climax (uno de cada tres es el gran climax)
+//   uMclxarm uRTime en que empezo el aviso durante un break
+// grilla para encajar el comienzo: la frase (32 tiempos) o la mitad, un
+// cuarto, un octavo, la mas larga que entre en maxG s (0 = no encaja)
+float hkBeatGrid(float maxG) {
+    if (uMbeat <= 0.0) return 0.0;
+    float g = uMbeat * 32.0;
+    for (int i = 0; i < 3; i++) if (g > maxG) g *= 0.5;
+    return g <= maxG ? g : 0.0;
+}
+// el primer "1" de la grilla g desde t (t si no hay grilla)
+float hkSnap(float t, float g) { return g > 0.0 ? uManchor + ceil((t - uManchor) / g - 1e-3) * g : t; }
+// 0..1: break (la musica sigue sin bombo): los sucesos se apagan
+float hkBrk() {
+    if (uMbrk0 > uMbrk1) return smoothstep(0.0, 1.5, uRTime - uMbrk0);
+    return uMbrk1 > 0.0 ? 1.0 - smoothstep(0.0, 0.6, uRTime - uMbrk1) : 0.0;
+}
+bool hkMus() { return uMclx > 0.5; }
+bool hkMGrand() { return mod(uMclxn + 0.5, 3.0) > 2.0; }
+// k del climax musical para un climax de 'len' s (el pico, al 38 %, cae
+// en uMclxt); durante el aviso de un break sube despacio hasta antes del
+// pico. -1 = no hay.
+float hkMClxK(float len) {
+    float k = uRTime - uMclxt + 0.38 * len;
+    if (uMclxt > 0.0 && k >= 0.0 && k <= len) return k;
+    if (uMclxarm > uMclxt) return 0.33 * len * smoothstep(0.0, 10.0, uRTime - uMclxarm);
+    return -1.0;
+}
+// ventana (inicio, fin) del climax musical actual o pendiente; x < 0 = no hay
+vec2 hkMClxWin() {
+    if (uMclxarm > uMclxt) return vec2(uMclxarm, 1e9);
+    if (uMclxt > 0.0) return vec2(uMclxt - 0.38 * 26.0, uMclxt + 0.62 * 26.0);
+    return vec2(-1.0);
+}
+
 // elemento i de una permutacion de n (n <= 9) propia del ciclo 'cyc':
 // (a*i + b) mod n con 'a' coprimo con n, los dos al azar por ciclo. Es una
 // cuenta (no un ordenamiento): el calendario cuesta casi nada por pixel.
@@ -279,6 +321,10 @@ bool hkClxNear(float a, float b) {
 // casilleros comunes (los del gran climax no gastan variante), asi nunca
 // sale el mismo dos veces seguidas aunque haya un gran climax en medio.
 int hkClimaxVar(int n) {
+    if (hkMus()) {
+        float cn = uMclxn + (hkMomentOn() ? 1.0 : 0.0);
+        return hkPick(cn - floor(cn / 3.0), hkCSeed + 41.0, n);   // solo los comunes gastan variante
+    }
     float slot = floor(uRTime / HK_CLX_EVERY);
     if (hkMomentOn()) slot += 1.0;
     float g = floor((slot + floor(hkCSeed)) / 3.0);        // grandes ya pasados
@@ -292,6 +338,11 @@ vec4 hkClimaxV() {
     return vec4(0.0);
 #endif
     if (hkMomentOn()) return hkClimaxShape(hkMomentK(), HK_MOMENT_LEN);
+    if (hkMus()) {
+        if (hkMGrand()) return vec4(0.0);
+        float k = hkMClxK(hkCLen);
+        return k < 0.0 ? vec4(0.0) : hkClimaxShape(k, hkCLen);
+    }
     float slot = floor(uRTime / HK_CLX_EVERY);
     if (hkIsGrandSlot(slot)) return vec4(0.0);
     return hkClimaxShape(uRTime - hkClxStartSlot(slot), hkCLen);
@@ -301,6 +352,11 @@ vec4 hkGrandV() {
     return vec4(0.0);
 #endif
     if (hkMomentOn()) return hkClimaxShape(hkMomentK(), HK_MOMENT_LEN);
+    if (hkMus()) {
+        if (!hkMGrand()) return vec4(0.0);
+        float k = hkMClxK(hkGLen);
+        return k < 0.0 ? vec4(0.0) : hkClimaxShape(k, hkGLen);
+    }
     float slot = floor(uRTime / HK_CLX_EVERY);
     if (!hkIsGrandSlot(slot)) return vec4(0.0);
     return hkClimaxShape(uRTime - hkClxStartSlot(slot), hkGLen);
@@ -316,8 +372,17 @@ vec4 hkGrandV() {
 float hkHappenEnv(float s0, float len) {
     float k = uRTime - s0;
     if (k < 0.0 || k > len) return -1.0;
-    if (hkClxNear(s0, s0 + len)) return -1.0;
     float env = smoothstep(0.0, min(1.2, len * 0.25), k) * (1.0 - smoothstep(len - min(1.5, len * 0.3), len, k));
+    if (hkMus()) {
+        // climax de la musica: no empieza nada durante el; lo que estaba
+        // corriendo cuando llega se va en un segundo
+        vec2 w = hkMClxWin();
+        if (w.x > 0.0) {
+            if (s0 >= w.x - 4.0 && s0 <= w.y + 4.0) return -1.0;
+            if (s0 < w.x && uRTime > w.x) env *= 1.0 - smoothstep(0.0, 1.2, uRTime - w.x);
+        }
+    } else if (hkClxNear(s0, s0 + len)) return -1.0;
+    env *= 1.0 - hkBrk();                                    // respiro en el break
     float mk = hkMomentK();
     if (mk >= 0.0 && mk <= HK_MOMENT_LEN + 4.0) env *= 1.0 - smoothstep(0.0, 1.0, mk);
     return env;
@@ -329,16 +394,19 @@ vec4 hkHappen(float seed, float slotLen, float extra, int n, float len) {
     float slot = floor(uRTime / slotLen);
     float hs = slotLen * 0.5;
     float base = slot * slotLen;
-    float room = max(hs - len - 2.0, 0.0);
+    // con pulso, el comienzo se corre al proximo "1" (de frase o de
+    // compas, el mas largo que entre): se le saca ese margen al azar
+    float g = hkBeatGrid(hs - len - 4.0);
+    float room = max(hs - len - 2.0 - g, 0.0);
     float sd = hash21(vec2(slot, seed + 19.3 + float(uScene)));
     if (uRTime - base < hs) {
-        float s0 = base + 1.0 + hash21(vec2(slot, seed + float(uScene))) * room;
+        float s0 = hkSnap(base + 1.0 + hash21(vec2(slot, seed + float(uScene))) * room, g);
         float env = hkHappenEnv(s0, len);
         if (env < 0.0) return vec4(0.0, 0.0, -1.0, 0.0);
         return vec4(env, clamp((uRTime - s0) / len, 0.0, 1.0), float(hkPick(slot, seed, n)), sd);
     }
     if (hash21(vec2(slot, seed + 7.7 + float(uScene))) >= extra) return vec4(0.0, 0.0, -1.0, 0.0);
-    float s0 = base + hs + 1.0 + hash21(vec2(slot, seed + 3.1 + float(uScene))) * room;
+    float s0 = hkSnap(base + hs + 1.0 + hash21(vec2(slot, seed + 3.1 + float(uScene))) * room, g);
     float env = hkHappenEnv(s0, len);
     if (env < 0.0) return vec4(0.0, 0.0, -1.0, 0.0);
     // distinta de los vecinos (tambien de los de al lado, por si un climax
