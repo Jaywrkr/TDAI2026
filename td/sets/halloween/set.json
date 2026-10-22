@@ -43,7 +43,8 @@
     "Clic9": "launchNav",
     "Mirror": "toggleCapa",
     "Zoom": "nextCapa",
-    "Mediascrub": "Resplandor"
+    "Mediascrub": "Resplandor",
+    "Retro": "triggerSecret"
   },
   "midi_labels": {
     "Hue": "Perilla 2: Paleta del estilo",
@@ -58,7 +59,8 @@
     "Clic9": "Clic perilla 9: Lanzar la escena elegida",
     "Mirror": "Pad 14: Capa encima ON/OFF",
     "Zoom": "Pad 15: Siguiente capa",
-    "Mediascrub": "Tira Mod: RESPLANDOR (abajo nada brilla, centro normal, arriba solo lo que brilla)"
+    "Mediascrub": "Tira Mod: RESPLANDOR (abajo nada brilla, centro normal, arriba solo lo que brilla)",
+    "Retro": "Pad 9: Easter egg JAY INFINITO (aprender una vez)"
   },
   "presets_default": "presets_default.json"
 }

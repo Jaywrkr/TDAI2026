@@ -351,6 +351,9 @@ def _parameters(proj):
     # Halloween lo mueve la tira de Mod (set.json midi_redirect).
     # RITMO: seguir la musica (frases, break, drop). Apagado = el
     # calendario de reloj de siempre.
+    # EASTER EGG "JAY INFINITO" (fase 38): lanzarlo ya en la escena al aire
+    # (en Halloween tambien el pad 9).
+    add_pulse(cp, 'Secretoya', 'Lanzar easter egg (JAY infinito)')
     add_toggle(cp, 'Ritmoon', 'Seguir la musica (frases, break y drop)', True)
     add_float(cp, 'Ritmobpm', 'BPM detectado (solo lectura)', 0.0, 0.0, 220.0)
     add_float(cp, 'Resplandor', 'Resplandor (0 sin brillo, 0.5 normal, 1 solo lo que brilla)', 0.5, 0.0, 1.0)
@@ -503,6 +506,8 @@ def _parameters(proj):
     # Momento (pad de climax a mano, control_script.triggerMoment): kclock
     # en que se pidio; -1 = nunca.
     add_float(s, 'Momenton', 'Momento pedido en (interno)', -1.0)
+    # Easter egg JAY INFINITO pedido a mano (fase 38): kclock; -1 = nunca.
+    add_float(s, 'Secreton', 'Easter egg pedido en (interno)', -1.0)
     # RITMO (fase 36, vjcore/ritmo.py): lo escribe control_script con cada
     # golpe de bombo; el shader de Halloween encaja el calendario ahi.
     for _n, _l in (('Mbeat', 's por tiempo'), ('Manchor', 'inicio de frase'),
@@ -538,6 +543,8 @@ def onPulse(par):
 
     if n == 'Nextscene':
         m.nextScene()
+    elif n == 'Secretoya':
+        m.triggerSecret()
     elif n == 'Prevscene':
         m.prevScene()
     elif n == 'Snapshot':

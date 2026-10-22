@@ -927,3 +927,22 @@ Al tocar se notaba poco en varias escenas. Para medirlo, `td/tools/medir_teclas.
 
 **Reconstruir Todo:** cambiaron `common.glsl` y 17 `.frag`. Con **Recargar Shaders** también alcanza.
 
+## Fase 38: easter egg "JAY INFINITO" en cada escena
+
+Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, según la escena), hecha con el material de la propia escena: grabada en piedra, escrita con humo, dibujada por una bandada. Es un easter egg, no un logo.
+
+- **Cuándo sale:** uno cada ~12 minutos por escena y dura 5 s. Nunca cae encima de un clímax y, si hay pulso, arranca en el "1" (fase 36).
+- **A mano:** el **pad 9** (en Halloween; hay que aprenderlo una vez con Learn) o **Capas > Lanzar easter egg** lo muestra ya en la escena que está al aire. Mientras dura, otra pulsada no lo reinicia.
+- **Motor** (`common.glsl`):
+  - `hkEgg(seed)` da la envolvente y el avance.
+  - `hkText` es una tipografía de trazos con mayúsculas, unos números, signos y el ∞ (código 8).
+  - `hkInfD` da la distancia al ∞ y `hkInfPath` un recorrido en ∞.
+- **Canal y control:** el canal `secret` y el parámetro `Secreton`, como el Momento.
+- **Herramienta:** `td/tools/render_jay.py` muestra cada escena sin y con el easter egg, más un recorte agrandado. Con `--check` mide que se vea y que no pase de 3 destellos por segundo.
+- **Prueba:** `test_jay.py` revisa el canal, el pad, el disparo y todas las escenas que ya tienen easter egg.
+- **Ramas:** cada escena va en su propia rama (`claude/halloween-f38-jay-NN-...`), anidadas en orden. La primera trae además el motor.
+
+| Escena | Easter egg |
+|---|---|
+| 00 cementerio | En la lápida grande de la izquierda aparece grabado **JAY** y un **∞** debajo; el surco brilla verde, más con el relámpago |
+

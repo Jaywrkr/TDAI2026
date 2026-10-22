@@ -461,6 +461,109 @@ vec4 hkEstado(float seed, int n) {
 // coordenadas que centered(): -aspect..aspect.
 float hkKeyX(int i) { return mix(-uAspect * 0.85, uAspect * 0.85, keyPos(i)); }
 
+// ---------------------------------------------------------------
+// EASTER EGG "JAY INFINITO" (fase 38): cada escena esconde una firma del
+// VJ (JAY, el simbolo infinito, J. Infinito...) hecha con el material de
+// la escena. Sale poco y dura poco: uno cada ~12 min por escena, 5 s,
+// nunca encima de un climax, en el "1" si hay pulso. A mano: canal
+// 'secret' (kclock del pedido, -1 = nunca), pad 9 en Halloween o
+// Capas > Lanzar easter egg. Debe coincidir con SECRET_SECONDS.
+// ---------------------------------------------------------------
+#define HK_EGG_EVERY 720.0
+#define HK_EGG_LEN 5.0
+// (envolvente 0..1, avance 0..1); (0, 0) = no hay
+vec2 hkEgg(float seed) {
+#ifdef HK_STILL
+    return vec2(0.0);
+#endif
+    float mk = uSecret > 0.0 ? uKclock - uSecret : -1.0;
+    float k = -1.0;
+    if (mk >= 0.0 && mk <= HK_EGG_LEN) k = mk;
+    else {
+        float slot = floor(uRTime / HK_EGG_EVERY);
+        float s0 = slot * HK_EGG_EVERY + 40.0 + hash21(vec2(slot, seed + 77.0 + float(uScene))) * (HK_EGG_EVERY - 80.0 - HK_EGG_LEN);
+        s0 = hkSnap(s0, hkBeatGrid(16.0));
+        k = uRTime - s0;
+        if (k < 0.0 || k > HK_EGG_LEN) return vec2(0.0);
+        if (hkMus()) {
+            vec2 w = hkMClxWin();
+            if (w.x > 0.0 && s0 > w.x - 4.0 && s0 < w.y + 4.0) return vec2(0.0);
+        } else if (hkClxNear(s0, s0 + HK_EGG_LEN)) return vec2(0.0);
+    }
+    float env = smoothstep(0.0, 0.7, k) * (1.0 - smoothstep(HK_EGG_LEN - 0.9, HK_EGG_LEN, k));
+    return vec2(env, k / HK_EGG_LEN);
+}
+
+// INFINITO: distancia (aprox.) a la lemniscata de Bernoulli de semiancho a
+// (centrada en el origen), y punto del recorrido en t (una vuelta = 2 PI).
+float hkInfD(vec2 p, float a) {
+    float x2 = p.x * p.x, y2 = p.y * p.y, r2 = x2 + y2;
+    float f = r2 * r2 - a * a * (x2 - y2);
+    vec2 g = vec2(4.0 * p.x * r2 - 2.0 * a * a * p.x, 4.0 * p.y * r2 + 2.0 * a * a * p.y);
+    return abs(f) / max(length(g), 1e-4);
+}
+vec2 hkInfPath(float t, float a) {
+    float s = sin(t), c = cos(t);
+    return a * vec2(c, s * c) / (1.0 + s * s);
+}
+
+// TIPOGRAFIA de trazos (mayusculas, unos numeros y signos; 8 = el simbolo
+// infinito). Cada letra vive en x 0..0.6, y 0..1; avance 0.85. Distancia
+// en esas unidades: el grosor lo pone quien la usa.
+#define HKS(ax, ay, bx, by) d = min(d, hkSeg(q, vec2(ax, ay), vec2(bx, by)))
+float hkGlyph(int c, vec2 q) {
+    float d = 1e3;
+    if (c == 65) { HKS(0.0, 0.0, 0.3, 1.0); HKS(0.3, 1.0, 0.6, 0.0); HKS(0.12, 0.4, 0.48, 0.4); }
+    else if (c == 67) { HKS(0.6, 0.85, 0.45, 1.0); HKS(0.45, 1.0, 0.15, 1.0); HKS(0.15, 1.0, 0.0, 0.8); HKS(0.0, 0.8, 0.0, 0.2);
+                        HKS(0.0, 0.2, 0.15, 0.0); HKS(0.15, 0.0, 0.45, 0.0); HKS(0.45, 0.0, 0.6, 0.15); }
+    else if (c == 69) { HKS(0.6, 1.0, 0.0, 1.0); HKS(0.0, 1.0, 0.0, 0.0); HKS(0.0, 0.0, 0.6, 0.0); HKS(0.0, 0.5, 0.45, 0.5); }
+    else if (c == 70) { HKS(0.6, 1.0, 0.0, 1.0); HKS(0.0, 1.0, 0.0, 0.0); HKS(0.0, 0.5, 0.45, 0.5); }
+    else if (c == 73) { HKS(0.3, 0.0, 0.3, 1.0); HKS(0.1, 1.0, 0.5, 1.0); HKS(0.1, 0.0, 0.5, 0.0); }
+    else if (c == 74) { HKS(0.15, 1.0, 0.6, 1.0); HKS(0.45, 1.0, 0.45, 0.2); HKS(0.45, 0.2, 0.3, 0.0); HKS(0.3, 0.0, 0.12, 0.0); HKS(0.12, 0.0, 0.0, 0.2); }
+    else if (c == 76) { HKS(0.0, 1.0, 0.0, 0.0); HKS(0.0, 0.0, 0.6, 0.0); }
+    else if (c == 78) { HKS(0.0, 0.0, 0.0, 1.0); HKS(0.0, 1.0, 0.6, 0.0); HKS(0.6, 0.0, 0.6, 1.0); }
+    else if (c == 79) { HKS(0.15, 0.0, 0.45, 0.0); HKS(0.45, 0.0, 0.6, 0.2); HKS(0.6, 0.2, 0.6, 0.8); HKS(0.6, 0.8, 0.45, 1.0);
+                        HKS(0.45, 1.0, 0.15, 1.0); HKS(0.15, 1.0, 0.0, 0.8); HKS(0.0, 0.8, 0.0, 0.2); HKS(0.0, 0.2, 0.15, 0.0); }
+    else if (c == 80 || c == 82) { HKS(0.0, 0.0, 0.0, 1.0); HKS(0.0, 1.0, 0.45, 1.0); HKS(0.45, 1.0, 0.6, 0.85); HKS(0.6, 0.85, 0.6, 0.65);
+                        HKS(0.6, 0.65, 0.45, 0.5); HKS(0.45, 0.5, 0.0, 0.5); if (c == 82) HKS(0.3, 0.5, 0.6, 0.0); }
+    else if (c == 83) { HKS(0.6, 0.85, 0.45, 1.0); HKS(0.45, 1.0, 0.15, 1.0); HKS(0.15, 1.0, 0.0, 0.85); HKS(0.0, 0.85, 0.0, 0.65);
+                        HKS(0.0, 0.65, 0.15, 0.5); HKS(0.15, 0.5, 0.45, 0.5); HKS(0.45, 0.5, 0.6, 0.35); HKS(0.6, 0.35, 0.6, 0.15);
+                        HKS(0.6, 0.15, 0.45, 0.0); HKS(0.45, 0.0, 0.15, 0.0); HKS(0.15, 0.0, 0.0, 0.15); }
+    else if (c == 84) { HKS(0.0, 1.0, 0.6, 1.0); HKS(0.3, 1.0, 0.3, 0.0); }
+    else if (c == 89) { HKS(0.0, 1.0, 0.3, 0.5); HKS(0.3, 0.5, 0.6, 1.0); HKS(0.3, 0.5, 0.3, 0.0); }
+    else if (c == 49) { HKS(0.15, 0.8, 0.35, 1.0); HKS(0.35, 1.0, 0.35, 0.0); HKS(0.15, 0.0, 0.55, 0.0); }
+    else if (c == 51) { HKS(0.0, 0.85, 0.15, 1.0); HKS(0.15, 1.0, 0.45, 1.0); HKS(0.45, 1.0, 0.6, 0.85); HKS(0.6, 0.85, 0.6, 0.65);
+                        HKS(0.6, 0.65, 0.45, 0.5); HKS(0.45, 0.5, 0.2, 0.5); HKS(0.45, 0.5, 0.6, 0.35); HKS(0.6, 0.35, 0.6, 0.15);
+                        HKS(0.6, 0.15, 0.45, 0.0); HKS(0.45, 0.0, 0.15, 0.0); HKS(0.15, 0.0, 0.0, 0.15); }
+    else if (c == 54) { HKS(0.6, 0.85, 0.45, 1.0); HKS(0.45, 1.0, 0.15, 1.0); HKS(0.15, 1.0, 0.0, 0.8); HKS(0.0, 0.8, 0.0, 0.15);
+                        HKS(0.0, 0.15, 0.15, 0.0); HKS(0.15, 0.0, 0.45, 0.0); HKS(0.45, 0.0, 0.6, 0.15); HKS(0.6, 0.15, 0.6, 0.4);
+                        HKS(0.6, 0.4, 0.45, 0.55); HKS(0.45, 0.55, 0.15, 0.55); HKS(0.15, 0.55, 0.0, 0.4); }
+    else if (c == 45) { HKS(0.1, 0.5, 0.5, 0.5); }
+    else if (c == 46) { d = length(q - vec2(0.3, 0.04)) - 0.02; }
+    else if (c == 44) { HKS(0.3, 0.06, 0.2, -0.14); }
+    else if (c == 39) { HKS(0.3, 1.0, 0.25, 0.78); }
+    else if (c == 58) { d = min(length(q - vec2(0.3, 0.2)), length(q - vec2(0.3, 0.7))) - 0.02; }
+    else if (c == 8) { d = hkInfD(q - vec2(0.33, 0.5), 0.42); }
+    return d;
+}
+#undef HKS
+// texto de n letras (codigos ASCII; 8 = infinito, 32 = espacio) centrado
+// en el origen; p en unidades de letra (alto 1). Distancia al trazo.
+float hkText(vec2 p, int s[16], int n) {
+    p.x += (float(n) * 0.85 - 0.25) * 0.5;
+    p.y += 0.5;
+    int i = int(floor(p.x / 0.85));
+    if (p.y < -0.6 || p.y > 1.6) return 1e3;
+    float d = 1e3;
+    for (int k = -1; k <= 1; k++) {
+        int j = i + k;
+        if (j < 0 || j >= n) continue;
+        int c = s[j];
+        if (c != 32) d = min(d, hkGlyph(c, p - vec2(float(j) * 0.85, 0.0)));
+    }
+    return d;
+}
+
 // LUZ DE TECLA (fase 37): cada tecla ILUMINA la escena en su posicion,
 // con la luz propia de la escena: color c1 en el grave a c2 en el agudo,
 // un ovalo centrado en (hkKeyX, y) de radios r (columna alta, halo bajo,

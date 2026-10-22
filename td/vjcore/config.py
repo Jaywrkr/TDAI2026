@@ -363,6 +363,9 @@ CTRL_CHANNELS = [
     'mclxt',      # 87 rtime del pico del climax
     'mclxn',      # 88 indice del climax
     'mclxarm',    # 89 rtime del aviso en un break
+    # EASTER EGG "JAY INFINITO" (fase 38): kclock en que se pidio a mano
+    # (-1 = nunca). Ver hkEgg en sets/halloween/common.glsl.
+    'secret',     # 90
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -425,6 +428,7 @@ PAR_CHANNELS = [
     ('Resplandor', 'glow'),
     ('Mbeat', 'mbeat'), ('Manchor', 'manchor'), ('Mbrk0', 'mbrk0'), ('Mbrk1', 'mbrk1'),
     ('Mclx', 'mclx'), ('Mclxt', 'mclxt'), ('Mclxn', 'mclxn'), ('Mclxarm', 'mclxarm'),
+    ('Secreton', 'secret'),
 ]
 
 # Voces del piano polifonico y su suavizado de perillas Detail

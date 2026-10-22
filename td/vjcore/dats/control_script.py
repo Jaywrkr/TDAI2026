@@ -1203,6 +1203,25 @@ def ritmoStatus():
     return s
 
 
+# Debe coincidir con HK_EGG_LEN de sets/halloween/common.glsl.
+SECRET_SECONDS = 5.0
+
+
+def triggerSecret():
+    """EASTER EGG "JAY INFINITO" (fase 38): muestra ya la firma escondida
+    de la escena al aire (5 s). Mientras dura, otra pulsada no hace nada.
+    Pad 9 en Halloween y Capas > Lanzar easter egg."""
+    p = _p()
+    if not p or getattr(p.par, 'Secreton', None) is None:
+        return
+    t0 = float(p.par.Secreton.eval())
+    now = _momentClock()
+    if t0 > 0.0 and 0.0 <= now - t0 < SECRET_SECONDS:
+        return
+    p.par.Secreton = max(now, 1e-3)
+    print('EASTER EGG: JAY INFINITO')
+
+
 def toggleNight():
     """Prende/apaga el efecto NOCHE (oscuro y gore con la hora) sin perder
     la hora ni la intensidad elegidas. Pad 7 en Halloween."""
