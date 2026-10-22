@@ -331,7 +331,7 @@ vec4 render(vec2 uv) {
     vec2 EG = hkEgg(7.0);
     if (EG.x > 0.0) {
         vec2 ic = VP + vec2(0.0, 0.02);
-        float ia = 0.62;
+        float ia = 0.62 * hkEggS;                              // fase 39: mas chico
         float ph = EG.y * 6.2832 * 1.1 - 1.2;
         vec2 gpos = ic + hkInfPath(ph, ia);
         // estela: el tramo del infinito ya recorrido, que se apaga de a poco
@@ -339,7 +339,7 @@ vec4 render(vec2 uv) {
         float trail = exp(-hkInfD(iq, ia) / 0.008) * EG.x * smoothstep(0.05, 0.5, EG.y);
         col += gc * trail * 0.55;
         col += gc * exp(-hkInfD(iq, ia) / 0.05) * EG.x * 0.06;
-        float gs = 0.22 * (1.0 - smoothstep(0.85, 1.0, EG.y) * 0.6);
+        float gs = 0.22 * hkEggS * (1.0 - smoothstep(0.85, 1.0, EG.y) * 0.6);
         vec2 q = (p - gpos) / gs;
         if (dot(q, q) < 2.0) {
             float d = hwGhost(q, t, 0.8, 21.0);
