@@ -121,8 +121,9 @@ float hwFace(vec2 q, float smile, float rage) {
     float lower = max(q.y - (curve - halfH + 0.060), colDn + 0.012);
     float mouth = max(band, -min(upper, lower));
     mouth = max(mouth, abs(x) - 0.52);
-    if (gInfMouth > 0.0) mouth = mix(mouth, hkInfD(q - vec2(0.0, -0.25), 0.36) - 0.04, gInfMouth);
-    return min(min(eyeL, eyeR), min(nose, mouth));
+    // fase 39: la boca queda como esta; un infinito chico tallado entre los ojos
+    float infH = gInfMouth > 0.0 ? hkInfD(q - vec2(0.0, 0.24), 0.13 * hkEggS) - 0.022 * hkEggS + (1.0 - gInfMouth) * 0.1 : 1e3;
+    return min(min(min(eyeL, eyeR), min(nose, mouth)), infH);
 }
 
 // Llama de vela: gota alargada que se inclina. Devuelve (nucleo, halo).
@@ -357,7 +358,7 @@ vec4 render(vec2 uv) {
     float rage = max(max(hit * loco, relight * 0.85 * (1.0 - smoothstep(0.80, 0.97, C.w))), talk * (0.25 + hit * 0.6));
     float smileK = clamp(uD4 + laugh * 0.6 + talk * (bass * 0.9 + mid * 0.4 - 0.2), 0.0, 1.2);
     vec2 EG = hkEgg(1.0);
-    gInfMouth = smoothstep(0.0, 1.0, EG.x);
+    gInfMouth = smoothstep(0.0, 0.3, EG.x);
     float faceD = hwFace(q, smileK, rage);
     if (hc.a > 0.0) {
         vec4 hn = plate4(huv);
