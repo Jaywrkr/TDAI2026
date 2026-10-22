@@ -233,6 +233,18 @@ vec4 render(vec2 uv) {
         vec2 eq = vec2(abs(bq.x) - 0.07, bq.y - 0.88);
         col += potion * exp(-dot(eq, eq) * 3000.0) * spirit * 2.0;
     }
+    // EASTER EGG "JAY INFINITO" (fase 38): el vapor se enrosca en un
+    // infinito sobre el caldero y despues se deshace hacia arriba
+    vec2 EG = hkEgg(11.0);
+    if (EG.x > 0.0) {
+        float up = smoothstep(0.65, 1.0, EG.y);
+        vec2 iq = vp - vec2(0.0, 0.48 + up * 0.25);
+        iq.x += 0.04 * sin(iq.y * 12.0 - uRTime * 2.0) * (0.5 + up * 2.0);
+        float wisp = plate4Wrap(iq * vec2(0.25, 0.25) + vec2(0.0, -uRTime * 0.04)).g;
+        float band = 0.035 + 0.025 * wisp + up * 0.05;
+        float inf = smoothstep(band, band * 0.3, hkInfD(iq, 0.40) + (wisp - 0.5) * 0.03);
+        sAmt = max(sAmt, inf * EG.x * (1.0 - up * 0.8) * (0.7 + 0.5 * wisp));
+    }
     // detalle: humo por la boca del caldero
     if (dv == 4) sAmt = max(sAmt, D.x * smoothstep(0.4, 0.7, steam) * exp(-pow(vp.y / 0.25, 2.0)) * smoothstep(0.8, 0.2, abs(vp.x)));
     col += potion * sAmt * (0.75 + bass * 0.6 + uD3 * 0.4);
