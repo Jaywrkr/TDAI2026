@@ -1010,3 +1010,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 02 neón | El cartel JAY es más chico y tenue |
 | 03 ojos | Ojos y ∞ más chicos |
 | 04 murciélagos | El ∞ de murciélagos es más chico; los murciélagos no quedan a medias |
+| 05 sangre | JAY de sangre más chico, con chorreado más corto |

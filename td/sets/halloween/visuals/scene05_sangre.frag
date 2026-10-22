@@ -262,7 +262,7 @@ vec4 render(vec2 uv) {
     vec2 EG = hkEgg(5.0);
     if (EG.x > 0.0) {
         vec2 jc = vec2(-0.62, 0.24);
-        float jh = 0.36;
+        float jh = 0.36 * hkEggS;                             // fase 39: mas chico
         vec2 jq = (p - jc) / jh;
         if (abs(jq.x) < 2.0 && jq.y > -4.0 && jq.y < 1.0) {
             float reveal = smoothstep(0.0, 0.45, EG.y) * 2.6 - 1.3;          // de izquierda a derecha
@@ -271,13 +271,13 @@ vec4 render(vec2 uv) {
             // chorreado: un hilo bajo cada letra que crece despues de escrita
             for (int i = 0; i < 4; i++) {
                 float fx = (float(i) - 1.5) * 0.62 + 0.12 * sin(float(i) * 7.0);
-                float run = smoothstep(0.35, 1.0, EG.y) * (0.25 + 0.20 * fract(float(i) * 0.37));
+                float run = smoothstep(0.35, 1.0, EG.y) * (0.25 + 0.20 * fract(float(i) * 0.37)) * hkEggS;
                 float y0 = jc.y - 0.12, y1 = y0 - run;
                 float st = max(abs(p.x - jc.x - fx * jh) - 0.010 * (1.0 + 0.4 * sin(p.y * 30.0)), max(p.y - y0, y1 - p.y));
                 st = min(st, length((p - vec2(jc.x + fx * jh, y1)) / vec2(1.0, 1.3)) - 0.017);
                 jd = min(jd, st + (run < 0.01 ? 1.0 : 0.0));
             }
-            d = min(d, jd + (1.0 - EG.x) * 0.03);
+            d = min(d, jd + (1.0 - smoothstep(0.0, 0.3, EG.x)) * 0.03);
         }
     }
     // suceso: una mano se arrastra por la pared (cuatro surcos que bajan)
