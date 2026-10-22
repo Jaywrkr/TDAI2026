@@ -1022,3 +1022,4 @@ Pedido del VJ: que el easter egg no sea tan notorio siempre.
 | 14 luna y cuervos | Cuervos-letra más chicos |
 | 15 manos zombie | El ∞ de chispa es más chico y tenue |
 | 16 velas | El ∞ de humo es más chico |
+| 17 esqueleto | El ∞ de la cadera es más chico |
