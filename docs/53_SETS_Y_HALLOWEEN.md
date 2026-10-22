@@ -945,4 +945,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | Escena | Easter egg |
 |---|---|
 | 00 cementerio | En la lápida grande de la izquierda aparece grabado **JAY** y un **∞** debajo; el surco brilla verde, más con el relámpago |
-
+| 01 calabaza | La boca tallada pasa a ser un **∞** por el que sale la luz de adentro |
