@@ -990,3 +990,19 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 - **Botón:** **Capas > Lanzar easter egg** lo muestra ya, sin MIDI.
 - **Reconstruir Todo:** canal nuevo `secret`, parámetros `Secreton` y `Secretoya`, y cambios en `common.glsl` y en los 31 `.frag`.
 
+## Fase 39: easter eggs más sutiles
+
+Pedido del VJ: que el easter egg no sea tan notorio siempre.
+
+- **Dos niveles** (`hkEgg` en `common.glsl`):
+  - **Susurro:** dos de cada tres veces sale más chico (60 %) y tenue (42 %).
+  - **Visible:** una de cada tres sale un poco más grande y fuerte (78 % y 75 %).
+  - **A mano** (pad 9 o Capas > Lanzar easter egg) sale en el nivel visible.
+- **Tamaño:** cada escena multiplica sus medidas por `hkEggS`. La fuerza ya viene en la envolvente que devuelve `hkEgg`.
+- **Herramienta:** `render_jay.py --susurro` muestra el nivel en que sale casi siempre. Los umbrales de `--check` bajaron (cambia al menos el 0,05 % de la pantalla, 0,025 por pixel).
+- **Ramas:** una por escena (`claude/halloween-f39-jay-sutil-NN-...`), anidadas desde `main`. La de la 00 trae el motor.
+
+| Escena | Cambio |
+|---|---|
+| 00 cementerio | Epitafio más chico y tenue en la lápida |
+

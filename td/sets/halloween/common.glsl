@@ -471,16 +471,24 @@ float hkKeyX(int i) { return mix(-uAspect * 0.85, uAspect * 0.85, keyPos(i)); }
 // ---------------------------------------------------------------
 #define HK_EGG_EVERY 720.0
 #define HK_EGG_LEN 5.0
-// (envolvente 0..1, avance 0..1); (0, 0) = no hay
+// FASE 39 (mas sutil): el easter egg sale casi siempre EN SUSURRO (mas
+// chico y tenue) y solo uno de cada tres un poco mas visible. Pedido a
+// mano (pad 9) sale en el nivel visible. hkEggS = tamano (las escenas
+// lo multiplican en sus medidas); la envolvente ya viene con la fuerza.
+float hkEggS = 1.0;
+// (envolvente 0..1 ya con la fuerza, avance 0..1); (0, 0) = no hay
 vec2 hkEgg(float seed) {
 #ifdef HK_STILL
     return vec2(0.0);
 #endif
     float mk = uSecret > 0.0 ? uKclock - uSecret : -1.0;
     float k = -1.0;
+    float A = 0.75;                 // fuerza (nivel visible)
+    hkEggS = 0.78;
     if (mk >= 0.0 && mk <= HK_EGG_LEN) k = mk;
     else {
         float slot = floor(uRTime / HK_EGG_EVERY);
+        if (hash21(vec2(slot, seed + 5.0 + float(uScene))) > 0.33) { A = 0.42; hkEggS = 0.6; }   // susurro
         float s0 = slot * HK_EGG_EVERY + 40.0 + hash21(vec2(slot, seed + 77.0 + float(uScene))) * (HK_EGG_EVERY - 80.0 - HK_EGG_LEN);
         s0 = hkSnap(s0, hkBeatGrid(16.0));
         k = uRTime - s0;
@@ -490,8 +498,11 @@ vec2 hkEgg(float seed) {
             if (w.x > 0.0 && s0 > w.x - 4.0 && s0 < w.y + 4.0) return vec2(0.0);
         } else if (hkClxNear(s0, s0 + HK_EGG_LEN)) return vec2(0.0);
     }
+#ifdef HK_EGG_FORCE_S
+    hkEggS = HK_EGG_FORCE_S; A = HK_EGG_FORCE_A;      // render_jay.py --susurro
+#endif
     float env = smoothstep(0.0, 0.7, k) * (1.0 - smoothstep(HK_EGG_LEN - 0.9, HK_EGG_LEN, k));
-    return vec2(env, k / HK_EGG_LEN);
+    return vec2(env * A, k / HK_EGG_LEN);
 }
 
 // INFINITO: distancia (aprox.) a la lemniscata de Bernoulli de semiancho a

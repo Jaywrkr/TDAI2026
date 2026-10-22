@@ -10,6 +10,11 @@ Para cada escena fuerza el easter egg con el canal 'secret' (como el pad
 
     python3 td/tools/render_jay.py hoja.png --scenes 0
     python3 td/tools/render_jay.py --check --scenes 0,1,2
+    python3 td/tools/render_jay.py hoja.png --susurro      # como sale casi siempre
+
+El pedido a mano (pad 9, el que fuerza esta herramienta) sale en el nivel
+visible; --susurro fuerza el nivel en que sale la mayoria de las
+veces (mas chico y tenue).
 """
 import os
 import sys
@@ -31,7 +36,8 @@ from vjcore import config, shader  # noqa: E402
 
 EGG_LEN = 5.0
 T0 = 47.0
-MIN_AREA = 0.15     # % de pantalla que tiene que cambiar
+MIN_AREA = 0.05     # % de pantalla que tiene que cambiar (fase 39: es sutil)
+DIFF = 0.025        # cuanto tiene que cambiar un pixel para contar
 
 
 def values(t, secret_at):
@@ -61,7 +67,7 @@ def scene_check(ctx, idx, media, fps=30):
     mid = sc.frame(values(t, t - EGG_LEN * 0.5))
     late = sc.frame(values(t, t - EGG_LEN * 0.8))
     d = np.maximum(np.abs(lum(mid) - lum(base)), np.abs(lum(late) - lum(base)))
-    area = float((d > 0.04).mean() * 100.0)
+    area = float((d > DIFF).mean() * 100.0)
     series = [[] for _ in range(TD.GRID * TD.GRID)]
     for k in range(int((EGG_LEN + 0.6) * fps)):
         tt = t + k / fps
@@ -72,7 +78,7 @@ def scene_check(ctx, idx, media, fps=30):
 
 
 def crop_box(d):
-    ys, xs = np.where(d > 0.04)
+    ys, xs = np.where(d > DIFF)
     if len(xs) == 0:
         return 0, 0, d.shape[1], d.shape[0]
     x0, x1 = np.percentile(xs, 2), np.percentile(xs, 98)
@@ -90,6 +96,9 @@ def main():
     scenes = [int(x) for x in args[args.index('--scenes') + 1].split(',')] if '--scenes' in args else \
         [i for i in range(config.N_SCENES) if shader.find_visual(i)]
     check = '--check' in args
+    if '--susurro' in args:
+        mh = shader.make_header
+        shader.make_header = lambda *a, **k: '#define HK_EGG_FORCE_S 0.6\n#define HK_EGG_FORCE_A 0.42\n' + mh(*a, **k)
     out = args[0] if args and not args[0].startswith('--') else None
     import moderngl
     ctx = moderngl.create_standalone_context(backend='egl', require=330)
