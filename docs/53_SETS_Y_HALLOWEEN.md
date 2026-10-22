@@ -954,3 +954,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 07 fantasmas | Un fantasmita da una vuelta en **∞** por el pasillo dejando una estela de luz, y se desvanece |
 | 08 araña | En el centro de la tela se teje un **∞** de hilo, primero un lazo y después el otro, con gotitas de rocío |
 | 09 tormenta | Entre las nubes queda un rayo quieto con forma de **J** que crepita sin destellar |
+| 10 portal | El anillo de fuego del portal se estira en un **∞**, dos aros de fuego unidos, y vuelve |
