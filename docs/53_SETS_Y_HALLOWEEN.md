@@ -962,3 +962,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 15 manos zombie | Una chispa verde de la tumba dibuja en el aire un **∞** justo sobre las manos y queda brillando hasta apagarse |
 | 16 velas | El humo de las dos velas del medio sube ondulando y arriba se cruza en un **∞** |
 | 17 esqueleto | El esqueleto del centro mueve la cadera dibujando un **∞** y deja una estela de luz |
+| 18 túnel de calaveras | Las calaveras de la pared izquierda que caen dentro de **JAY** se encienden en rojo, y en la derecha las de un **∞** |
