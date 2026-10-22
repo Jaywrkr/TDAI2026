@@ -967,3 +967,4 @@ Cada escena esconde una firma del VJ (JAY, el símbolo infinito, J. Infinito, se
 | 20 galería | Bajo un cuadro aparece una placa de bronce con letras grabadas: **J.INFINITO 1666** |
 | 21 espejo | El espejo se empaña y alguien escribe con el dedo un **∞** y debajo **JAY**; el borde de cada trazo queda mojado y brilla |
 | 22 se quema | Una brasa recorre la foto y deja quemado un **∞** con el borde encendido; al final se apaga |
+| 23 película 1920 | Aparece un intertítulo de cine mudo: **JAY INFINITO / PRESENTA** con un **∞** de adorno |
