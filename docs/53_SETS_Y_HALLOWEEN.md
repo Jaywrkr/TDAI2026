@@ -1,2 +1,2 @@
 
-| 19 glitch demoníaco | El cartel de canal es más chico |
+| 20 galería | La placa es más chica |
