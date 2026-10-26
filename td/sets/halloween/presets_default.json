@@ -29,5 +29,8 @@
   "27": {"Speed": 0.5, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.6, "Detail2": 0.4, "Detail3": 0.55, "Detail4": 0.5, "Detail5": 0.25, "Detail6": 0.15},
   "28": {"Speed": 0.5, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.6, "Detail2": 0.5, "Detail3": 0.45, "Detail4": 0.3, "Detail5": 0.0, "Detail6": 0.35},
   "29": {"Speed": 0.5, "Density": 0.5, "Hue": 0.0, "Chaos": 0.25, "Detail1": 0.7, "Detail2": 0.45, "Detail3": 0.4, "Detail4": 0.5, "Detail5": 0.2, "Detail6": 0.25},
-  "30": {"Speed": 0.5, "Density": 0.5, "Hue": 0.0, "Chaos": 0.25, "Detail1": 0.7, "Detail2": 0.4, "Detail3": 0.35, "Detail4": 0.5, "Detail5": 0.2, "Detail6": 0.3}
+  "30": {"Speed": 0.5, "Density": 0.5, "Hue": 0.0, "Chaos": 0.25, "Detail1": 0.7, "Detail2": 0.4, "Detail3": 0.35, "Detail4": 0.5, "Detail5": 0.2, "Detail6": 0.3},
+  "31": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.5, "Detail6": 0.5},
+  "32": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.5, "Detail6": 0.5},
+  "33": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.5, "Detail6": 0.5}
 }
