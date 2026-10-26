@@ -44,21 +44,37 @@ vec4 render(vec2 uv) {
         vec3 color=mix(ink,accent,mod(fj,2.0)*0.32);
         col+=vjLine(abs(dist)-width,color,show*(0.75+hit*0.12+keyed*0.40))*bodyMask;
         col+=vjLine(dist,color,show*uD3*0.25)*bodyMask;
-        // Escamas de diamantes que siguen la curva del cuerpo.
-        float sx=mod(q.x+t*0.035,0.10)-0.05;
-        float scale=abs(sx)*0.65+abs(dist)-width*0.78;
-        float interior=1.0-smoothstep(width*0.72,width,abs(dist));
-        col+=vjLine(scale,color,show*uD3*0.58)*interior*bodyMask;
+        // Tres hileras de escamas alternadas, lineas de vientre y bordes dobles.
+        col+=vjLine(abs(dist)-width*0.80,color,show*uD3*0.22)*bodyMask;
+        float interior=1.0-smoothstep(width*0.80,width,abs(dist));
+        for(int row=-1;row<=1;row++) {
+            float fr=float(row);
+            float sx=mod(q.x+t*0.025+abs(fr)*0.045,0.09)-0.045;
+            float sy=dist-fr*width*0.49;
+            float scale=abs(sx)*0.33+abs(sy)-width*0.31;
+            col+=vjLine(scale,color,show*uD3*(row==0?0.48:0.30))*interior*bodyMask;
+        }
         float headY=seCurve(headX,t,seed)*(1.0+C.y*0.15);
-        vec2 h=q-vec2(headX,headY);
-        float head=(length(h/vec2(0.18,0.095))-1.0)*0.095;
-        col+=vjLine(head,color,show*0.90);
-        float eye=length(vec2(h.x-0.045,abs(h.y)-0.045))-0.012;
-        col+=vjLine(eye,vec3(1.0,0.55,0.10),show*0.65);
-        float jaw=hkSeg(h,vec2(0.01,-0.012),vec2(0.16,0.0));
+        float headSlope=cos(headX*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(headX*4.3+t*0.4+seed)*0.172;
+        vec2 h=rot2(atan(headSlope))*(q-vec2(headX,headY));
+        vec2 hp=vec2(h.x,abs(h.y));
+        // Cabeza de vibora facetada: cuello, mandibula, hocico y narina.
+        float head=min(hkSeg(hp,vec2(-0.13,0.025),vec2(-0.075,0.095)),hkSeg(hp,vec2(-0.075,0.095),vec2(0.075,0.085)));
+        head=min(head,hkSeg(hp,vec2(0.075,0.085),vec2(0.19,0.025)));
+        head=min(head,hkSeg(hp,vec2(0.19,0.025),vec2(0.195,0.0)));
+        col+=vjLine(head,color,show*0.95);
+        col+=vjLine(hkSeg(hp,vec2(-0.07,0.07),vec2(0.10,0.03)),color,show*uD3*0.45);
+        float eye=(length((hp-vec2(0.045,0.05))/vec2(0.028,0.018))-1.0)*0.018;
+        col+=vjLine(eye,vec3(1.0,0.55,0.10),show*0.75);
+        col+=vjLine(hkSeg(hp,vec2(0.045,0.041),vec2(0.045,0.059)),color,show*0.65);
+        col+=vjLine(length(hp-vec2(0.145,0.028))-0.007,color,show*0.65);
+        float jaw=hkSeg(h,vec2(-0.02,0.0),vec2(0.19,0.0));
         col+=vjLine(jaw,color,show*0.45);
-        float tongue=hkSeg(h,vec2(0.16,0.0),vec2(0.30,0.0));
-        tongue=min(tongue,min(hkSeg(h,vec2(0.30,0.0),vec2(0.35,0.035)),hkSeg(h,vec2(0.30,0.0),vec2(0.35,-0.035))));
+        float plate=hkSeg(hp,vec2(-0.04,0.018),vec2(-0.015,0.068));
+        plate=min(plate,hkSeg(hp,vec2(-0.015,0.068),vec2(0.018,0.022)));
+        col+=vjLine(plate,color,show*uD3*0.35);
+        float tongue=hkSeg(h,vec2(0.19,0.0),vec2(0.31,0.0));
+        tongue=min(tongue,min(hkSeg(h,vec2(0.31,0.0),vec2(0.37,0.030)),hkSeg(h,vec2(0.31,0.0),vec2(0.37,-0.030))));
         col+=vjLine(tongue,accent,show*(0.35+hit*0.25));
         float tick=mod(q.x+0.04,0.18)-0.09;
         float spine=hkSeg(vec2(tick,abs(dist)-width),vec2(0.0,0.0),vec2(-0.025,0.045));

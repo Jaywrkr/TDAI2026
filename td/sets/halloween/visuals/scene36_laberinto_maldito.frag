@@ -40,11 +40,33 @@ vec4 render(vec2 uv) {
         float fade=smoothstep(0.0,0.10,z)*(1.0-smoothstep(0.89,1.0,z))*show;
         col+=vjLine(door,ink,fade*(0.58+hit*0.13+C.y*0.13));
         col+=vjLine(door+0.045,accent,fade*uD3*0.40);
+        col+=vjLine(door-0.027,ink,fade*0.18*uD3);
+        // Bisel exterior con esquinas trabadas y clavijas de union.
+        float arch=max(abs(q.x)-width-0.12,abs(q.y)-0.84);
+        arch=max(arch,(abs(q.x)+abs(q.y)-width-0.77)*0.7071);
+        col+=vjLine(arch,accent,fade*0.30);
+        vec2 corner=vec2(abs(q.x)-width+0.06,abs(q.y)-0.65);
+        col+=vjLine(hkBox(corner,vec2(0.035,0.027)),ink,fade*0.40*uD3);
+        col+=vjLine(length(corner)-0.009,accent,fade*0.45*uD3);
+        // Friso de meandros angulares sobre el dintel.
+        vec2 tile=vec2(mod(q.x+width,0.16)-0.08,abs(q.y)-0.78);
+        float frieze=min(hkSeg(tile,vec2(-0.06,-0.025),vec2(-0.06,0.025)),hkSeg(tile,vec2(-0.06,0.025),vec2(0.04,0.025)));
+        frieze=min(frieze,hkSeg(tile,vec2(0.04,0.025),vec2(0.04,0.0)));
+        float lintel=1.0-smoothstep(width-0.15,width-0.10,abs(q.x));
+        col+=vjLine(frieze,ink,fade*uD3*0.35)*lintel;
         // Rieles laterales y dinteles subdivididos con perspectiva comun.
         for(int side=-1;side<=1;side+=2) {
             vec2 a=vec2(float(side)*width,-0.56);
             vec2 b=vec2(float(side)*(width+0.34),-0.90);
             col+=vjLine(hkSeg(q,a,b),accent,fade*0.35);
+            // Paneles escalonados con una bifurcacion de recorrido.
+            vec2 wall=vec2(float(side)*q.x-width-0.18,q.y);
+            float panel=hkBox(wall,vec2(0.065,0.50));
+            col+=vjLine(panel,accent,fade*0.26*uD3);
+            float trace=min(hkSeg(wall,vec2(-0.025,-0.40),vec2(-0.025,0.16)),hkSeg(wall,vec2(-0.025,0.16),vec2(0.025,0.22)));
+            trace=min(trace,hkSeg(wall,vec2(0.025,0.22),vec2(0.025,0.41)));
+            col+=vjLine(trace,ink,fade*0.25*uD3);
+            col+=vjLine(length(wall-vec2(0.025,0.41))-0.011,ink,fade*0.40*uD6);
             float x=abs(q.x)-width-0.12;
             float y=mod(q.y+0.75,0.15)-0.075;
             float hatch=hkSeg(vec2(x,y),vec2(-0.045,-0.025),vec2(0.045,0.025));

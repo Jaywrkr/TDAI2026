@@ -23,19 +23,45 @@ vec3 bfBat(vec2 p,float flap,vec3 ink,float gain) {
     vec2 q=vec2(abs(p.x),p.y);
     float wing=10.0;
     vec2 prev=vec2(0.07,0.07);
-    // Silueta de ala poligonal continua con tres puntas recortadas.
-    vec2 pts[8]=vec2[8](vec2(0.22,0.26),vec2(0.68,0.40),vec2(0.53,0.04),vec2(0.41,0.13),vec2(0.32,-0.12),vec2(0.23,0.025),vec2(0.13,-0.17),vec2(0.05,-0.12));
-    for(int k=0;k<8;k++) {
-        vec2 next=pts[k];next.y+=next.x*flap;
-        wing=min(wing,hkSeg(q,prev,next));prev=next;
+    // Arco superior de falanges y tres membranas concavas por ala.
+    vec2 finger[4]=vec2[4](vec2(0.72,0.35),vec2(0.50,-0.02),vec2(0.29,-0.18),vec2(0.10,-0.22));
+    for(int k=0;k<3;k++) {
+        vec2 a=k==0?vec2(0.07,0.08):finger[k-1];
+        vec2 b=k==0?finger[0]:finger[k];
+        a.y+=a.x*flap;b.y+=b.x*flap;
+        vec2 ctrl=mix(a,b,0.52)+vec2(0.0,k==0?0.14:0.12);
+        vec2 last=a;
+        for(int j=1;j<=5;j++) {
+            float u=float(j)/5.0;
+            vec2 next=mix(mix(a,ctrl,u),mix(ctrl,b,u),u);
+            wing=min(wing,hkSeg(q,last,next));last=next;
+        }
     }
+    for(int k=0;k<3;k++) {
+        vec2 a=finger[k],b=finger[k+1];
+        a.y+=a.x*flap;b.y+=b.x*flap;
+        vec2 ctrl=mix(a,b,0.5)+vec2(-0.03,0.17);
+        vec2 last=a;
+        for(int j=1;j<=5;j++) {
+            float u=float(j)/5.0;
+            vec2 next=mix(mix(a,ctrl,u),mix(ctrl,b,u),u);
+            wing=min(wing,hkSeg(q,last,next));last=next;
+        }
+    }
+    wing=min(wing,hkSeg(q,finger[3]+vec2(0.0,finger[3].x*flap),vec2(0.04,-0.10)));
     float body=(length(p/vec2(0.085,0.18))-1.0)*0.085;
     float ears=min(hkSeg(q,vec2(0.025,0.13),vec2(0.075,0.29)),hkSeg(q,vec2(0.075,0.29),vec2(0.09,0.12)));
     vec3 col=vjLine(min(wing,min(body,ears)),ink,gain);
     for(int k=0;k<3;k++) {
-        vec2 tip=pts[2+k*2];tip.y+=tip.x*flap;
-        col+=vjLine(hkSeg(q,vec2(0.06,0.04),tip),ink,gain*(0.25+uD3*0.35));
+        vec2 tip=finger[k];tip.y+=tip.x*flap;
+        vec2 root=vec2(0.055,0.045);
+        col+=vjLine(hkSeg(q,root,tip),ink,gain*(0.25+uD3*0.30));
+        vec2 a=mix(root,tip,0.45),b=mix(root,tip,0.78);
+        col+=vjLine(hkSeg(q,a,b+vec2(-0.015,0.035)),ink,gain*uD3*0.18);
+        col+=vjLine(length(q-tip)-0.010,ink,gain*uD3*0.3);
     }
+    float ribs=abs(mod(p.y+0.20,0.045)-0.0225);
+    col+=vjLine(ribs,ink,gain*uD3*0.18)*(1.0-smoothstep(0.035,0.07,abs(p.x)))*(1.0-smoothstep(0.10,0.14,abs(p.y)));
     float eye=length(vec2(abs(p.x)-0.036,p.y-0.09))-0.009;
     col+=vjLine(eye,vec3(1.0,0.25,0.10),gain*0.7);
     return col;
@@ -53,7 +79,16 @@ vec4 render(vec2 uv) {
         float chevron=abs(q.y)+abs(q.x)*0.55-1.0;
         col+=vjLine(chevron,accent,0.15*smoothstep(0.0,0.15,z)*(1.0-smoothstep(0.85,1.0,z)));
     }
-    float count=8.0+uD1*16.0;
+    // Tres siluetas cercanas muestran el detalle; la bandada aporta profundidad.
+    for(int hero=0;hero<3;hero++) {
+        float h=float(hero);
+        vec2 center=vec2((h-1.0)*1.35,0.12+0.23*sin(t*0.5+h*2.0));
+        float size=hero==1?0.73:0.49;
+        vec2 q=rot2((h-1.0)*0.12)*(p-center)/size;
+        float flap=sin(t*1.5+h*1.7)*(0.12+uD4*0.25)+hit*0.06;
+        col+=bfBat(q,flap,ink,hero==1?0.85:0.62);
+    }
+    float count=6.0+uD1*12.0;
     for(int j=0;j<24;j++) {
         float fj=float(j),show=revealAt(count,fj);if(show<0.001)continue;
         float seed=hash21(vec2(fj,5.0));
@@ -69,11 +104,10 @@ vec4 render(vec2 uv) {
         float flap=sin(t*2.0+seed*TAU)*(0.14+uD4*0.38)+hit*0.08;
         float fade=smoothstep(0.0,0.12,z)*(1.0-smoothstep(0.86,1.0,z))*show;
         vec2 q=rot2(0.15*sin(a))*(p-center)/size;
-        col+=bfBat(q,flap,ink,fade*0.75);
-        for(int k=1;k<=2;k++) {
-            vec2 echo=q+vec2(0.0,float(k)*0.16);
-            col+=bfBat(echo,flap,ink,fade*uD6*0.045/float(k));
-        }
+        col+=bfBat(q,flap,ink,fade*0.42);
+        vec2 tail=p-center;
+        float trail=hkSeg(tail,vec2(0.0,-size*0.14),vec2(0.04,-size*0.14-0.22*z));
+        col+=vjLine(trail,ink,fade*uD6*0.10);
     }
     col=vjKeys(col,p,ink,accent);
     return vec4(hkFinish(col,uv,vec3(0.0)),1.0);

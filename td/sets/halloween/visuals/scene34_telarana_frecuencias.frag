@@ -19,7 +19,14 @@ vec3 vjKeys(vec3 col,vec2 p,vec3 ink,vec3 accent) {
     return mix(col,keys,smoothstep(0.002,0.035,max(col.r,max(col.g,col.b))));
 }
 
+// Los nudos usan una huella de pixel continua: no derivar indices de celda.
+vec3 wfMark(float d,float pixel,vec3 ink,float gain) {
+    float core=1.0-smoothstep(pixel*0.28,pixel*1.05,abs(d));
+    float halo=exp(-abs(d)/(pixel*3.5))*(0.045+uD6*0.14);
+    return (mix(ink,vec3(0.80,0.92,1.0),0.16)*core+ink*halo)*gain;
+}
 vec3 wfWeb(vec2 p,float t,float seed,vec3 ink,vec3 accent,float gain) {
+    float pixel=max(max(fwidth(p.x),fwidth(p.y)),2.0/max(uResH,1.0));
     float r=max(length(p),0.006),a=atan(p.y,p.x);
     float spokes=16.0+floor(uD1*16.0)*2.0;
     float cell=floor((a+PI)/TAU*spokes);
@@ -39,12 +46,43 @@ vec3 wfWeb(vec2 p,float t,float seed,vec3 ink,vec3 accent,float gain) {
     col+=vjLine(thread+scallop,accent,gain*0.70)*visible;
     col+=vjLine(thread+scallop+0.012,ink,gain*0.22*uD3)*visible;
     float knot=exp(-pow(radial*140.0,2.0))*exp(-pow((thread+scallop)*100.0,2.0));
+    // Nudillos de hilo: pequenos lazos en cada cruce, no manchas de luz.
+    float rung=floor(phase/PI+0.5);
+    float ringR=exp((rung*PI-warp*steps)/steps)-0.16;
+    vec2 node=vec2(q.y, r-ringR);
+    float loop=(length(node/vec2(0.014,0.023))-1.0)*0.014;
+    col+=wfMark(loop,pixel,ink,gain*(0.22+uD3*0.35))*visible;
+    float wraps=sin((r-ringR)*580.0)*0.0015;
+    col+=wfMark(abs(radial+wraps)-0.005,pixel,accent,gain*uD3*0.18)*exp(-pow((r-ringR)*55.0,2.0))*visible;
     float travel=0.5+0.5*sin(r*4.0-t+cell*0.3);
     col+=ink*knot*(0.12+uD6*0.50)*travel;
     // Centro de la telarana con diamantes anidados.
     float diamond=abs(p.x)+abs(p.y);
     col+=vjLine(diamond-0.10,ink,gain*0.5);
     col+=vjLine(diamond-0.065,accent,gain*0.35*uD3);
+    // Gotas suspendidas y anillos de tension sobre hilos secundarios.
+    float beadR=0.45+hash21(vec2(cell,seed+7.0))*1.65;
+    vec2 bead=vec2(q.y,r-beadR);
+    float drop=length(bead/vec2(0.019,0.029))-1.0;
+    col+=wfMark(drop*0.019,pixel,ink,gain*uD6*0.52);
+    col+=wfMark(length(bead-vec2(-0.006,0.009))-0.004,pixel,ink,gain*uD6*0.40);
+    return col;
+}
+vec3 wfSpider(vec2 p,float t,vec3 ink) {
+    float abdomen=(length(p/vec2(0.055,0.082))-1.0)*0.055;
+    float thorax=length(p-vec2(0.0,0.083))-0.032;
+    vec3 col=vjLine(min(abdomen,thorax),ink,0.8);
+    col+=vjLine(abs(p.x)+abs(p.y)*0.65-0.032,ink,0.3*uD3);
+    vec2 q=vec2(abs(p.x),p.y);
+    for(int k=0;k<4;k++) {
+        float fk=float(k);
+        vec2 a=vec2(0.025,0.07-fk*0.035);
+        vec2 b=vec2(0.10+fk*0.015,0.19-fk*0.09+sin(t+fk)*0.008*uD4);
+        vec2 c=b+vec2(0.07,-0.08-fk*0.018);
+        col+=vjLine(min(hkSeg(q,a,b),hkSeg(q,b,c)),ink,0.60);
+        col+=vjLine(length(q-b)-0.008,ink,0.30*uD3);
+    }
+    col+=vjLine(length(vec2(abs(p.x)-0.013,p.y-0.10))-0.004,vec3(1.0,0.18,0.35),0.6);
     return col;
 }
 vec4 render(vec2 uv) {
@@ -56,6 +94,9 @@ vec4 render(vec2 uv) {
     vec2 q=rot2(0.12*sin(t*0.15))*(p-center)/(1.0-C.y*0.035);
     vec3 col=wfWeb(q,t,0.0,ink,accent,0.72+hkHit()*0.12);
     col+=wfWeb((p-vec2(2.3,-0.85))*1.65,-t*0.8,3.0,accent,ink,0.20);
+    vec2 spiderPos=center+vec2(0.48,-0.43+0.055*sin(t*0.4));
+    col+=wfSpider(p-spiderPos,t,ink);
+    col+=vjLine(hkSeg(p,spiderPos+vec2(0.0,0.14),spiderPos+vec2(0.0,0.54)),ink,0.23);
     // Cada tecla teje un puente distinto entre dos nudos.
     for(int k=0;k<N_KEYS;k++) {
         float e=keyEnv(k,0.04,0.85);if(e<0.001)continue;

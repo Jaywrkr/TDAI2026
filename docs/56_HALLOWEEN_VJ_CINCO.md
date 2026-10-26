@@ -24,3 +24,11 @@ El guion de 158 cues se conserva: las cinco nuevas estan al final del setlist pa
 ## Validacion
 
 Compilacion GLSL 330 y 460/SPIR-V, con y sin audio; render Mesa/EGL; respuesta al piano y movimiento sin audio; presets y estructura del set. La prueba existente de destellos, a 60 cuadros/s y con Momento, mide maximos 2/0/0/2/0 para 34/35/36/37/38 (limite del test: 3). Es una comprobacion del escenario probado, no de todas las combinaciones posibles de controles y capas.
+
+## Revision de detalle de 34–38
+
+Se conservan los cinco indices y sus controles. La telarana incorpora lazos de union, hilo enrollado, gotas de contorno y una arana articulada; los nudos usan una huella de pixel continua para evitar artefactos al cambiar de celda. Los murcielagos tienen membranas curvas, falanges, articulaciones y tres siluetas cercanas para que el detalle se lea a la resolucion de salida. Las estelas son trayectorias finas.
+
+El laberinto suma biseles, esquinas trabadas, frisos, paneles y recorridos grabados. Las serpientes incorporan tres hileras de escamas alternadas y cabezas de vibora orientadas por la tangente del cuerpo, con ojos, pupilas, narinas y lengua bifida. El craneo cambia a un perfil de boveda, sienes, pomulos y menton; incluye suturas, rebordes orbitales, grietas y dientes de bordes redondeados.
+
+Para esta revision basta **Recargar Shaders**: siguen siendo 39 escenas y no cambia la red. Se actualizaron las cinco miniaturas. Se verifican compilacion GLSL 330/460 con y sin audio, renders, movimiento en silencio, respuesta al piano y la prueba existente de destellos. El rendimiento real de estos shaders mas detallados se debe comprobar en el Mac.
