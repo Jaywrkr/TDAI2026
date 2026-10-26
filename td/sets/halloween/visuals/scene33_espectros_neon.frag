@@ -1,78 +1,86 @@
-// HALLOWEEN VJ 33 — ESPECTROS NEON: cortejo de sudarios, rostros y filamentos.
-// @D1: numero de apariciones
-// @D2: longitud y deshilachado de los sudarios
-// @D3: pliegues y filamentos luminosos
-// @D4: vuelo y ondulacion del tejido
-// @D5: ectoplasma cian a ultravioleta
-// @D6: halo y niebla espectral
-// PIANO: luz por voz. Momento estira los rostros y revela el cortejo.
-vec4 snGhost(vec2 q,float seed,float climax) {
-    float t=uTime*0.22;
-    float trail=clamp((0.30-q.y)*0.75,0.0,1.0);
-    q.x+=sin(q.y*5.0+t*1.7+seed)*trail*(0.06+uD4*0.13);
-    float len=0.75+uD2*0.65;
-    float width=0.36*(1.0-trail*0.55);
-    width+=sin(q.y*17.0+t*2.0+seed)*trail*0.018;
-    float cap=length((q-vec2(0.0,0.30))/vec2(0.36,0.38))-1.0;
-    float hem=-len+0.08*sin(q.x*38.0+t*1.5+seed);
-    float sheet=max(abs(q.x)-width,hem-q.y);
-    float d=q.y>0.30?cap*0.36:sheet;
-    float alpha=(1.0-smoothstep(-0.012,0.012,d))*0.90;
-    // Volumen analitico y pliegues suaves para dar cuerpo al sudario.
-    float roundness=sqrt(max(0.0,1.0-pow(q.x/max(width,0.01),2.0) - pow(max(0.0,q.y-0.30)/0.38,2.0)));
-    float fold=0.5+0.5*cos(q.x*52.0+sin(q.y*4.0-t)*1.4+seed);
-    float fine=pow(0.5+0.5*cos(q.x*112.0+q.y*6.0+t),12.0);
-    float volume=0.18+roundness*0.50+pow(fold,3.0)*0.20;
-    vec3 cold=mix(vec3(0.11,0.72,0.75),vec3(0.46,0.20,0.95),uD5);
-    vec3 col=mix(cold,vec3(0.72,0.91,0.9),roundness*0.65)*volume;
-    col+=cold*fine*(0.08+uD3*0.25)*trail;
-    // Cuencas hundidas y boca abierta a la sombra de la capucha.
-    vec2 eye=vec2(abs(q.x)-0.135,q.y-0.27+abs(q.x)*0.15);
-    float eyes=length(eye/vec2(0.073,0.105))-1.0;
-    float mouth=length((q-vec2(0.0,0.015))/vec2(0.072+climax*0.02,0.12+climax*0.08))-1.0;
-    float face=min(eyes,mouth);
-    float holes=1.0-smoothstep(-0.15,0.10,face);
-    col=mix(col,vec3(0.003,0.009,0.02),holes*0.96);
-    float eyePin=exp(-dot(eye/vec2(0.018,0.022),eye/vec2(0.018,0.022)));
-    col+=vec3(0.4,1.0,0.95)*eyePin*(0.5+hkHit()*0.5);
-    // Filamentos redondeados y deshilachados al pie del sudario.
-    float fringe=pow(0.5+0.5*sin(q.x*83.0+sin(q.y*5.0+t)),18.0);
-    alpha*=1.0-trail*0.38*(1.0-fringe);
-    col+=cold*exp(-abs(d)*65.0)*0.25;
-    return vec4(col,alpha);
+// HALLOWEEN VJ 33 — ESPECTROS NEON: mandala de siluetas y filamentos.
+// @D1: apariciones en la corona
+// @D2: apertura de las coronas
+// @D3: dobles contornos y grabado de filamentos
+// @D4: contrarrotacion y ondulacion local
+// @D5: cian espectral a ultravioleta
+// @D6: halo fino y puntos orbitales
+// PIANO: acentua los trazos por voz. Momento abre la roseta.
+vec3 enStroke(float d,vec3 ink,float gain) {
+    float aa=max(fwidth(d),2.0 / max(uResH,1.0));
+    float core=1.0-smoothstep(aa*0.25,aa*1.0,abs(d));
+    float halo=exp(-abs(d)/max(aa*3.5,0.0005))*(0.05+uD6*0.15);
+    return (mix(ink,vec3(0.75,0.95,1.0),0.18)*core+ink*halo)*gain;
+}
+float enBody(vec2 q,float t,float seed) {
+    float trail=clamp((0.28-q.y)*0.7,0.0,1.0);
+    q.x+=sin(q.y*5.0+t+seed)*trail*(0.025+uD4*0.055);
+    float width=0.33*(1.0-trail*0.35);
+    float hem=-0.70+0.10*cos(q.x*28.0+seed);
+    float head=(length((q-vec2(0.0,0.28))/vec2(0.33,0.38))-1.0)*0.33;
+    float sides=abs(q.x)-width;
+    return q.y>0.28?head:max(sides,hem-q.y);
+}
+vec3 enSigil(vec2 q,float t,float seed,vec3 ink,float gain) {
+    float d=enBody(q,t,seed);
+    vec3 col=enStroke(d,ink,gain);
+    col+=enStroke(d+0.025,ink,gain*0.38*uD3);
+    col+=enStroke(d+0.053,ink,gain*0.16*uD3);
+    vec2 eye=vec2(abs(q.x)-0.13,q.y-0.26+abs(q.x)*0.12);
+    float ed=(length(eye/vec2(0.065,0.095))-1.0)*0.065;
+    float mouth=(length((q-vec2(0.0,0.015))/vec2(0.065,0.115))-1.0)*0.065;
+    col+=enStroke(ed,ink,gain*0.9);
+    col+=enStroke(ed+0.017,ink,gain*0.30*uD3);
+    col+=enStroke(mouth,ink,gain*0.8);
+    // Filamentos limitados al interior del contorno; fondo negro.
+    float inside=1.0-smoothstep(-0.014,0.0,d);
+    float lower=(1.0-smoothstep(-0.10,0.02,q.y))*smoothstep(-0.70,-0.52,q.y);
+    for(int j=0;j<5;j++) {
+        float fj=float(j);
+        float x=(fj-2.0)*0.082+sin(q.y*7.0+t+fj*0.5+seed)*0.018*uD4;
+        col+=enStroke(q.x-x,ink,gain*(0.20+uD3*0.22))*inside*lower;
+    }
+    return col;
 }
 vec4 render(vec2 uv) {
     vec2 p=centered(uv);
-    float t=uTime*0.22;
+    float t=uTime*0.13,hit=hkHit();
     vec4 C=hkClimax(33.0,151.0,22.0);
-    vec3 cold=mix(vec3(0.06,0.62,0.67),vec3(0.46,0.14,0.9),uD5);
-    float fog=fbm(p*2.0+vec2(t*0.12,t*0.07),3,0.55);
-    vec3 col=vec3(0.006,0.012,0.024)+cold*fog*0.07*(0.4+uD6);
-    // Arco gotico abstracto y reflejos que estructuran el fondo.
-    vec2 ap=vec2(abs(p.x),p.y);
-    float arch=abs(length(ap-vec2(0.0,-0.7))-1.65);
-    col+=cold*exp(-arch*90.0)*0.10;
-    for(int j=6;j>=0;j--) {
-        float fj=float(j), reveal=j==0?1.0:revealAt(1.0+uD1*6.0,fj);
-        if(reveal<0.001) continue;
-        float row=ceil(fj*0.5);
-        float side=mod(fj,2.0)*2.0-1.0;
-        float s=j==0?0.88:0.63-row*0.105;
-        vec2 pos=j==0?vec2(0.0,0.20):vec2(side*(0.65+row*0.34),0.12+row*0.12);
-        pos+=vec2(sin(t*0.7+fj)*0.065,cos(t+fj*1.7)*0.065)*uD4;
-        vec2 q=(p-pos)/s;
-        float halo=exp(-dot(q*vec2(1.4,0.6),q*vec2(1.4,0.6)));
-        col+=cold*halo*(0.10+uD6*0.16)*reveal;
-        vec4 ghost=snGhost(q,fj*2.7,C.y);
-        col=mix(col,ghost.rgb*(0.75+hkHit()*0.18+C.y*0.25),ghost.a*reveal);
+    vec3 ink=mix(vec3(0.015,0.85,0.86),vec3(0.56,0.09,1.0),uD5);
+    vec3 accent=mix(vec3(0.42,0.20,1.0),vec3(0.9,0.15,0.55),uD5);
+    vec3 col=vec3(0.0);
+    float r=length(p),a=atan(p.y,p.x);
+    float orbit=0.90+uD2*0.30+C.y*0.065;
+    float count=4.0+floor(uD1*8.0);
+    // Roseta giratoria con apariciones alrededor de la mascara central.
+    for(int j=0;j<12;j++) {
+        float fj=float(j),show=revealAt(count,fj);
+        if(show<0.001) continue;
+        float angle=fj*TAU/count+t*0.10*(0.15+uD4);
+        vec2 center=vec2(cos(angle),sin(angle))*orbit;
+        vec2 q=rot2(angle-PI*0.5)*(p-center)/0.31;
+        col+=enSigil(q,t,fj*0.7,ink,show*0.52);
     }
-    // Cintas de ectoplasma en primer plano, separadas de los cuerpos.
-    for(int k=0;k<4;k++) {
+    // Anillos grabados, puntas y contrarrotacion de la estructura gotica.
+    vec2 q=rot2(-t*0.12*(0.2+uD4))*p;
+    float angle=atan(q.y,q.x);
+    float teeth=0.035*pow(0.5+0.5*cos(angle*48.0),4.0);
+    col+=enStroke(r-(orbit+0.35)-teeth,accent,0.50);
+    col+=enStroke(r-(orbit+0.44),ink,0.42);
+    col+=enStroke(r-(orbit-0.27),accent,0.32);
+    for(int k=0;k<3;k++) {
         float fk=float(k);
-        float y=-0.72+fk*0.10+sin(p.x*2.0-t*0.6+fk)*0.06;
-        float line=exp(-abs(p.y-y)*180.0);
-        col+=cold*line*(0.07+uD3*0.08)*uD6;
+        float rose=0.68+fk*0.055+(0.025+uD3*0.025)*cos(a*12.0+t*(fk-1.0)*0.2);
+        col+=enStroke(r-rose,mix(ink,accent,fk*0.5),0.35);
     }
-    col=hkKeyLit(col,p,0.0,vec2(0.38,0.95),vec3(0.10,0.95,0.85),vec3(0.7,0.35,1.0),0.04,0.9);
-    return vec4(hkFinish(col,uv,cold),1.0);
+    col+=enSigil(p/(0.66+hit*0.008),t,0.0,ink,0.95+C.y*0.25);
+    // Estrellas de cuatro puntas ancladas a las lineas del circulo.
+    float sector=floor((angle+PI)/TAU*24.0);
+    float aa=(sector+0.5)*TAU/24.0-PI;
+    vec2 star=rot2(aa)*q-vec2(orbit+0.44,0.0);
+    float sd=min(hkSeg(star,vec2(-0.025,0.0),vec2(0.025,0.0)),hkSeg(star,vec2(0.0,-0.025),vec2(0.0,0.025)));
+    col+=enStroke(sd,ink,0.35+uD6*0.40);
+    vec3 keys=hkKeyLit(col,p,0.0,vec2(0.38,0.95),ink,accent,0.04,0.9);
+    col=mix(col,keys,smoothstep(0.002,0.035,max(col.r,max(col.g,col.b))));
+    return vec4(hkFinish(col,uv,vec3(0.0)),1.0);
 }

@@ -5,8 +5,8 @@ El set Halloween tiene ahora **34 escenas**. Las nuevas son procedurales: no nec
 | Índice | Escena | Movimiento |
 |---|---|---|
 | 31 | Portal ritual | Sellos concéntricos con runas, filigrana, iris de fibras y brasas |
-| 32 | Calabazas acid | Calabaza central con volumen, piel estriada, tallado luminoso y satélites |
-| 33 | Espectros neón | Sudarios con volumen, rostros huecos, pliegues y bordes deshilachados |
+| 32 | Calabazas acid | Máscara de líneas finas, anillos grabados, chevrones y sellos orbitales |
+| 33 | Espectros neón | Mandala de siluetas de neón, dobles contornos, filamentos y estrellas |
 
 Las seis Detail de cada escena están descritas en su `.frag`. Speed mantiene el movimiento sin audio; los golpes avivan los elementos; cada voz del piano ilumina su zona. **Momento** activa el clímax de 22 segundos, con entrada y salida suaves. Mantienen el acabado, paletas, capas y controles del set Halloween.
 
@@ -20,8 +20,10 @@ Se reportó un damero al activar el texto. El shader del texto compila fuera de 
 
 Con el fallo visible, revisar **View Errors** en `/project1/program_text`, `/project1/text_overlay_src`, `/project1/text_overlay_y` y `/project1/text_fade_tex`. Copiar el mensaje exacto y la versión de TD para corregir la causa y reproducirla en una prueba. Mientras tanto, ensayar también con Textvisible apagado y comprobar que el show continúa.
 
-## Segunda versión: detalle y profundidad
+## Dirección visual: trazos finos de neón
 
-Las escenas 31–33 se rehacen manteniendo sus índices. La 31 usa grabados en contrarrotación y una pupila central; la 32 ilumina gajos y tallado con una normal analítica; la 33 combina volumen del sudario con pliegues, cuencas y filamentos. No usan raymarching, texturas externas ni nuevas dependencias. Los seis Detail se describen en los shaders actualizados.
+El Portal ritual (31) se conserva. Las escenas 32 y 33 usan líneas sobre negro: sin iluminación de superficies ni volumen 3D. El núcleo de cada trazo usa cobertura antialias calculada con derivadas de pantalla (`fwidth`), con un halo estrecho independiente para conservar el filo. Los detalles usan distancias a segmentos, triángulos y curvas; el piano acentúa los trazos existentes.
 
-Para cargar esta revisión basta **Recargar Shaders**; no cambia el número de escenas ni la red. Las miniaturas también se actualizaron. La compilación y los renders se prueban fuera de TD; el coste real de estas nuevas versiones debe comprobarse en el Mac.
+La 32 combina una máscara de calabaza de doble contorno, dientes de polilínea, meridianos abiertos, grabados en las mejillas, marcas de calibración y sellos en órbita. La 33 organiza siluetas espectrales en una corona giratoria, con ojos y boca de contorno, filamentos internos, rosetas en contrarrotación y estrellas de cuatro puntas. D1 cambia la cantidad de símbolos, D2 abre los anillos, D3 revela filigrana, D4 ajusta el movimiento, D5 cambia la paleta y D6 regula el halo fino.
+
+Para cargar esta revisión basta **Recargar Shaders**; no cambia el número de escenas ni la red. Las miniaturas de 32 y 33 también se actualizaron. La compilación y los renders se prueban fuera de TD; el rendimiento real debe comprobarse en el Mac.
