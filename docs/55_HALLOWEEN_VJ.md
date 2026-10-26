@@ -1,6 +1,6 @@
 # Halloween: tres escenas VJ para tocar en vivo
 
-El set Halloween tiene ahora **34 escenas**. Las nuevas son procedurales: no necesitan Media ni láminas adicionales. Aparecen al final del setlist y tienen miniatura y preset de fábrica.
+Estas tres escenas forman parte del set Halloween. El set tiene **39 escenas** tras agregar las cinco de [la siguiente entrega](56_HALLOWEEN_VJ_CINCO.md). Las nuevas son procedurales: no necesitan Media ni láminas adicionales. Aparecen al final del setlist y tienen miniatura y preset de fábrica.
 
 | Índice | Escena | Movimiento |
 |---|---|---|
@@ -10,7 +10,7 @@ El set Halloween tiene ahora **34 escenas**. Las nuevas son procedurales: no nec
 
 Las seis Detail de cada escena están descritas en su `.frag`. Speed mantiene el movimiento sin audio; los golpes avivan los elementos; cada voz del piano ilumina su zona. **Momento** activa el clímax de 22 segundos, con entrada y salida suaves. Mantienen el acabado, paletas, capas y controles del set Halloween.
 
-Para probar: actualizar la rama, seleccionar `SET = 'halloween'` en el Text DAT de arranque y **Reconstruir Todo**, pues cambió la cantidad de escenas. Confirmar 34 escenas en el reporte y lanzar 31–33 desde el dashboard o navegador. Los snapshots personales existentes prevalecen sobre los presets de fábrica.
+Para probar: actualizar la rama, seleccionar `SET = 'halloween'` en el Text DAT de arranque y **Reconstruir Todo**, pues cambió la cantidad de escenas. Confirmar 39 escenas en el reporte y lanzar 31–33 desde el dashboard o navegador. Los snapshots personales existentes prevalecen sobre los presets de fábrica.
 
 El guion horario conserva sus 158 cues y el cierre de las 05:31: estas tres escenas están disponibles para selección manual y para el setlist/autopilot, pero todavía no están programadas en el guion.
 
