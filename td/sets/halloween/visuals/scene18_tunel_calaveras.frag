@@ -95,7 +95,7 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    vec3 lightC = mix(vec3(1.0, 0.55, 0.22), vec3(0.35, 1.0, 0.45), clamp(uD5 + EST.y * 0.8, 0.0, 1.0));
+    vec3 lightC = mix(vec3(1.0, 0.55, 0.22), vec3(0.35, 1.0, 0.45), mix(uD5, 1.0, EST.y * 0.8 * 0.6));
     float cph = cA * CC.w;
     float skullK = cB * smoothstep(0.05, 0.45, CC.w) * (1.0 - smoothstep(0.75, 0.95, CC.w));
     float fireK = cC * smoothstep(0.05, 0.35, CC.w) * (1.0 - smoothstep(0.78, 0.95, CC.w));
@@ -113,7 +113,7 @@ vec4 render(vec2 uv) {
     float eyeWaveA = step(0.35, cph) * (1.0 - smoothstep(0.80, 0.92, cph));
     if (sv == 0) { eyeWaveZ = mix(20.0, 0.5, sp); eyeWaveA = max(eyeWaveA, se * 0.7); }
     float eyesAll = 0.0;
-    float tile = mix(1.25, 0.60, uD1);
+    float tile = hkDR(2.0, 0.925, 0.40, uD1);
 
     // rayo de la camara (con giro lento; la locura retuerce el tunel)
     float roll = (hkActVal(5.0) > 0.5 ? 1.0 : -1.0) * (0.06 * sin(t * 0.13) + mid * 0.05);
@@ -184,7 +184,7 @@ vec4 render(vec2 uv) {
     L += lightC * (0.25 + bass * 0.5) * max(dot(n, vec3(0.0, 0.0, 1.0)) * 0.5 + 0.5, 0.0) * exp(-max(30.0 - th, 0.0) * 0.09) * 0.3;
     // anillo del golpe que viaja hacia la camara
     float ringZ = mix(18.0, 0.5, fract(uRTime * 0.8));
-    L += lightC * exp(-pow((th * d.z - ringZ) * 1.2, 2.0)) * hit * (0.4 + uD3 * 2.0);
+    L += lightC * exp(-pow((th * d.z - ringZ) * 1.2, 2.0)) * hit * hkDR(0.0, 1.4, 2.8, uD3);
     // C: las paredes se tinen con el fuego
     L += vec3(1.0, 0.3, 0.06) * fireK * (0.25 + 0.15 * noise21(vec2(hp.z * 2.0 - uRTime * 4.0, 2.0))) * exp(-abs(hp.y - FLOOR_Y) * 1.5) * exp(-th * 0.08);
     vec3 col = alb * L * 3.0;
@@ -192,7 +192,7 @@ vec4 render(vec2 uv) {
     // ojos que se encienden
     if (surf < 2) {
         vec2 cell = floor(tuv * vec2(6.0, 4.0));
-        float th4 = 0.93 - uD4 * 0.45;
+        float th4 = hkDR(1.05, 0.705, 0.3, uD4);
         float on = smoothstep(th4 - 0.02, th4 + 0.02, hash21(cell + 7.0));
         // climax: la ola de ojos viene hacia la camara
         float zc = th * d.z;
@@ -265,7 +265,7 @@ vec4 render(vec2 uv) {
         col = mix(col, vec3(0.02, 0.015, 0.01), (1.0 - smoothstep(-0.2, 0.2, rat)) * D.x * step(0.5, hash21(vec2(floor(rz * 0.7 - D.y * 6.0), 3.0))));
     }
     // niebla y resplandor del fondo
-    float fog = 1.0 - exp(-th * (0.05 + uD6 * 0.16 + EST.z * 0.18));
+    float fog = 1.0 - exp(-th * (hkDR(0.0, 0.13, 0.45, uD6) + EST.z * 0.18));
     col = mix(col, lightC * (0.10 + bass * 0.15), fog);
     col += lightC * exp(-length(p) * (5.0 - bass * 2.0)) * (0.5 + bass);
     // B: la calavera gigante del fondo (despues del resplandor: es silueta contra la luz)

@@ -126,7 +126,7 @@ vec4 render(vec2 uv) {
     float fw = min(fh * ia, cw * 0.78);          // ancho del marco
     fh = fw / ia;
     float cy = 0.12;
-    float lampOn = (0.25 + uD4 * 0.75) * (1.0 - dark * 0.92) * (1.0 - EST.y * 0.55) * (1.0 - EST.z * 0.35) * (1.0 - bigK * 0.6);
+    float lampOn = hkDR(0.0, 0.625, 1.5, uD4) * (1.0 - dark * 0.92) * (1.0 - EST.y * 0.55) * (1.0 - EST.z * 0.35) * (1.0 - bigK * 0.6);
     if (dv == 1) lampOn *= 1.0 - D.x * 0.5 * step(0.5, noise21(vec2(floor(uRTime * 4.0), 6.0)));
     float fallK = floor(ss * 2.99);
 
@@ -196,8 +196,8 @@ vec4 render(vec2 uv) {
         float x = -span * 0.5 + (k + 0.5) * cw;
         vec2 nail = vec2(x, cy + fh * 0.5 + 0.06);
         // balanceo: medios + tiron del golpe con retraso propio
-        float sw = sin(t * (0.9 + hs * 0.6) + hs * 6.28) * (0.006 + mid * 0.02);
-        sw += hit * uD2 * 0.07 * sin(uRTime * (7.0 + hs * 3.0) + hs * 10.0);
+        float sw = sin(t * (0.9 + hs * 0.6) + hs * 6.28) * (0.006 + mid * 0.02) * hkDR(0.0, 1.0, 4.5, uD2);
+        sw += hit * hkDR(0.0, 0.035, 0.16, uD2) * sin(uRTime * (7.0 + hs * 3.0) + hs * 10.0);
         sw += hit * loco * (hs - 0.5) * 0.25;
         float fallen = step(abs(k - fallK), 0.1) * smoothstep(0.0, 0.08, fallPh) * fallE;
         sw += fallen * (hs > 0.5 ? 0.42 : -0.42) * (1.0 + 0.03 * sin(uRTime * 3.0));
@@ -237,7 +237,7 @@ vec4 render(vec2 uv) {
             // la imagen como oleo viejo: craquelado, barniz amarillento
             vec2 m = (q / (vec2(fw, fh) - 2.0 * mb)) + 0.5;
             vec2 c = vec2(0.5, 0.52);
-            float scream = hit * (0.35 + uD3 * 0.65) + negE * 0.3 + kb * (0.6 + uD3 * 0.6);
+            float scream = hit * hkDR(0.0, 0.675, 1.8, uD3) + negE * 0.3 + kb * hkDR(0.1, 0.9, 1.8, uD3);
             vec2 dm2 = m - c;
             m = c + dm2 * (1.0 + scream * 0.35 * exp(-dot(dm2, dm2) * 9.0)) * vec2(1.0, 1.0 + scream * 0.25);
             m += (vec2(noise21(m * 6.0 + uRTime), noise21(m * 6.0 - uRTime)) - 0.5) * hit * loco * 0.03;
@@ -359,10 +359,10 @@ vec4 render(vec2 uv) {
     }
 
     // --- polvo en la luz y telaranas ---
-    float dust = hkParticles(p * 0.8, t * 0.4, 0.10 + uD6 * 0.25 + EST.z * 0.2 + (dv == 2 ? D.x * 0.3 : 0.0), vec2(0.15, -0.3), 0.05);
+    float dust = hkParticles(p * 0.8, t * 0.4, hkDR(0.0, 0.225, 0.7, uD6) + EST.z * 0.2 + (dv == 2 ? D.x * 0.3 : 0.0), vec2(0.15, -0.3), 0.05);
     col += vec3(0.9, 0.8, 0.65) * dust * (0.02 + high * 0.05 + uD6 * 0.03) * (0.3 + lampOn);
-    float web = hkCornerWeb(p, vec2(-uAspect, 1.0), 0.55 + uD6 * 0.35) + hkCornerWeb(p, vec2(uAspect, 1.0), 0.45 + uD6 * 0.4);
-    col = mix(col, vec3(0.45, 0.43, 0.40) * (0.15 + light * 2.0), clamp(web, 0.0, 1.0) * (0.25 + uD6 * 0.6));
+    float web = hkCornerWeb(p, vec2(-uAspect, 1.0), hkDR(0.0, 0.725, 1.2, uD6)) + hkCornerWeb(p, vec2(uAspect, 1.0), hkDR(0.0, 0.65, 1.1, uD6));
+    col = mix(col, vec3(0.45, 0.43, 0.40) * (0.15 + light * 2.0), clamp(web, 0.0, 1.0) * hkDR(0.0, 0.55, 1.0, uD6));
 
     // apagon: casi negro, las imagenes quedan
     col *= 1.0 - dark * 0.35;

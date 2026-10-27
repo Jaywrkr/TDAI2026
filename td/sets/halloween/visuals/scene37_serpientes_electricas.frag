@@ -11,7 +11,7 @@
 vec3 vjLine(float d,vec3 ink,float gain) {
     float aa=max(fwidth(d),2.0/max(uResH,1.0));
     float core=1.0-smoothstep(aa*0.28,aa*1.05,abs(d));
-    float halo=exp(-abs(d)/max(aa*3.5,0.0005))*(0.045+uD6*0.14);
+    float halo=exp(-abs(d)/max(aa*3.5,0.0005))*hkDR(0.0,0.115,0.40,uD6);
     return (mix(ink,vec3(0.80,0.92,1.0),0.16)*core+ink*halo)*gain;
 }
 vec3 vjKeys(vec3 col,vec2 p,vec3 ink,vec3 accent) {
@@ -20,7 +20,7 @@ vec3 vjKeys(vec3 col,vec2 p,vec3 ink,vec3 accent) {
 }
 
 float seCurve(float x,float t,float seed) {
-    return sin(x*2.1-t+seed)*(0.16+uD4*0.18)+sin(x*4.3+t*0.4+seed)*0.04;
+    return sin(x*2.1-t+seed)*hkDR(0.04,0.25,0.5,uD4)+sin(x*4.3+t*0.4+seed)*0.04;
 }
 vec4 render(vec2 uv) {
     vec2 p=centered(uv);float t=uTime*0.20,hit=hkHit(),B=hkBass();
@@ -29,34 +29,34 @@ vec4 render(vec2 uv) {
     vec3 ink=mix(vec3(0.15,1.0,0.14),vec3(1.0,0.30,0.025),uD5);
     vec3 accent=vec3(0.38,0.12,0.95);
     vec3 col=vec3(0.0);
-    float count=2.0+floor(uD1*4.0);
+    float count=floor(hkDR(1.0,4.0,6.99,uD1));
     for(int j=0;j<6;j++) {
         float fj=float(j),show=revealAt(count,fj);if(show<0.001)continue;
         float keyed=keyEnv(j,0.04,0.85);
-        float seed=fj*2.17,center=(fj-(count-1.0)*0.5)*(0.29+uD2*0.08);
+        float seed=fj*2.17,center=(fj-(count-1.0)*0.5)*hkDR(0.20,0.33,0.50,uD2);
         float direction=mod(fj,2.0)*2.0-1.0;
         vec2 q=vec2(p.x*direction,p.y-center);
         float headX=1.65+0.12*sin(t*0.5+seed)+keyed*0.07+hit*0.12;
         float wave=seCurve(q.x,t,seed)*(1.0+C.y*0.15)*amp;
-        float slope=(cos(q.x*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(q.x*4.3+t*0.4+seed)*0.172)*amp;
+        float slope=(cos(q.x*2.1-t+seed)*2.1*hkDR(0.04,0.25,0.5,uD4)+cos(q.x*4.3+t*0.4+seed)*0.172)*amp;
         float dist=(q.y-wave)/sqrt(1.0+slope*slope);
-        float width=(0.035+uD2*0.035)*smoothstep(-2.8,-1.6,q.x);
+        float width=hkDR(0.015,0.0525,0.10,uD2)*smoothstep(-2.8,-1.6,q.x);
         float bodyMask=(1.0-smoothstep(headX-0.11,headX+0.02,q.x))*smoothstep(-2.9,-2.65,q.x);
         vec3 color=mix(ink,accent,mod(fj,2.0)*0.32);
         col+=vjLine(abs(dist)-width,color,show*(0.75+hit*0.12+keyed*0.40))*bodyMask;
-        col+=vjLine(dist,color,show*uD3*0.25)*bodyMask;
+        col+=vjLine(dist,color,show*hkDR(0.0,0.5,1.8,uD3)*0.25)*bodyMask;
         // Tres hileras de escamas alternadas, lineas de vientre y bordes dobles.
-        col+=vjLine(abs(dist)-width*0.80,color,show*uD3*0.22)*bodyMask;
+        col+=vjLine(abs(dist)-width*0.80,color,show*hkDR(0.0,0.5,1.8,uD3)*0.22)*bodyMask;
         float interior=1.0-smoothstep(width*0.80,width,abs(dist));
         for(int row=-1;row<=1;row++) {
             float fr=float(row);
             float sx=mod(q.x+t*0.025+abs(fr)*0.045,0.09)-0.045;
             float sy=dist-fr*width*0.49;
             float scale=abs(sx)*0.33+abs(sy)-width*0.31;
-            col+=vjLine(scale,color,show*uD3*(row==0?0.48:0.30))*interior*bodyMask;
+            col+=vjLine(scale,color,show*hkDR(0.0,0.5,1.8,uD3)*(row==0?0.48:0.30))*interior*bodyMask;
         }
         float headY=seCurve(headX,t,seed)*(1.0+C.y*0.15)*amp;
-        float headSlope=(cos(headX*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(headX*4.3+t*0.4+seed)*0.172)*amp;
+        float headSlope=(cos(headX*2.1-t+seed)*2.1*hkDR(0.04,0.25,0.5,uD4)+cos(headX*4.3+t*0.4+seed)*0.172)*amp;
         vec2 h=rot2(atan(headSlope))*(q-vec2(headX,headY));
         vec2 hp=vec2(h.x,abs(h.y));
         // Cabeza de vibora facetada: cuello, mandibula, hocico y narina.
@@ -64,7 +64,7 @@ vec4 render(vec2 uv) {
         head=min(head,hkSeg(hp,vec2(0.075,0.085),vec2(0.19,0.025)));
         head=min(head,hkSeg(hp,vec2(0.19,0.025),vec2(0.195,0.0)));
         col+=vjLine(head,color,show*0.95);
-        col+=vjLine(hkSeg(hp,vec2(-0.07,0.07),vec2(0.10,0.03)),color,show*uD3*0.45);
+        col+=vjLine(hkSeg(hp,vec2(-0.07,0.07),vec2(0.10,0.03)),color,show*hkDR(0.0,0.5,1.8,uD3)*0.45);
         float eye=(length((hp-vec2(0.045,0.05))/vec2(0.028,0.018))-1.0)*0.018;
         col+=vjLine(eye,vec3(1.0,0.55,0.10),show*0.75);
         col+=vjLine(hkSeg(hp,vec2(0.045,0.041),vec2(0.045,0.059)),color,show*0.65);
@@ -73,13 +73,13 @@ vec4 render(vec2 uv) {
         col+=vjLine(jaw,color,show*0.45);
         float plate=hkSeg(hp,vec2(-0.04,0.018),vec2(-0.015,0.068));
         plate=min(plate,hkSeg(hp,vec2(-0.015,0.068),vec2(0.018,0.022)));
-        col+=vjLine(plate,color,show*uD3*0.35);
+        col+=vjLine(plate,color,show*hkDR(0.0,0.5,1.8,uD3)*0.35);
         float tongue=hkSeg(h,vec2(0.19,0.0),vec2(0.31,0.0));
         tongue=min(tongue,min(hkSeg(h,vec2(0.31,0.0),vec2(0.37,0.030)),hkSeg(h,vec2(0.31,0.0),vec2(0.37,-0.030))));
         col+=vjLine(tongue,accent,show*(0.35+hit*0.25));
         float tick=mod(q.x+0.04,0.18)-0.09;
         float spine=hkSeg(vec2(tick,abs(dist)-width),vec2(0.0,0.0),vec2(-0.025,0.045));
-        col+=vjLine(spine,color,show*uD6*0.28)*bodyMask;
+        col+=vjLine(spine,color,show*hkDR(0.0,0.5,1.8,uD6)*0.28)*bodyMask;
     }
     col=vjKeys(col,p,ink,accent);
     return vec4(hkFinish(col,uv,vec3(0.0)),1.0);

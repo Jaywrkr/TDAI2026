@@ -203,7 +203,7 @@ vec4 render(vec2 uv) {
     vec3 palO = hsv2rgb(vec3(fract(0.07 + hue), 0.95, 1.0));
     vec3 palV = hsv2rgb(vec3(fract(0.78 + hue), 0.80, 1.0));
     vec3 palG = hsv2rgb(vec3(fract(0.33 + hue), 0.85, 1.0));
-    float mixC = 0.30 + uD5 * 0.70;
+    float mixC = hkDR(0.0, 0.65, 1.0, uD5);
     vec3 cHero = palO;
     vec3 cCross = mix(palO, palV, mixC);
     vec3 cBat = mix(palO, palG, mixC);
@@ -235,8 +235,8 @@ vec4 render(vec2 uv) {
     // cadena de calaveritas: avanza con Speed y salta con el golpe
     float chase = uRTime * 2.2 + hit * 0.8;
 
-    float w = 0.010 + uD2 * 0.012;               // radio del tubo (mundo)
-    float haloW = 0.015 + uD6 * 0.045;
+    float w = hkDR(0.004, 0.016, 0.022, uD2) * hkDR(1.0, 1.0, 0.7, uD1);   // radio del tubo (mundo); con la calavera grande, mas fino (destellos)
+    float haloW = hkDR(0.0, 0.0375, 0.10, uD6);
 
     // --- pared iluminada por los carteles ---
     vec2 wuv = rUV(p, WALL_R);
@@ -286,7 +286,7 @@ vec4 render(vec2 uv) {
         diff += Lcol[i] * max(dot(n, L), 0.0) * att * 2.4;
         spec += Lcol[i] * pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 28.0) * att * (0.3 + wet * 2.2);
     }
-    vec3 col = wa * diff + spec * (0.6 + uD6 * 0.6);
+    vec3 col = wa * diff + spec * hkDR(0.2, 0.9, 1.6, uD6);
 
     // --- vapor de la rejilla (los medios lo empujan) ---
     vec2 vq = p - vec2(-0.95, -0.36);
@@ -301,14 +301,14 @@ vec4 render(vec2 uv) {
 
     // --- carteles ---
     // calavera grande
-    float s = 0.70 + uD1 * 0.35;
+    float s = hkDR(0.45, 0.875, 1.2, uD1);
     vec2 hq = (p - HERO_C) / s;
-    float chew = (0.5 + 0.5 * sin(t * 3.2)) * (0.010 + uD4 * 0.045);
-    float snap = hit * (0.03 + uD4 * 0.07);
+    float chew = (0.5 + 0.5 * sin(t * 3.2)) * hkDR(0.0, 0.0325, 0.09, uD4);
+    float snap = hit * hkDR(0.0, 0.065, 0.16, uD4);
     vec2 sk = hwSkull(hq, chew + snap);
     col += hwTube(abs(sk.x) * s, cHero, clamp(iHero, 0.0, 1.6), w, haloW);
     float eyeFill = 1.0 - smoothstep(-0.02, 0.0, sk.y);
-    col += cHero * eyeFill * (0.10 + uD3 * 0.6) * (0.3 + bass * 1.3 + hit * 0.4) * clamp(iHero, 0.0, 1.0);
+    col += cHero * eyeFill * hkDR(0.0, 0.4, 0.9, uD3) * (0.3 + bass * 1.3 + hit * 0.4) * clamp(iHero, 0.0, 1.0);
     // huesos cruzados
     vec2 cq = (p - CROSS_C) / 0.42;
     float bones = min(hwBone(rot2(0.75) * cq, 0.62, 0.075), hwBone(rot2(-0.75) * cq, 0.62, 0.075));
@@ -504,7 +504,7 @@ vec4 render(vec2 uv) {
         float mirror = exp(-abs(sk2.x) * s / (w * 2.5)) * clamp(iHero, 0.0, 1.0);
         refl += cHero * mirror * 0.8;
         refl += vec3(0.85, 0.85, 0.75) * carK * exp(-pow((p.x - carX) / 0.6, 2.0)) * 0.5;
-        float shine = mix(0.25, 1.0, puddle) * (0.5 + uD6 * 0.8);
+        float shine = mix(0.25, 1.0, puddle) * hkDR(0.0, 0.9, 1.8, uD6);
         vec3 floorC = fcol * fd * 2.0 + refl * shine * 0.55 + vec3(0.6, 0.65, 0.8) * ripple * 0.15 * (0.3 + length(refl));
         col = mix(col, floorC, fl.a);
     }

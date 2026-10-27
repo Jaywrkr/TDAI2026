@@ -109,7 +109,7 @@ vec4 render(vec2 uv) {
     float hue = audioHue(uHue, mid * 0.008);
     vec3 cold = vec3(0.80, 0.90, 1.0);
     vec3 spectral = hsv2rgb(vec3(fract(0.36 + hue), 0.60, 1.0));
-    vec3 gc = mix(cold, spectral, clamp(uD5 + EST.z * 0.45, 0.0, 1.0));
+    vec3 gc = mix(cold, spectral, mix(uD5, 1.0, EST.z * 0.45 * 0.6));
     vec3 moonC = vec3(0.50, 0.60, 0.95);
 
     float cph = cA * C.w;
@@ -137,7 +137,7 @@ vec4 render(vec2 uv) {
 
     // --- fantasmas: posicion en el mundo (se calculan una vez) ---
     // cantidad continua: el fantasma nuevo aparece de a poco
-    float n = min(3.0 + uD1 * 4.0 + uDensity + hkActVal(5.0) * 2.0, 7.0);
+    float n = min(hkDR(0.0, 5.0, 7.0, uD1) + uDensity + hkActVal(5.0) * 2.0, 7.0);
     vec4 G[14];
     for (int i = 0; i < 7; i++) {
         float fi = float(i);
@@ -211,7 +211,7 @@ vec4 render(vec2 uv) {
         vec3 dv = X - G[i].xyz;
         gl += G[i].w / (1.0 + dot(dv, dv) * 5.0);
     }
-    gl *= (0.8 + uD4 * 0.6 + bass * 0.5);
+    gl *= (hkDR(0.3, 1.1, 2.2, uD4) + bass * 0.5);
 
     // --- pasillo ---
     vec2 pu = rUV(p);
@@ -270,7 +270,7 @@ vec4 render(vec2 uv) {
     col += moonC * rays * 0.20 + vec3(0.9, 0.95, 1.0) * dust * (0.6 + high) * (1.0 + (dv == 2 ? D.x * 3.0 : 0.0));
     // niebla del pasillo (mas lejos, mas espesa)
     float fz = plate2Wrap(vec2(X.x * 0.12 + t * 0.004, X.z * 0.10 - t * 0.003)).g;
-    float fogA = (1.0 - exp(-X.z * (0.08 + uD6 * 0.18 + EST.z * 0.16))) * (0.6 + 0.5 * fz);
+    float fogA = (1.0 - exp(-X.z * (hkDR(0.0, 0.17, 0.55, uD6) + EST.z * 0.16))) * (0.6 + 0.5 * fz);
     col = mix(col, vec3(0.05, 0.06, 0.09) + gc * gl * 0.08, clamp(fogA, 0.0, 0.85));
 
     // la puerta del climax estalla de luz cuando entran
@@ -291,7 +291,7 @@ vec4 render(vec2 uv) {
         if (i == 13) q.y = q.y / 1.5 + 0.12;           // la dama: alta y con vestido largo
         if (dot(q, q) > 1.6) continue;
         q.x += 0.06 * sin(q.y * 3.0 + t * 1.3 + fi);
-        float wave = 0.4 + uD3 * 1.2 + mid * 1.5;
+        float wave = hkDR(0.0, 1.0, 3.2, uD3) + mid * 1.5;
         float d = hwGhost(q, t, wave, fi * 3.7);
         // cola que se deshace en jirones
         float wisp = plate2Wrap(vec2(q.x * 0.3 + fi * 0.2, q.y * 0.25 - t * 0.03)).a;
@@ -302,8 +302,8 @@ vec4 render(vec2 uv) {
         // pliegues verticales de la sabana
         float folds = 0.65 + 0.35 * sin(q.x * 11.0 + sin(q.y * 4.0 + fi) * 1.5 + wisp * 2.0);
         float fres = smoothstep(-0.12, 0.0, d);                 // borde mas brillante
-        float density = (0.18 + 0.35 * smoothstep(-0.6, 0.3, q.y)) * (1.0 - uD2 * 0.6) * (0.85 + bass * 0.3);
-        float lum = (0.55 + uD4 * 0.6 + peek * 0.8) * (1.0 / (0.6 + zz * 0.3)) * exp(-zz * 0.06 * (1.0 + uD6));
+        float density = (0.18 + 0.35 * smoothstep(-0.6, 0.3, q.y)) * hkDR(1.3, 0.7, 0.12, uD2) * (0.85 + bass * 0.3);
+        float lum = (hkDR(0.25, 0.85, 1.8, uD4) + peek * 0.8) * (1.0 / (0.6 + zz * 0.3)) * exp(-zz * 0.06 * (1.0 + uD6));
         vec3 gcol = gc * lum * (0.45 + 0.4 * folds + 0.6 * fres);
         if (i == 13) gcol = vec3(1.0, 0.97, 0.92) * lum * 2.2 * (0.55 + 0.3 * folds + 0.5 * fres);   // la dama, blanca
         col = mix(col, col * 0.55 + gcol, body * density * min(g.w, 1.0));

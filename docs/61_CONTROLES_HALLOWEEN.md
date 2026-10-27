@@ -99,3 +99,27 @@ La técnica de la segunda referencia del usuario (todo a oscuras y solo se prend
 
 La tercera referencia del usuario (el vidrio iluminado de un pinball): una ilustración densa de Halloween en espejo, con plomos de vitral y tramas, siempre visible y tenue: rey calabaza en llamas al centro, murciélago y luna arriba, fantasmas, calaveras con huesos cruzados, velas, arañas colgando, ojos que miran desde los paneles, murciélagos chicos, bumpers con estrella, caldero y flippers, telarañas en las esquinas y bombillas en el borde. Cada pieza es una **zona**; con el ritmo se prenden en secuencias que cambian cada 8 tiempos (cada 4 con D2): en cadena (una zona por tiempo), de lado a lado, con el golpe (el centro quema) y a oscuras con una zona de a una. Las zonas que queman se ponen blancas con rayas de luz (D4; el fondo solo brilla en color). La paleta cambia cada 8 tiempos (D5 elige la familia). D1 cuánto se prenden, D3 tramas y rayas, D6 bombillas. Piano: la zona de su lado. Momento: el tablero entero en blanco. Hoja: `docs/img/pinball.jpg`. Destellos 3/s (el límite). En el setlist después del carnaval (30).
 
+
+## Perillas Detail con más rango (fase 49)
+
+El pedido: que entre la perilla en 0 y en 127 (el MiniLab manda 0–127; adentro llega como 0..1) se note mucho más la diferencia. Medido antes del cambio, 219 de las 282 perillas (47 escenas × 6) cambiaban menos del 15 % de la imagen; muchas, entre 0 y 3 %.
+
+**Cómo se hizo.** No hay un refuerzo global posible (el valor ya llega a 1). En cada escena se agrandó el rango de lo que mueve cada perilla con `hkDR(lo, medio, hi, d)` (common.glsl): en 0,5 queda el look de siempre (los presets se ven igual) y los extremos van de "casi no está" a "mucho". Donde lo que movía la perilla era chico o casi invisible se le sumó algo propio de la escena:
+
+- 00 D4 también cierra el cielo (tormenta).
+- 26 D4 deja siluetas paradas en las ventanas aunque no haya golpe.
+- 16, 10 y 12 D6: humo/arena que llena la sala.
+- 28 D4: más hojas y más claras.
+- 14 D1: los cuervos que vuelan pasan por la luna.
+- 45: cada tecla del piano prende su luz (la prueba de teclas la daba floja desde la fase 47).
+
+Además:
+
+- **El estado ya no deja la perilla clavada.** En 07, 08, 10, 14, 17, 18, 21 y 23, un estado de la escena sumaba tanto a la perilla que la dejaba en el máximo; ahora el estado empuja hacia arriba, pero la perilla sigue mandando.
+- **Las velocidades no se agrandaron.** Las perillas que cambian una velocidad multiplicando el tiempo (por ejemplo 13 D3, 39 D2, 41 D4, 42 D2) quedan como estaban: agrandarlas hace saltar la imagen al girarlas.
+
+**Medir.** `td/tools/medir_detail.py --set halloween` renderiza cada escena con cada Detail en 0 y en 1 (las otras en 0,5, música con pulso a 128 BPM y un instante con golpe) y mide el color que cambia y el movimiento. `--sheet hoja.jpg` arma la hoja; `MD_TW=420` la hace en grande. Una perilla que mueve algo chico (lápidas lejanas, ojos, grietas) cambia poca área aunque se note mucho: por eso el umbral de FLOJA es 8 %, y lo demás se revisó a ojo.
+
+**Destellos.** `test_destellos.py --detail 1` (nuevo) prueba con las 6 Detail al máximo y `--detail 0` en el mínimo: todo ≤ 3/s. En la 02 los tubos gruesos con la calavera grande pasaban a 5/s; el grosor máximo quedó como antes y se afina cuando la calavera es grande.
+
+Hoja antes/ahora: `docs/img/detail_rango.jpg`.

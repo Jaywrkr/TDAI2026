@@ -172,14 +172,14 @@ vec4 render(vec2 uv) {
         float vol = inHead ? sqrt(max(1.0 - dot(hq, hq), 0.0)) : sqrt(max(1.0 - bp.x * bp.x, 0.0));
         vec3 hn = normalize(vec3(bp.x, inHead ? bp.y : 0.0, vol + 0.05));
         float breathe = 0.012 * sin(t * 0.9) * (inHead ? 0.5 : 1.0);
-        float nB = 10.0 + uD1 * 10.0;     // continuo: las vendas se aprietan sin saltar
+        float nB = hkDR(5.0, 15.0, 26.0, uD1);     // continuo: las vendas se aprietan sin saltar
         float v = (bp.y + 0.18 * bp.x * bp.x + breathe) * nB * 0.5;
         float row = floor(v);
-        float loosen = (hit * (0.15 + uD4 * 0.6) + stepK * 0.5) * (hash21(vec2(row, 3.0)) - 0.5);
+        float loosen = (hit * hkDR(0.0, 0.45, 1.5, uD4) + stepK * 0.5) * (hash21(vec2(row, 3.0)) - 0.5);
         v += loosen + (hash21(vec2(row, 1.0)) - 0.5) * 0.25 * bp.x;
         row = floor(v);
         float f = fract(v);
-        float sep = 0.05 + uD2 * 0.20;
+        float sep = hkDR(0.0, 0.15, 0.6, uD2);
         float prof = smoothstep(sep, sep + 0.18, f) * (1.0 - 0.65 * smoothstep(0.55, 1.0, f));
         float fray = noise21(vec2(bp.x * 40.0, row * 3.7));
         float gapM = 1.0 - smoothstep(sep * 0.6, sep + 0.02 * fray, f);
@@ -223,7 +223,7 @@ vec4 render(vec2 uv) {
     vec2 look2 = vec2(lookX + 0.02 * sin(t * 0.4) - turnE * 0.05, 0.0) * 0.43;
     vec2 ep = vec2(abs(pm.x - c.x - look2.x) - 0.086, pm.y - c.y - 0.045);
     float eye = exp(-dot(ep / vec2(0.024, 0.013), ep / vec2(0.024, 0.013)));
-    float eb = (0.9 + uD3 * 1.4) * (0.6 + bass * 0.9 + hit * 0.5) * (1.0 + dimE * 1.2 + cA * C.y * 1.5 + stepK * 1.5);
+    float eb = hkDR(0.0, 1.6, 4.0, uD3) * (0.6 + bass * 0.9 + hit * 0.5) * (1.0 + dimE * 1.2 + cA * C.y * 1.5 + stepK * 1.5);
     if (dv == 1) eb *= 1.0 - D.x * step(0.45, D.y) * (1.0 - step(0.55, D.y));   // detalle: parpadea
     col += eyeC * eye * eb;
     col += eyeC * exp(-length(ep) * 25.0) * eb * 0.06;
@@ -363,9 +363,11 @@ vec4 render(vec2 uv) {
         col = mix(col, vec3(0.03, 0.05, 0.03) + vec3(0.2, 0.3, 0.15) * (f0 + f1) * 0.2, bm * D.x);
     }
     // --- polvo y arena flotando en la luz ---
-    float dust = hkParticles(p, t * 0.5 + hit * 0.3, 0.10 + uD6 * 0.30 + high * 0.10 + relight * 0.3 + EST.z * 0.25 + (dv == 4 ? D.x * 0.4 : 0.0), vec2(0.3 + EST.z * 0.8, 0.4 + mid * 0.4), 0.03);
+    float dust = hkParticles(p, t * 0.5 + hit * 0.3, hkDR(0.0, 0.25, 0.8, uD6) + high * 0.10 + relight * 0.3 + EST.z * 0.25 + (dv == 4 ? D.x * 0.4 : 0.0), vec2(0.3 + EST.z * 0.8, 0.4 + mid * 0.4), 0.03);
     float tl = exp(-length(p - T0) * 0.9) * f0 + exp(-length(p - T1) * 0.9) * f1;
-    col += vec3(1.0, 0.8, 0.55) * dust * (0.05 + 1.2 * tl) * (0.5 + high * 0.8);
+    col += vec3(1.0, 0.8, 0.55) * dust * (0.05 + 1.2 * tl) * (0.5 + high * 0.8) * hkDR(0.3, 1.0, 2.2, uD6);
+    // D6 alta: el aire de la cripta se llena de arena iluminada por las antorchas
+    col += vec3(1.0, 0.78, 0.50) * tl * 0.16 * smoothstep(0.5, 1.0, uD6) * (0.6 + 0.4 * noise21(p * 3.0 + vec2(0.0, t * 0.4)));
 
     // LUZ DE TECLA (fase 37): una antorcha se aviva
     col = hkKeyLit(col, p, -0.1, vec2(0.3, 0.6), vec3(1.0, 0.7, 0.3), vec3(1.0, 0.9, 0.5), 0.05, 1.2);

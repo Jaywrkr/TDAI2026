@@ -80,7 +80,7 @@ vec4 render(vec2 uv) {
     float irisPh = sph;
     float leader = cB * smoothstep(0.08, 0.15, C.w) * (1.0 - smoothstep(0.85, 0.92, C.w));
     float crowd = cC * smoothstep(0.05, 0.35, C.w) * (1.0 - smoothstep(0.80, 0.95, C.w));
-    float d5 = clamp(uD5 + EST.y * 0.8, 0.0, 1.0);
+    float d5 = mix(uD5, 1.0, EST.y * 0.8 * 0.6);
     float worn = EST.z;
     // el iris del climax: se cierra al final del aviso y se abre al llegar el pico
     float irisC = smoothstep(0.18, 0.33, cph) * (1.0 - smoothstep(0.36, 0.44, cph));
@@ -105,7 +105,7 @@ vec4 render(vec2 uv) {
     vec2 dvb = p - pj;
     float beamA = abs(atan(dvb.x, dvb.y));
     float beam = smoothstep(0.42, 0.30, beamA) * smoothstep(-1.2, 0.2, p.y) * step(p.y, SC.y + SH);
-    float dustB = hkParticles(p * 1.2, t * 0.2, 0.15 + uD1 * 0.2, vec2(0.1, 0.25), 0.04);
+    float dustB = hkParticles(p * 1.2, t * 0.2, hkDR(0.0, 0.25, 0.6, uD1), vec2(0.1, 0.25), 0.04);
     float smokeB = fbm(p * vec2(2.0, 1.0) + vec2(t * 0.05, -t * 0.03), 3, 0.5);
     col += vec3(0.55, 0.55, 0.52) * beam * (0.025 + smokeB * 0.05 + dustB * 0.10) * flick * (0.4 + uD6 * 0.6) * (0.7 + bass * 0.5);
     // luz rebotada de la pantalla en la sala
@@ -134,7 +134,7 @@ vec4 render(vec2 uv) {
     // --- pantalla / pelicula ---
     vec2 sq = p - SC;
     // gate weave + salto de cuadro
-    float jump = hit * uD3 * step(0.5, hash21(vec2(fps, 2.0))) * 0.25 + hit * loco * 0.15
+    float jump = hit * hkDR(0.0, 0.5, 1.8, uD3) * step(0.5, hash21(vec2(fps, 2.0))) * 0.25 + hit * loco * 0.15
                + shake * step(0.65, hash21(vec2(fps, 7.0))) * 0.20 + keyJump * 0.12;
     sq += vec2(sin(t * 3.1) * 0.003, sin(t * 2.3) * 0.004) * (0.5 + mid * 2.0);
     vec2 sc = sq / (2.0 * SW) + 0.5;                    // 0..1 de la pantalla
@@ -159,7 +159,7 @@ vec4 render(vec2 uv) {
         for (int k = 0; k < 3; k++) {
             float fk = float(k);
             float sx = fract(hash21(vec2(floor(t * 0.7 + fk * 0.37), fk)) + t * 0.01 * (fk - 1.0));
-            float on = step(0.45 - uD1 * 0.35 - worn * 0.25, hash21(vec2(floor(t * 2.0 + fk), fk + 9.0)));
+            float on = step(hkDR(0.8, 0.275, 0.0, uD1) - worn * 0.25, hash21(vec2(floor(t * 2.0 + fk), fk + 9.0)));
             float sline = 1.0 - smoothstep(0.0, 0.0015 + fk * 0.0006, abs(sc.x - sx));
             film = mix(film, k == 1 ? vec3(0.0) : vec3(1.0), sline * on * 0.55);
         }
@@ -167,7 +167,7 @@ vec4 render(vec2 uv) {
         vec2 dg = sc * vec2(28.0, 21.0);
         vec2 di = floor(dg);
         float dh = hash21(di + fps * 7.1);
-        float dust = (1.0 - smoothstep(0.05, 0.12 + (dv == 3 ? D.x * 0.15 : 0.0), length(fract(dg) - hash22(di + fps)))) * step(1.0 - (0.012 + uD1 * 0.05 + high * 0.03 + worn * 0.03 + (dv == 3 ? D.x * 0.03 : 0.0)), dh);
+        float dust = (1.0 - smoothstep(0.05, 0.12 + (dv == 3 ? D.x * 0.15 : 0.0), length(fract(dg) - hash22(di + fps)))) * step(1.0 - (hkDR(0.0, 0.037, 0.12, uD1) + high * 0.03 + worn * 0.03 + (dv == 3 ? D.x * 0.03 : 0.0)), dh);
         film = mix(film, dh > 0.996 ? vec3(1.0) : vec3(0.0), dust);
         vec2 hq = sc - vec2(0.15 + 0.7 * hash21(vec2(floor(t * 0.5), 5.0)), 0.8);
         float hair = hkLine(sin(hq.x * 25.0) * 0.02 - hq.y * 0.3, 1.0) * step(abs(hq.x), 0.12) * step(0.6, hash21(vec2(floor(t * 0.5), 6.0)));
@@ -189,7 +189,7 @@ vec4 render(vec2 uv) {
         // parpadeo + vineta + iris
         film *= flick;
         vec2 vc = (sc - 0.5) * vec2(4.0 / 3.0, 1.0);
-        film *= 1.0 - (0.25 + uD4 * 0.55) * smoothstep(0.2, 0.75, length(vc));
+        film *= 1.0 - hkDR(0.0, 0.525, 0.95, uD4) * smoothstep(0.2, 0.75, length(vc));
         float irisClose = max(irisE * (1.0 - abs(irisPh * 2.0 - 1.0)) * 1.6, irisC);
         if (irisClose > 0.001) {
             float irisR = 0.9 * (1.0 - clamp(irisClose, 0.0, 1.0));

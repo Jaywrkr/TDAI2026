@@ -91,7 +91,7 @@ vec4 render(vec2 uv) {
     vec3 redC = vec3(1.0, 0.08, 0.04);
 
     // --- los tubos: cuales andan y cuanto ---
-    float nT = min(1.0 + uD1 * 3.0 + hkActVal(2.0) * 0.6, 4.0);
+    float nT = min(hkDR(0.0, 2.5, 4.0, uD1) + hkActVal(2.0) * 0.6, 4.0);
     float T[4];
     float sumT = 0.0;
     for (int i = 0; i < 4; i++) {
@@ -100,7 +100,7 @@ vec4 render(vec2 uv) {
         // zumbido: el bajo los hace parpadear, cada uno a su manera
         float n = noise21(vec2(uRTime * (9.0 + fi * 3.0), fi * 7.0));
         float flick = 1.0 - (0.05 + bass * 0.45) * step(0.62 - bass * 0.25, n);
-        flick *= 1.0 - hit * uD4 * 0.8 * step(0.5, hash21(vec2(floor(uRTime * 8.0), fi)));
+        flick *= 1.0 - hit * hkDR(0.0, 0.4, 1.0, uD4) * step(0.5, hash21(vec2(floor(uRTime * 8.0), fi)));
         if (i == 1) flick *= 1.0 - dying * step(0.4, noise21(vec2(uRTime * 14.0, 3.0)));
         // climax: se apagan hacia el fondo y vuelven parpadeando
         if (cph > 0.0) {
@@ -119,7 +119,7 @@ vec4 render(vec2 uv) {
     vec2 pu = rUV(p);
     // la sabana respira (golpe, D3)
     vec4 mk0 = plate1(pu);
-    float breath = (0.25 * sin(uRTime * 1.4) + hit * 1.2 + shake * sin(uRTime * 30.0)) * uD3 + shake * 0.6 * sin(uRTime * 35.0);
+    float breath = (0.25 * sin(uRTime * 1.4) + hit * 1.2 + shake * sin(uRTime * 30.0)) * hkDR(0.0, 0.5, 2.0, uD3) + shake * 0.6 * sin(uRTime * 35.0);
     pu.y -= mk0.r * breath * 0.004;
     vec4 rm = plate0(pu);
     vec4 mk = plate1(pu);
@@ -219,7 +219,7 @@ vec4 render(vec2 uv) {
     col += redC * emer * (exp(-length((p - ep) * vec2(1.0, 1.6)) * 40.0) * 1.5 + exp(-length(p - ep) * 6.0) * 0.12);
 
     // --- vapor frio de los cajones (medios, D2) y gotas (agudos) ---
-    float va = (0.08 + uD2 * 0.55 + mid * 0.35) * smoothstep(-0.2, -1.4, p.x - (MG_VP.x)) * smoothstep(0.5, -0.9, p.y);
+    float va = (hkDR(0.0, 0.355, 1.1, uD2) + mid * 0.35) * smoothstep(-0.2, -1.4, p.x - (MG_VP.x)) * smoothstep(0.5, -0.9, p.y);
     if (va > 0.002) {
         float v = plate2Wrap(vec2(p.x * 0.6 + t * 0.03 + mid * 0.02, p.y * 0.9 - t * 0.02)).g;
         float v2 = plate2Wrap(vec2(p.x * 1.3 - t * 0.05, p.y * 1.6 + t * 0.01)).b;

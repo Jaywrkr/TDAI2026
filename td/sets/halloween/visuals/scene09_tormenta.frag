@@ -210,7 +210,7 @@ vec4 render(vec2 uv) {
     }
 
     // --- rayo ---
-    float d = hwBranchy(p, bx, 1.35, treeHit > 0.5 ? treeTop.y : (cB > 0.0 ? -0.12 : -0.62), hash21(vec2(slot, 3.0)) * 50.0, floor(1.0 + uD2 * 3.0));
+    float d = hwBranchy(p, bx, 1.35, treeHit > 0.5 ? treeTop.y : (cB > 0.0 ? -0.12 : -0.62), hash21(vec2(slot, 3.0)) * 50.0, floor(1.0 + uD2 * 4.99));
     // rayos horizontales entre las nubes (mismo sorteo, mismo destello)
     if (crawl > 0.0) {
         vec2 hq = vec2(p.y - 0.62 - 0.12 * sin(p.x * 1.3 + slot), p.x);
@@ -315,7 +315,7 @@ vec4 render(vec2 uv) {
     vec2 tu = rUV(p, TREE_R);
     tu.x += (0.0015 + mid * 0.004) * sin(t * 1.2 + p.y * 2.0) * smoothstep(-0.6, 0.6, p.y);
     vec4 tr = plate1(tu);
-    float treeOn = 0.35 + 0.65 * uD6;
+    float treeOn = hkDR(0.0, 0.675, 1.3, uD6);
     // relieve horneado: tubos con corteza; el rayo entra por el lado donde cae
     vec4 tn = plate3(rUV(TREE_R.xy + tu * TREE_R.zw, TREL_R));
     vec3 trN = vec3(tn.rg * 2.0 - 1.0, 0.0);
@@ -350,7 +350,7 @@ vec4 render(vec2 uv) {
         float h = hash21(id + fi * 7.0);
         float streak = smoothstep(0.0, 0.4, fract(g.y + h)) * (1.0 - smoothstep(0.4, 0.5, fract(g.y + h)));
         float lane = 1.0 - smoothstep(0.02, 0.10, abs(fract(g.x) - 0.5));
-        rain += streak * lane * step(1.0 - (0.25 + uD1 * 0.55) * rainBoost, h) * (0.5 - fi * 0.2);
+        rain += streak * lane * step(1.0 - hkDR(0.0, 0.525, 0.95, uD1) * rainBoost, h) * (0.5 - fi * 0.2);
     }
     col += vec3(0.55, 0.6, 0.8) * rain * (0.14 + high * 0.6 + flick * 0.6);
 

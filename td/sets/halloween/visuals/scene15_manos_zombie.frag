@@ -147,7 +147,7 @@ vec4 render(vec2 uv) {
     // --- manos ---
     vec2 quakeOff = (vec2(noise21(vec2(uRTime * 30.0, 1.0)), noise21(vec2(uRTime * 30.0, 5.0))) - 0.5) * 0.02 * quake;
     p += quakeOff;
-    float nH = 2.0 + uD1 * 6.0 + hkActVal(3.0) * 1.0;
+    float nH = hkDR(0.0, 5.0, 8.0, uD1) + hkActVal(3.0) * 1.0;
     for (int kk = 0; kk < 9; kk++) {
         int i = ORDER[kk];
         vec2 hole = HOLES[i];
@@ -167,8 +167,8 @@ vec4 render(vec2 uv) {
         float s = (0.56 + 0.08 * h1) * (i >= 7 ? 0.8 : 1.0);
         // cuanto sale: D2 + ola propia + estiron del golpe con retraso
         float lag = fract(h1 * 5.0) * 0.3;
-        float stretch = smoothstep(0.0, 0.25, hit - lag) * uD4 * 0.5 + kb * 0.45;
-        float rise = clamp(0.40 + uD2 * 0.60 + 0.08 * sin(t * (0.6 + h1 * 0.5) + fi * 2.0) + stretch + cA * C.y * 0.35 + hit * loco * 0.3 + crowd * 0.35, 0.0, 1.15);
+        float stretch = smoothstep(0.0, 0.25, hit - lag) * hkDR(0.0, 0.25, 0.9, uD4) + kb * 0.45;
+        float rise = clamp(hkDR(-0.1, 0.7, 1.0, uD2) + 0.08 * sin(t * (0.6 + h1 * 0.5) + fi * 2.0) + stretch + cA * C.y * 0.35 + hit * loco * 0.3 + crowd * 0.35, 0.0, 1.15);
         // sale de la tierra: con emerge = 0 queda bajo tierra
         rise = mix(-0.15, rise, emerge);
         float sway = (0.06 + mid * 0.18) * sin(t * (0.8 + h1) + fi * 1.7) + hit * loco * 0.08 * sin(uRTime * 30.0 + fi);
@@ -183,7 +183,7 @@ vec4 render(vec2 uv) {
         if (h1 > 0.5) q.x = -q.x;                                     // mano izquierda/derecha
         vec2 hu = rUV(q, HAND_R);
         // abre y cierra los dedos: mezcla de las dos poses
-        float open = clamp(0.5 + 0.5 * sin(t * (1.1 + h1) + fi * 3.0) * (0.4 + mid) + (uD3 - 0.5) * 1.2 + stretch, 0.0, 1.0);
+        float open = clamp(0.5 + 0.5 * sin(t * (1.1 + h1) + fi * 3.0) * (0.4 + mid) + (uD3 - 0.5) * 2.0 + stretch, 0.0, 1.0);
         // garra: con el piano apretado o arañando el aire despues de la ola
         open = mix(open, 0.5 + 0.5 * sin(uRTime * 7.0 + fi), max(kb, cA * C.z) * 0.8);
         if (waver) open = mix(open, 1.0, se);
@@ -296,7 +296,7 @@ vec4 render(vec2 uv) {
 
     // --- terrones que saltan con el golpe ---
     // piano: tambien saltan terrones donde sale la mano
-    float dirtAmt = max(max(uD6 * hit, 0.0), (dv == 2 ? D.x * 0.6 : 0.0) + zomb * 0.5);
+    float dirtAmt = max(max(hkDR(0.0, 0.5, 1.6, uD6) * hit, 0.0), (dv == 2 ? D.x * 0.6 : 0.0) + zomb * 0.5);
     for (int k = 0; k < N_KEYS; k++) dirtAmt = max(dirtAmt, keyEnv(k, 0.05, 0.5) * exp(-keyAge(k) * 1.5) * 0.8);
     dirtAmt = max(dirtAmt, quake * 0.5);
     if (dirtAmt > 0.02) {

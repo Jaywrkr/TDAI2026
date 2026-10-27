@@ -50,7 +50,7 @@ void vlTeeth(inout vec3 col, vec2 q, float y, float x0, float x1, float h, vec3 
 vec4 vlVillain(float id, vec2 q, float jaw, float eye, float alt, float aa) {
     vec3 col = vec3(0.0);
     float al = 0.0;
-    float det = 0.4 + 0.6 * uD3;
+    float det = hkDR(0.0, 0.7, 1.3, uD3);
     if (id < 0.5) {
         // ---- HECHICERO CALAVERA ENCAPUCHADO ----
         vec3 hood = mix(vec3(0.38, 0.08, 0.62), vec3(0.12, 0.48, 0.2), alt);
@@ -214,13 +214,13 @@ vec4 render(vec2 uv) {
     vec4 C = hkClimax(44.0, 151.0, 22.0);
     float bt = uMbeat > 0.05 ? uMbeat : 0.5;
     float ph = uMbeat > 0.05 ? fract((uRTime - uManchor) / uMbeat) : fract(uRTime * 2.0);
-    float dance = 0.4 + 0.9 * uD4;
-    float vhs = 0.3 + 0.7 * uD2;
+    float dance = hkDR(0.0, 0.85, 2.2, uD4);
+    float vhs = hkDR(0.0, 0.65, 1.6, uD2);
     float alt = step(0.5, uD5);
     // fondo: negro con estrellas y halo de color detras de las caras
     vec3 col = vec3(0.004, 0.002, 0.01);
     vec2 sg = floor(uv * vec2(uAspect, 1.0) * 90.0);
-    col += vec3(0.8, 0.85, 1.0) * step(0.985, hash21(sg)) * (0.3 + 0.7 * hash21(sg + 3.0)) * uD6 * 0.5;
+    col += vec3(0.8, 0.85, 1.0) * step(0.985, hash21(sg)) * (0.3 + 0.7 * hash21(sg + 3.0)) * hkDR(0.0, 0.25, 0.9, uD6);
     // distribucion: 1 cara, trio o pared
     float mode = uD1 < 0.34 ? 0.0 : (uD1 < 0.67 ? 1.0 : 2.0);
     float cell = 0.0, sc = 1.0;
@@ -272,7 +272,7 @@ vec4 render(vec2 uv) {
     vec3 face = vec3(fr.r, fg.g, fb.b);
     float a = max(fg.a, max(fr.a, fb.a));
     // halo detras
-    vec3 halo = mix(vec3(0.5, 0.1, 0.9), vec3(1.0, 0.4, 0.05), mod(id, 2.0)) * smoothstep(1.4, 0.3, length(q)) * 0.12 * uD6 * (0.6 + B);
+    vec3 halo = mix(vec3(0.5, 0.1, 0.9), vec3(1.0, 0.4, 0.05), mod(id, 2.0)) * smoothstep(1.4, 0.3, length(q)) * 0.12 * hkDR(0.0, 0.5, 2.5, uD6) * (0.6 + B);
     col = mix(col + halo, face, a);
     // rayas de VHS y grano
     col *= 1.0 - 0.18 * vhs * (0.5 + 0.5 * sin(uv.y * uResH * 1.3));

@@ -24,6 +24,7 @@ Como se mide (fuera de TD, mismo GLSL que corre en TD):
     python3 td/tools/test_destellos.py                 # todo el set de Halloween
     python3 td/tools/test_destellos.py --scenes 4,9    # algunas escenas
     python3 td/tools/test_destellos.py --fps 30        # mas rapido, menos fino
+    python3 td/tools/test_destellos.py --detail 1      # con las 6 Detail al maximo
     python3 td/tools/test_destellos.py --sucesos --scenes 0,9
         # ademas: cada suceso, detalle y climax del repertorio (la primera
         # vez que sale cada uno en una hora, Noche 0.8, Miedo 0.5); tarda
@@ -34,6 +35,12 @@ import math
 import os
 import sys
 
+# --detail X: las 6 Detail en X (por defecto 0.5; 1 = el caso mas cargado)
+DETAIL = 0.5
+if '--detail' in sys.argv:
+    _i = sys.argv.index('--detail')
+    DETAIL = float(sys.argv[_i + 1])
+    del sys.argv[_i:_i + 2]
 if '--set' not in sys.argv:
     sys.argv += ['--set', 'halloween']
 if '--size' not in sys.argv:
@@ -182,7 +189,7 @@ class Scene:
 
 def show_values(t, t_moment):
     """Peor caso razonable: bombo a 128 BPM, Chaos alto, climax pedido."""
-    v = R.ctrl_values(t, 'musica', 0.5, 0.9)
+    v = R.ctrl_values(t, 'musica', DETAIL, 0.9)
     ch = list(config.CTRL_CHANNELS)
     ph = (t * BPM / 60.0) % 1.0
     kick = math.exp(-ph * 9.0)

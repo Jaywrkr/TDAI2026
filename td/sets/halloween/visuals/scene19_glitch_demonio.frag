@@ -110,7 +110,7 @@ vec4 render(vec2 uv) {
     for (int k = 0; k < N_KEYS; k++) keyEyes = max(keyEyes, keyEnv(k, 0.02, 0.6) * (0.5 + keyVel(k)));
     vec3 fireC = mix(vec3(1.0, 0.25, 0.06), vec3(0.65, 0.15, 1.0), uD5);
     vec3 rimC = mix(vec3(0.45, 0.20, 0.55), vec3(1.0, 0.2, 0.3), uD5);
-    float brk = clamp(hit * (0.2 + uD2) + possE + hit * loco * 0.5, 0.0, 1.5);
+    float brk = clamp(hit * hkDR(0.0, 0.7, 1.6, uD2) + possE + hit * loco * 0.5, 0.0, 1.5);
 
     // --- glitch de pantalla: bloques, filas que se rasgan ---
     vec2 g = uv;
@@ -119,7 +119,7 @@ vec4 render(vec2 uv) {
     vec2 bh = hash22(bid + floor(rt * (6.0 + possE * 10.0)));
     float on = step(1.0 - brk * 0.40, bh.x);
     g += (bh - 0.5) * vec2(0.20, 0.06) * on * brk;
-    float row = floor(uv.y * (60.0 + uD1 * 120.0));
+    float row = floor(uv.y * hkDR(20.0, 120.0, 260.0, uD1));
     float tear = step(0.985 - brk * 0.1 - interf * 0.08, hash21(vec2(row, floor(rt * 20.0))));
     g.x += (hash21(vec2(row, 3.0)) - 0.5) * 0.15 * tear;
     // piano: franja corrida a la altura de la nota
@@ -165,9 +165,9 @@ vec4 render(vec2 uv) {
         q.y += drip;
         q.x += sin(q.y * 6.0 + t) * 0.02 * meltE;
     }
-    float eyesK = (0.25 + uD4 * 0.9) * (0.6 + bass * 1.0 + hit * 0.4) + keyEyes * 1.6 + cA * C.z * 2.2 + eye3 * 0.8;
+    float eyesK = hkDR(0.0, 0.7, 1.9, uD4) * (0.6 + bass * 1.0 + hit * 0.4) + keyEyes * 1.6 + cA * C.z * 2.2 + eye3 * 0.8;
     if (dv == 0) eyesK *= 1.0 - D.x * step(0.4, D.y) * (1.0 - step(0.55, D.y));
-    float split = (0.004 + uD3 * 0.03) * (1.0 + brk * 2.0 + bass * 0.5 + interf * 2.0) + keyBand * 0.03;
+    float split = hkDR(0.0, 0.019, 0.06, uD3) * (1.0 + brk * 2.0 + bass * 0.5 + interf * 2.0) + keyBand * 0.03;
     vec4 fc = g19Face(q, fireC, rimC, eyesK);
     vec3 face = fc.rgb;
     if (split > 0.006) {
@@ -214,12 +214,12 @@ vec4 render(vec2 uv) {
     }
 
     // --- lineas de barrido, estatica, inversion ---
-    float lines = 0.5 + 0.5 * sin(uv.y * uResH * (0.35 + uD1 * 0.6));
-    col *= 1.0 - 0.25 * lines * (0.3 + uD1 * 0.7);
+    float lines = 0.5 + 0.5 * sin(uv.y * uResH * hkDR(0.1, 0.65, 1.3, uD1));
+    col *= 1.0 - 0.25 * lines * hkDR(0.0, 0.65, 1.2, uD1);
     float st = hash21(uv * vec2(uResW, uResH) * 0.5 + fract(rt * 31.0) * 97.0);
-    col = mix(col, vec3(st) * 0.5, (0.03 + uD6 * 0.20 + high * 0.08 + brk * 0.06 + interf * 0.25 + keyBand * 0.3) * step(0.5, st + 0.3));
+    col = mix(col, vec3(st) * 0.5, (hkDR(0.0, 0.13, 0.45, uD6) + high * 0.08 + brk * 0.06 + interf * 0.25 + keyBand * 0.3) * step(0.5, st + 0.3));
     float bar = smoothstep(0.02, 0.0, abs(fract(uv.y - rt * 0.07) - 0.5) - 0.06);
-    col += vec3(0.04) * bar * (0.5 + uD6);
+    col += vec3(0.04) * bar * hkDR(0.0, 1.0, 2.2, uD6);
     // detalle: una linea de tracking que sube
     if (dv == 2) col = mix(col, vec3(st * 0.7), exp(-pow((uv.y - D.y) / 0.02, 2.0)) * D.x * 0.8);
     // suceso: se corta la senal (barras de color con el rostro detras)

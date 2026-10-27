@@ -226,11 +226,11 @@ vec4 render(vec2 uv) {
     float edgeA = smoothstep(0.0, 0.06 + eat, ed - eat * 0.5);
     if (inside > 0.5 && edgeA > 0.0) {
         // tiras horizontales que se corren
-        float strips = 6.0 + uD1 * 26.0 + poss * 20.0 + stripE * 8.0;
+        float strips = hkDR(2.0, 19.0, 40.0, uD1) + poss * 20.0 + stripE * 8.0;
         float sid = floor(iq.y * strips);
         float hs = hash21(vec2(sid, floor(uRTime * (1.0 + poss * 8.0 + stripE * 2.0))));
         float drift = (noise21(vec2(sid * 0.7, t * 0.25)) - 0.5) * 0.03 * (0.3 + mid * 2.0);
-        float jumpX = (hs - 0.5) * hit * uD2 * 0.25 + (hs - 0.5) * (poss * 0.4 + stripE * 0.3 + exo * 0.15 * step(0.6, hs));
+        float jumpX = (hs - 0.5) * hit * hkDR(0.0, 0.125, 0.5, uD2) + (hs - 0.5) * (poss * 0.4 + stripE * 0.3 + exo * 0.15 * step(0.6, hs));
         // piano: tiron en la tira a la altura de cada tecla
         for (int k = 0; k < N_KEYS; k++) {
             float e = keyEnv(k, 0.03, 0.8);
@@ -277,7 +277,7 @@ vec4 render(vec2 uv) {
     {
         vec2 sq = p / vec2(uAspect, 1.0);
         float edgeD = 1.0 - max(abs(sq.x), abs(sq.y));                // 0 en el borde
-        float reach = 0.18 + uD4 * 0.35 + poss * 0.9 + after * 0.45 + cA * C.x * 0.25 + bass * 0.06 + EST.y * 0.2 - exoW * 0.3;
+        float reach = hkDR(0.0, 0.355, 0.9, uD4) + poss * 0.9 + after * 0.45 + cA * C.x * 0.25 + bass * 0.06 + EST.y * 0.2 - exoW * 0.3;
         float grow = smoothstep(reach, reach - 0.25, edgeD + (noise21(p * 2.0) - 0.5) * 0.15);
         float v = p25Veins(p * vec2(1.0, 1.4), t) * grow * smoothstep(0.0, 0.05, uD4 + poss + after + cA * C.x + EST.y);
         // detalle: una gota negra cae del borde de abajo de la imagen
@@ -297,7 +297,7 @@ vec4 render(vec2 uv) {
     if (uD6 > 0.02) {
         float sm = fbm(vec2(p.x * 1.2 + t * 0.05 * sign(p.x), p.y * 1.5 - t * 0.04), 4, 0.55);
         float side = smoothstep(uAspect * 0.45, uAspect, abs(p.x) + sm * 0.5);
-        col *= 1.0 - side * uD6 * 0.85;
+        col *= 1.0 - side * hkDR(0.0, 0.425, 0.95, uD6);
     }
 
     // EASTER EGG "JAY INFINITO" (fase 38): junto a la imagen aparece un sello

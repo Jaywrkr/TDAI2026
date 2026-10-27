@@ -93,8 +93,8 @@ vec4 render(vec2 uv) {
     vec2 cp = p - vec2(0.0, -0.42);
     vec2 mp = (cp - vec2(0.0, 0.20)) / vec2(0.58, 0.10);
     float mouth = length(mp) - 1.0;
-    float lb = 0.55 + uD3 * 0.45 + bass * 0.45 + cA * (C.x * 0.20 * (1.0 - C.z) + C.y * 0.20) + EST.y * 0.15 + whirl * 0.35;
-    float coalI = (0.6 + uD4 * 1.4 + hit * 0.8) * (0.8 + 0.2 * noise21(vec2(t * 3.0, 1.0)));
+    float lb = hkDR(0.15, 0.775, 1.5, uD3) + bass * 0.45 + cA * (C.x * 0.20 * (1.0 - C.z) + C.y * 0.20) + EST.y * 0.15 + whirl * 0.35;
+    float coalI = (hkDR(0.0, 1.3, 3.2, uD4) + hit * 0.8) * (0.8 + 0.2 * noise21(vec2(t * 3.0, 1.0)));
     // hierbas que se mecen
     vec2 hu = pu;
     hu.x += (0.0008 + mid * 0.003) * sin(t * 1.4 + p.x * 3.0) * smoothstep(0.95, 0.60, p.y) * step(0.55, p.y);
@@ -144,7 +144,7 @@ vec4 render(vec2 uv) {
     float surf = fbm(mp * vec2(3.0, 1.5) + vec2(t * 0.4, 0.0), 3, 0.5);
     liquid = potion * (0.35 + 0.65 * surf) * lb;
     // burbujas en la superficie
-    float nb = min(6.0 + uD1 * 8.0 + cA * C.x * 8.0 + EST.y * 5.0, 14.0);
+    float nb = min(hkDR(0.0, 10.0, 14.0, uD1) + cA * C.x * 8.0 + EST.y * 5.0, 14.0);
     for (int i = 0; i < 14; i++) {
         float fi = float(i);
         float bOn = revealAt(nb, fi);
@@ -204,7 +204,7 @@ vec4 render(vec2 uv) {
 
     // vapor que sube y se enrosca
     vec2 vp = p - vec2(0.0, -0.22);
-    float rise = clamp(vp.y / (0.6 + uD2 * 0.9 + cA * C.x * 0.4 + EST.y * 0.3 + spirit * 0.8), 0.0, 1.0);
+    float rise = clamp(vp.y / (hkDR(0.2, 1.05, 2.2, uD2) + cA * C.x * 0.4 + EST.y * 0.3 + spirit * 0.8), 0.0, 1.0);
     vec2 sq = vec2(vp.x * (1.6 - rise * 0.6) + 0.25 * sin(vp.y * 3.0 - t * 1.2), vp.y * 1.4 - t * 0.5);
     float colMask = smoothstep(0.65 + rise * 0.5, 0.0, abs(vp.x)) * smoothstep(0.0, 0.05, vp.y) * (1.0 - rise);
     float steam = colMask > 0.0 ? plate4Wrap(sq * vec2(0.12, 0.10) + 0.3).g : 0.0;
@@ -247,7 +247,7 @@ vec4 render(vec2 uv) {
     }
     // detalle: humo por la boca del caldero
     if (dv == 4) sAmt = max(sAmt, D.x * smoothstep(0.4, 0.7, steam) * exp(-pow(vp.y / 0.25, 2.0)) * smoothstep(0.8, 0.2, abs(vp.x)));
-    col += potion * sAmt * (0.75 + bass * 0.6 + uD3 * 0.4);
+    col += potion * sAmt * (0.75 + bass * 0.6 + hkDR(-0.5, 0.2, 0.9, uD3));
     // niebla de pocion (estado): el vapor rebalsa y cubre el piso
     float lowFog = smoothstep(0.35, 0.75, plate4Wrap(vec2(p.x * 0.10 + t * 0.01, p.y * 0.3)).g) * smoothstep(-0.55, -1.0, p.y);
     col += potion * lowFog * EST.z * 0.30 * lb;
@@ -351,7 +351,7 @@ vec4 render(vec2 uv) {
         vec2 g = vec2(p.x * (14.0 + fi * 8.0), p.y * 4.0 - t * (1.2 + fi * 0.5));
         vec2 id = floor(g);
         vec2 f = fract(g) - 0.5 - (hash22(id + fi) - 0.5) * 0.6;
-        float alive = step(0.80 - uD6 * 0.30 - hit * 0.2 - high * 0.15, hash21(id + 3.0 + fi));
+        float alive = step(hkDR(1.05, 0.65, 0.35, uD6) - hit * 0.2 - high * 0.15, hash21(id + 3.0 + fi));
         float sp = exp(-dot(f, f) * 200.0) * alive * colMask;
         col += mix(potion, vec3(1.0), 0.4) * sp * 1.2;
     }

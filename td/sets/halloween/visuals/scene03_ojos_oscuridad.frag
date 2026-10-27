@@ -125,7 +125,7 @@ vec4 render(vec2 uv) {
     float giantLook = cph > 0.0 ? sin(clamp((cph - 0.45) / 0.16, 0.0, 1.0) * 6.2832) * 0.9 : 0.0;
     float approach = max(sv == 1 ? se : 0.0, step(0.0001, G.w) * smoothstep(0.1, 0.3, G.w) * (1.0 - smoothstep(0.75, 0.9, G.w)));
     float apPh = G.w > 0.0 ? clamp((G.w - 0.1) / 0.75, 0.0, 1.0) : sp;
-    float many = clamp(0.25 + uD1 * 0.75 + (hkActVal(8.0) - 0.5) * 0.3 + uDensity * 0.1 - EST.z * 0.25, 0.0, 1.0);
+    float many = clamp(hkDR(0.0, 0.625, 1.15, uD1) + (hkActVal(8.0) - 0.5) * 0.3 + uDensity * 0.1 - EST.z * 0.25, 0.0, 1.0);
     many = max(many, stare);
     // C: los ojos de siempre se apagan mientras se arma la cara
     float faceK = cC * smoothstep(0.15, 0.40, C.w) * (1.0 - smoothstep(0.78, 0.95, C.w));
@@ -159,7 +159,7 @@ vec4 render(vec2 uv) {
     // niebla que respira
     float fz = plate3Wrap(vec2(pF.x * 0.10 - t * 0.004, pF.y * 0.35 + 0.1)).g;
     float fogB = smoothstep(0.35, 0.75, fz) * exp(-pow((pF.y + 0.15) / 0.45, 2.0));
-    col = mix(col, fogC * 2.2 + irisCol * bass * 0.04, fogB * (0.35 + uD6 * 0.35 + EST.y * 0.35));
+    col = mix(col, fogC * 2.2 + irisCol * bass * 0.04, fogB * (hkDR(0.0, 0.525, 1.1, uD6) + EST.y * 0.35));
 
     float glowSum = 0.0;
     vec2 glowAt = vec2(0.0);
@@ -177,11 +177,11 @@ vec4 render(vec2 uv) {
         // D1 suma pares DE A UNO: el nuevo se abre de a poco
         float appear = smoothstep(rank, rank + 0.07, many);
         if (appear < 0.01) continue;
-        float size = (L == 0 ? 0.045 : (L == 1 ? 0.075 : 0.12)) * (0.7 + uD3 * 0.7);
+        float size = (L == 0 ? 0.045 : (L == 1 ? 0.075 : 0.12)) * hkDR(0.4, 1.05, 1.9, uD3);
         vec2 dq = pp - sp.xy;
         // lejos del ojo el brillo ya es < 0.1%: no se calcula nada mas
         if (dot(dq, dq) > size * size * 60.0) continue;
-        float wake = smoothstep(0.38 - uD2 * 0.35, 0.58 - uD2 * 0.35, hash21(vec2(fi, 7.7)));
+        float wake = smoothstep(hkDR(0.95, 0.205, -0.1, uD2), hkDR(1.15, 0.405, 0.1, uD2), hash21(vec2(fi, 7.7)));
         float kickWake = step(hash21(vec2(fi, 4.4)), hit * (0.6 + uD2 * 0.4));
         float h = hash21(vec2(fi, 9.9));
         float bph = fract(t * (0.13 + h * 0.18) + h * 7.0);
@@ -196,7 +196,7 @@ vec4 render(vec2 uv) {
         float open = max(max(wake, kickWake), stare) * blink * appear * (1.0 - shut) * (1.0 - faceK)
                    * (1.0 - cB * step(0.80, C.w) * (1.0 - smoothstep(0.90, 1.0, C.w)));
         if (open < 0.02) continue;
-        float rad = (0.85 + uD4 * 0.7 + bass * 0.8 + hit * 0.3 + stare * 0.5) * (L == 0 ? 0.55 : (L == 1 ? 0.8 : 1.0));
+        float rad = (hkDR(0.25, 1.2, 3.4, uD4) + bass * 0.8 + hit * 0.3 + stare * 0.5) * (L == 0 ? 0.55 : (L == 1 ? 0.8 : 1.0));
         size *= 1.0 + stare * 0.45;
         // suceso: un par llora luz (gotas que caen debajo)
         if (sv == 4 && i == crySpot) {
@@ -237,7 +237,7 @@ vec4 render(vec2 uv) {
         float e = keyEnv(k, 0.22, 0.35);
         if (e < 0.01) continue;
         float vel = keyVel(k);
-        float ks = (0.06 + vel * 0.07) * (0.7 + uD3 * 0.7);
+        float ks = (0.06 + vel * 0.07) * hkDR(0.4, 1.05, 1.9, uD3);
         vec2 kc = vec2(hkKeyX(k) * 0.9, -0.30 + 0.45 * fract(keyPos(k) * 7.3 + float(k) * 0.29));
         vec2 dq = pM - kc;
         glowSum += exp(-dot(dq, dq) / (ks * ks * 9.0)) * e * (1.0 + vel);
@@ -372,7 +372,7 @@ vec4 render(vec2 uv) {
     col = mix(col, midC, midP.a);
     // segunda niebla mas baja
     float fz2 = plate3Wrap(vec2(pM.x * 0.13 + t * 0.006, pM.y * 0.5 + 0.6)).b;
-    col = mix(col, fogC * 2.4 + irisCol * glowSum * 0.02, smoothstep(0.40, 0.80, fz2) * exp(-pow((pM.y + 0.45) / 0.30, 2.0)) * (0.30 + uD6 * 0.40));
+    col = mix(col, fogC * 2.4 + irisCol * glowSum * 0.02, smoothstep(0.40, 0.80, fz2) * exp(-pow((pM.y + 0.45) / 0.30, 2.0)) * hkDR(0.0, 0.5, 1.1, uD6));
     col = mix(col, eyeAcc[1], eyeM[1]);
     // rayos de luna en el aire
     col += moonC * shafts * 0.07 * (1.0 - midP.a * 0.6);
@@ -404,7 +404,7 @@ vec4 render(vec2 uv) {
     }
 
     // --- halo de los ojos en la niebla ---
-    col += irisCol * glowSum * (0.015 + uD6 * 0.035) * (0.6 + bass * 0.6);
+    col += irisCol * glowSum * hkDR(0.0, 0.0325, 0.09, uD6) * (0.6 + bass * 0.6);
 
     // --- luciernagas (titilan con los agudos) ---
     float ffK = dv == 1 ? D.x : 0.0;

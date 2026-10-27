@@ -15,6 +15,15 @@ float hkLoco() { return clamp(uChaos, 0.0, 1.0); }
 // una unidad en cada tiempo del pulso detectado (ritmo.py) -- las piezas
 // saltan en el golpe y quedan quietas entre golpes. Sin pulso (silencio o
 // sin bombo) vale 0: lo que mueve el audio se detiene.
+// Rango de una perilla Detail en tres puntos: lo en 0, mid en 0,5 (el look
+// de siempre) y hi en 1. Sirve para agrandar los extremos sin mover el medio.
+float hkDR(float lo, float mid, float hi, float d) {
+    return d < 0.5 ? mix(lo, mid, d * 2.0) : mix(mid, hi, d * 2.0 - 1.0);
+}
+vec3 hkDR(vec3 lo, vec3 mid, vec3 hi, float d) {
+    return d < 0.5 ? mix(lo, mid, d * 2.0) : mix(mid, hi, d * 2.0 - 1.0);
+}
+
 float hkBass() { return clamp(uBass, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0); }
 float hkStepBeat() {
     if (uMbeat <= 0.05) return 0.0;

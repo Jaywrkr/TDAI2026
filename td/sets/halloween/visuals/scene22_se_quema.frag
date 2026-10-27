@@ -140,7 +140,7 @@ vec4 render(vec2 uv) {
     float fireAmt = smoothstep(-0.05, 0.05, b) * (1.0 - smoothstep(1.0, 1.2, b));
     vec3 fireC = vec3(1.0, 0.45, 0.12);
     vec3 L = vec3(0.045, 0.042, 0.040);
-    L += fireC * fireAmt * (0.5 + bass * 0.6 + blaze * 1.2) * (0.4 + uD2) * 0.16 / (0.12 + dot(p - frontP, p - frontP) * 1.5 / (1.0 + blaze));
+    L += fireC * fireAmt * (0.5 + bass * 0.6 + blaze * 1.2) * hkDR(0.1, 0.9, 2.0, uD2) * 0.16 / (0.12 + dot(p - frontP, p - frontP) * 1.5 / (1.0 + blaze));
     // piano: cada llamarada tambien ilumina la mesa
     float keyFire = 0.0;
     for (int k = 0; k < N_KEYS; k++) {
@@ -232,9 +232,9 @@ vec4 render(vec2 uv) {
         charC *= 1.0 + 4.0 * smoothstep(0.08, 0.0, burnt) * fireAmt;                          // carbon todavia caliente
         photo = mix(photo, charC, charZ);
         // brasa: linea que avanza, con brasitas sueltas detras
-        float ember = exp(-abs(burnt - 0.012) / (0.016 + uD2 * 0.018));
+        float ember = exp(-abs(burnt - 0.012) / hkDR(0.008, 0.025, 0.05, uD2));
         float sparks = smoothstep(0.82, 0.95, noise21(q * 50.0 + t * 0.6)) * smoothstep(0.0, 0.03, burnt) * smoothstep(0.22, 0.05, burnt);
-        float heat = (ember + sparks * 0.6) * (0.6 + bass * 0.7 + hit * 0.8) * (0.4 + uD2 * 0.9);
+        float heat = (ember + sparks * 0.6) * (0.6 + bass * 0.7 + hit * 0.8) * hkDR(0.1, 0.85, 2.0, uD2);
         vec3 emberC = mix(vec3(1.0, 0.25, 0.04), vec3(1.0, 0.85, 0.45), clamp(ember * ember, 0.0, 1.0));
         vec3 lit = photo * L * 6.0 + photo * 0.10 * (1.0 - charZ);
         lit += photo * fireC * exp(-max(-burnt, 0.0) * 9.0) * fireAmt * (0.4 + bass * 0.5) * 0.6 * (1.0 - charZ);   // el fuego ilumina el papel
@@ -248,7 +248,7 @@ vec4 render(vec2 uv) {
         vec2 up = q22rot(-tilt) * vec2(0.0, 1.0);
         float fl = noise21(vec2(q.x * 14.0, q.y * 6.0 - t * 4.0));
         float tongue = smoothstep(0.55 - blaze * 0.25, 0.85, fl) * exp(-max(burnt, 0.0) * 30.0 / (1.0 + blaze * 2.5)) * smoothstep(-0.06 - blaze * 0.1, 0.0, burnt);
-        col += vec3(1.0, 0.5, 0.15) * tongue * (0.5 + bass + blaze) * (0.3 + uD2) * 1.2;
+        col += vec3(1.0, 0.5, 0.15) * tongue * (0.5 + bass + blaze) * hkDR(0.05, 0.8, 1.8, uD2) * 1.2;
     }
     // --- PIANO: llamaradas a la altura de la nota ---
     for (int k = 0; k < N_KEYS; k++) {
@@ -283,8 +283,8 @@ vec4 render(vec2 uv) {
     // --- humo ---
     {
         float sm = fbm(vec2(p.x * 1.6 + sin(p.y * 2.0 + t * 0.3) * 0.4 - wind * p.y, p.y * 1.2 - t * (0.25 + mid * 0.4)), 4, 0.55);
-        float col2 = exp(-pow((p.x - frontP.x - (p.y - frontP.y) * (0.2 + wind)) * 1.5, 2.0)) * smoothstep(frontP.y - 0.2, frontP.y + 0.3, p.y);
-        float smoke = smoothstep(0.45, 0.8, sm) * col2 * fireAmt * clamp(uD3 + blaze * 0.6, 0.0, 1.2);
+        float col2 = exp(-pow((p.x - frontP.x - (p.y - frontP.y) * (0.2 + wind)) * hkDR(3.0, 1.5, 0.45, uD3), 2.0)) * smoothstep(frontP.y - 0.2, frontP.y + 0.3, p.y);
+        float smoke = smoothstep(0.45, 0.8, sm) * col2 * fireAmt * clamp(hkDR(0.0, 0.5, 1.3, uD3) + blaze * 0.6, 0.0, 1.4);
         // suceso: un rostro se forma en el humo; detalle: un aro de humo
         if (sv == 1) {
             vec2 sq = (p - frontP - vec2(0.15, 0.55)) / 0.30;
@@ -302,14 +302,14 @@ vec4 render(vec2 uv) {
     }
     // --- cenizas y chispas que vuelan ---
     vec2 dir = normalize(vec2(0.25 + wind * 2.5, 1.0));
-    float ash = hkParticles(p - frontP * 0.3, t * 0.6, 0.05 + uD4 * 0.25 + blaze * 0.2, dir, 0.035);
-    col += vec3(1.0, 0.45, 0.12) * ash * (0.15 + high * 0.6 + uD4 * 0.3 + blaze) * fireAmt * smoothstep(-0.8, 0.2, p.y - frontP.y);
+    float ash = hkParticles(p - frontP * 0.3, t * 0.6, hkDR(0.0, 0.175, 0.6, uD4) + blaze * 0.2, dir, 0.035);
+    col += vec3(1.0, 0.45, 0.12) * ash * (0.15 + high * 0.6 + hkDR(-0.15, 0.15, 0.8, uD4) + blaze) * fireAmt * smoothstep(-0.8, 0.2, p.y - frontP.y);
     // incendio: resplandor sobre toda la mesa
     col += vec3(1.0, 0.40, 0.10) * cA * C.y * 0.08 * (0.7 + 0.3 * noise21(vec2(uRTime * 2.0, 1.0))) * smoothstep(1.0, -0.8, p.y);
     // detalles: salta una chispa; cae ceniza sobre la foto
     if (dv == 0) { vec2 sq2 = p - frontP - vec2(0.3 * D.y, D.y * 0.8 - D.y * D.y * 0.6); col += vec3(1.0, 0.7, 0.3) * exp(-dot(sq2, sq2) * 20000.0) * D.x * 2.0; }
-    float flake = hkParticles(p * 1.3 + 3.0, t * 0.3, 0.06 + uD4 * 0.15 + (dv == 3 ? D.x * 0.3 : 0.0), dir, 0.05);
-    col = mix(col, vec3(0.20, 0.19, 0.18) * (0.2 + L * 3.0), clamp(flake, 0.0, 1.0) * 0.5 * uD4);
+    float flake = hkParticles(p * 1.3 + 3.0, t * 0.3, hkDR(0.0, 0.135, 0.35, uD4) + (dv == 3 ? D.x * 0.3 : 0.0), dir, 0.05);
+    col = mix(col, vec3(0.20, 0.19, 0.18) * (0.2 + L * 3.0), clamp(flake, 0.0, 1.0) * 0.5 * hkDR(0.0, 0.5, 1.4, uD4));
 
     return vec4(hkFinish(col, uv, vec3(0.35, 0.25, 0.18)), 1.0);
 }

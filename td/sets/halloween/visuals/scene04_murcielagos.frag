@@ -143,7 +143,7 @@ vec4 render(vec2 uv) {
 
     // --- luna (lamina con crateres) ---
     vec2 mc = vec2(0.35, 0.28);
-    float moonR = 0.42 + uD2 * 0.30;
+    float moonR = hkDR(0.25, 0.57, 0.95, uD2);
     vec2 mp = pS - mc;
     float mr = length(mp);
     vec3 pale = vec3(1.0, 0.93, 0.78);
@@ -268,7 +268,7 @@ vec4 render(vec2 uv) {
             // suceso: alguien recorre el castillo con una vela
             float walk = sv == 2 ? se * exp(-pow((pC.x - mix(-2.0, 0.75, ss > 0.5 ? sp : 1.0 - sp)) / 0.09, 2.0)) : 0.0;
             on = max(on, max(walk, ball));
-            vec3 wc = vec3(1.0, 0.62, 0.25) * candle * on * (0.8 + uD6 * 1.4 + walk * 1.2);
+            vec3 wc = vec3(1.0, 0.62, 0.25) * candle * on * (hkDR(0.0, 1.5, 3.5, uD6) + walk * 1.2);
             // B: de fiesta, cada ventana con su color, que cambia con la musica
             vec3 party = hsv2rgb(vec3(fract(idq * 0.23 + floor(uRTime * 0.5 + idq * 0.07) * 0.31), 0.85, 1.0));
             wc = mix(wc, party * (1.8 + bass * 1.0), ball * 0.9);
@@ -285,7 +285,7 @@ vec4 render(vec2 uv) {
         }
     }
     // halo de las ventanas y niebla del valle
-    col += vec3(1.0, 0.6, 0.25) * 0.05 * (0.4 + uD6 + ball * 2.5) * exp(-abs(pC.y + 0.1) * 3.0) * smoothstep(1.4, 0.2, abs(pC.x + 0.6));
+    col += vec3(1.0, 0.6, 0.25) * 0.05 * (hkDR(0.0, 0.9, 2.2, uD6) + ball * 2.5) * exp(-abs(pC.y + 0.1) * 3.0) * smoothstep(1.4, 0.2, abs(pC.x + 0.6));
     // C: resplandor del incendio y humo que sube
     if (fireOn > 0.0) {
         col += vec3(1.0, 0.35, 0.06) * fireOn * smoothstep(0.0, 0.8, fireR) * 0.40 * (0.8 + bass * 0.6)
@@ -319,7 +319,7 @@ vec4 render(vec2 uv) {
 
     // --- bandadas en tres profundidades ---
     float swarmE = sv == 0 ? se : 0.0;
-    float presence = clamp(0.30 + uD1 * 0.45 + uDensity * 0.10 + swarmE * 0.45, 0.0, 0.95);
+    float presence = clamp(hkDR(0.0, 0.525, 0.95, uD1) + uDensity * 0.10 + swarmE * 0.45, 0.0, 0.95);
     float bats = 1e3;
     float batRim = 0.0;
     for (int L = 0; L < 3; L++) {
@@ -341,7 +341,7 @@ vec4 render(vec2 uv) {
         center.y += 0.06 * sin(t * (0.8 + h.x) + h.y * 9.0);
         vec2 world = center - vec2(t * (0.10 + 0.05 * fl) * depth, 0.0);
         vec2 away = normalize(world - mc + 1e-4);
-        center += (away + (h - 0.5)) * hit * (0.03 + uD4 * 0.10) * depth;
+        center += (away + (h - 0.5)) * hit * hkDR(0.0, 0.08, 0.25, uD4) * depth;
         float scale = 0.17 * depth * (1.0 + hit * loco * 0.6 * h.x + swarmE * 0.25) * mix(0.15, 1.0, appear);
         vec2 bq = (q0 - center) / scale;
         if (dot(bq, bq) > 0.6) { bats = min(bats, (length(bq) - 0.55) * scale); continue; }

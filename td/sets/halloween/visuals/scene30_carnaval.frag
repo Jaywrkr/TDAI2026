@@ -104,7 +104,7 @@ vec4 render(vec2 uv) {
     p += (vec2(noise21(vec2(uRTime * 30.0, 1.0)), noise21(vec2(uRTime * 30.0, 5.0))) - 0.5) * screech * C.y * 0.03;
 
     float rust = uD6;
-    float nB = min(0.25 + uD1 * 0.75 + hkActVal(3.0) * 0.1, 1.0) * (1.0 - rust * 0.35);
+    float nB = min(hkDR(0.0, 0.625, 1.0, uD1) + hkActVal(3.0) * 0.1, 1.0) * (1.0 - rust * 0.35);
     vec3 redB = vec3(1.0, 0.10, 0.05);
     vec3 fair = vec3(1.0, 0.85, 0.45);
     float redK = clamp(uD5 + C.x * (1.0 - C.z), 0.0, 1.0);
@@ -200,14 +200,14 @@ vec4 render(vec2 uv) {
 
     // --- caballos del carrusel: giran (medio frente) y suben y bajan ---
     vec2 cc = CV_CAROUSEL.xy;
-    float crot = t * 0.18 + hit * uD4 * 0.25 + grand * G.y * cph * 6.0;
+    float crot = t * 0.18 + hit * hkDR(0.0, 0.5, 1.8, uD4) * 0.25 + grand * G.y * cph * 6.0;
     for (int h = 0; h < 6; h++) {
         float fh = float(h);
         float a = fh / 6.0 * 6.2831853 + crot;
         float front = sin(a);                         // > 0 adelante
         if (front < -0.15) continue;
         float x = cc.x + cos(a) * CV_CAROUSEL.z * 0.72;
-        float bob = 0.06 * sin(t * 2.0 + fh * 1.7) + (h == int(mod(floor(uRTime * 0.9), 6.0)) ? hit * uD4 * 0.10 : 0.0);
+        float bob = 0.06 * sin(t * 2.0 + fh * 1.7) + (h == int(mod(floor(uRTime * 0.9), 6.0)) ? hit * hkDR(0.0, 0.5, 1.8, uD4) * 0.10 : 0.0);
         float y = CV_CPLAT + 0.34 + bob;
         float s = 0.44 * (0.85 + 0.15 * front);
         vec2 hq = (p - vec2(x, y)) / s;
@@ -287,7 +287,7 @@ vec4 render(vec2 uv) {
 
     // --- niebla (D3) ---
     float fz = plate1Wrap(vec2(p.x * 0.25 + t * 0.012, p.y * 0.6)).g;
-    float fogA = (0.10 + uD3 * 0.6) * smoothstep(-0.1, -0.85, p.y) * (0.5 + 0.7 * fz);
+    float fogA = hkDR(0.0, 0.4, 1.1, uD3) * smoothstep(-0.1, -0.85, p.y) * (0.5 + 0.7 * fz);
     col = mix(col, vec3(0.12, 0.10, 0.16) + mix(fair, redB, redK) * nB * 0.05, clamp(fogA, 0.0, 0.8));
 
     // --- apagon: solo queda la sonrisa del payaso ---

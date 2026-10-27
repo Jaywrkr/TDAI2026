@@ -303,7 +303,7 @@ vec4 render(vec2 uv) {
     float across = dot(sq0, vec2(-sd.y, sd.x));
     float shaft = smoothstep(WIN_H.x * 1.05, WIN_H.x * 0.55, abs(across)) * smoothstep(-0.2, 0.3, along) * exp(-max(along, 0.0) * 0.9);
     float dustK = dv == 4 ? D.x : 0.0;
-    float dust = shaft > 0.01 ? hkParticles(pW * 1.6, t * 0.25, 0.10 + uD3 * 0.25 + high * 0.15 + dustK * 0.4, vec2(0.2, -0.3), 0.025) * (1.0 + dustK * 1.5) : 0.0;
+    float dust = shaft > 0.01 ? hkParticles(pW * 1.6, t * 0.25, hkDR(0.0, 0.225, 0.7, uD3) + high * 0.15 + dustK * 0.4, vec2(0.2, -0.3), 0.025) * (1.0 + dustK * 1.5) : 0.0;
     float beamOn = 1.0 - smoothstep(0.55, 0.85, plate5Wrap(vec2(t * 0.004, 0.37)).r) * 0.6;
     col += moonC * shaft * 0.10 * beamOn;
     col += vec3(0.9, 0.92, 1.0) * dust * shaft * (0.5 + high * 1.2) * beamOn;
@@ -356,13 +356,13 @@ vec4 render(vec2 uv) {
     float aura = exp(-max(length(q * vec2(0.85, 1.05)) - 0.55, 0.0) * 3.0);
     col += orange * aura * (0.08 + uD6 * 0.30) * (0.6 + inner * 0.5) * (1.0 - hc.a);
     float rage = max(max(hit * loco, relight * 0.85 * (1.0 - smoothstep(0.80, 0.97, C.w))), talk * (0.25 + hit * 0.6));
-    float smileK = clamp(uD4 + laugh * 0.6 + talk * (bass * 0.9 + mid * 0.4 - 0.2), 0.0, 1.2);
+    float smileK = clamp(hkDR(-0.15, 0.5, 1.25, uD4) + laugh * 0.6 + talk * (bass * 0.9 + mid * 0.4 - 0.2), 0.0, 1.2);
     vec2 EG = hkEgg(1.0);
     gInfMouth = smoothstep(0.0, 0.3, EG.x);
     float faceD = hwFace(q, smileK, rage);
     if (hc.a > 0.0) {
         vec4 hn = plate4(huv);
-        vec2 nxy = (hn.rg * 2.0 - 1.0) * mix(0.45, 1.6, uD5);
+        vec2 nxy = (hn.rg * 2.0 - 1.0) * hkDR(0.0, 1.025, 3.6, uD5);
         vec3 n = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy) * 0.5, 0.05))));
         vec3 ha = alb(hc.rgb);
         vec3 Lm = normalize(vec3(-0.55, 0.45, 0.70));
@@ -438,7 +438,7 @@ vec4 render(vec2 uv) {
         if (cone <= 0.0) continue;
         vec2 su = vec2(sp.x * 0.6 + sin(sp.y * 3.0 - t) * (0.05 + mid * 0.08), sp.y * 0.35 - t * 0.02) + float(s) * 0.3;
         float sm = plate5Wrap(su).g;
-        col += vec3(0.30, 0.25, 0.22) * smoothstep(0.45, 0.80, sm) * cone * (0.20 + uD3 * 0.5 + (dv == 1 ? D.x * 0.8 : 0.0) + cC * C.z * 0.5);
+        col += vec3(0.30, 0.25, 0.22) * smoothstep(0.45, 0.80, sm) * cone * (hkDR(0.0, 0.45, 1.3, uD3) + (dv == 1 ? D.x * 0.8 : 0.0) + cC * C.z * 0.5);
     }
     // --- locura: lenguas de fuego por ojos y boca ---
     if (rage > 0.01) {
@@ -510,7 +510,7 @@ vec4 render(vec2 uv) {
     }
     // --- brasas (los agudos las hacen chispear; la llamarada las suelta) ---
     float sparkK = (dv == 2 ? D.x : 0.0) + dive;
-    float emb = hkParticles(pT, t + hit * 0.3, 0.08 + uD3 * 0.22 + relight * 0.25 + sparkK * 0.25, vec2(0.15, 1.0), 0.04);
+    float emb = hkParticles(pT, t + hit * 0.3, hkDR(0.0, 0.19, 0.6, uD3) + relight * 0.25 + sparkK * 0.25, vec2(0.15, 1.0), 0.04);
     col += orange * emb * (0.7 + hit * 1.2 + high * 0.8 + relight * 2.5 + sparkK * 2.0) * smoothstep(1.0, -0.4, pT.y) * exp(-abs(pT.x) * 0.5);
 
     col = audioLift(col, high * 0.08);

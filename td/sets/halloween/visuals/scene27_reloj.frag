@@ -129,8 +129,8 @@ vec4 render(vec2 uv) {
     vec3 metC = mix(bronze, verd, uD5);
     vec3 warm = vec3(1.0, 0.78, 0.45);
     vec3 red = vec3(1.0, 0.18, 0.08);
-    float moonK = (0.55 + uD3 * 0.6) * (1.0 - cloudE * 0.5) * (1.0 - C.x * 0.35) + bolt * 1.4;
-    float dialK = (0.35 + uD3 * 0.9) * (1.0 + strikeA * 0.8);
+    float moonK = hkDR(0.1, 0.85, 1.8, uD3) * (1.0 - cloudE * 0.5) * (1.0 - C.x * 0.35) + bolt * 1.4;
+    float dialK = hkDR(0.05, 0.8, 2.0, uD3) * (1.0 + strikeA * 0.8);
     vec3 dialC = mix(warm, red, C.x * (1.0 - C.z * 0.6));
 
     vec2 pu = rUV(p);
@@ -153,7 +153,7 @@ vec4 render(vec2 uv) {
     sky += vec3(0.4, 0.45, 0.6) * exp(-mr * 2.4) * 0.35 * moonK;
     float st = step(0.995, hash21(floor(p * 150.0)));
     sky += vec3(0.7) * st * smoothstep(0.0, 0.7, p.y) * (0.5 + 0.5 * sin(uRTime * 2.0 + hash21(floor(p * 150.0)) * 30.0));
-    sky = mix(sky, vec3(0.92, 0.90, 0.82) * (0.8 + 0.2 * plate2Wrap(mq * 0.8 + 0.6).r) * (0.6 + 0.5 * uD3), 1.0 - smoothstep(0.14, 0.148, mr));
+    sky = mix(sky, vec3(0.92, 0.90, 0.82) * (0.8 + 0.2 * plate2Wrap(mq * 0.8 + 0.6).r) * hkDR(0.25, 0.85, 1.4, uD3), 1.0 - smoothstep(0.14, 0.148, mr));
     sky = hkStyleMoon(sky, p, MOON, 0.14);
     float cl = plate2Wrap(vec2(p.x * 0.2 + t * 0.010, p.y * 0.32 + 0.4)).r;
     float cl2 = plate2Wrap(vec2(p.x * 0.45 - t * 0.018, p.y * 0.6 + 0.1)).r;
@@ -187,7 +187,7 @@ vec4 render(vec2 uv) {
     float difM = max(dot(nrm, vec3(0.6365, 0.4620, 0.6176)), 0.0);
     float rimM = pow(1.0 - nrm.z, 1.5) * max(dot(normalize(nrm.xy + 1e-4), vec2(0.81, 0.59)), 0.0);
     float difB = max(dot(nrm, normalize(vec3(clamp((bx - p.x) * 0.6, -1.2, 1.2), 0.8, 0.5))), 0.0);
-    float moonOnly = (0.55 + uD3 * 0.6) * (1.0 - cloudE * 0.5) * (1.0 - C.x * 0.35);
+    float moonOnly = hkDR(0.1, 0.85, 1.8, uD3) * (1.0 - cloudE * 0.5) * (1.0 - C.x * 0.35);
     float keyL = mix(moonK, moonOnly * (0.30 + 1.30 * difM + rimM * 0.9) + bolt * 1.4 * (0.25 + 1.8 * difB), rlOn);
     vec3 toDial = vec3(dc - p, 0.12);
     float glowD = max(dot(nrm, normalize(toDial)), 0.0) * exp(-max(r - RJ_DIAL.z, 0.0) * 4.0) * step(RJ_RCUT, r);
@@ -211,7 +211,7 @@ vec4 render(vec2 uv) {
     if (mk.b > 0.004) {
         float cr = smoothstep(mk.b, mk.b + 0.03, crackOpen * 1.02);
         stone = mix(stone, vec3(0.012, 0.008, 0.006), cr * 0.9);
-        stone += dialC * cr * dialK * 0.25 * exp(-r * 2.0) * (1.0 + grand * G.y * 2.0);     // la luz se escapa por la grieta
+        stone += dialC * cr * dialK * hkDR(0.1, 0.25, 1.3, uD6) * exp(-r * 2.0) * (1.0 + grand * G.y * 2.0);     // la luz se escapa por la grieta
     }
     // persianas del campanario: de adentro sale luz en el climax
     float lou = smoothstep(0.4, 0.5, mk.r) * (1.0 - smoothstep(0.6, 0.7, mk.r));
@@ -221,8 +221,8 @@ vec4 render(vec2 uv) {
     // --- el centro calado: engranajes ---
     if (r < RJ_RCUT) {
         vec3 inside = vec3(0.04, 0.025, 0.015) + dialC * 0.10 * dialK * exp(-r * 6.0);
-        float nG = 2.0 + uD1 * 5.0 + hkActVal(2.0) * 1.0;
-        float jolt = hit * uD4 * 0.35;
+        float nG = hkDR(0.0, 4.5, 7.0, uD1) + hkActVal(2.0) * 1.0;
+        float jolt = hit * hkDR(0.0, 0.5, 1.8, uD4) * 0.35;
         float om = t * 0.45 + bass * 0.06 + jolt;
         // de atras hacia adelante
         vec4 GR[7];
@@ -309,7 +309,7 @@ vec4 render(vec2 uv) {
         hA = mix(hA, (3.0 + 33.0 / 60.0) / 12.0 * 6.2831853, go);
         mA = mix(mA, 33.0 / 60.0 * 6.2831853, go);
     }
-    float secA = floor(uRTime) / 60.0 * 6.2831853 + hit * uD4 * 0.35;
+    float secA = floor(uRTime) / 60.0 * 6.2831853 + hit * hkDR(0.0, 0.5, 1.8, uD4) * 0.35;
     if (r < RJ_DIAL.z) {
         float hd = min(rjHand(q, hA, 0.30, 0.012), rjHand(q, mA, 0.42, 0.009));
         float sd = max(abs(dot(q, vec2(cos(secA), -sin(secA)))) - 0.003, abs(dot(q, vec2(sin(secA), cos(secA))) - 0.16) - 0.24);
@@ -358,9 +358,9 @@ vec4 render(vec2 uv) {
     col += ringC * 0.55;
 
     // --- haces de luna y polvo (D2, medios) ---
-    float rays = hkRays(p, MOON, t, 24.0) * hkStyleRays() * (0.3 + uD3 * 0.7) * (1.0 - cov) * 0.55;
-    float dust = hkParticles(p * 1.1 + vec2(0.0, sin(t * 0.2) * 0.2), t * 0.3 + mid * 0.6, 0.04 + uD2 * 0.16 + mid * 0.08, vec2(-0.3, 0.15 + mid * 0.4), 0.018);
-    col += vec3(0.55, 0.6, 0.75) * rays * 0.22 + vec3(0.85, 0.88, 1.0) * dust * (0.15 + rays * 3.0) * (0.3 + uD2);
+    float rays = hkRays(p, MOON, t, 24.0) * hkStyleRays() * hkDR(0.0, 0.65, 1.8, uD3) * (1.0 - cov) * 0.55;
+    float dust = hkParticles(p * 1.1 + vec2(0.0, sin(t * 0.2) * 0.2), t * 0.3 + mid * 0.6, hkDR(0.0, 0.12, 0.45, uD2) + mid * 0.08, vec2(-0.3, 0.15 + mid * 0.4), hkDR(0.012, 0.018, 0.032, uD2));
+    col += vec3(0.55, 0.6, 0.75) * rays * 0.22 + vec3(0.85, 0.88, 1.0) * dust * (0.15 + rays * 3.0) * hkDR(0.1, 0.8, 2.0, uD2);
 
     // --- murcielagos del campanario (secuelas del climax) ---
     if (cph > 0.62 && cph < 1.0) {

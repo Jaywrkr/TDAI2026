@@ -121,7 +121,7 @@ vec4 render(vec2 uv) {
     vec4 EST = hkEstado(1.0, 4);
     hkTimeline(S, D, C, cv, grand, hkEstadoIdx(1.0, 4));
 
-    float cover = hkActVal(1.0) - EST.x * 0.30 + EST.z * 0.25;
+    float cover = hkActVal(1.0) - EST.x * 0.30 + EST.z * 0.25 + (uD4 - 0.5) * 2.0;   // D4 = tormenta: cielo limpio .. cerrado
     float fogAct = mix(0.7, 1.35, hkActVal(2.0)) * (1.0 + 0.65 * EST.y + 0.25 * cB * C.x);
     float bloodMoon = cA * max(C.y, C.z * 0.75);
     float parade = max(sv == 6 ? se : 0.0, G.y + G.z * 0.6) + EST.w * 0.5;
@@ -279,7 +279,7 @@ vec4 render(vec2 uv) {
     // --- lapidas: D2 las suma DE A UNA (cada una con su punto de la perilla,
     // lamina 7_lapidas_orden) y la nueva sube de la tierra; en el pico del
     // climax la tierra tiembla ---
-    float tombN = mix(0.20, 1.06, uD2);
+    float tombN = hkDR(-0.15, 0.63, 1.06, uD2);
     float sucX = (ss - 0.5) * uAspect * 1.6;                  // donde pasa el suceso
     float shakeK = cA * C.y + cC * C.x * (1.0 - C.z) * 0.8
                  + (sv == 0 ? se * smoothstep(0.0, 0.5, sp) * (1.0 - smoothstep(0.6, 0.8, sp)) * exp(-pow((pT.x - sucX) / 0.15, 2.0)) : 0.0);
@@ -421,12 +421,12 @@ vec4 render(vec2 uv) {
             fu.y += sin(pT.x * 2.0 + t * 0.4 + fi) * bass * 0.04;
             vec4 nz = plate4Wrap(fu);
             float n = i == 0 ? nz.g : nz.b;
-            float band = exp(-pow((pT.y - horizon - 0.05 - fi * 0.07) / (0.17 + fi * 0.06 + uD1 * 0.10), 2.0));
+            float band = exp(-pow((pT.y - horizon - 0.05 - fi * 0.07) / (hkDR(0.09, 0.22, 0.42, uD1) + fi * 0.06), 2.0));
             band *= 1.0 - smoothstep(horizon + 0.22, horizon + 0.42, pT.y);
             fogAmt += smoothstep(0.34, 0.80, n) * band * (0.75 - fi * 0.10);
         }
     }
-    fogAmt *= (0.95 + uD1 * 0.85 + bass * 0.55) * fogAct;
+    fogAmt *= (hkDR(0.06, 1.375, 2.9, uD1) + bass * 0.55) * fogAct;
     float towardMoon = exp(-abs(pT.x - mc.x) * 1.1);
     // el latido de la niebla con el bajo y el golpe es suave: cubre media pantalla y,
     // sumado al destello, pasaba de 3 por segundo (test de destellos, peor caso)
@@ -586,8 +586,8 @@ vec4 render(vec2 uv) {
     // la niebla baja cubre el pie de las lapidas cercanas y el suelo
     vec2 nu = vec2(pN.x * 0.07 - t * 0.010, pN.y * 0.35 + 0.5) + warp * 0.06;
     vec4 nz2 = plate4Wrap(nu);
-    float nearFog = smoothstep(0.38, 0.75, nz2.g) * exp(-pow((pN.y + 0.70) / (0.12 + uD1 * 0.06), 2.0));
-    nearFog += smoothstep(0.45, 0.80, nz2.a) * smoothstep(-0.55, -1.05, pN.y) * (0.25 + uD1 * 0.3);
+    float nearFog = smoothstep(0.38, 0.75, nz2.g) * exp(-pow((pN.y + 0.70) / hkDR(0.06, 0.15, 0.24, uD1), 2.0));
+    nearFog += smoothstep(0.45, 0.80, nz2.a) * smoothstep(-0.55, -1.05, pN.y) * hkDR(0.0, 0.40, 1.0, uD1);
     col = mix(col, fogTint * fogGlow * 0.7, clamp(nearFog * (0.6 + bass * 0.4) * fogAct, 0.0, 0.8));
 
     // --- grading: sombras frias, luces calidas ---

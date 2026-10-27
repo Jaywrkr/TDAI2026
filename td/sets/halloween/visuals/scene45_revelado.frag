@@ -71,18 +71,18 @@ vec4 render(vec2 uv) {
     vec3 alb = plateCol(fa.rgb);
 
     // cielo: azul muy oscuro abajo, negro arriba; luna tenue
-    vec3 sky = mix(vec3(0.015, 0.03, 0.12), vec3(0.0), smoothstep(-0.9, 1.0, p.y)) * (0.4 + uD6);
+    vec3 sky = mix(vec3(0.015, 0.03, 0.12), vec3(0.0), smoothstep(-0.9, 1.0, p.y)) * hkDR(0.1, 0.9, 2.0, uD6);
     vec2 mq = p - vec2(-1.75, 0.72);
-    sky += vec3(0.5, 0.55, 0.8) * (smoothstep(0.17, 0.16, length(mq)) * 0.25 + exp(-length(mq) * 3.0) * 0.06) * uD6;
+    sky += vec3(0.5, 0.55, 0.8) * (smoothstep(0.17, 0.16, length(mq)) * 0.25 + exp(-length(mq) * 3.0) * 0.06) * hkDR(0.0, 0.5, 1.8, uD6);
 
     // pedazos del arte
-    vec3 cv = rvCell(p * mix(1.4, 3.4, 1.0 - uD3) + 3.0);
-    float dens = mix(0.12, 0.5, uD1) + 0.12 * B;
+    vec3 cv = rvCell(p * hkDR(5.0, 2.4, 0.9, uD3) + 3.0);
+    float dens = hkDR(0.0, 0.31, 0.85, uD1) + 0.12 * B;
     float on = step(hash21(vec2(cv.x * 91.0, k)), dens);
     // piano: prende los pedazos de su lado
     for (int kk = 0; kk < N_KEYS; kk++) {
         float ek = keyEnv(kk, 0.04, 0.8);
-        if (ek > 0.2 && abs(uv.x - keyPos(kk)) < 0.12) on = max(on, ek);
+        if (ek > 0.2 && abs(uv.x - keyPos(kk)) < 0.18) on = max(on, ek);
     }
     on = max(on, C.y);
     float attack = 1.0 + 0.8 * exp(-since * every * 6.0) * has;
@@ -114,7 +114,7 @@ vec4 render(vec2 uv) {
         vec2 d2 = abs(p - w.xy) - w.zw;
         float d = length(max(d2, 0.0)) + min(max(d2.x, d2.y), 0.0);
         if (d > 0.05) continue;
-        float wo = step(hash21(vec2(float(i), floor(st / 2.0) + 3.0)), 0.08 + 0.42 * uD4) * (0.35 + 0.45 * B + 0.6 * hit);
+        float wo = step(hash21(vec2(float(i), floor(st / 2.0) + 3.0)), hkDR(0.0, 0.29, 0.85, uD4)) * (0.35 + 0.45 * B + 0.6 * hit);
         eyes += vec3(1.0, 0.45, 0.08) * (smoothstep(0.004, -0.004, d) * 0.9 + exp(-max(d, 0.0) * 60.0) * 0.25) * wo;
     }
     vec3 col = mix(sky, house + eyes, fa.a);
@@ -122,5 +122,6 @@ vec4 render(vec2 uv) {
     float sweep = exp(-pow((p.x - (fract(st / 8.0) * 2.0 - 1.0) * uAspect * 1.2) * 2.5, 2.0)) * has;
     col += alb * fa.a * pA * sweep * 0.35 * (0.5 + B);
     col += (hash21(uv * 1000.0 + floor(uRTime * 24.0)) - 0.5) * 0.012;
+    col = hkKeyLit(col, p, 0.0, vec2(0.36, 0.9), pA, pB, 0.04, 0.8);   // cada tecla con su luz
     return vec4(hkFinish(max(col, 0.0), uv, vec3(0.0)), 1.0);
 }
