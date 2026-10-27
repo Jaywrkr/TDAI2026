@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'texto-presets-f41 2026-10-27'
+BUILD_TAG = 'fuentes-orden-f42 2026-10-27'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -515,7 +515,14 @@ LOOKS = ['NEUTRO', 'NEON FRIO', 'AMBAR FILMICO', 'MONO CONTRASTE']
 # fundido al mostrar/ocultar. Nombres de fuente que TD reconoce por
 # nombre de sistema -- si una no esta instalada, Text TOP cae a una
 # generica sola, no rompe nada.
-FONTS = ['Arial', 'Impact', 'Courier New', 'Georgia', 'Verdana']
+FONTS_SYSTEM = ['Arial', 'Impact', 'Courier New', 'Georgia', 'Verdana']
+# FUENTES PROPIAS (fase 42): cualquier .ttf/.otf en td/fonts/ (todos los
+# sets) o en td/sets/<set>/fonts/ (solo ese set) entra al banco, ANTES de
+# las del sistema, con el nombre del archivo sin '-Regular'. El Text TOP
+# la carga por archivo (parametro fontfile), no hace falta instalarla en
+# la Mac. Despues de agregar una: correr el Text DAT de arranque.
+FONT_FILES = {}
+FONTS = list(FONTS_SYSTEM)
 
 # Cuanto tarda el fundido al prender/apagar Textvisible. Mismo patron
 # que la transicion de escenas (Transitionseconds): Parametro (0/1) ->
@@ -1019,6 +1026,31 @@ except Exception as _e:
     print('SET "{}" no se pudo cargar ({}); uso {}'.format(
         SET_NAME, _e, DEFAULT_SET))
     SET_NAME = DEFAULT_SET
+
+
+def _scan_fonts():
+    """Arma FONTS/FONT_FILES con las fuentes de td/fonts y del set."""
+    g = globals()
+    files = {}
+    dirs = [_os.path.join(_TD_DIR, 'fonts')]
+    if SET_NAME != DEFAULT_SET:
+        dirs.append(_os.path.join(set_dir(SET_NAME), 'fonts'))
+    for d in dirs:
+        try:
+            names = sorted(_os.listdir(d))
+        except Exception:
+            continue
+        for fn in names:
+            base, ext = _os.path.splitext(fn)
+            if ext.lower() not in ('.ttf', '.otf'):
+                continue
+            nice = base.replace('-Regular', '').replace('_', ' ')
+            files[nice] = _os.path.join(d, fn)
+    g['FONT_FILES'] = files
+    g['FONTS'] = list(files) + [f for f in FONTS_SYSTEM if f not in files]
+
+
+_scan_fonts()
 
 
 def save_active_set():

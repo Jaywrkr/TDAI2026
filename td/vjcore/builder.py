@@ -957,6 +957,13 @@ def build(verbose=True):
     run("op('/project1/control_script').module.safeStartup()", delayFrames=3)
     run("op('/project1/runtime_manager').module.tickDiag()", delayFrames=5)
 
+    # --- orden de la red: bloques con titulo (solo mueve nodos) ---
+    try:
+        from . import orden
+        orden.tidy(proj)
+    except Exception as e:
+        log('ORDEN: no se pudo acomodar la red ({}: {})'.format(type(e).__name__, e))
+
     report = verify(proj, channels)
     if verbose:
         print('\n'.join(report))

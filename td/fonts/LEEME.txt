@@ -1,0 +1,15 @@
+FUENTES DEL TEXTO (nombres de artistas)
+
+Pon aqui cualquier archivo .ttf u .otf y, despues, corre el Text DAT de
+arranque en TouchDesigner. La fuente aparece en /project1 > Parameters >
+pagina Texto > Fuente (y con el boton "Fuente siguiente"), primero las de
+esta carpeta y despues las del sistema.
+
+Solo para el set de Halloween: td/sets/halloween/fonts/
+
+Ya vienen (licencia SIL Open Font License, ver licencias/):
+  Anton, BebasNeue, Bungee   -> gruesas y faciles de leer
+  Creepster, Butcherman, Eater, Nosifer -> de terror
+  Monoton                    -> neon de lineas
+
+Mas gratis: https://fonts.google.com (boton "Get font" > "Download all").
