@@ -92,7 +92,7 @@ vec4 render(vec2 uv) {
     // en B, C y "se despegan" la imagen tiene que estar: si toca el hueco
     // entre vueltas, los pedazos llegan antes y se quedan hasta el final
     float hold = max((cB + cC) * smoothstep(0.0, 0.08, C.w) * (1.0 - smoothstep(0.92, 1.0, C.w)), sv == 3 ? se : 0.0);
-    float bleed = smoothstep(0.15, 0.85, ph) * (0.3 + uD2 * 0.9) + cryE * 0.4 + cA * C.x * 0.35 + EST.z * 0.3;
+    float bleed = smoothstep(0.15, 0.85, ph) * hkDR(0.0, 0.75, 1.8, uD2) + cryE * 0.4 + cA * C.x * 0.35 + EST.z * 0.3;
 
     // lampara de jaula
     vec2 lp = vec2(0.0, 0.92);
@@ -192,9 +192,9 @@ vec4 render(vec2 uv) {
         arrive = max(arrive, smoothstep(h.x * 0.4, h.x * 0.4 + 0.5, hold));
         float sag = dropAgain * step(0.45, h.y);                               // suceso: se despegan y cuelgan
         float jump = hit * loco * step(0.6, h.x) * 0.15;
-        vec2 off = from * (1.0 - arrive) + vec2(0.0, -2.5) * fall * fall + (h - 0.5) * cell * uD4 * 0.12;
+        vec2 off = from * (1.0 - arrive) + vec2(0.0, -2.5) * fall * fall + (h - 0.5) * cell * hkDR(0.0, 0.5, 2.0, uD4) * 0.12;
         off += vec2(sin(t * 0.8 + h.x * 6.0), cos(t * 0.7 + h.y * 6.0)) * 0.004 * (0.3 + mid * 2.0) + vec2(0.0, jump);
-        float rot = (h.y - 0.5) * (0.04 + uD4 * 0.18) * (1.0 + (1.0 - arrive) * 3.0) + fall * (h.x - 0.5) * 2.0 + sag * (h.x - 0.5) * 1.2;
+        float rot = (h.y - 0.5) * hkDR(0.0, 0.13, 0.4, uD4) * (1.0 + (1.0 - arrive) * 3.0) + fall * (h.x - 0.5) * 2.0 + sag * (h.x - 0.5) * 1.2;
         off.y -= sag * cell.y * 0.7;
         // la hoja sin cortar llega toda junta desde abajo
         off = mix(vec2(0.0, -2.2) * (1.0 - arrive) + vec2(0.0, -2.5) * fall * fall, off, torn);
@@ -270,7 +270,7 @@ vec4 render(vec2 uv) {
         vec2 dg = sq * 22.0;
         float dots = (1.0 - smoothstep(0.15, 0.3, length(fract(dg) - 0.5 - (hash22(floor(dg)) - 0.5) * 0.5)))
                    * step(0.7, hash21(floor(dg) + floor(uRTime * 2.0))) * smoothstep(0.45, 0.1, r);
-        splat = max(blob, max(rays * smoothstep(0.35, 0.05, r) * step(0.07, r) * 0.0, dots)) * hit * uD3;
+        splat = max(blob, max(rays * smoothstep(0.35, 0.05, r) * step(0.07, r) * 0.0, dots)) * hit * hkDR(0.0, 0.5, 1.6, uD3);
         float streak = smoothstep(0.02, 0.0, abs(sin(a * 9.0 + floor(uRTime * 2.0)) * r * 0.25)) * smoothstep(0.30, 0.06, r) * rays;
         splat = max(splat, streak * hit * uD3);
     }
@@ -348,7 +348,7 @@ vec4 render(vec2 uv) {
 
     // --- charco en el piso ---
     if (uD6 > 0.02 && p.y < FLOOR + 0.01) {
-        float pool = fbm(vec2(p.x * 1.5, 0.0) + cid, 3, 0.5) * 1.6 - 1.2 + bleed * uD6 * 1.3 + (sv == 4 ? se * smoothstep(0.0, 0.8, sph) * 1.2 : 0.0) + EST.z * 0.3;
+        float pool = fbm(vec2(p.x * 1.5, 0.0) + cid, 3, 0.5) * 1.6 - 1.2 + bleed * hkDR(0.0, 0.65, 2.2, uD6) + (sv == 4 ? se * smoothstep(0.0, 0.8, sph) * 1.2 : 0.0) + EST.z * 0.3;
         float pd = length(vec2((p.x - IC.x) / (HS.x * 1.3), (p.y - FLOOR + 0.07) / 0.09)) - (0.6 + pool * 0.5) - (noise21(vec2(p.x * 6.0, cid)) - 0.5) * 0.25;
         float wetA = 1.0 - smoothstep(0.0, 0.05, pd);
         vec2 rq = vec2(p.x, 2.0 * FLOOR - p.y);

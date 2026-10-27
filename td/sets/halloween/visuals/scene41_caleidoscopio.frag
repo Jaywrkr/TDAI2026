@@ -21,7 +21,7 @@ vec4 render(vec2 uv) {
     a = mod(a, seg);
     a = abs(a - seg * 0.5);                      // espejo
     vec2 q = vec2(cos(a), sin(a)) * r;
-    q = q * mix(0.55, 0.25, uD2) + vec2(0.18 + 0.05 * sin(t * 0.7), 0.0);
+    q = q * hkDR(0.9, 0.4, 0.15, uD2) + vec2(0.18 + 0.05 * sin(t * 0.7), 0.0);
     vec2 muv = hkMediaCover(q / vec2(uAspect, 1.0) + 0.5, uAspect);
     vec3 im = hkMediaGet(muv, 0.8, has) * hkMediaGain(has) * 1.3;
     float l = dot(im, vec3(0.2126, 0.7152, 0.0722));
@@ -33,7 +33,7 @@ vec4 render(vec2 uv) {
     col += cB * rings * smoothstep(0.2, 0.5, r);
     float seal = exp(-abs(r - 0.18 - 0.03 * hit) * 120.0) + exp(-abs(r - 0.24) * 160.0) * 0.6;
     float spokes = exp(-abs(sin((atan(p.y, p.x) + rot) * N * 0.5)) * 40.0) * step(r, 0.24) * step(0.06, r);
-    col += cA * (seal + spokes * 0.5) * uD3 * 1.2;
+    col += cA * (seal + spokes * 0.5) * hkDR(0.0, 0.6, 1.8, uD3);
     col *= smoothstep(1.9, 0.9, length(p) / uAspect * 1.6) * 0.7 + 0.3;
     for (int k = 0; k < N_KEYS; k++) {
         float ek = keyEnv(k, 0.04, 0.8);

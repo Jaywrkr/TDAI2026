@@ -136,8 +136,8 @@ vec4 render(vec2 uv) {
     gExplode = max(sv == 2 ? se * sin(sp * PI) * 0.35 : 0.0, cC * smoothstep(0.10, 0.40, C.w) * (1.0 - smoothstep(0.84, 0.88, C.w)));
     gSpin = uRTime * 1.5 * step(0.2, gExplode);
     float headOff = sv == 1 ? se * sin(clamp(sp * 1.2, 0.0, 1.0) * PI) : 0.0;
-    float uv5 = clamp(uD5 + EST.y * 0.8, 0.0, 1.0);              // luz negra
-    float d6 = clamp(uD6 + EST.y * 0.6, 0.0, 1.0);
+    float uv5 = mix(uD5, 1.0, EST.y * 0.8 * 0.6);              // luz negra
+    float d6 = mix(uD6, 1.0, EST.y * 0.6 * 0.6);
     // los dos de los costados: entran al llegar el pico y se van al final
     float sideOn = smoothstep(0.30, 0.42, cph) * (1.0 - smoothstep(0.88, 0.98, cph));
     // pasos del piano (cada zona del teclado, un paso)
@@ -156,17 +156,17 @@ vec4 render(vec2 uv) {
     vec3 neonC = vec3(0.35, 1.0, 0.45);
 
     // --- rig del baile ---
-    float s = (0.50 + uD1 * 0.22) * (1.0 + giant * 0.36);
-    float e = (0.4 + uD2 * 0.9) * (1.0 + hit * loco * 1.6 + soloE * 0.9) * mix(0.8, 1.25, hkActVal(5.0));
+    float s = hkDR(0.32, 0.61, 0.85, uD1) * (1.0 + giant * 0.36);
+    float e = hkDR(0.0, 0.85, 2.0, uD2) * (1.0 + hit * loco * 1.6 + soloE * 0.9) * mix(0.8, 1.25, hkActVal(5.0));
     float beat = sin(t * 3.0);
     e *= 1.0 - giant * 0.45;                                     // el gigante baila lento
-    float jump = hit * (0.04 + uD4 * 0.14) + (dv == 1 ? D.x * sin(D.y * PI) * 0.08 : 0.0);
+    float jump = hit * hkDR(0.0, 0.11, 0.3, uD4) + (dv == 1 ? D.x * sin(D.y * PI) * 0.08 : 0.0);
     float slide = sv == 5 ? se * sin(sp * TAU) * 1.1 : 0.0;          // moonwalk
     vec2 hip = vec2(0.10 * sin(t * 1.5) * e + mid * 0.05 * sin(t * 6.0) + slide, floorY + 0.92 * s + 0.04 * abs(beat) * e + jump);
     float lean = 0.10 * sin(t * 1.5) * e;
     vec2 up = vec2(sin(lean), cos(lean));
     vec2 neck = hip + up * 0.55 * s;
-    float thick = 0.85 + uD3 * 0.4;
+    float thick = hkDR(0.5, 1.05, 1.7, uD3);
 
     // --- cripta ---
     vec2 cu = rUV(p, CRYPT_R);
@@ -243,7 +243,7 @@ vec4 render(vec2 uv) {
     beat = sin(t * 3.0);
     vec4 bc = vec4(0.0);
     vec2 bn = vec2(0.0);
-    float armUp = hit * (0.8 + uD4 * 0.8) + armsK * 1.5 + (sv == 3 ? se * 1.6 : 0.0);
+    float armUp = hit * hkDR(0.0, 1.2, 2.2, uD4) + armsK * 1.5 + (sv == 3 ? se * 1.6 : 0.0);
     float reach = 1.0 + gExplode * 2.2;
     if (abs(p.x - hip.x) < 1.2 * s * reach && p.y < hip.y + 1.0 * s * reach + headOff * 0.8 && p.y > floorY - 0.1) {
         for (int k = 0; k < 2; k++) {

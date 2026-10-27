@@ -109,7 +109,7 @@ vec4 render(vec2 uv) {
     float hue = audioHue(uHue, mid * 0.008);
     vec3 cold = vec3(0.80, 0.90, 1.0);
     vec3 spectral = hsv2rgb(vec3(fract(0.36 + hue), 0.60, 1.0));
-    vec3 gc = mix(cold, spectral, clamp(uD5 + EST.z * 0.45, 0.0, 1.0));
+    vec3 gc = mix(cold, spectral, mix(uD5, 1.0, EST.z * 0.45 * 0.6));
     vec3 moonC = vec3(0.50, 0.60, 0.95);
 
     float cph = cA * C.w;

@@ -95,7 +95,7 @@ vec4 render(vec2 uv) {
     float hit = hkHit();
     float loco = hkLoco();
 
-    vec3 lightC = mix(vec3(1.0, 0.55, 0.22), vec3(0.35, 1.0, 0.45), clamp(uD5 + EST.y * 0.8, 0.0, 1.0));
+    vec3 lightC = mix(vec3(1.0, 0.55, 0.22), vec3(0.35, 1.0, 0.45), mix(uD5, 1.0, EST.y * 0.8 * 0.6));
     float cph = cA * CC.w;
     float skullK = cB * smoothstep(0.05, 0.45, CC.w) * (1.0 - smoothstep(0.75, 0.95, CC.w));
     float fireK = cC * smoothstep(0.05, 0.35, CC.w) * (1.0 - smoothstep(0.78, 0.95, CC.w));

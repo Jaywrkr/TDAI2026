@@ -188,7 +188,7 @@ vec4 render(vec2 uv) {
         float along = al * r / spacing * 1.2;
         float cid = floor(along);
         float hsd = hash21(vec2(ring * 13.0 + ai, cid));
-        float has = step(1.0 - clamp(uD5 + EST.y * 0.5, 0.0, 1.0) * 0.95, hsd) * onR;
+        float has = step(1.0 - mix(uD5, 1.0, EST.y * 0.5 * 0.6) * 0.95, hsd) * onR;
         vec2 dq = vec2((fract(along) - 0.5) * spacing / 1.2, (fk - 0.5) * spacing);
         float dr = spacing * (0.16 + 0.16 * hash21(vec2(cid, ring)));
         float dd = length(dq) - dr;

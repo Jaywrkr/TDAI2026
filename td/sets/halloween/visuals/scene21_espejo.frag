@@ -104,7 +104,7 @@ vec4 render(vec2 uv) {
     float flick = step(0.12, noise21(vec2(uRTime * 9.0, 1.0))) * (0.75 + 0.25 * sin(t * 50.0));
     float bulb = (0.55 + bass * 0.6) * mix(1.0, flick, 0.35 + loco * 0.4 + fogUp * 0.5) * (1.0 - darkE) * (1.0 - EST.y * 0.6);
     vec2 bp = vec2(dv == 0 ? D.x * 0.12 * sin(uRTime * 3.0) : 0.0, 0.98);
-    float candles = clamp(uD6 + EST.y * 0.7, 0.0, 1.0);
+    float candles = mix(uD6, 1.0, EST.y * 0.7 * 0.6);
 
     // --- luz del cuarto ---
     vec3 L = vec3(0.010, 0.011, 0.013);

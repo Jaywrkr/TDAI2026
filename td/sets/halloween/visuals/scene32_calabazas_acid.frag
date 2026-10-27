@@ -5,13 +5,15 @@
 // @D4: contrarrotacion y baile de los anillos
 // @D5: ambar a verde veneno
 // @D6: halo estrecho y chispas
+// Detail con mas rango: la filigrana llega a 1.8 (hkDR)
+#define uD3x hkDR(0.0, 0.5, 1.8, uD3)
 // PIANO: acentos luminosos por voz. Momento despliega los sellos.
 // El nucleo del trazo usa cobertura en pixeles; el halo no sustituye al filo.
 vec3 caStroke(float d, vec3 ink, float strength) {
     float aa=max(fwidth(d),2.0 / max(uResH,1.0));
     float halfWidth=aa*0.30;
     float core=1.0-smoothstep(halfWidth,halfWidth+aa*0.75,abs(d));
-    float halo=exp(-abs(d)/max(aa*4.0,0.0006))*(0.06+uD6*0.16);
+    float halo=exp(-abs(d)/max(aa*4.0,0.0006))*hkDR(0.0,0.14,0.45,uD6);
     return (mix(ink,vec3(1.0,0.84,0.51),0.20)*core+ink*halo)*strength;
 }
 float caTriangle(vec2 q,vec2 a,vec2 b,vec2 c) {
@@ -23,7 +25,7 @@ vec3 caMask(vec2 q, vec3 ink, float t, float strength) {
     float outline=(radius-1.0+0.018*cos(angle*8.0))*0.73;
     vec3 col=caStroke(outline,ink,strength);
     // Doble contorno interior y meridianos abiertos, sin relleno.
-    col+=caStroke(outline+0.035,ink,strength*0.32*uD3);
+    col+=caStroke(outline+0.035,ink,strength*0.32*uD3x);
     float inside=1.0-smoothstep(0.94,1.0,radius);
     float above=smoothstep(0.27,0.39,abs(q.y));
     for(int k=0;k<5;k++) {
@@ -33,7 +35,7 @@ vec3 caMask(vec2 q, vec3 ink, float t, float strength) {
     }
     float eyes=caTriangle(vec2(abs(q.x),q.y),vec2(0.13,0.15),vec2(0.47,0.12),vec2(0.38,0.39));
     col+=caStroke(eyes,ink,strength*1.1);
-    col+=caStroke(eyes-0.024,ink,strength*0.35*uD3);
+    col+=caStroke(eyes-0.024,ink,strength*0.35*uD3x);
     float nose=caTriangle(q,vec2(-0.07,-0.04),vec2(0.07,-0.04),vec2(0.0,0.09));
     col+=caStroke(nose,ink,strength*0.75);
     // Sonrisa dentada de segmentos continuos, con distancia exacta a cada arista.
@@ -53,7 +55,7 @@ vec3 caMask(vec2 q, vec3 ink, float t, float strength) {
     // Grabados circulares finos en las mejillas.
     vec2 cheek=vec2(abs(q.x)-0.60,q.y+0.04);
     float mark=abs(length(cheek)-0.09);
-    col+=caStroke(mark,ink,strength*0.45*uD3);
+    col+=caStroke(mark,ink,strength*0.45*uD3x);
     return col;
 }
 vec4 render(vec2 uv) {
@@ -64,17 +66,17 @@ vec4 render(vec2 uv) {
     vec3 accent=mix(vec3(0.72,0.08,1.0),vec3(0.02,0.70,0.52),uD5);
     vec3 col=vec3(0.0);
     float radius=length(p), angle=atan(p.y,p.x);
-    float spread=0.94+uD2*0.24+C.y*0.05+0.07*B+0.05*hit;
+    float spread=hkDR(0.7,1.06,1.4,uD2)+C.y*0.05+0.07*B+0.05*hit;
     // Gran roseta de anillos finos que giran en sentidos opuestos.
     for(int j=0;j<3;j++) {
         float fj=float(j),r=spread+fj*0.10;
         float tick=pow(0.5+0.5*cos(angle*(48.0+fj*16.0)+t*(fj-1.0)),18.0);
         col+=caStroke(radius-r,mix(ink,accent,fj*0.5),0.32+tick*0.45);
-        col+=caStroke(radius-r-0.028,accent,0.22*uD3);
+        col+=caStroke(radius-r-0.028,accent,0.22*uD3x);
     }
     // Sellos laterales en orbita conectados con triangulos geometricos.
-    float orbit=1.65+uD2*0.20;
-    float count=2.0+floor(uD1*6.0);
+    float orbit=hkDR(1.35,1.75,2.2,uD2);
+    float count=floor(hkDR(1.0,5.0,8.99,uD1));
     for(int j=0;j<8;j++) {
         float fj=float(j),show=revealAt(count,fj);
         if(show<0.001) continue;
@@ -83,10 +85,10 @@ vec4 render(vec2 uv) {
         vec2 q=rot2(a-PI*0.5)*(p-center)/0.27;
         col+=caMask(q,mix(ink,accent,0.25),t,show*0.58);
         vec2 other=vec2(cos(a+TAU*2.0/count),sin(a+TAU*2.0/count))*orbit;
-        col+=caStroke(hkSeg(p,center,other),accent,show*0.12*uD3);
+        col+=caStroke(hkSeg(p,center,other),accent,show*0.12*uD3x);
     }
     // Mascara central con animacion local y doble contorno.
-    vec2 hero=rot2(sin(t*0.4)*0.025*uD4+0.07*sin(st*PI*0.5))*p/(0.79-hit*0.07-B*0.04);
+    vec2 hero=rot2(sin(t*0.4)*0.025*hkDR(0.0,0.5,2.5,uD4)+0.07*sin(st*PI*0.5))*p/(0.79-hit*0.07-B*0.04);
     col+=caMask(hero,ink,t,0.90+C.y*0.30+hit*0.18);
     // Trenza radial de pequenos chevrones trazados con precision.
     vec2 q=rot2(-t*0.13*(0.2+uD4)-st*TAU/24.0)*p;
@@ -94,12 +96,12 @@ vec4 render(vec2 uv) {
     float aa=(cell+0.5)*TAU/48.0-PI;
     vec2 rune=rot2(aa)*q-vec2(spread+0.28,0.0);
     float chev=min(hkSeg(rune,vec2(-0.035,-0.026),vec2(0.035,0.0)),hkSeg(rune,vec2(0.035,0.0),vec2(-0.035,0.026)));
-    col+=caStroke(chev,ink,0.55*uD3);
+    col+=caStroke(chev,ink,0.55*uD3x);
     // Marcas de calibracion entre los dos aros exteriores.
     float markAngle=angle-t*0.08;
     float ticks=pow(max(0.0,cos(markAngle*96.0)),28.0);
     float tickBand=smoothstep(spread+0.13,spread+0.14,radius)*(1.0-smoothstep(spread+0.18,spread+0.19,radius));
-    col+=ink*ticks*tickBand*uD3*0.45;
+    col+=ink*ticks*tickBand*uD3x*0.45;
     // El piano acentua los trazos existentes sin rellenar superficies.
     vec3 keys=hkKeyLit(col,p,0.0,vec2(0.38,0.95),ink,accent,0.04,0.8);
     col=mix(col,keys,smoothstep(0.002,0.035,max(col.r,max(col.g,col.b))));

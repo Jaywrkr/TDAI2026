@@ -122,7 +122,7 @@ vec4 render(vec2 uv) {
     float floorRunes = max(sv == 0 ? se : 0.0, max(G.x, max(cA * C.x * 0.6, rainF)));
     // B: la cabeza del demonio sube, mira y se hunde
     float rise = cB * smoothstep(0.10, 0.45, C.w) * (1.0 - smoothstep(0.70, 0.92, C.w));
-    float R = (0.36 + uD1 * 0.22) * (1.0 + openE * 0.30 + rise * 0.15) * (1.0 - cA * C.z * 0.35);
+    float R = hkDR(0.22, 0.47, 0.72, uD1) * (1.0 + openE * 0.30 + rise * 0.15) * (1.0 - cA * C.z * 0.35);
     R = min(R, 0.70);
     // onda de fuego que sale al cerrarse
     float waveR = mix(R, 3.2, clamp((cph - 0.70) / 0.25, 0.0, 1.0));
@@ -135,7 +135,7 @@ vec4 render(vec2 uv) {
     float r = length(p);
     float a = atan(p.y, p.x);
 
-    float d5 = clamp(uD5 + EST.y * 0.7, 0.0, 1.0);           // fuego brujo (estado)
+    float d5 = mix(uD5, 1.0, EST.y * 0.7 * 0.6);           // fuego brujo (estado)
     vec3 fireA = mix(vec3(1.0, 0.35, 0.05), vec3(0.35, 1.0, 0.15), d5);
     vec3 fireB = mix(vec3(1.0, 0.85, 0.40), vec3(0.85, 1.0, 0.55), d5);
     // (antes saltaba de golpe en D5 = 0.5; ahora es un fundido)
@@ -194,7 +194,7 @@ vec4 render(vec2 uv) {
     if (hole > 0.0 || r < R * 2.2) {
         vec3 pc = vec3(0.012, 0.004, 0.006);
         float smoke = r < 2.0 ? fbm(vec2(a * 2.0, r * 3.0 - t * 0.2) + 4.0, 3, 0.55) : 0.0;
-        pc += fireA * 0.05 * smoke * (0.4 + uD6 * 1.6 + EST.z * 1.2) * smoothstep(2.0, 0.4, r);
+        pc += fireA * 0.05 * smoke * (hkDR(0.0, 1.2, 3.5, uD6) + EST.z * 1.2) * smoothstep(2.0, 0.4, r);
         float swirlA = a + (2.5 / (r + 0.15)) * 0.35 + t * (0.4 + uD3 * 1.2) * (hkActVal(4.0) > 0.5 ? 1.0 : -1.0) + mid * 0.6 * sin(r * 6.0)
                      + (sv == 4 ? se * uRTime * 2.0 : 0.0);
         float spiral = 0.5 + 0.5 * sin(swirlA * 3.0 + r * 10.0);
@@ -258,7 +258,7 @@ vec4 render(vec2 uv) {
             float id = hkInfD(p, R * 0.62 * hkEggS);
             pc += fireB * (exp(-id / 0.006) * 0.9 + exp(-id / 0.04) * 0.15) * EG.x * (0.8 + bass * 0.4);
         }
-        float flameH = 0.08 + uD2 * 0.16 + bass * 0.08;
+        float flameH = hkDR(0.02, 0.16, 0.36, uD2) + bass * 0.08;
         float fn = abs(ringD) < 0.45 ? fbm(vec2(a * 6.0 + sin(a * 2.0), ringD * 8.0 - t * 2.4), 3, 0.6) : 0.0;
         float fn2 = noise21(vec2(a * 18.0, ringD * 20.0 - t * 4.0));
         float flame = smoothstep(flameH * (0.4 + fn), 0.0, ringD) * smoothstep(-0.05, 0.0, ringD);
@@ -303,7 +303,7 @@ vec4 render(vec2 uv) {
             }
         }
         // runas
-        float Rr = R + 0.11 + uD2 * 0.06;
+        float Rr = R + hkDR(0.09, 0.14, 0.22, uD2);
         float nR = 14.0;
         float ang = a / TAU * nR;
         float slotI = floor(ang + 0.5);
@@ -314,7 +314,7 @@ vec4 render(vec2 uv) {
         float rune = 1.0 - smoothstep(px * 0.6, px * 1.8, rd);
         float wave = floor(rt * 1.3);
         // cada tanda prende/apaga con fundido; D4 suma runas sin saltos
-        float th = 1.0 - (0.20 + uD4 * 0.70);
+        float th = 1.0 - hkDR(0.0, 0.55, 1.0, uD4);
         float on = mix(smoothstep(th - 0.04, th + 0.04, hash21(vec2(slotI, wave - 1.0))),
                        smoothstep(th - 0.04, th + 0.04, hash21(vec2(slotI, wave))), smoothstep(0.0, 0.25, fract(rt * 1.3)));
         on = max(on, hit * step(0.5, hash21(vec2(slotI, wave + 7.0))));
@@ -414,6 +414,13 @@ vec4 render(vec2 uv) {
     vec3 fl3 = fa * (vec3(0.03) + fireA * 0.35 * fireI * exp(-length(pw - PC) * 0.6) + vec3(1.0, 0.65, 0.3) * cand * 0.25);
     col = mix(col, fl3, fr.a);
     col += flames;
+    // D6 alta: humo que sale del portal y cubre la sala, teñido por el fuego
+    float haze = smoothstep(0.5, 1.0, uD6);
+    if (haze > 0.01) {
+        float hz = fbm(vec2(pw.x * 1.3 + sin(pw.y + t * 0.2) * 0.3, pw.y * 1.1 - t * 0.22), 3, 0.5);
+        float hk = smoothstep(0.30, 0.80, hz) * haze * smoothstep(2.2, 0.5, length(pw - PC));
+        col = mix(col, vec3(0.09, 0.08, 0.07) + fireA * 0.22 * fireI, hk * 0.85);
+    }
 
     col = audioLift(col, high * 0.06);
     return vec4(hkFinish(col, uv, vec3(0.7, 0.1, 0.05)), 1.0);

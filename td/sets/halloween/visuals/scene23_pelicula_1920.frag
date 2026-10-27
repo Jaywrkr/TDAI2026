@@ -80,7 +80,7 @@ vec4 render(vec2 uv) {
     float irisPh = sph;
     float leader = cB * smoothstep(0.08, 0.15, C.w) * (1.0 - smoothstep(0.85, 0.92, C.w));
     float crowd = cC * smoothstep(0.05, 0.35, C.w) * (1.0 - smoothstep(0.80, 0.95, C.w));
-    float d5 = clamp(uD5 + EST.y * 0.8, 0.0, 1.0);
+    float d5 = mix(uD5, 1.0, EST.y * 0.8 * 0.6);
     float worn = EST.z;
     // el iris del climax: se cierra al final del aviso y se abre al llegar el pico
     float irisC = smoothstep(0.18, 0.33, cph) * (1.0 - smoothstep(0.36, 0.44, cph));

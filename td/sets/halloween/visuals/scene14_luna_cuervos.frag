@@ -173,7 +173,7 @@ vec4 render(vec2 uv) {
     // --- nubes que cruzan ---
     float cl = plate6Wrap(vec2(p.x * 0.12 - t * 0.008, p.y * 0.5 + 0.2)).r;
     float cl2 = plate6Wrap(vec2(p.x * 0.20 - t * 0.013 + 0.3, p.y * 0.8)).g;
-    float d6 = clamp(uD6 + EST.y * 0.6, 0.0, 1.0);
+    float d6 = mix(uD6, 1.0, EST.y * 0.6 * 0.6);
     float clouds = smoothstep(0.55 - d6 * 0.2, 0.78 - d6 * 0.15, cl * 0.65 + cl2 * 0.35) * smoothstep(-0.3, 0.3, p.y) * (0.3 + d6 * 0.7);
     float rim = (smoothstep(0.50, 0.58, cl) - smoothstep(0.58, 0.72, cl)) * exp(-mr * 1.6);
     col = mix(col, vec3(0.03, 0.008, 0.012) + moonC * 0.05 * exp(-mr * 1.2), clouds * 0.85);
