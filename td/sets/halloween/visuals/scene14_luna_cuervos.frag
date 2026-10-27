@@ -194,7 +194,7 @@ vec4 render(vec2 uv) {
                             : mix(-uAspect - 0.6, uAspect + 0.6, fract(h2 + t * spd));
         float y = big > 0.5 ? mc.y + (h2 - 0.5) * 0.9 + sin(flockPh * 6.0 + fi) * 0.05
                             : 0.0 + h2 * 0.6 + 0.06 * sin(t * (0.5 + h1) + fi);     // bajo las nubes, cruzando la luna
-        float s = big > 0.5 ? 0.06 + h1 * 0.05 : 0.10 + h1 * 0.07;
+        float s = big > 0.5 ? 0.06 + h1 * 0.05 : 0.16 + h1 * 0.10;
         vec2 q = (p - vec2(x, y)) / s;
         if (dot(q, q) > 2.0) continue;
         float flap = sin(t * (7.0 + h1 * 5.0) + fi * 2.0);

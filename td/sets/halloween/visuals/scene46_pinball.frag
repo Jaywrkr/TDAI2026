@@ -49,7 +49,7 @@ vec4 render(vec2 uv) {
     float aa = 2.0 / max(uResH, 1.0) * 2.0;
     float sd = sign(p.x + 1e-5);
     vec2 m = vec2(abs(p.x), p.y);              // composicion en espejo
-    float det = 0.35 + 0.65 * uD3;
+    float det = hkDR(0.0, 0.675, 1.3, uD3);
     // paletas: cambian cada 8 tiempos
     float pal = mod(floor(st / 8.0) + floor(uD5 * 2.0) * 2.0, 4.0);
     vec3 cO = pal < 1.0 ? vec3(1.0, 0.45, 0.04) : pal < 2.0 ? vec3(0.85, 0.08, 0.06) : pal < 3.0 ? vec3(0.45, 1.0, 0.12) : vec3(1.0, 0.6, 0.1);
@@ -225,16 +225,16 @@ vec4 render(vec2 uv) {
     }
     zl = max(zl, C.y); hot = max(hot, C.y * step(0.5, zone));
     float base = 0.38 + 0.25 * B;
-    float lvl = clamp(base + (0.75 + 0.6 * uD1) * zl, 0.08, 2.2);
+    float lvl = clamp(base + hkDR(0.15, 1.05, 1.9, uD1) * zl, 0.08, 2.2);
     vec3 outc = col * lvl;
     // zona que quema: hacia blanco con rayas de luz
-    float burn = hot * (0.25 + 0.75 * uD4) * (0.65 + 0.35 * exp(-ph * 3.0));
+    float burn = hot * hkDR(0.0, 0.625, 1.15, uD4) * (0.65 + 0.35 * exp(-ph * 3.0));
     burn *= zone < 2.5 ? 0.0 : 1.0;             // el fondo brilla en color, nunca en blanco
     vec3 white = mix(col, vec3(1.0, 0.96, 0.88), 0.6) * (1.6 + 0.6 * hit);
     white *= mix(1.0, 0.8 + 0.2 * step(0.5, fract(p.y * 34.0)), det);
     outc = mix(outc, white, burn);
     // bombillas: una de cada tres prendida, corren con el pulso
-    float bon = step(0.5, fract((bidx + k * 3.0) / 3.0 + 0.01)) * (0.4 + 0.6 * uD6);
+    float bon = step(0.5, fract((bidx + k * 3.0) / 3.0 + 0.01)) * hkDR(0.0, 0.7, 1.3, uD6);
     outc += mix(cY, vec3(1.0), 0.6) * (smoothstep(0.035, 0.02, bulb) * (0.25 + 1.6 * bon) + exp(-bulb * 40.0) * 0.4 * bon);
     return vec4(hkFinish(pow(max(outc, 0.0), vec3(2.2)), uv, vec3(0.0)), 1.0);
 }

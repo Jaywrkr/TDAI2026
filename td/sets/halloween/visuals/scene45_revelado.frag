@@ -82,7 +82,7 @@ vec4 render(vec2 uv) {
     // piano: prende los pedazos de su lado
     for (int kk = 0; kk < N_KEYS; kk++) {
         float ek = keyEnv(kk, 0.04, 0.8);
-        if (ek > 0.2 && abs(uv.x - keyPos(kk)) < 0.12) on = max(on, ek);
+        if (ek > 0.2 && abs(uv.x - keyPos(kk)) < 0.18) on = max(on, ek);
     }
     on = max(on, C.y);
     float attack = 1.0 + 0.8 * exp(-since * every * 6.0) * has;
@@ -122,5 +122,6 @@ vec4 render(vec2 uv) {
     float sweep = exp(-pow((p.x - (fract(st / 8.0) * 2.0 - 1.0) * uAspect * 1.2) * 2.5, 2.0)) * has;
     col += alb * fa.a * pA * sweep * 0.35 * (0.5 + B);
     col += (hash21(uv * 1000.0 + floor(uRTime * 24.0)) - 0.5) * 0.012;
+    col = hkKeyLit(col, p, 0.0, vec2(0.36, 0.9), pA, pB, 0.04, 0.8);   // cada tecla con su luz
     return vec4(hkFinish(max(col, 0.0), uv, vec3(0.0)), 1.0);
 }

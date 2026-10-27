@@ -115,7 +115,7 @@ vec4 render(vec2 uv) {
 
     vec3 red = hsv2rgb(vec3(fract(0.995 + hue), 1.0, 0.62));
     vec3 dark = hsv2rgb(vec3(fract(0.985 + hue), 1.0, 0.22));
-    vec3 bc = mix(red, dark, uD5 * 0.8);
+    vec3 bc = mix(red, dark, hkDR(0.0, 0.4, 1.0, uD5));
 
     // --- luces ---
     float buzz = step(0.82 - high * 0.5, hash21(vec2(floor(uRTime * (10.0 + high * 25.0)), 5.0)));
@@ -138,7 +138,7 @@ vec4 render(vec2 uv) {
     vec3 n = normalize(vec3(nxy, sqrt(max(1.0 - dot(nxy, nxy), 0.05))));
     float rough = wn.b;
     // manchas secas: oscurecen y enrojecen el azulejo
-    float st = plate2(pu).r * (0.25 + uD6 * 0.9);
+    float st = plate2(pu).r * hkDR(0.0, 0.7, 1.8, uD6);
     vec3 dried = mix(vec3(0.20, 0.025, 0.02), dark * 0.6, 0.4) * (0.7 + 0.5 * plate2(pu).g);
     wa = mix(wa, dried, clamp(st, 0.0, 0.92));
     rough = mix(rough, 0.6, st);
@@ -194,7 +194,7 @@ vec4 render(vec2 uv) {
     // hilo, y el nuevo nace arriba y crece -- antes D1 cambiaba la cantidad
     // de columnas y todos los hilos saltaban de lugar
     const float cols = 40.0;
-    float amount = clamp(0.20 + uD1 * 0.62 + uDensity * 0.08 + hkActVal(5.0) * 0.10 + cA * C.x * 0.45 + EST.z * 0.20, 0.0, 1.05);
+    float amount = clamp(hkDR(0.0, 0.51, 1.0, uD1) + uDensity * 0.08 + hkActVal(5.0) * 0.10 + cA * C.x * 0.45 + EST.z * 0.20, 0.0, 1.05);
     float cw = 2.0 * uAspect / cols;
     float cx = floor((p.x + uAspect) / cw);
     float d = max(top - p.y, p.y - 1.00);   // franja entre la moldura y el techo
@@ -209,10 +209,10 @@ vec4 render(vec2 uv) {
         float x0 = (id + 0.5) * cw - uAspect + (h2 - 0.5) * cw * 0.5;
         float speed = 0.05 + 0.10 * h2;
         float cyc = fract(t * speed + h1 * 5.0);
-        float len = (0.55 + 1.3 * uD2) * (0.25 + 0.75 * h1) * smoothstep(0.0, 0.85, cyc);
+        float len = hkDR(0.15, 1.2, 2.4, uD2) * (0.25 + 0.75 * h1) * smoothstep(0.0, 0.85, cyc);
         len *= (1.0 + hit * (0.15 + 0.35 * h2) * step(0.5, h1) + bleed * 0.8 + cA * C.x * 0.4) * present;
         len = min(len, top - FLOOR_Y - 0.02);
-        float w = cw * (0.08 + 0.20 * uD3) * (0.6 + 0.8 * h2);
+        float w = cw * hkDR(0.03, 0.18, 0.40, uD3) * (0.6 + 0.8 * h2);
         float tipY = top - len;
         float yy = clamp((top - p.y) / max(len, 1e-3), 0.0, 1.0);
         float width = w * mix(1.7, 0.6, yy) * (0.8 + 0.4 * noise21(vec2(p.y * 9.0, id)));
@@ -334,7 +334,7 @@ vec4 render(vec2 uv) {
     float bsf = pow(max(dot(reflect(-Lf, bn), V), 0.0), 40.0) * spot;
     float depthShade = smoothstep(0.05, -0.02, d);
     vec3 bcol = bc * (0.12 + 0.45 * (bd1 * fluo + bd2 * emerg * 0.5) + spot * 0.55) * mix(1.0, 0.55, depthShade);
-    bcol += (fluoC * bs0 + emergC * bs1 + vec3(1.0, 0.9, 0.8) * bsf) * (0.25 + uD4 * 0.9 + bass * 0.6);
+    bcol += (fluoC * bs0 + emergC * bs1 + vec3(1.0, 0.9, 0.8) * bsf) * (hkDR(0.0, 0.7, 1.9, uD4) + bass * 0.6);
     col = mix(col, bcol, mask);
     // la sangre fresca deja un tinte en el azulejo de abajo
     col += red * 0.03 * exp(-max(d, 0.0) * 20.0) * (1.0 - mask) * step(FLOOR_Y, p.y);
@@ -351,7 +351,7 @@ vec4 render(vec2 uv) {
         vec3 pref = fluoC * exp(-pow(p.x * 2.2, 2.0) - pow((depth - 0.10) * 14.0, 2.0)) * 0.35
                   + emergC * exp(-pow((p.x + 2.2) * 1.6, 2.0) - pow((depth - 0.08) * 12.0, 2.0)) * 0.35
                   + vec3(1.0, 0.9, 0.8) * exp(-pow((p.x - lc.x) * 2.0, 2.0) - pow((depth - 0.12) * 12.0, 2.0)) * 0.2;
-        vec3 poolC = dark * 0.12 + bc * 0.10 + bc * 0.08 * (lit.r + 0.1) + pref * bc * 1.6 * (0.4 + uD4 * 0.6) + pref * 0.15;
+        vec3 poolC = dark * 0.12 + bc * 0.10 + bc * 0.08 * (lit.r + 0.1) + pref * bc * 1.6 * hkDR(0.1, 0.7, 1.4, uD4) + pref * 0.15;
         // gotas que caen al charco: anillos
         float rings = 0.0;
         vec2 rg = vec2(p.x * z * 1.2, z * 1.0);

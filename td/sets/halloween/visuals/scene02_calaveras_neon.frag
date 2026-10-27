@@ -235,7 +235,7 @@ vec4 render(vec2 uv) {
     // cadena de calaveritas: avanza con Speed y salta con el golpe
     float chase = uRTime * 2.2 + hit * 0.8;
 
-    float w = hkDR(0.004, 0.016, 0.032, uD2);               // radio del tubo (mundo)
+    float w = hkDR(0.004, 0.016, 0.022, uD2) * hkDR(1.0, 1.0, 0.7, uD1);   // radio del tubo (mundo); con la calavera grande, mas fino (destellos)
     float haloW = hkDR(0.0, 0.0375, 0.10, uD6);
 
     // --- pared iluminada por los carteles ---
@@ -308,7 +308,7 @@ vec4 render(vec2 uv) {
     vec2 sk = hwSkull(hq, chew + snap);
     col += hwTube(abs(sk.x) * s, cHero, clamp(iHero, 0.0, 1.6), w, haloW);
     float eyeFill = 1.0 - smoothstep(-0.02, 0.0, sk.y);
-    col += cHero * eyeFill * hkDR(0.0, 0.4, 1.4, uD3) * (0.3 + bass * 1.3 + hit * 0.4) * clamp(iHero, 0.0, 1.0);
+    col += cHero * eyeFill * hkDR(0.0, 0.4, 0.9, uD3) * (0.3 + bass * 1.3 + hit * 0.4) * clamp(iHero, 0.0, 1.0);
     // huesos cruzados
     vec2 cq = (p - CROSS_C) / 0.42;
     float bones = min(hwBone(rot2(0.75) * cq, 0.62, 0.075), hwBone(rot2(-0.75) * cq, 0.62, 0.075));
