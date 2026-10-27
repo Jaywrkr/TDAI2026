@@ -15,3 +15,10 @@ Las pruebas de red, compilacion y render fuera de TD no sustituyen la verificaci
 ## Revertido (fase 40, 27 de octubre de 2026)
 
 Con esta corrección, en el Mac todas las escenas salían en gris con o sin audio. Se volvió el núcleo de salida (`program.py`, `__init__.py`, `config.py`, `control_script.py`, `diagnostics.py`, `validate_shaders.py`, `render_resplandor.py`) a la versión del merge 7f0ff32, la última que funcionó en el TD del usuario, y se quitó `test_program_runtime.py`, que probaba el código revertido. Las escenas 31–39, el setlist, los presets y las miniaturas de Codex se conservan. El build muestra `restaurado-f40 2026-10-27`.
+
+## Causa real del gris (fase 40, segunda parte)
+
+En el build del Mac, `ctrl` salía **sin los 7 canales de audio** (`level`, `bass`, `mid`, `high`, `kick`, `beat`, `groove`): audio1 se crea sin Device y el Device se restaura después del build. El header de cada shader se arma con los canales que tiene `ctrl` en ese momento; al llegar el audio, esos 7 canales entran en el índice 5 y todos los de después se corren 7 lugares. Cada escena lee entonces perillas equivocadas (pixelado, posterizado, tiempo, resolución) y la salida queda en un gris parejo, con o sin audio. Reproducido fuera de TD: `docs/img/gris_canales_corridos.jpg` (izquierda bien, derecha con los canales corridos).
+
+Arreglo: `audio.py` agrega `audio_silent` (Constant CHOP con los 7 canales en 0) y `audio_out` (Switch CHOP): mientras `audio_ctrl` no tenga sus 7 canales, sale el silencio, así el orden de `ctrl` es siempre el mismo. Además, `program_text` no admite un cuarto input en el Mac (`ERROR conectando program_text[3]`): si la textura de control no entra, el texto usa el header sin control en vez de leer `sTD2DInputs[3]`. El build muestra `restaurado-f40b 2026-10-27`.
+

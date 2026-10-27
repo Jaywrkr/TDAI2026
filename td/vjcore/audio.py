@@ -354,5 +354,23 @@ def build(proj):
     for i, n in enumerate(named):
         connect(merge, n, i)
 
+    # Sin Device elegido (el build crea audio1 vacio y el Device se
+    # restaura despues) la cadena sale sin canales. El header de cada
+    # shader se arma con los canales que tiene ctrl EN EL BUILD: si faltan
+    # estos 7, al llegar el audio todos los canales de despues se corren
+    # 7 lugares y cada escena lee perillas equivocadas (pantalla gris).
+    # Por eso, mientras no haya audio, salen los mismos 7 canales en 0.
+    names = ('level', 'bass', 'mid', 'high', 'kick', 'beat', 'groove')
+    silent = proj.create(constantCHOP, 'audio_silent')
+    silent.nodeX, silent.nodeY = 200, 760
+    for i, chan in enumerate(names):
+        safe_set_first(silent, ['const{}name'.format(i), 'name{}'.format(i)], chan)
+        safe_set_first(silent, ['const{}value'.format(i), 'value{}'.format(i)], 0.0)
+    out = proj.create(switchCHOP, 'audio_out')
+    out.nodeX, out.nodeY = 360, 640
+    connect(out, merge, 0)
+    connect(out, silent, 1)
+    safe_expr(out, 'index', "0 if op('/project1/audio_ctrl').numChans >= {} else 1".format(len(names)))
+
     log('AUDIO: cadena construida (level/bass/mid/high/kick/beat/groove)')
-    return merge
+    return out
