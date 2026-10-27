@@ -53,9 +53,6 @@ def reload_all():
 
 
 def build(verbose=True):
-    # Reconstruir tiene que usar los .py del disco tras un git pull;
-    # importar un modulo ya cargado no recoge cambios en TouchDesigner.
-    reload_all()
     return _mod('builder').build(verbose=verbose)
 
 
@@ -66,10 +63,4 @@ def reload_shaders():
         print('No existe /project1 - ejecuta vjcore.build() primero')
         return 0
     channels = _mod('control').resolve_channels(proj)
-    # Los DAT del bus tambien contienen Python embebido en program.py:
-    # recargar solo los .frag dejaba texto y bloom usando codigo viejo.
-    importlib.reload(_mod('shader'))
-    program = importlib.reload(_mod('program'))
-    count = _mod('scenes').reload_all(proj, channels)
-    program.reload_program(proj, channels)
-    return count
+    return _mod('scenes').reload_all(proj, channels)

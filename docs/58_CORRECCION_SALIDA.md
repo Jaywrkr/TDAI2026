@@ -11,3 +11,7 @@ La comprobacion de salida, desde el diagnostico, conserva la imagen de entrada c
 Para instalar en una sesion ya abierta, actualizar `main` y volver a ejecutar el Text DAT de arranque (`RUN_ME`, con la ruta local y Halloween seleccionados). Esto carga los modulos corregidos y reconstruye la red, incluida la ruta nativa del texto. Las 40 escenas y los presets del set se conservan.
 
 Las pruebas de red, compilacion y render fuera de TD no sustituyen la verificacion de la salida en el equipo del evento. Esta correccion reproduce y elimina el defecto de cableado encontrado; no establece, por si sola, la causa de todos los 59 avisos observados en el Mac.
+
+## Revertido (fase 40, 27 de octubre de 2026)
+
+Con esta corrección, en el Mac todas las escenas salían en gris con o sin audio. Se volvió el núcleo de salida (`program.py`, `__init__.py`, `config.py`, `control_script.py`, `diagnostics.py`, `validate_shaders.py`, `render_resplandor.py`) a la versión del merge 7f0ff32, la última que funcionó en el TD del usuario, y se quitó `test_program_runtime.py`, que probaba el código revertido. Las escenas 31–39, el setlist, los presets y las miniaturas de Codex se conservan. El build muestra `restaurado-f40 2026-10-27`.
