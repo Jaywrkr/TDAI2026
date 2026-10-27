@@ -219,7 +219,7 @@ vec4 render(vec2 uv) {
     vec3 candleC = vec3(1.0, 0.82, 0.55);
     float estMoon = wClear * 1.0 + wFog * 0.6 + wStorm * 0.75 + wBusy * 0.9;
     float dimC = 1.0 - C.x * 0.45 - cB * C.y * 0.25;
-    float moonK = (0.60 + uD3 * 0.80) * estMoon * dimC + bolt * 1.6;
+    float moonK = hkDR(0.08, 1.0, 2.3, uD3) * estMoon * dimC + bolt * 1.6;
 
     vec2 pu = rUV(p);
     vec4 fa = plate0(pu);
@@ -242,7 +242,7 @@ vec4 render(vec2 uv) {
         sky += vec3(0.45, 0.48, 0.62) * exp(-mr * 2.6) * 0.35 * moonK;
         float st = step(0.995, hash21(floor(p * 160.0))) * (0.5 + 0.5 * sin(uRTime * 3.0 + hash21(floor(p * 160.0)) * 40.0));
         sky += vec3(0.8) * st * smoothstep(0.0, 0.6, p.y) * (1.0 - smoothstep(0.0, 0.5, exp(-mr * 2.0)));
-        sky = mix(sky, moonC * (0.7 + 0.5 * uD3), 1.0 - smoothstep(0.15, 0.158, mr));
+        sky = mix(sky, moonC * hkDR(0.25, 0.95, 1.6, uD3), 1.0 - smoothstep(0.15, 0.158, mr));
         sky = hkStyleMoon(sky, p, MOON, 0.16);
         // nubes que pasan delante de la luna
         float cl = plate2Wrap(vec2(p.x * 0.22 + t * 0.012, p.y * 0.35 + 0.2)).r;
@@ -280,13 +280,13 @@ vec4 render(vec2 uv) {
     float difM = max(dot(nrm, vec3(-0.6236, 0.4828, 0.6150)), 0.0);
     vec3 Lb = normalize(vec3(clamp((bx - p.x) * 0.6, -1.2, 1.2), 0.8, 0.5));
     float difB = max(dot(nrm, Lb), 0.0);
-    float moonOnly = (0.60 + uD3 * 0.80) * estMoon * dimC;
+    float moonOnly = hkDR(0.08, 1.0, 2.3, uD3) * estMoon * dimC;
     float rim = pow(1.0 - nrm.z, 1.5) * max(dot(normalize(nrm.xy + 1e-4), vec2(-0.79, 0.61)), 0.0);
     float keyL = mix(moonK, moonOnly * (0.30 + 1.30 * difM + rim * 0.8) + bolt * 1.6 * (0.25 + 1.8 * difB), rlOn);
     vec3 house = alb * (vec3(0.26, 0.29, 0.42) * keyL * mix(1.0, rl.b, rlOn) + vec3(0.025, 0.02, 0.025));
 
     // --- ventanas ---
-    float nLive = clamp(3.0 + uD1 * 15.0 + uDensity * 2.0 + hkActVal(3.0) * 2.0 + wBusy * 4.0 - wFog * 1.5, 0.0, 19.0);
+    float nLive = clamp(hkDR(0.0, 10.5, 19.0, uD1) + uDensity * 2.0 + hkActVal(3.0) * 2.0 + wBusy * 4.0 - wFog * 1.5, 0.0, 19.0);
     // la sombra enorme y el que corre van de un lado al otro
     float sweepX = mix(-1.8, 1.5, sp);
     if (ss > 0.5) sweepX = 0.3 - sweepX;
@@ -295,7 +295,7 @@ vec4 render(vec2 uv) {
     int flFloor = int(floor(ss * 3.0));
     float flick = step(0.45, hash21(vec2(floor(uRTime * 2.5), 41.0)));   // <= 2.5 por segundo
     float sel = floor(hash21(vec2(floor(uRTime * 0.9), 26.0)) * 19.0);    // la del golpe
-    float silA = hit * (0.35 + uD4 * 0.75);
+    float silA = hit * hkDR(0.0, 0.725, 1.6, uD4);
     vec3 spill = vec3(0.0);
     vec3 glass = vec3(0.0);
     float glassA = 0.0;
@@ -334,6 +334,8 @@ vec4 render(vec2 uv) {
         L *= 1.0 - cC * (eye ? 1.0 : 0.85) * smoothstep(0.0, 0.5, C.x) * (1.0 - smoothstep(0.75, 0.95, cph));
         // silueta: golpe, piano, sucesos, la vela del climax
         float S = (abs(fi - sel) < 0.5 ? silA : 0.0);
+        // D4 alta: hay siluetas paradas en varias ventanas aunque no haya golpe
+        S = max(S, smoothstep(0.5, 1.0, uD4) * 0.85 * step(hash21(vec2(fi, floor(uRTime / HK_ACT) + 7.0)), (uD4 - 0.5) * 1.1));
         float sharp = 0.5;
         int kind = int(mod(fi * 7.0 + floor(uRTime / HK_ACT), 4.0));
         if (i == 10) { S = max(S, attic); L = max(L, attic * 0.8); if (attic > 0.0) kind = 0; }
@@ -545,7 +547,7 @@ vec4 render(vec2 uv) {
     // --- niebla del jardin (detras de la reja y los setos) ---
     float fz = plate2Wrap(vec2(p.x * 0.18 + t * 0.010, p.y * 0.55 - t * 0.004)).g;
     float fz2 = plate2Wrap(vec2(p.x * 0.45 - t * 0.016, p.y * 1.2)).b;
-    float fogA = (0.20 + uD2 * 0.70 + wFog * 0.45) * smoothstep(-0.35 + wFog * 0.25, -0.85, p.y) * (0.45 + 0.75 * (fz * 0.6 + fz2 * 0.5));
+    float fogA = (hkDR(0.0, 0.55, 1.6, uD2) + wFog * 0.45) * smoothstep(-0.35 + wFog * 0.25, -0.85, p.y) * (0.45 + 0.75 * (fz * 0.6 + fz2 * 0.5));
     fogA += (sv == 2 ? se * 0.35 : 0.0) * exp(-length((p - MN_DOOR.xy - vec2(0.0, -0.2)) * vec2(1.5, 3.0)) * 2.0);
     vec3 fogC = vec3(0.22, 0.24, 0.32) * moonK + spill * 0.6 + candleC * doorB * 0.35 * exp(-abs(p.x) * 2.0);
     col = mix(col, fogC, clamp(fogA, 0.0, 0.85) * (1.0 - fore * 0.65));

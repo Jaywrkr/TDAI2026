@@ -126,7 +126,7 @@ vec4 render(vec2 uv) {
 
     // --- luna ---
     vec2 mc = vec2(0.55, 0.14);
-    float R = 0.50 + uD2 * 0.28;
+    float R = hkDR(0.30, 0.64, 0.95, uD2);
     vec2 mp = p - mc;
     float mr = length(mp);
     float pulse = 1.0 + bass * 0.30;
@@ -181,7 +181,7 @@ vec4 render(vec2 uv) {
 
     // --- cuervos volando (dos capas; la bandada grande cruza la luna) ---
     // 0..7: los que vuelan siempre (D1, de a uno); 8..21: la bandada
-    float nAmb = 2.0 + uD1 * 6.0;
+    float nAmb = hkDR(0.0, 5.0, 8.0, uD1);
     float nFlock = flockE * 14.0;
     for (int i = 0; i < 22; i++) {
         float fi = float(i);
@@ -193,8 +193,8 @@ vec4 render(vec2 uv) {
         float x = big > 0.5 ? mix(-uAspect - 0.6, uAspect + 0.6, flockPh + h1 * 0.15)
                             : mix(-uAspect - 0.6, uAspect + 0.6, fract(h2 + t * spd));
         float y = big > 0.5 ? mc.y + (h2 - 0.5) * 0.9 + sin(flockPh * 6.0 + fi) * 0.05
-                            : 0.35 + h2 * 0.5 + 0.06 * sin(t * (0.5 + h1) + fi);
-        float s = big > 0.5 ? 0.06 + h1 * 0.05 : 0.05 + h1 * 0.04;
+                            : 0.0 + h2 * 0.6 + 0.06 * sin(t * (0.5 + h1) + fi);     // bajo las nubes, cruzando la luna
+        float s = big > 0.5 ? 0.06 + h1 * 0.05 : 0.10 + h1 * 0.07;
         vec2 q = (p - vec2(x, y)) / s;
         if (dot(q, q) > 2.0) continue;
         float flap = sin(t * (7.0 + h1 * 5.0) + fi * 2.0);
@@ -299,7 +299,7 @@ vec4 render(vec2 uv) {
     }
 
     // --- arbol (la rama se mece con los medios; D3) ---
-    float wind = (0.4 + uD3) * (0.4 * sin(t * 0.9) + 0.25 * sin(t * 2.1 + 1.0) + mid * 0.8 * sin(t * 3.3));
+    float wind = hkDR(0.0, 0.9, 3.2, uD3) * (0.4 * sin(t * 0.9) + 0.25 * sin(t * 2.1 + 1.0) + mid * 0.8 * sin(t * 3.3));
     float bend = wind * 0.012;
     vec2 pt = p;
     float yb = max(p.y + 0.2, 0.0);
@@ -323,7 +323,7 @@ vec4 render(vec2 uv) {
     // 8 lugares FIJOS en la rama; D4 decide cuales estan ocupados (cada uno
     // con su punto de la perilla) y el nuevo llega volando desde arriba
     const float nSlot = 8.0;
-    float nP = 1.0 + uD4 * 7.0;
+    float nP = hkDR(0.0, 4.5, 8.0, uD4);
     float spacing = 3.3 / nSlot;
     float ci = floor((p.x + 0.95) / spacing);
     for (int kk = -1; kk <= 1; kk++) {

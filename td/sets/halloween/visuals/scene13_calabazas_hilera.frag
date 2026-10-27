@@ -109,7 +109,7 @@ vec4 render(vec2 uv) {
     // hacia donde miran las caras (suceso y C)
     float lookX = (sv == 6 ? se * (ssd > 0.5 ? 1.0 : -1.0) * 0.10 : 0.0) - moonJ * 0.10;
     // cantidad continua: la fila se acomoda sin saltar y la nueva crece
-    float n = 4.0 + uD1 * 4.0 + hkActVal(5.0) * 1.5;
+    float n = hkDR(2.5, 6.0, 11.0, uD1) + hkActVal(5.0) * 1.5;
     float nSlots = ceil(n);
     float span = uAspect * 1.7;
     float cw = span / n;
@@ -200,9 +200,9 @@ vec4 render(vec2 uv) {
         kb = max(kb, max(sing, ch));
         keyBoost[j] = kb;
         float blinkD = (dv == 2 && abs(i - floor(D.w * nSlots)) < 0.5) ? D.x * step(0.4, D.y) * (1.0 - step(0.6, D.y)) : 0.0;
-        lits[j] = ((0.75 + band * (0.4 + uD2 * 1.4) + wave * 0.8) * mix(1.0, 0.25 + chaseOn * 2.0, chase) * flick
+        lits[j] = ((0.75 + band * hkDR(0.0, 1.1, 3.0, uD2) + wave * 0.8) * mix(1.0, 0.25 + chaseOn * 2.0, chase) * flick
                   + kb * 1.6 + cAy * 0.8 + burst * 2.0 + moonJ * 0.3) * grow * (1.0 - off * 0.95) * (1.0 - blinkD * 0.9);
-        float sz = cw * (0.36 + uD4 * 0.12) * (0.9 + 0.2 * hash21(vec2(i, 3.0))) * 1.6 * mix(0.2, 1.0, grow);
+        float sz = cw * hkDR(0.22, 0.42, 0.66, uD4) * (0.9 + 0.2 * hash21(vec2(i, 3.0))) * 1.6 * mix(0.2, 1.0, grow);
         float hop = hit * loco * (0.15 + 0.35 * hash21(vec2(i, floor(uRTime * 2.0)))) * sz * 0.6;
         ss[j] = sz;
         cs[j] = vec2(-span * 0.5 + (i + 0.5) * cw, WALL_TOP - 0.02 + 0.5 * sz + hop);
@@ -331,7 +331,7 @@ vec4 render(vec2 uv) {
     // --- niebla sobre el muro ---
     float fog = plate5Wrap(vec2(p.x * 0.12 - t * 0.008, p.y * 0.6 + 0.3)).b;
     float fogBand = exp(-pow((p.y - WALL_TOP + 0.05) / 0.18, 2.0));
-    col = mix(col, vec3(0.45, 0.40, 0.55) * (0.3 + bass * 0.4) + fireC * glowAll * 0.03, smoothstep(0.4, 0.8, fog) * fogBand * (0.20 + uD6 * 0.6));
+    col = mix(col, vec3(0.45, 0.40, 0.55) * (0.3 + bass * 0.4) + fireC * glowAll * 0.03, smoothstep(0.4, 0.8, fog) * fogBand * hkDR(0.0, 0.5, 1.5, uD6));
 
     // detalles: una chispa salta de una calabaza; cae una hoja
     if (dv == 1) {

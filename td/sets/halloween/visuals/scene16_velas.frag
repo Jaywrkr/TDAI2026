@@ -95,7 +95,7 @@ vec4 render(vec2 uv) {
     float misa = cB * smoothstep(0.05, 0.30, C.w) * (1.0 - smoothstep(0.80, 0.95, C.w));
     float ring = cC * smoothstep(0.08, 0.35, C.w) * (1.0 - smoothstep(0.72, 0.92, C.w));
     vec3 flameC = mix(vec3(1.0, 0.55, 0.20), vec3(0.35, 1.0, 0.55), clamp(uD5 + (sv == 5 ? se : 0.0), 0.0, 1.0));
-    float nLit = min(3.0 + uD1 * 9.0 + hkActVal(4.0) * 1.5, 12.0);
+    float nLit = min(hkDR(0.6, 7.5, 12.0, uD1) + hkActVal(4.0) * 1.5, 12.0);
 
     // estado de cada llama: prendida (0..1), punta, tamano
     float on[12];
@@ -127,9 +127,9 @@ vec4 render(vec2 uv) {
         if (dv == 0 && i == int(D.w * 11.99)) kb = max(kb, D.x * 0.8);
         if (dv == 1 && i == int(D.w * 11.99)) out_ = max(out_, D.x * 0.5 * step(0.6, noise21(vec2(uRTime * 12.0, fi))));
         on[i] = lit * (1.0 - out_);
-        float jump = smoothstep(0.0, 0.3, hit - fract(fi * 0.37) * 0.3) * uD4;
+        float jump = smoothstep(0.0, 0.3, hit - fract(fi * 0.37) * 0.3) * hkDR(0.0, 0.5, 2.4, uD4);
         boost[i] = kb;
-        fsz[i] = (0.065 + uD2 * 0.07) * (1.0 + jump * 0.8 + bass * 0.15 + kb * 0.9 + misa * (0.9 + bass * 0.8)) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
+        fsz[i] = hkDR(0.02, 0.10, 0.27, uD2) * (1.0 + jump * 0.8 + bass * 0.15 + kb * 0.9 + misa * (0.9 + bass * 0.8)) * (0.85 + 0.15 * noise21(vec2(t * 7.0, fi)));
         tip[i] = vec2(c.x, c.y + c.z + 0.02);
         // suceso: una llama se despega y flota
         if (sv == 6 && i == int(ss * 11.99)) tip[i] += vec2(0.12 * sin(sph * 9.0), 0.55 * sin(sph * PI)) * se;
@@ -239,7 +239,7 @@ vec4 render(vec2 uv) {
         float fi = float(i);
         float s = fsz[i];
         // humo que sube (mas cuando la llama se apago)
-        float smokeA = max(uD6, EST.z * 0.9 + (dv == 2 ? D.x : 0.0));
+        float smokeA = max(hkDR(0.0, 0.5, 2.2, uD6), EST.z * 0.9 + (dv == 2 ? D.x : 0.0));
         if (smokeA > 0.02 && dq.y > 0.0 && abs(dq.x) < 0.05 + dq.y * 0.3) {
             float sm = fbm(vec2(dq.x * 6.0 + sin(dq.y * 4.0 - t * 1.2 + fi) * 0.6, dq.y * 2.0 - t * 0.5), 3, 0.5);
             float plume = exp(-pow(dq.x / (0.02 + dq.y * 0.12), 2.0)) * smoothstep(1.1, 0.1, dq.y);
@@ -248,7 +248,7 @@ vec4 render(vec2 uv) {
         if (on[i] < 0.01) continue;
         // halo
         float r = length(dq - vec2(0.0, s * 0.6));
-        col += flameC * exp(-r / (0.05 + uD3 * 0.18 + bass * 0.05)) * (0.12 + uD3 * 0.25) * on[i];
+        col += flameC * exp(-r / (hkDR(0.02, 0.14, 0.36, uD3) + bass * 0.05)) * hkDR(0.0, 0.245, 0.6, uD3) * on[i];
         // llama: gota que se inclina con la corriente y titila
         float lean = (0.15 + mid * 0.6) * sin(t * 1.3 + fi) + hit * loco * 0.8 * sin(uRTime * 9.0)
                    + gustK * (1.5 + 0.6 * sin(uRTime * 11.0 + fi));
@@ -275,6 +275,13 @@ vec4 render(vec2 uv) {
         vec2 mq = (p - mp) / 0.018;
         float wing = length(vec2(abs(mq.x) - 0.6 * (0.5 + 0.5 * sin(uRTime * 40.0)), mq.y)) - 0.6;
         col = mix(col, vec3(0.04, 0.03, 0.02) + flameC * 0.15, (1.0 - smoothstep(-0.1, 0.1, wing)) * D.x * on[mi]);
+    }
+    // D6 alta: el humo de las velas llena la sala (bruma que sube)
+    float haze = smoothstep(0.45, 1.0, uD6);
+    if (haze > 0.01) {
+        float hz = fbm(vec2(p.x * 1.6, p.y * 1.2 - t * 0.18), 3, 0.5);
+        col += flameC * 0.10 * (0.4 + L.r * 4.0) * smoothstep(0.35, 0.85, hz) * haze * smoothstep(-0.9, 0.6, p.y);
+        col = mix(col, col * 0.6 + vec3(0.06, 0.05, 0.045), 0.35 * haze * smoothstep(0.4, 0.8, hz));
     }
     return vec4(hkFinish(col, uv, vec3(0.45, 0.28, 0.12)), 1.0);
 }
