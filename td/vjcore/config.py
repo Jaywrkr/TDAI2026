@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'texto-nativo-f40c 2026-10-27'
+BUILD_TAG = 'texto-presets-f41 2026-10-27'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -366,6 +366,13 @@ CTRL_CHANNELS = [
     # EASTER EGG "JAY INFINITO" (fase 38): kclock en que se pidio a mano
     # (-1 = nunca). Ver hkEgg en sets/halloween/common.glsl.
     'secret',     # 90
+    # TEXTO CON PRESETS (fase 41, program.py _TEXTFX_FRAG): preset en
+    # pantalla (0..9), semilla de la variante (cambia en cada encendido),
+    # cuantos nombres hay (1..4) y la perilla de tamano.
+    'txtpre',     # 91
+    'txtseed',    # 92
+    'txtn',       # 93
+    'txtsize',    # 94
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -429,7 +436,13 @@ PAR_CHANNELS = [
     ('Mbeat', 'mbeat'), ('Manchor', 'manchor'), ('Mbrk0', 'mbrk0'), ('Mbrk1', 'mbrk1'),
     ('Mclx', 'mclx'), ('Mclxt', 'mclxt'), ('Mclxn', 'mclxn'), ('Mclxarm', 'mclxarm'),
     ('Secreton', 'secret'),
+    ('Textpresetcur', 'txtpre'), ('Textseed', 'txtseed'),
+    ('Textcount', 'txtn'), ('Textsize', 'txtsize'),
 ]
+
+# Presets del texto (pagina Texto > Preset; 0 = uno al azar cada vez).
+TEXT_PRESETS = ['Centro', 'Flota', 'Rebote', 'Cinta', 'Baila',
+                'Lluvia', 'Orbita', 'Glitch', 'Eco', 'Lineup']
 
 # Voces del piano polifonico y su suavizado de perillas Detail
 PIANO_VOICES = 6

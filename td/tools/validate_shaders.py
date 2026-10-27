@@ -132,15 +132,8 @@ def postfx_sources(channels=None):
         # Capas encima + Miedo: imagen (input 0) + control (input 1).
         ('program_capas', _td_prologue_post(2)
          + shader.ctrl_header(channels or config.CTRL_CHANNELS, 1) + program._CAPAS_FRAG),
-        # Overlay de texto: 3 inputs (base, Text TOP, fundido 1x1), sin
-        # canales de control -- el color/contorno se decide adentro del
-        # shader, no via _ctrl(), asi que no necesita 'head'.
-        # Overlay de texto con textura de control en el input 3 (el halo
-        # late con el kick) y sin ella (fallback: uKick fijo en 0).
-        ('program_text', _td_prologue_post(4) + shader.ctrl_header(
-            channels or config.CTRL_CHANNELS, 3) + program._TEXT_FRAG),
-        ('program_text_noctrl', _td_prologue_post(3) + '#define uKick 0.0\n'
-         + program._TEXT_FRAG),
+        # Texto con presets (fase 41): imagen + atlas de nombres + control.
+        ('program_textfx', _td_prologue_post(3) + head + program._TEXTFX_FRAG),
     ]
 
 

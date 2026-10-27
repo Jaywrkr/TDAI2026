@@ -196,7 +196,15 @@ def _parameters(proj):
     add_int(tx, 'Font', 'Fuente  ' + _menu_hint(c.FONTS), 0, 0, len(c.FONTS) - 1)
     add_pulse(tx, 'Fontnext', 'Fuente siguiente')
     add_float(tx, 'Textsize', 'Tamano', 0.5, 0, 1)
-    add_float(tx, 'Texty', 'Posicion vertical (0 abajo, 1 arriba)', 0.18, 0, 1)
+    # Preset de movimiento (fase 41). 0 = al azar: cada vez que se
+    # muestra el texto sale otro preset con otra variante (angulo,
+    # diagonal, profundidad, color). Varios nombres: 'UNO + DOS + TRES'.
+    add_int(tx, 'Textpreset', 'Preset  0 Al azar, ' + ', '.join(
+        '{} {}'.format(i + 1, n) for i, n in enumerate(c.TEXT_PRESETS)), 0, 0, len(c.TEXT_PRESETS))
+    add_pulse(tx, 'Textvariante', 'Otra variante (mismo preset)')
+    add_float(tx, 'Textpresetcur', 'Preset en pantalla (interno)', 0.0, 0, len(c.TEXT_PRESETS) - 1)
+    add_float(tx, 'Textseed', 'Variante (interno)', 0.37, 0, 1)
+    add_float(tx, 'Textcount', 'Cuantos nombres (interno)', 1.0, 1, 4)
     # COLA DE NOMBRES: los proximos artistas escritos por adelantado,
     # separados con ';'. El pad TEXTO muestra el siguiente cada vez que
     # prende (ver control_script.toggleTextVisible). Lo ultimo que
@@ -592,6 +600,8 @@ def onPulse(par):
         m.mediaRescan()
     elif n == 'Fontnext':
         m.nextFont()
+    elif n == 'Textvariante':
+        m.textNewVariant()
     elif n == 'Guionplay':
         m.startGuion(0.0)
     elif n == 'Guionpause':
@@ -627,6 +637,8 @@ def onValueChange(par, prev):
         return
     if par.name in ('Performancemode', 'Previewall'):
         ctrl.module.setSceneCooking()
+    elif par.name in ('Textpreset', 'Textcontent'):
+        ctrl.module.textNewVariant(par.name == 'Textpreset')
     elif par.name in ('Nocheon', 'Nocheauto', 'Nocheinicio', 'Nochefin', 'Nochemanual', 'Nocheintensidad'):
         # la perilla manual responde en el momento (no espera el refresco)
         d = op('/project1/diagnostics')

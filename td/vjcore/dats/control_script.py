@@ -2652,7 +2652,63 @@ def toggleTextVisible():
         # la cola (salvo que escribas algo nuevo otra vez).
         p.store('text_last_auto', current)
     _setPar(p, 'Textediting', False)
+    textNewVariant(True)
     _setPar(p, 'Textvisible', True)
+
+
+def textNames():
+    """Los nombres que estan en pantalla: 'Texto' separado por '+'
+    (ej. 'DJ LUNA + MORTEM'), hasta 4. Siempre al menos uno."""
+    p = _p()
+    raw = str(_parVal(p, 'Textcontent', '') or '') if p else ''
+    names = [s.strip() for s in raw.split('+') if s.strip()][:4]
+    return names or ['']
+
+
+def textName(i):
+    """Fila i del atlas de nombres (program.py). Si hay menos nombres,
+    se repiten: los presets de varios nombres nunca quedan vacios.
+    Nunca tira excepcion (la llama una expresion de Text TOP)."""
+    try:
+        names = textNames()
+        return names[int(i) % len(names)]
+    except Exception:
+        return ''
+
+
+def textNewVariant(new_preset=True):
+    """Elige la variante del texto (angulo, diagonal, profundidad, color,
+    tamano, velocidad: todo sale de Textseed en el shader) y, si
+    new_preset, el preset: el de la perilla, o uno al azar con 0."""
+    import random
+    p = _p()
+    if not p:
+        return
+    try:
+        n = len(textNames())
+        _setPar(p, 'Textcount', float(n))
+        if not new_preset:
+            return
+        try:
+            import vjcore.config as _vjconfig
+            total = len(_vjconfig.TEXT_PRESETS)
+        except Exception:
+            total = 10
+        choice = int(_parVal(p, 'Textpreset', 0) or 0)
+        if choice <= 0:
+            prev = int(round(float(_parVal(p, 'Textpresetcur', 0) or 0)))
+            options = [k for k in range(total) if k != prev] or [0]
+            # el lineup (esquinas) luce con varios nombres
+            if n < 2 and total > 9 and 9 in options and len(options) > 1:
+                options.remove(9)
+            cur = random.choice(options)
+        else:
+            cur = min(choice, total) - 1
+        _setPar(p, 'Textpresetcur', float(cur))
+        _setPar(p, 'Textseed', random.random())
+        print('TEXTO: preset', cur + 1)
+    except Exception as e:
+        print('textNewVariant ERROR:', e)
 
 
 def _textStep(step):
