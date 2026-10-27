@@ -19,7 +19,7 @@ Cada shader documenta sus seis Detail. D5 cambia la paleta; D6 ajusta los detall
 3. Probar con musica, sin audio, con acordes y con Momento. Ajustar Detail desde el panel; la perilla 9 del MiniLab sigue siendo navegador.
 4. Verificar nitidez y FPS en el Mac, con la resolucion real del show. Las capturas se renderizan fuera de TouchDesigner y no miden el rendimiento del equipo.
 
-El guion de 158 cues se conserva: las cinco nuevas estan al final del setlist para seleccion manual/autopilot, **no** incorporadas al guion horario. Las escenas 00–33, el set general y el nucleo no cambian.
+El guion de 158 cues se conserva: las cinco nuevas van intercaladas en el setlist (fase 40) para seleccion manual/autopilot, **no** incorporadas al guion horario. Las escenas 00–33, el set general y el nucleo no cambian.
 
 ## Validacion
 

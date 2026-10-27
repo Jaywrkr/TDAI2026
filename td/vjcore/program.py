@@ -458,52 +458,70 @@ void main() {
 def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
     """Nombre de artista tipeado en vivo, compositado sobre el programa.
 
-    Fundido: Parametro (Textvisible, 0/1) -> Lag CHOP -> CHOP to TOP de
-    1x1 -> input 2 del shader de arriba. Es la MISMA idea que la
-    transicion de escenas (xfade_lag mas abajo en este archivo): TD hace
-    la rampa nativa, nada de Python por frame.
+    TODO con TOPs nativos (fase 40): en el Mac el GLSL del texto no
+    llegaba a mostrar nada (y no acepta la textura de control como cuarto
+    input). Cadena:
+      Text TOP blanco ----------------------------------------+
+      Text TOP negro -> Blur (sombra, para que se lea encima de todo) |
+      base -> Over(sombra) -> Over(texto) -> Cross(base, con texto)
+    El fundido es el Cross: Textvisible -> Constant CHOP -> Lag CHOP ->
+    expresion de 'cross'. Nada de GLSL ni CHOP to TOP: son los mismos
+    nodos que ya funcionan en master_fade y music_gate.
 
-    Posicion vertical con un Transform TOP (parametro 'ty', de los mas
-    estables que tiene TD) en vez de los parametros de posicion propios
-    del Text TOP -- por la misma razon que el contorno se hace a mano:
-    menos superficie que pueda variar de nombre entre builds.
+    Posicion vertical con un Transform TOP (parametro 'ty').
+    ctrl_tex/channels quedan en la firma por compatibilidad.
     """
-    text_top = proj.create(textTOP, 'text_overlay_src')  # noqa: F821
-    text_top.nodeX, text_top.nodeY = 960, 780
-    safe_expr(text_top, 'text', "op('/project1').par.Textcontent")
-    safe_expr_first(text_top, ['font', 'fontfile'],
-                     "op('/project1/control_script').module.currentFontName()")
-    # Rango de tamano en pixeles: 24 (perilla en 0) a 220 (perilla en 1,
-    # un titular de pantalla completa) sobre una salida tipica de 720p.
-    safe_expr_first(text_top, ['fontsizex', 'fontsize'],
-                     "24 + op('/project1').par.Textsize.eval() * 196")
-    safe_set_first(text_top, ['alignx', 'justifyx', 'textalignx'], 'center')
-    safe_set_first(text_top, ['aligny', 'justifyy', 'textaligny'], 'middle')
-    safe_set_first(text_top, ['wordwrap', 'wrapwords'], False)
-    for pn, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb', 'fontcolora'),
-                     (1, 1, 1, 1)):
-        safe_set(text_top, pn, v)
-    safe_set(text_top, 'outputresolution', 'custom')
-    safe_expr(text_top, 'resolutionw', "op('/project1').par.Outputwidth")
-    safe_expr(text_top, 'resolutionh', "op('/project1').par.Outputheight")
+    def _text_top(name, rgb, x, y):
+        t = proj.create(textTOP, name)  # noqa: F821
+        t.nodeX, t.nodeY = x, y
+        safe_expr(t, 'text', "op('/project1').par.Textcontent")
+        safe_expr_first(t, ['font', 'fontfile'],
+                        "op('/project1/control_script').module.currentFontName()")
+        # 24 px (perilla en 0) a 220 px (en 1) sobre una salida de 720p
+        safe_expr_first(t, ['fontsizex', 'fontsize'],
+                        "24 + op('/project1').par.Textsize.eval() * 196")
+        safe_set_first(t, ['alignx', 'justifyx', 'textalignx'], 'center')
+        safe_set_first(t, ['aligny', 'justifyy', 'textaligny'], 'middle')
+        safe_set_first(t, ['wordwrap', 'wrapwords'], False)
+        for pn, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'), rgb):
+            safe_set(t, pn, v)
+        safe_set_first(t, ['fontalpha', 'fontcolora'], 1.0)
+        # fondo transparente: solo las letras
+        safe_set_first(t, ['bgalpha', 'bgcolora'], 0.0)
+        safe_set(t, 'outputresolution', 'custom')
+        safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
+        safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")
+        return t
 
+    # Texty 0..1 (0 abajo, 1 arriba) -> desplazamiento desde el centro en
+    # FRACCION de la imagen (la unidad por defecto del Transform TOP; antes
+    # se pasaban pixeles y el texto salia fuera de cuadro). En TD +y = arriba.
+    ty_expr = "(op('/project1').par.Texty.eval() - 0.5) * 0.7"
+
+    text_top = _text_top('text_overlay_src', (1, 1, 1), 960, 780)
     text_y = proj.create(transformTOP, 'text_overlay_y')  # noqa: F821
     text_y.nodeX, text_y.nodeY = 1120, 780
     connect(text_y, text_top)
-    # Texty 0..1 (0 abajo, 1 arriba) -> desplazamiento en pixeles desde el
-    # centro. 0.5 (parametro por defecto de la pagina) cae cerca del
-    # tercio inferior, que es donde va un nombre sin tapar el visual.
-    safe_expr(text_y, 'ty',
-              "(0.5 - op('/project1').par.Texty.eval()) "
-              "* op('/project1').par.Outputheight.eval() * 0.7")
+    safe_expr(text_y, 'ty', ty_expr)
+    safe_set_first(text_y, ['tunit', 'translateunit'], 'fraction')
 
-    # --- fundido: Parametro -> Lag -> CHOP to TOP de 1x1 ---
-    fp = proj.create(parameterCHOP, 'text_fade_par')
+    shadow_src = _text_top('text_shadow_src', (0, 0, 0), 960, 660)
+    shadow_y = proj.create(transformTOP, 'text_shadow_y')  # noqa: F821
+    shadow_y.nodeX, shadow_y.nodeY = 1120, 660
+    connect(shadow_y, shadow_src)
+    safe_expr(shadow_y, 'ty', ty_expr)
+    safe_set_first(shadow_y, ['tunit', 'translateunit'], 'fraction')
+    shadow = proj.create(blurTOP, 'text_shadow_blur')  # noqa: F821
+    shadow.nodeX, shadow.nodeY = 1280, 660
+    connect(shadow, shadow_y)
+    safe_set(shadow, 'size', 6)
+
+    # --- fundido: Textvisible -> Constant -> Lag ---
+    fp = proj.create(constantCHOP, 'text_fade_par')
     fp.nodeX, fp.nodeY = 960, 900
-    safe_set_first(fp, ['op', 'ops'], config.PROJECT_PATH)
-    safe_set(fp, 'custom', True)
-    safe_set(fp, 'builtin', False)
-    safe_set_first(fp, ['parameters', 'pars', 'parameter'], 'Textvisible')
+    safe_set_first(fp, ['const0name', 'name0'], 'textvisible')
+    safe_expr_first(fp, ['const0value', 'value0'],
+                    "1.0 if op('/project1').par.Textvisible.eval() else 0.0")
 
     flag = proj.create(lagCHOP, 'text_fade_lag')
     flag.nodeX, flag.nodeY = 1120, 900
@@ -512,38 +530,28 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
     safe_set_first(flag, ['lagmethod', 'method'], 'slew')
     connect(flag, fp)
 
-    fade_tex = proj.create(choptoTOP, 'text_fade_tex')  # noqa: F821
-    fade_tex.nodeX, fade_tex.nodeY = 1280, 900
-    safe_set_first(fade_tex, ['chop', 'top'], flag.path)
-    safe_set_first(fade_tex, ['dataformat', 'format', 'pixelformat'], '32bitfloat')
-
     # --- composite ---
-    src = proj.create(textDAT, 'program_text_src')
-    src.nodeX, src.nodeY = 1280, 780
-    # Con textura de control (input 3), el halo del texto late con el
-    # kick. Sin ella el shader compila igual, con el halo quieto.
-    if ctrl_tex is not None and channels:
-        src.text = shader.ctrl_header(channels, 3) + _TEXT_FRAG
-    else:
-        src.text = '#define uKick 0.0\n' + _TEXT_FRAG
+    over_shadow = proj.create(overTOP, 'text_over_shadow')  # noqa: F821
+    over_shadow.nodeX, over_shadow.nodeY = 1440, 700
+    connect(over_shadow, shadow, 0)
+    connect(over_shadow, base_top, 1)
+    over_text = proj.create(overTOP, 'text_over')  # noqa: F821
+    over_text.nodeX, over_text.nodeY = 1600, 760
+    connect(over_text, text_y, 0)
+    connect(over_text, over_shadow, 1)
 
-    glsl = proj.create(glslTOP, 'program_text')
-    glsl.nodeX, glsl.nodeY = 1440, 780
-    safe_set_first(glsl, ['pixeldat', 'pixelshader'], src.path)
-    connect(glsl, base_top, 0)
-    connect(glsl, text_y, 1)
-    connect(glsl, fade_tex, 2)
-    # En el Mac (TD actual) el GLSL TOP no acepta un cuarto input: si la
-    # textura de control no entra, el header no puede leer sTD2DInputs[3]
-    # (el shader no compilaria y la salida entera quedaria gris). Sin
-    # control, el halo queda quieto.
-    if not (ctrl_tex is not None and channels and connect(glsl, ctrl_tex, 3)):
-        src.text = '#define uKick 0.0\n' + _TEXT_FRAG
-    safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
+    out = proj.create(crossTOP, 'program_text')  # noqa: F821
+    out.nodeX, out.nodeY = 1760, 780
+    connect(out, base_top, 0)
+    connect(out, over_text, 1)
+    safe_expr(out, 'cross',
+              "op('/project1/text_fade_lag')[0].eval() "
+              "if op('/project1/text_fade_lag').numChans else 0.0")
 
-    log('OVERLAY DE TEXTO: Text TOP + fundido nativo + composite OK')
-    return {'text_top': text_top, 'text_y': text_y, 'fade_tex': fade_tex,
-            'text_composite': glsl}
+    log('OVERLAY DE TEXTO: Text TOP + sombra + fundido nativo (sin GLSL) OK')
+    return {'text_top': text_top, 'text_y': text_y, 'fade_tex': flag,
+            'text_composite': out, 'text_extra': [shadow_y, shadow,
+                                                  over_shadow, over_text]}
 
 
 def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
@@ -1244,7 +1252,7 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # frame se reescala contra el anterior y la estela "respira" sola).
     res_nodes = [black, cross, clean, bloom, bloom_fx['bloom_prefilter'],
                  master, show,
-                 text_fx['text_y'], text_fx['text_composite']]
+                 text_fx['text_y'], text_fx['text_composite']] + text_fx['text_extra']
     res_nodes += [fx[k] for k in ('blend', 'pick', 'trails', 'trails_fb',
                                   'trails_pick') if k in fx]
     if trans is not None:
