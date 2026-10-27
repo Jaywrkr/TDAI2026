@@ -89,6 +89,8 @@ Caras de villanos propios en estilo caricatura de los 80, como la referencia del
 - Piano: cada nota enciende los ojos de su villano. Momento: todos gritan.
 - Destellos 2/s. Va en el setlist después del bosque de faroles (28).
 
-## Escena 45: Calavera cibernética (fase 46)
+## Escena 45: Revelado (fase 47)
 
-Como la segunda referencia del usuario (busto de robot en la oscuridad, revelado por luces de color), pero propia: una calavera de metal con placas, ceja, sienes hundidas, mandíbula en trapecio, cables en el cuello y hombros de armadura, dibujada como relieve en el shader. Casi negra: solo se ve por **brillos recortados y bordes encendidos** de 2 a 4 luces de color que **saltan a otro ángulo** cada 4, 2 o 1 tiempos (D2) y barren despacio entre saltos. Ojos rojos y dientes que se encienden a ratos y con el golpe (D4), LEDs en la pechera con el bajo. D1 cuántas luces, D3 placas y remaches, D5 magenta/cian ↔ calabaza/veneno, D6 cielo. Piano: cada nota prende una luz desde su lado. Hoja: `docs/img/calavera_cibernetica.jpg`. Destellos 0/s. En el setlist, después de la momia (12).
+La técnica de la segunda referencia del usuario (todo a oscuras y solo se prenden **pedazos del arte** con luces de color) aplicada a arte de Halloween: la **mansión** de la escena 26 (sus láminas, copiadas en `plates/scene45`, con su relieve). La fachada queda casi negra; está partida en pedazos irregulares (Voronoi) y en cada salto (cada 4, 2 o 1 tiempos, D2) se prenden otros. Cada pedazo es un foco rasante de un color (calabaza, violeta o veneno; con D5, magenta, cian o veneno) que enciende los filos del relieve: tablas, molduras, tejas. Algunas ventanas se encienden como ojos (D4) y un barrido tenue cruza cada 8 tiempos. D1 cuántos pedazos, D3 tamaño de los pedazos, D6 luna y cielo. Piano: prende los pedazos de su lado. Momento: se revela la casa entera. Hoja: `docs/img/revelado.jpg`. Destellos 0/s. En el setlist, después de la momia (12).
+
+(La fase 46 había hecho una calavera robot; el usuario quería la técnica sobre arte de Halloween, no el robot: se reemplazó.)
