@@ -976,6 +976,13 @@ vec3 hkMediaGhost(vec2 m) {
     float s = 1.0 - smoothstep(-0.02, 0.06, min(head, body));
     return vec3(0.16) + vec3(0.05) * noise21(m * 9.0 + uRTime * 0.3) - vec3(0.13) * s;
 }
+// Exposicion automatica para las escenas VJ de imagen (fase 44): con una
+// foto oscura sube hasta x4, con una clara no toca nada.
+float hkMediaGain(float has) {
+    vec3 m = pow(textureLod(sTD2DInputs[1], vec2(0.5), 9.0).rgb, vec3(2.2));
+    float avg = dot(m, vec3(0.2126, 0.7152, 0.0722));
+    return mix(1.0, clamp(0.18 / max(avg, 0.01), 1.0, 4.0), has);
+}
 // Color lineal de la imagen en muv (0..1). lod > 0 = desenfocado.
 vec3 hkMediaGet(vec2 muv, float lod, float has) {
     vec2 c = clamp(muv, 0.0, 1.0);
