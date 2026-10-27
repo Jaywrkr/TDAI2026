@@ -1,6 +1,6 @@
 # Halloween: tres escenas VJ para tocar en vivo
 
-Estas tres escenas forman parte del set Halloween. El set tiene **40 escenas** con las cinco de [la siguiente entrega](56_HALLOWEEN_VJ_CINCO.md) y [Pinball embrujado](57_PINBALL_EMBRUJADO.md). Las nuevas son procedurales: no necesitan Media ni láminas adicionales. Aparecen al final del setlist y tienen miniatura y preset de fábrica.
+Estas tres escenas forman parte del set Halloween. El set tiene **39 escenas** con las cinco de [la siguiente entrega](56_HALLOWEEN_VJ_CINCO.md) (el Pinball embrujado, 39, se quitó en la fase 40). Las nuevas son procedurales: no necesitan Media ni láminas adicionales. Van intercaladas en el setlist (fase 40) y tienen miniatura y preset de fábrica.
 
 | Índice | Escena | Movimiento |
 |---|---|---|

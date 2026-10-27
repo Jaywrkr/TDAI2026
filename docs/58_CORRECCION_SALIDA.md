@@ -22,3 +22,9 @@ En el build del Mac, `ctrl` salía **sin los 7 canales de audio** (`level`, `bas
 
 Arreglo: `audio.py` agrega `audio_silent` (Constant CHOP con los 7 canales en 0) y `audio_out` (Switch CHOP): mientras `audio_ctrl` no tenga sus 7 canales, sale el silencio, así el orden de `ctrl` es siempre el mismo. Además, `program_text` no admite un cuarto input en el Mac (`ERROR conectando program_text[3]`): si la textura de control no entra, el texto usa el header sin control en vez de leer `sTD2DInputs[3]`. El build muestra `restaurado-f40b 2026-10-27`.
 
+## Texto sin GLSL y setlist (fase 40, tercera parte)
+
+En el Mac el texto no aparecía. Dos causas posibles en el código anterior: el shader `program_text` (GLSL con cuatro inputs, que el Mac no acepta) y el Transform TOP, que recibía la posición en píxeles cuando su unidad por defecto es fracción de imagen (el texto podía quedar fuera de cuadro). Ahora el texto es solo TOPs nativos: Text TOP blanco, una copia negra con Blur como sombra, dos Over TOP sobre la imagen y un Cross TOP (`program_text`) que hace el fundido con `Textvisible` → Constant CHOP → Lag CHOP. Posición en fracción (`tunit = fraction`). Se prende con el pad 5 del banco A (Textvisible) o con MOSTRAR/OCULTAR en el dashboard; el texto se escribe en `/project1` > Texto. El halo de color y el contorno fino del shader anterior se cambian por la sombra.
+
+Escena 39 (Pinball) eliminada; 31–38 intercaladas en el setlist. El build muestra `texto-nativo-f40c 2026-10-27`.
+
