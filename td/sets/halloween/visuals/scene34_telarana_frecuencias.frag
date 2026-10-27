@@ -86,15 +86,15 @@ vec3 wfSpider(vec2 p,float t,vec3 ink) {
     return col;
 }
 vec4 render(vec2 uv) {
-    vec2 p=centered(uv);float t=uTime*0.14;
+    vec2 p=centered(uv);float t=uTime*0.14,hit=hkHit(),B=hkBass(),st=hkStepBeat();
     vec4 C=hkClimax(34.0,149.0,22.0);
     vec3 ink=mix(vec3(0.12,0.85,1.0),vec3(0.65,0.13,1.0),uD5);
     vec3 accent=mix(vec3(0.45,0.25,0.95),vec3(1.0,0.16,0.45),uD5);
     vec2 center=vec2(-0.52+0.06*sin(t*0.4),0.13+0.04*cos(t*0.3));
-    vec2 q=rot2(0.12*sin(t*0.15))*(p-center)/(1.0-C.y*0.035);
-    vec3 col=wfWeb(q,t,0.0,ink,accent,0.72+hkHit()*0.12);
+    vec2 q=rot2(0.12*sin(t*0.15)+0.05*sin(st*PI))*(p-center)/(1.0-C.y*0.035-0.06*hit-0.04*B);
+    vec3 col=wfWeb(q,t,0.0,ink,accent,0.72+hit*0.3+B*0.2);
     col+=wfWeb((p-vec2(2.3,-0.85))*1.65,-t*0.8,3.0,accent,ink,0.20);
-    vec2 spiderPos=center+vec2(0.48,-0.43+0.055*sin(t*0.4));
+    vec2 spiderPos=center+vec2(0.48,-0.43+0.055*sin(t*0.4)-0.08*hit-0.04*B);
     col+=wfSpider(p-spiderPos,t,ink);
     col+=vjLine(hkSeg(p,spiderPos+vec2(0.0,0.14),spiderPos+vec2(0.0,0.54)),ink,0.23);
     // Cada tecla teje un puente distinto entre dos nudos.

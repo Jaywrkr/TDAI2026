@@ -11,6 +11,16 @@
 
 float hkHit() { return clamp(max(uKick, uBeat * 0.75), 0.0, 1.0) * uAudioamt; }
 float hkLoco() { return clamp(uChaos, 0.0, 1.0); }
+// Baile de las escenas VJ (fase 43): el bajo suave y un ESCALON que avanza
+// una unidad en cada tiempo del pulso detectado (ritmo.py) -- las piezas
+// saltan en el golpe y quedan quietas entre golpes. Sin pulso (silencio o
+// sin bombo) vale 0: lo que mueve el audio se detiene.
+float hkBass() { return clamp(uBass, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0); }
+float hkStepBeat() {
+    if (uMbeat <= 0.05) return 0.0;
+    float x = (uRTime - uManchor) / uMbeat;
+    return floor(x) + smoothstep(0.0, 0.3, fract(x));
+}
 
 // Sacudida de camara con el golpe, proporcional a la locura. Ruido
 // suave (no un salto aleatorio por frame): se lee como impacto, no
@@ -772,7 +782,7 @@ vec3 hkNightFrame(vec3 col, vec2 uv) {
 
 
 // ---------------------------------------------------------------
-// ESTILO "AEROGRAFO RETRO" (perilla Estilo = uStyle, marco = uStylearch)
+// ESTILO "AEROGRAFO RETRO" (perilla Estilo = uStyle; el marco de arco se quito en la fase 43)
 // Como un afiche pintado con aerografo e impreso en papel: formas suaves
 // (las laminas se leen desenfocadas, ver set.json "plate_lod"), paleta
 // corta negro -> violeta -> naranja -> crema, grano de spray (puntitos
@@ -869,17 +879,6 @@ vec3 hkStyleBacklight(vec3 col, vec2 p, float y0, float width) {
 // siluetas mas oscuras contra el resplandor
 float hkStyleSil() { return mix(1.0, 0.30, uStyle); }
 
-float hkArchMask(vec2 uv) {
-    vec2 p = (uv - 0.5) * vec2(uAspect, 1.0) * 2.0;
-    float k = uStylearch;
-    float w = mix(uAspect + 0.2, 1.25, k);          // medio ancho de la ventana
-    float top = mix(1.3, 0.92, k);
-    float cy = top - w;                              // centro del semicirculo
-    float d = p.y > cy ? length(vec2(p.x, p.y - cy)) - w : abs(p.x) - w;
-    d = max(d, -(p.y + mix(1.3, 0.92, k)));         // tambien un margen abajo
-    return d;
-}
-
 vec3 hkStyle(vec3 col, vec2 uv) {
     float s = clamp(uStyle, 0.0, 1.0);
     vec2 px = uv * vec2(uResW, uResH);
@@ -916,14 +915,6 @@ vec3 hkStyle(vec3 col, vec2 uv) {
     float speck = step(0.93, dh) * (1.0 - smoothstep(0.004, 0.012, length(dq)));
     float lint = step(0.985, dh) * hkLine(abs(dq.y + sin(dq.x * 20.0) * 0.02) - 0.0, 0.6) * step(abs(dq.x), 0.2);
     c = mix(c, vec3(0.95, 0.92, 0.86), (speck + lint) * s * 0.7);
-    // marco de arco: negro de papel con un halo violeta en el borde interior
-    if (uStylearch > 0.001) {
-        float d = hkArchMask(uv);
-        float inner = exp(-max(-d, 0.0) * 6.0) * smoothstep(0.02, -0.02, d);
-        c = mix(c, c * 0.6 + hkStyleMap(0.36) * 0.5, inner * uStylearch * 0.6);
-        vec3 outside = vec3(0.028, 0.024, 0.026) * (0.85 + 0.3 * paper) + vec3(0.6) * speck * 0.3;
-        c = mix(c, outside, smoothstep(-0.006, 0.006, d) * smoothstep(0.0, 0.15, uStylearch));
-    }
     return c;
 }
 
@@ -936,7 +927,7 @@ vec3 hkFinish(vec3 col, vec2 uv, vec3 tint) {
     col *= 1.15;
     col = hkACES(col);
     col = max(col, tint * 0.018);
-    if (uStyle > 0.001 || uStylearch > 0.001) col = hkStyle(col, uv);
+    if (uStyle > 0.001) col = hkStyle(col, uv);
     // grano: un hash barato por pixel (sin noise21)
     vec2 gp = uv * vec2(uResW, uResH) + fract(uRTime * 13.0) * 91.0;
     col += (fract(sin(dot(gp, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) * (0.022 + loco * 0.03);

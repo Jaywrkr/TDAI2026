@@ -23,7 +23,8 @@ float seCurve(float x,float t,float seed) {
     return sin(x*2.1-t+seed)*(0.16+uD4*0.18)+sin(x*4.3+t*0.4+seed)*0.04;
 }
 vec4 render(vec2 uv) {
-    vec2 p=centered(uv);float t=uTime*0.20,hit=hkHit();
+    vec2 p=centered(uv);float t=uTime*0.20,hit=hkHit(),B=hkBass();
+    float amp=1.0+0.6*B+0.3*hit;     // el bajo agranda las ondas de las serpientes
     vec4 C=hkClimax(37.0,155.0,22.0);
     vec3 ink=mix(vec3(0.15,1.0,0.14),vec3(1.0,0.30,0.025),uD5);
     vec3 accent=vec3(0.38,0.12,0.95);
@@ -35,9 +36,9 @@ vec4 render(vec2 uv) {
         float seed=fj*2.17,center=(fj-(count-1.0)*0.5)*(0.29+uD2*0.08);
         float direction=mod(fj,2.0)*2.0-1.0;
         vec2 q=vec2(p.x*direction,p.y-center);
-        float headX=1.65+0.12*sin(t*0.5+seed)+keyed*0.07;
-        float wave=seCurve(q.x,t,seed)*(1.0+C.y*0.15);
-        float slope=cos(q.x*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(q.x*4.3+t*0.4+seed)*0.172;
+        float headX=1.65+0.12*sin(t*0.5+seed)+keyed*0.07+hit*0.12;
+        float wave=seCurve(q.x,t,seed)*(1.0+C.y*0.15)*amp;
+        float slope=(cos(q.x*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(q.x*4.3+t*0.4+seed)*0.172)*amp;
         float dist=(q.y-wave)/sqrt(1.0+slope*slope);
         float width=(0.035+uD2*0.035)*smoothstep(-2.8,-1.6,q.x);
         float bodyMask=(1.0-smoothstep(headX-0.11,headX+0.02,q.x))*smoothstep(-2.9,-2.65,q.x);
@@ -54,8 +55,8 @@ vec4 render(vec2 uv) {
             float scale=abs(sx)*0.33+abs(sy)-width*0.31;
             col+=vjLine(scale,color,show*uD3*(row==0?0.48:0.30))*interior*bodyMask;
         }
-        float headY=seCurve(headX,t,seed)*(1.0+C.y*0.15);
-        float headSlope=cos(headX*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(headX*4.3+t*0.4+seed)*0.172;
+        float headY=seCurve(headX,t,seed)*(1.0+C.y*0.15)*amp;
+        float headSlope=(cos(headX*2.1-t+seed)*2.1*(0.16+uD4*0.18)+cos(headX*4.3+t*0.4+seed)*0.172)*amp;
         vec2 h=rot2(atan(headSlope))*(q-vec2(headX,headY));
         vec2 hp=vec2(h.x,abs(h.y));
         // Cabeza de vibora facetada: cuello, mandibula, hocico y narina.

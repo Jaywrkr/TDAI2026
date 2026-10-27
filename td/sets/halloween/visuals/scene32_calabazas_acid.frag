@@ -58,13 +58,13 @@ vec3 caMask(vec2 q, vec3 ink, float t, float strength) {
 }
 vec4 render(vec2 uv) {
     vec2 p=centered(uv);
-    float t=uTime*0.11, hit=hkHit();
+    float t=uTime*0.11, hit=hkHit(), B=hkBass(), st=hkStepBeat();
     vec4 C=hkClimax(32.0,157.0,22.0);
     vec3 ink=mix(vec3(1.0,0.22,0.025),vec3(0.27,1.0,0.04),uD5);
     vec3 accent=mix(vec3(0.72,0.08,1.0),vec3(0.02,0.70,0.52),uD5);
     vec3 col=vec3(0.0);
     float radius=length(p), angle=atan(p.y,p.x);
-    float spread=0.94+uD2*0.24+C.y*0.05;
+    float spread=0.94+uD2*0.24+C.y*0.05+0.07*B+0.05*hit;
     // Gran roseta de anillos finos que giran en sentidos opuestos.
     for(int j=0;j<3;j++) {
         float fj=float(j),r=spread+fj*0.10;
@@ -78,18 +78,18 @@ vec4 render(vec2 uv) {
     for(int j=0;j<8;j++) {
         float fj=float(j),show=revealAt(count,fj);
         if(show<0.001) continue;
-        float a=fj*TAU/count+t*0.12*(0.2+uD4);
-        vec2 center=vec2(cos(a),sin(a))*orbit;
+        float a=fj*TAU/count+t*0.12*(0.2+uD4)+st*TAU/count*0.5;
+        vec2 center=vec2(cos(a),sin(a))*(orbit+0.15*hit);
         vec2 q=rot2(a-PI*0.5)*(p-center)/0.27;
         col+=caMask(q,mix(ink,accent,0.25),t,show*0.58);
         vec2 other=vec2(cos(a+TAU*2.0/count),sin(a+TAU*2.0/count))*orbit;
         col+=caStroke(hkSeg(p,center,other),accent,show*0.12*uD3);
     }
     // Mascara central con animacion local y doble contorno.
-    vec2 hero=rot2(sin(t*0.4)*0.025*uD4)*p/(0.79+hit*0.012);
+    vec2 hero=rot2(sin(t*0.4)*0.025*uD4+0.07*sin(st*PI*0.5))*p/(0.79-hit*0.07-B*0.04);
     col+=caMask(hero,ink,t,0.90+C.y*0.30+hit*0.18);
     // Trenza radial de pequenos chevrones trazados con precision.
-    vec2 q=rot2(-t*0.13*(0.2+uD4))*p;
+    vec2 q=rot2(-t*0.13*(0.2+uD4)-st*TAU/24.0)*p;
     float a=atan(q.y,q.x),cell=floor((a+PI)/TAU*48.0);
     float aa=(cell+0.5)*TAU/48.0-PI;
     vec2 rune=rot2(aa)*q-vec2(spread+0.28,0.0);

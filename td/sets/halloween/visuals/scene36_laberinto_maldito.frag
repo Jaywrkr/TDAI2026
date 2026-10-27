@@ -20,16 +20,16 @@ vec3 vjKeys(vec3 col,vec2 p,vec3 ink,vec3 accent) {
 }
 
 vec4 render(vec2 uv) {
-    vec2 p=centered(uv);float t=uTime*0.10,hit=hkHit();
+    vec2 p=centered(uv);float t=uTime*0.10,hit=hkHit(),B=hkBass(),st=hkStepBeat();
     vec4 C=hkClimax(36.0,151.0,22.0);
     vec3 ink=mix(vec3(1.0,0.12,0.025),vec3(0.56,0.10,1.0),uD5);
     vec3 accent=mix(vec3(0.08,0.66,0.85),vec3(0.85,0.16,0.55),uD5);
     vec3 col=vec3(0.0);
-    vec2 van=vec2(0.32*sin(t*0.23),0.14*cos(t*0.31))*uD4;
+    vec2 van=vec2(0.32*sin(t*0.23),0.14*cos(t*0.31))*uD4+vec2(sin(st*1.7),cos(st*2.3)-1.0)*0.05;
     float count=5.0+floor(uD1*7.0);
     for(int j=0;j<12;j++) {
         float fj=float(j),show=revealAt(count,fj);if(show<0.001)continue;
-        float z=fract(fj/count-t*0.035);
+        float z=fract(fj/count-t*0.035-0.02*st);
         float s=0.11+z*z*3.3;
         vec2 offset=vec2(sin(fj*1.7+t*0.4),cos(fj*1.3-t*0.3))*0.08*uD4*z;
         vec2 q=(p-van-offset)/s;
@@ -38,7 +38,7 @@ vec4 render(vec2 uv) {
         float door=max(abs(q.x)-width,abs(q.y)-0.72);
         door=max(door,(abs(q.x)+abs(q.y)-width-0.56)*0.7071);
         float fade=smoothstep(0.0,0.10,z)*(1.0-smoothstep(0.89,1.0,z))*show;
-        col+=vjLine(door,ink,fade*(0.58+hit*0.13+C.y*0.13));
+        col+=vjLine(door,ink,fade*(0.58+hit*0.35+B*0.15+C.y*0.13));
         col+=vjLine(door+0.045,accent,fade*uD3*0.40);
         col+=vjLine(door-0.027,ink,fade*0.18*uD3);
         // Bisel exterior con esquinas trabadas y clavijas de union.

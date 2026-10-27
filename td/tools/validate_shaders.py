@@ -134,6 +134,8 @@ def postfx_sources(channels=None):
          + shader.ctrl_header(channels or config.CTRL_CHANNELS, 1) + program._CAPAS_FRAG),
         # Texto con presets (fase 41): imagen + atlas de nombres + control.
         ('program_textfx', _td_prologue_post(3) + head + program._TEXTFX_FRAG),
+        # Momentos de los pads (fase 43): imagen + cache (Rebobinar) + control.
+        ('program_momentos', _td_prologue_post(3) + head + program._MOMENTOS_FRAG),
     ]
 
 

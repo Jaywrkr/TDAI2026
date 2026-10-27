@@ -37,7 +37,7 @@ float prSeal(vec2 q, float t, float seed) {
 }
 vec4 render(vec2 uv) {
     vec2 p = centered(uv);
-    float t = uTime * 0.13, hit = hkHit();
+    float t = uTime * 0.13, hit = hkHit(), B = hkBass(), st = hkStepBeat();
     vec4 C = hkClimax(31.0,145.0,22.0);
     vec3 violet = mix(vec3(0.34,0.07,0.85),vec3(0.95,0.17,0.025),uD5);
     vec3 gold = mix(vec3(0.20,0.7,1.0),vec3(1.0,0.63,0.12),uD5);
@@ -46,16 +46,16 @@ vec4 render(vec2 uv) {
     vec3 col = violet * exp(-r * 1.8) * (0.10 + mist * 0.2);
     // Rayos locales, sin destellos de pantalla completa.
     float rays = pow(0.5+0.5*sin(a*19.0 + sin(a*7.0-t)*2.0 + t),8.0);
-    col += gold * rays * exp(-r*1.5) * smoothstep(0.1,0.5,r) * (0.04+uD6*0.12);
+    col += gold * rays * exp(-r*1.5) * smoothstep(0.1,0.5,r) * (0.04+uD6*0.12) * (1.0+2.5*B);
     float count = mix(3.0,7.0,uD1);
     for (int j=6;j>=0;j--) {
         float fj=float(j), show=revealAt(count,fj);
         if (show<0.001) continue;
         float z=fj/6.0;
         float radius=0.40 + z*z*2.2;
-        radius *= 0.85 + uD2*0.3 + C.y*0.12;
+        radius *= (0.85 + uD2*0.3 + C.y*0.12) * (1.0 + (0.12*B + 0.08*hit) * (1.0 - z*0.6));
         vec2 center=vec2(sin(t*0.4+z*2.0),cos(t*0.3+z))*z*0.10;
-        vec2 q=rot2((t*0.12+z*0.45)*(0.3+uD4))*(p-center)/radius;
+        vec2 q=rot2((t*0.12+z*0.45)*(0.3+uD4) + st*0.2618*(mod(fj,2.0)*2.0-1.0))*(p-center)/radius;
         float seal=prSeal(q,t*(mod(fj,2.0)*2.0-1.0),fj);
         float fall=mix(0.65,0.3,z)*show;
         col += mix(gold,violet,z)*seal*fall*(1.0+hit*0.35+C.y*0.25);
@@ -63,7 +63,7 @@ vec4 render(vec2 uv) {
         col += violet*rim*fall*(0.15+uD6*0.3);
     }
     // Iris organico con pupila negra, filamentos radiales y borde incandescente.
-    float iris=0.25+uD2*0.10+C.y*0.10;
+    float iris=0.25+uD2*0.10+C.y*0.10+0.05*B+0.05*hit;
     float bands=sin(a*73.0+noise21(p*18.0)*5.0-t*1.6);
     float fibers=pow(0.5+0.5*bands,3.0);
     float eye=smoothstep(iris*0.25,iris*0.58,r)*(1.0-smoothstep(iris*0.9,iris,r));

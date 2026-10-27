@@ -33,13 +33,13 @@ ROWS = program.TEXT_ROWS
 
 
 def atlas(names):
-    rw, rh = 2048, 256
+    rw, rh = 1280, 160
     im = Image.new('RGBA', (rw, rh * ROWS), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     rows = [names[i % len(names)] for i in range(4)] + [program.TEXT_SCRAMBLE]
     for i, nm in enumerate(rows):
-        # mismo tamano que el Text TOP de program.py (min(170, 3000/len))
-        f = ImageFont.truetype(FONT, int(min(170.0, 3000.0 / max(1, len(nm)))))
+        # mismo tamano que el Text TOP de program.py (min(106, 1875/len))
+        f = ImageFont.truetype(FONT, int(min(106.0, 1875.0 / max(1, len(nm)))))
         d.text((rw / 2, rh * i + rh / 2), nm, font=f, fill=(255, 255, 255, 255), anchor='mm')
     return im
 
@@ -83,7 +83,7 @@ def main():
             defs = ('#define uRTime {:.4f}\n#define uKick {:.3f}\n#define uBass {:.3f}\n'
                     '#define uTxtn {:.1f}\n#define uTxtsize 0.5\n#define uTxtpre {:.1f}\n'
                     '#define uTxtseed {:.4f}\n#define uMbeat 0.5\n#define uTxtt {:.4f}\n'
-                    '#define uTxtlen {:.1f}\n#define uMbrk0 0.0\n#define uMbrk1 0.0\n').format(
+                    '#define uTxtlen {:.1f}\n#define uMbrk0 0.0\n#define uMbrk1 0.0\n#define uTxtdbg 0.0\n').format(
                         t, k, b, count, r, sd, t - since, len(NAMES[0]))
             prog = ctx.program(vertex_shader=R._VERT, fragment_shader=pre + defs + frag)
             vbo = ctx.buffer(np.array([-1, -1, 1, -1, -1, 1, 1, 1], 'f4').tobytes())

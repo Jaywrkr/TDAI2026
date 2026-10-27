@@ -67,14 +67,14 @@ vec3 bfBat(vec2 p,float flap,vec3 ink,float gain) {
     return col;
 }
 vec4 render(vec2 uv) {
-    vec2 p=centered(uv);float t=uTime*0.12,hit=hkHit();
+    vec2 p=centered(uv);float t=uTime*0.12,hit=hkHit(),B=hkBass(),st=hkStepBeat();
     vec4 C=hkClimax(35.0,153.0,22.0);
     vec3 ink=mix(vec3(0.56,0.13,1.0),vec3(1.0,0.055,0.12),uD5);
     vec3 accent=vec3(0.06,0.65,0.85);
     vec3 col=vec3(0.0);
     // Tunel en perspectiva con travesanos en forma de chevron.
     for(int j=0;j<8;j++) {
-        float z=fract(float(j)/8.0-t*0.05),s=0.12+z*z*2.7;
+        float z=fract(float(j)/8.0-t*0.05-0.04*st),s=0.12+z*z*2.7;
         vec2 q=p/s;
         float chevron=abs(q.y)+abs(q.x)*0.55-1.0;
         col+=vjLine(chevron,accent,0.15*smoothstep(0.0,0.15,z)*(1.0-smoothstep(0.85,1.0,z)));
@@ -82,17 +82,17 @@ vec4 render(vec2 uv) {
     // Tres siluetas cercanas muestran el detalle; la bandada aporta profundidad.
     for(int hero=0;hero<3;hero++) {
         float h=float(hero);
-        vec2 center=vec2((h-1.0)*1.35,0.12+0.23*sin(t*0.5+h*2.0));
-        float size=hero==1?0.73:0.49;
+        vec2 center=vec2((h-1.0)*1.35,0.12+0.23*sin(t*0.5+h*2.0)+0.06*hit*sin(h*2.0+1.0));
+        float size=(hero==1?0.73:0.49)*(1.0+0.08*hit+0.04*B);
         vec2 q=rot2((h-1.0)*0.12)*(p-center)/size;
-        float flap=sin(t*1.5+h*1.7)*(0.12+uD4*0.25)+hit*0.06;
+        float flap=sin(t*1.5+h*1.7)*(0.12+uD4*0.25)+hit*0.25+B*0.1;
         col+=bfBat(q,flap,ink,hero==1?0.85:0.62);
     }
     float count=6.0+uD1*12.0;
     for(int j=0;j<24;j++) {
         float fj=float(j),show=revealAt(count,fj);if(show<0.001)continue;
         float seed=hash21(vec2(fj,5.0));
-        float z=fract(fj*0.618033-t*0.07);
+        float z=fract(fj*0.618033-t*0.07-0.03*st);
         float depth=0.24+z*z*2.1;
         float a=fj*2.39996+0.12*sin(t+fj);
         vec2 center=vec2(cos(a)*1.55,sin(a)*0.68)*depth*(0.55+uD2*0.5+C.y*0.12);
@@ -101,7 +101,7 @@ vec4 render(vec2 uv) {
         float keyed=keyEnv(voice,0.04,0.85);
         center+=vec2(keyPos(voice)-0.5,0.25*sin(fj))*keyed*0.22;
         float size=0.095+z*z*0.43;
-        float flap=sin(t*2.0+seed*TAU)*(0.14+uD4*0.38)+hit*0.08;
+        float flap=sin(t*2.0+seed*TAU)*(0.14+uD4*0.38)+hit*0.25;
         float fade=smoothstep(0.0,0.12,z)*(1.0-smoothstep(0.86,1.0,z))*show;
         vec2 q=rot2(0.15*sin(a))*(p-center)/size;
         col+=bfBat(q,flap,ink,fade*0.42);

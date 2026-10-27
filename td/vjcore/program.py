@@ -170,6 +170,11 @@ void main() {
     float hi = clamp(g * 2.0 - 1.0, 0.0, 1.0);       // 1 en 1: solo lo que brilla
     float bassG = clamp(uBass, 0.0, 1.0) * clamp(uAudioamt, 0.0, 1.0);
     float amount = AMOUNT * (1.0 - lo) * (1.0 + hi * (1.6 + 1.8 * bassG));
+    // fase 43: el BRILLO (tira Mod) late con la musica en cualquier nivel,
+    // no solo arriba: con la perilla Audio en 0 queda quieto como antes;
+    // con audio, entre golpes baja un poco y con el bajo sube.
+    float aud = clamp(uAudioamt, 0.0, 1.0);
+    amount *= (1.0 - 0.35 * aud) + 0.9 * bassG;
     if (hi > 0.0) {
         // nivel de negro: lo que no es claro se hunde (sin cambiar el tono)
         float l = dot(base, vec3(0.299, 0.587, 0.114));
@@ -459,7 +464,7 @@ void main() {
 # TEXTO CON PRESETS (fase 41)
 # ---------------------------------------------------------------
 # Los nombres se dibujan con Text TOPs nativos en un ATLAS (5 filas de
-# 2048x256: 4 nombres y los signos de Decodificar) y un GLSL de 3 inputs los pone encima de la
+# 1280x160: 4 nombres y los signos de Decodificar) y un GLSL de 3 inputs los pone encima de la
 # imagen: imagen, atlas, control (el Mac no acepta un cuarto input). Los
 # 13 presets y sus variantes viven en _TEXTFX_FRAG; el fundido es un Cross
 # TOP nativo (program_text), igual que master_fade.
@@ -506,6 +511,23 @@ vec2 tPlane(vec2 p, vec2 c, float z, vec3 r) {
     return vec2(dot(hit, R[0]), dot(hit, R[1]));
 }
 
+// cuanto de letra hay en un texel del atlas. Se lee por el BLANCO de las
+// letras, no por el alfa: sirve igual si el Text TOP sale con fondo negro
+// opaco o transparente (antes, con alfa 1 en todo el atlas o alfa 0 en las
+// letras, el nombre no se veia).
+float tCov(vec4 c) { return clamp(max(c.r, max(c.g, c.b)), 0.0, 1.0); }
+
+// colores de Halloween para halos, cintas y estilos
+vec3 tPal(float i) {
+    i = mod(floor(i), 6.0);
+    return i < 1.0 ? vec3(1.0, 0.45, 0.05)      // calabaza
+         : i < 2.0 ? vec3(0.6, 0.15, 1.0)       // hechizo violeta
+         : i < 3.0 ? vec3(0.45, 1.0, 0.1)       // veneno verde
+         : i < 4.0 ? vec3(0.85, 0.03, 0.02)     // sangre
+         : i < 5.0 ? vec3(1.0, 0.75, 0.1)       // brasa
+         :           vec3(1.0, 0.92, 0.75);     // hueso
+}
+
 vec2 tRowUV(float row, vec2 q, float pad) {
     return vec2(q.x / T_ROWA + 0.5, (T_ROWS - 1.0 - row + clamp(q.y + 0.5, pad, 1.0 - pad)) / T_ROWS);
 }
@@ -515,8 +537,8 @@ vec2 tSample(float row, vec2 q) {
     vec2 ruv = vec2(q.x / T_ROWA + 0.5, q.y + 0.5);
     if (ruv.x < -0.05 || ruv.x > 1.05 || ruv.y < -0.7 || ruv.y > 1.7) return vec2(0.0);
     float inside = step(0.0, ruv.y) * step(ruv.y, 1.0) * step(0.0, ruv.x) * step(ruv.x, 1.0);
-    float a = texture(sTD2DInputs[1], tRowUV(row, q, 0.0)).a * inside;
-    float g = textureLod(sTD2DInputs[1], tRowUV(row, q, 0.02), 4.0).a
+    float a = tCov(texture(sTD2DInputs[1], tRowUV(row, q, 0.0))) * inside;
+    float g = tCov(textureLod(sTD2DInputs[1], tRowUV(row, q, 0.02), 4.0))
             * smoothstep(-0.7, 0.1, ruv.y) * smoothstep(1.7, 0.9, ruv.y);
     return vec2(a, g);
 }
@@ -524,8 +546,8 @@ vec2 tSample(float row, vec2 q) {
 // borde fino de las letras (nivel de mip chico menos el relleno)
 float tEdge(float row, vec2 q) {
     if (abs(q.x) > T_ROWA * 0.52 || abs(q.y) > 0.6) return 0.0;
-    float a = texture(sTD2DInputs[1], tRowUV(row, q, 0.0)).a;
-    float b = textureLod(sTD2DInputs[1], tRowUV(row, q, 0.0), 1.6).a;
+    float a = tCov(texture(sTD2DInputs[1], tRowUV(row, q, 0.0)));
+    float b = tCov(textureLod(sTD2DInputs[1], tRowUV(row, q, 0.0), 1.6));
     return clamp(b * 2.2 - a * 2.0, 0.0, 1.0) * step(abs(q.y), 0.5);
 }
 
@@ -539,7 +561,7 @@ vec2 tName(float row, vec2 p, vec2 c, float z, vec3 r, float h, float wAmp, floa
 // tamano de letra del atlas sale de la misma cuenta, ver program.py)
 float tInk(float L) {
     L = max(L, 1.0);
-    return clamp(L * 0.62 * min(170.0, 3000.0 / L) / 2048.0, 0.08, 0.92);
+    return clamp(L * 0.62 * min(106.0, 1875.0 / L) / 1280.0, 0.08, 0.92);
 }
 
 void main() {
@@ -568,9 +590,7 @@ void main() {
               : ai < 7.0 ? (ai < 6.0 ? 0.78 : -0.78) : 1.5708 * sign(tH(9.0) - 0.5);
     vec2 tilt = (vec2(tH(3.0), tH(4.0)) - 0.5) * 1.5;
     float zv = tH(7.0) * 0.8;
-    float pi6 = floor(tH(5.0) * 6.0);
-    vec3 tint = pi6 < 1.0 ? vec3(1.0, 0.5, 0.12) : pi6 < 2.0 ? vec3(0.65, 0.3, 1.0) : pi6 < 3.0 ? vec3(0.3, 1.0, 0.35)
-              : pi6 < 4.0 ? vec3(1.0, 0.12, 0.1) : pi6 < 5.0 ? vec3(0.2, 0.85, 1.0) : vec3(0.9, 0.9, 1.0);
+    vec3 tint = tPal(tH(5.0) * 6.0);
 
     // --- baile comun a todos ---
     float pulse = 1.0 + 0.2 * kick;
@@ -599,11 +619,11 @@ void main() {
         float h = 0.06 * S;
         float w = h * T_ROWA * ink * 0.5;
         float fx = 0.045 + 0.02 * tH(11.0), fy = 0.061 + 0.02 * tH(12.0);
-        vec2 c = vec2(tTri(t * fx + tH(13.0)) * (A * 0.5 - w), tTri(t * fy + tH(14.0)) * (0.5 - h * 1.5));
+        vec2 c = vec2(tTri(t * fx + tH(13.0)) * max(A * 0.3 - w * 0.5, 0.05), tTri(t * fy + tH(14.0)) * 0.22);
         float k = floor((t * fx + tH(13.0)) * 2.0) + floor((t * fy + tH(14.0)) * 2.0);
         vec3 r = vec3(tilt * 0.5, ang * 0.4 + 0.25 * sin(k * 2.3)) + dance;
         acc = tName(0.0, p, c, zv * 0.3, r, h * pulse, wAmp, wPh);
-        tint = 0.5 + 0.5 * cos(6.2831 * (k * 0.17 + tH(15.0) + vec3(0.0, 0.33, 0.67)));
+        tint = tPal(k + tH(15.0) * 6.0);
     } else if (P == 3) {   // 4 BAILA
         float h = 0.085 * S;
         vec3 r = vec3(tilt * 0.5, ang * 0.5) + dance * 1.6;
@@ -619,7 +639,7 @@ void main() {
             float z = tHash(fi + 21.0 + tH(17.0)) * 1.4;
             float par = T_F / (T_F + z);
             float h = (0.04 + 0.02 * tHash(fi + 3.0)) * S;
-            float x = (fi / 6.0 - 0.5) * (A - 0.4) * par;
+            float x = (fi / 6.0 - 0.5) * A * 0.6 * par;
             float y = (0.7 - fract(t * (0.04 + 0.03 * tHash(fi)) * par + tHash(fi + 9.0)) * 1.4) * par;
             vec3 r = vec3(tilt * 0.4, 0.0) + dance * 0.6;
             vec2 rr = tName(mod(fi, n), pr, vec2(x, y), z, r, h * pulse, wAmp, wPh + fi);
@@ -632,7 +652,7 @@ void main() {
             float fi = float(i);
             if (fi >= m) break;
             float a = t * 0.35 + fi * 6.2831 / m;
-            vec3 w = ring * vec3(cos(a) * A * 0.32, 0.0, sin(a) * 0.6);
+            vec3 w = ring * vec3(cos(a) * A * 0.24, 0.0, sin(a) * 0.5);
             float z = w.z + 0.4;
             vec2 c = w.xy * T_F / (T_F + z);
             vec3 r = vec3(0.0, -cos(a) * 0.5, ang * 0.3) + dance * 0.5;
@@ -651,7 +671,7 @@ void main() {
         vec2 cb = tName(0.0, pj - vec2(sp, 0.0), vec2(0.0), zv * 0.3, r, h, wAmp, wPh);
         rgbCov = vec3(cr.x, cg.x, cb.x);
         acc = vec2(0.0, cg.y * (0.5 + kick));
-        tint = vec3(0.2, 0.9, 1.0);
+        tint = tPal(2.0);
     } else if (P == 7) {   // 8 RECORTADO: la escena se ve solo dentro del nombre gigante
         float h = hFull * (0.9 + 0.1 * S) * (1.0 + 0.06 * kick);
         vec3 r = vec3(tilt * 0.25, ang * 0.1) + dance * 0.35;
@@ -772,6 +792,18 @@ void main() {
         done = true;
     }
 
+    if (uTxtdbg > 0.5) {
+        // DIAGNOSTICO (Texto > Ver atlas): el atlas tal como llega, abajo a
+        // la izquierda; si aca no hay letras, el problema esta antes del shader
+        vec2 duv = uv / vec2(0.45, 0.45 * A / T_ROWA * T_ROWS);
+        if (duv.x < 1.0 && duv.y < 1.0) {
+            vec4 at = texture(sTD2DInputs[1], duv);
+            base = mix(base * 0.3 + vec3(0.05, 0.0, 0.08), vec3(1.0, 0.6, 0.1), tCov(at));
+            col = base;
+            done = true;
+        }
+    }
+
     if (!done) {
         float a = clamp(acc.x, 0.0, 1.0);
         float g = clamp(acc.y, 0.0, 1.5);
@@ -813,9 +845,9 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
         safe_expr(t, 'font', "op('/project1/control_script').module.currentFontName()")
         # fuente propia (td/fonts): se carga por archivo; '' = la del sistema
         safe_expr(t, 'fontfile', "op('/project1/control_script').module.currentFontFile()")
-        # que el nombre entre a lo ancho de su fila (2048 px)
+        # que el nombre entre a lo ancho de su fila (1280 px)
         safe_expr_first(t, ['fontsizex', 'fontsize'],
-                        "min(170.0, 3000.0 / max(1, len({})))".format(name))
+                        "min(106.0, 1875.0 / max(1, len({})))".format(name))
         safe_set_first(t, ['alignx', 'justifyx', 'textalignx'], 'center')
         safe_set_first(t, ['aligny', 'justifyy', 'textaligny'], 'middle')
         safe_set_first(t, ['wordwrap', 'wrapwords'], False)
@@ -824,8 +856,10 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
         safe_set_first(t, ['fontalpha', 'fontcolora'], 1.0)
         safe_set_first(t, ['bgalpha', 'bgcolora'], 0.0)
         safe_set(t, 'outputresolution', 'custom')
-        safe_set(t, 'resolutionw', 2048)
-        safe_set(t, 'resolutionh', 256 * TEXT_ROWS)
+        # 1280 de ancho: el tope de la licencia Non-Commercial (con 2048 el
+        # atlas no llegaba entero al shader)
+        safe_set(t, 'resolutionw', 1280)
+        safe_set(t, 'resolutionh', 160 * TEXT_ROWS)
         tr = proj.create(transformTOP, 'text_row{}_y'.format(i))  # noqa: F821
         tr.nodeX, tr.nodeY = 960, 1000 - i * 120
         connect(tr, t)
@@ -833,10 +867,11 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
         safe_set_first(tr, ['tunit', 'translateunit'], 'fraction')
         safe_set(tr, 'ty', 0.5 - (i + 0.5) / TEXT_ROWS)
         rows.append(tr)
-    # las filas se apilan con Over TOPs de 2 entradas, una por una
+    # las filas se SUMAN con Add TOPs de 2 entradas, una por una: con Over,
+    # un Text TOP que saliera con fondo opaco tapaba a las demas filas
     atlas = rows[0]
     for i in range(1, TEXT_ROWS):
-        ov = proj.create(overTOP, 'text_atlas' if i == TEXT_ROWS - 1 else 'text_atlas_{}'.format(i))  # noqa: F821
+        ov = proj.create(addTOP, 'text_atlas' if i == TEXT_ROWS - 1 else 'text_atlas_{}'.format(i))  # noqa: F821
         ov.nodeX, ov.nodeY = 1120 + i * 40, 1000 - i * 120
         connect(ov, atlas, 0)
         connect(ov, rows[i], 1)
@@ -850,7 +885,8 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
         src.text = ('#define uKick 0.0\n#define uBass 0.0\n#define uRTime 0.0\n'
                     '#define uMbeat 0.0\n#define uTxtpre 0.0\n#define uTxtseed 0.0\n'
                     '#define uTxtn 1.0\n#define uTxtsize 0.5\n#define uTxtt 0.0\n'
-                    '#define uTxtlen 8.0\n#define uMbrk0 0.0\n#define uMbrk1 0.0\n') + _TEXTFX_FRAG
+                    '#define uTxtlen 8.0\n#define uMbrk0 0.0\n#define uMbrk1 0.0\n'
+                    '#define uTxtdbg 0.0\n') + _TEXTFX_FRAG
     fx = proj.create(glslTOP, 'program_textfx')
     fx.nodeX, fx.nodeY = 1440, 840
     safe_set_first(fx, ['pixeldat', 'pixelshader'], src.path)
@@ -1452,6 +1488,256 @@ def _build_capas(proj, src_top, ctrl_tex, channels):
     return capas, pick
 
 
+# ---------------------------------------------------------------
+# MOMENTOS (fase 43): Linterna, Ojos, Subida -> impacto, Murcielagos y
+# Rebobinar VHS, en los pads 10, 11, 13, 14 y 15 de Halloween. Despues de
+# las capas y ANTES del bloom (lo que se prende en un momento brilla).
+# Inputs: imagen, la imagen guardada en un Cache TOP (Rebobinar), control.
+# ---------------------------------------------------------------
+MOMENTO_CACHE = 96          # cuadros guardados para rebobinar (~1.6 s a 60 fps)
+_MOMENTOS_FRAG = """// MOMENTOS (fase 43): pads 10, 11, 13, 14 y 15 en Halloween. Input 0: la
+// imagen del programa. Input 1: la misma imagen guardada en un Cache TOP
+// (para Rebobinar). Input 2: control. Cada canal m* es el rtime en que se
+// apreto (o se solto) el pad; -1 = nunca. uMseed cambia en cada toque.
+out vec4 fragColor;
+
+float mH(float k) { return fract(sin((uMseed * 71.3 + k) * 12.9898) * 43758.5453); }
+float mHash(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+float mHash2(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+
+// silueta de murcielago en q (ancho de alas 1): 1 adentro
+float mBat(vec2 q, float flap) {
+    float ax = abs(q.x);
+    if (ax > 1.0 || abs(q.y) > 0.6) return 0.0;
+    float top = 0.08 + 0.32 * flap * ax - 0.06 * ax * ax;
+    float bot = top - 0.30 * (1.0 - ax * ax) + 0.05 * abs(sin(ax * 9.5)) * ax;
+    float wing = smoothstep(0.02, -0.02, q.y - top) * smoothstep(-0.02, 0.02, q.y - bot);
+    float body = smoothstep(0.03, 0.0, length(vec2(q.x * 3.2, q.y + 0.02)) - 0.16);
+    float ears = smoothstep(0.02, 0.0, abs(ax - 0.06) * 3.0 + (q.y - 0.17) * -1.0 - 0.05) * step(q.y, 0.24) * step(0.1, q.y);
+    return clamp(max(max(wing, body), ears), 0.0, 1.0);
+}
+
+// un ojo almendrado en q (radio 1): x = blanco del ojo, y = pupila
+vec2 mEye(vec2 q, float open, vec2 look) {
+    float lid = max(open, 0.02);
+    float shape = length(vec2(q.x, q.y / (0.55 * lid))) - 1.0;
+    float e = smoothstep(0.08, -0.04, shape);
+    float pup = smoothstep(0.06, -0.02, length(vec2((q.x - look.x * 0.45) * 1.8, q.y - look.y * 0.2)) - 0.32);
+    return vec2(e, pup * e);
+}
+
+void main() {
+    vec2 uv = vUV.st;
+    vec2 res = vec2(textureSize(sTD2DInputs[0], 0));
+    float A = res.x / res.y;
+    float rt = uRTime;
+    float bt = uMbeat > 0.05 ? uMbeat : 0.5;
+    float kick = clamp(uKick, 0.0, 1.0);
+    float bass = clamp(uBass, 0.0, 1.0);
+
+    // ---- SUBIDA -> IMPACTO (mover la imagen antes de leerla) ----
+    vec2 suv = uv;
+    float build = 0.0, impact = 0.0, eImp = 99.0;
+    if (uMsub > 0.0) {
+        float held = (uMsuboff > uMsub ? uMsuboff : rt) - uMsub;
+        build = clamp(held / 8.0, 0.0, 1.0);
+        if (uMsuboff > uMsub) {
+            eImp = rt - uMsuboff;
+            impact = eImp < 1.6 ? 1.0 : 0.0;
+            build *= clamp(1.0 - eImp * 6.0, 0.0, 1.0);   // la carga se suelta de golpe
+        }
+        vec2 c = suv - 0.5;
+        c /= 1.0 + 0.14 * build * build;                  // zoom que entra
+        float fr = floor(rt * 30.0);
+        c += (vec2(mHash(fr), mHash(fr + 7.0)) - 0.5) * 0.02 * build * build;   // temblor
+        if (impact > 0.0) {
+            vec2 cp = c * vec2(A, 1.0);
+            float d = length(cp);
+            float r = eImp * 1.5;
+            float ring = exp(-abs(d - r) * 22.0) * (1.0 - eImp / 1.6);
+            c += (cp / max(d, 1e-3)) / vec2(A, 1.0) * 0.05 * ring;
+            c *= 1.0 - 0.06 * exp(-eImp * 5.0);         // golpe de zoom
+        }
+        suv = c + 0.5;
+    }
+
+    vec3 col = texture(sTD2DInputs[0], suv).rgb;
+
+    // ---- REBOBINAR VHS ----
+    if (uMrew > 0.0) {
+        float e = rt - uMrew;
+        if (e >= 0.0 && e < 2.2) {
+            float back = smoothstep(0.0, 0.08, e) * (1.0 - smoothstep(1.6, 2.0, e));
+            float fr = floor(rt * 24.0);
+            float jit = (mHash(floor(uv.y * 90.0) + fr) - 0.5) * 0.012 * back;
+            float tear = smoothstep(0.035, 0.0, abs(fract(uv.y * 1.3 + rt * 2.7) - 0.5)) * back;
+            vec2 ruv = vec2(uv.x + jit + tear * 0.05, uv.y);
+            vec3 old = vec3(texture(sTD2DInputs[1], ruv + vec2(0.004, 0.0)).r,
+                            texture(sTD2DInputs[1], ruv).g,
+                            texture(sTD2DInputs[1], ruv - vec2(0.004, 0.0)).b);
+            float lines = 0.85 + 0.15 * sin(uv.y * res.y * 1.6);
+            float noise = mHash2(floor(uv * vec2(320.0, 180.0)) + fr) * tear;
+            old = old * lines * vec3(1.05, 0.95, 1.1) + noise * 0.6;
+            // "<<" arriba a la izquierda
+            vec2 ip = (uv - vec2(0.06, 0.88)) * vec2(A, 1.0) / 0.035;
+            float tri1 = step(abs(ip.y), 1.0 - (ip.x + 1.0) * 0.5) * step(-1.0, ip.x) * step(ip.x, 1.0);
+            vec2 ip2 = ip - vec2(1.6, 0.0);
+            float tri2 = step(abs(ip2.y), 1.0 - (ip2.x + 1.0) * 0.5) * step(-1.0, ip2.x) * step(ip2.x, 1.0);
+            old = mix(old, vec3(0.95), max(tri1, tri2) * step(0.5, fract(rt * 2.0)));
+            col = mix(col, old, back);
+            // al volver: rayas de tracking que se van
+            float ret = smoothstep(1.6, 1.75, e) * (1.0 - smoothstep(1.85, 2.2, e));
+            col += ret * smoothstep(0.03, 0.0, abs(fract(uv.y * 3.0 - rt * 4.0) - 0.5)) * 0.5;
+        }
+    }
+
+    // ---- SUBIDA: color que se lava y respira; IMPACTO: color que explota ----
+    if (build > 0.0) {
+        float l = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(col, vec3(l) * vec3(1.25, 0.85, 0.8), 0.55 * build);
+        float rate = 1.0 + 3.0 * build;                  // hasta 4 respiros por segundo
+        col *= 1.0 + 0.07 * build * sin(6.2831 * rt * rate);
+        col += vec3(1.0, 0.85, 0.8) * 0.22 * build * build;
+    }
+    if (impact > 0.0) {
+        float f = exp(-eImp * 3.5);
+        float l = dot(col, vec3(0.299, 0.587, 0.114));
+        col = mix(vec3(l), col, 1.0 + 1.2 * f);            // saturacion de golpe
+        col *= 1.0 + 0.6 * exp(-eImp * 8.0);              // un solo destello
+    }
+
+    // ---- LINTERNA (mantener) ----
+    if (uMlin > 0.0) {
+        float on = clamp((rt - uMlin) / 0.15, 0.0, 1.0);
+        float off = uMlinoff > uMlin ? 1.0 - clamp((rt - uMlinoff) / 0.12, 0.0, 1.0) : 1.0;
+        float L = on * off;
+        if (L > 0.0) {
+            float el = rt - uMlin;
+            float seg = floor(el / 2.4);
+            float fs = fract(el / 2.4);
+            vec2 a0 = vec2(mH(seg * 3.1) - 0.5, mH(seg * 3.1 + 1.0) - 0.5) * vec2(A * 0.75, 0.6);
+            vec2 a1 = vec2(mH(seg * 3.1 + 3.1) - 0.5, mH(seg * 3.1 + 4.1) - 0.5) * vec2(A * 0.75, 0.6);
+            vec2 c = mix(a0, a1, smoothstep(0.0, 0.45, fs));       // busca y se queda
+            c += vec2(sin(rt * 7.0), cos(rt * 5.3)) * 0.006;        // pulso de la mano
+            vec2 p = (uv - 0.5) * vec2(A, 1.0);
+            float r = 0.26 + 0.05 * mH(seg + 9.0);
+            float d = length((p - c) * vec2(1.0, 1.15));
+            float beam = smoothstep(r, r * 0.55, d);
+            float flick = 1.0 - 0.3 * kick * step(0.6, mHash(floor(rt * 20.0)));
+            vec3 lit = (col * 2.4 + vec3(0.07, 0.06, 0.04)) * vec3(1.1, 1.0, 0.85) * flick;
+            vec3 dark = col * 0.035;
+            vec3 lin = mix(dark, lit, beam) + vec3(0.9, 0.85, 0.6) * smoothstep(r * 1.4, r * 0.9, d) * 0.04;
+            float back = uMlinoff > uMlin ? clamp(1.0 - (rt - uMlinoff) / 0.4, 0.0, 1.0) : 0.0;
+            col = mix(col * (1.0 + 0.25 * back), lin, L);
+        }
+    }
+
+    // ---- OJOS EN LA OSCURIDAD ----
+    if (uMojos > 0.0) {
+        float e = rt - uMojos;
+        float D = max(1.6, bt * 4.0);
+        if (e >= 0.0 && e < D + 1.2) {
+            float black = smoothstep(0.0, 0.1, e) * (1.0 - smoothstep(D, D + 0.08, e));
+            vec2 p = (uv - 0.5) * vec2(A, 1.0);
+            vec3 eyes = vec3(0.0);
+            vec2 look = vec2(sin(e * 1.3 + mH(2.0) * 6.0), sin(e * 0.9) * 0.5);
+            for (int i = 0; i < 28; i++) {
+                float fi = float(i);
+                vec2 c = (vec2(mH(fi * 1.7), mH(fi * 2.9)) - 0.5) * vec2(A * 0.9, 0.85);
+                float s = 0.012 + 0.03 * mH(fi * 4.3) * mH(fi * 4.3);
+                float t0 = mH(fi * 5.1) * D * 0.6;
+                float open = smoothstep(t0, t0 + 0.25, e);
+                float blink = 1.0 - smoothstep(0.0, 0.06, 0.06 - abs(mod(e + mH(fi) * 3.0, 2.3) - 0.06));
+                open *= blink;
+                vec3 ec = mH(fi * 6.7) < 0.6 ? vec3(1.0, 0.8, 0.15) : mH(fi * 6.7) < 0.85 ? vec3(1.0, 0.15, 0.08) : vec3(0.4, 1.0, 0.25);
+                for (int k = 0; k < 2; k++) {
+                    vec2 q = (p - c - vec2((float(k) - 0.5) * s * 2.6, 0.0)) / s;
+                    if (abs(q.x) > 1.3 || abs(q.y) > 1.0) continue;
+                    vec2 m = mEye(q, open, look);
+                    eyes += ec * m.x * (1.0 - 0.9 * m.y) * 1.4;
+                }
+            }
+            vec3 dark = col * 0.02 + eyes;
+            col = mix(col, dark, black);
+            float back = e > D ? exp(-(e - D) * 5.0) : 0.0;     // vuelve con un golpe
+            col *= 1.0 + 0.45 * back;
+        }
+    }
+
+    // ---- MURCIELAGOS HACIA LA CAMARA ----
+    if (uMbat > 0.0) {
+        float e = rt - uMbat;
+        if (e >= 0.0 && e < 4.5) {
+            vec2 p = (uv - 0.5) * vec2(A, 1.0);
+            vec2 ctr = (vec2(mH(1.0), mH(2.0)) - 0.5) * vec2(A * 0.3, 0.2);
+            float cover = 0.0;
+            for (int i = 0; i < 30; i++) {
+                float fi = float(i);
+                float u = (e - mH(fi * 1.3) * 1.6) / (1.6 + 0.8 * mH(fi * 2.2));
+                if (u <= 0.0 || u >= 1.0) continue;
+                float ang = mH(fi * 3.7) * 6.2831;
+                vec2 dir = vec2(cos(ang) * 1.3, sin(ang) * 0.8);
+                vec2 c = ctr + dir * (0.03 + u * u * 0.9);
+                float s = 0.02 + u * u * 0.45;
+                float flap = sin(rt * (16.0 + 6.0 * mH(fi)) + fi);
+                vec2 q = (p - c) / s;
+                q = mat2(cos(dir.y * 0.4), sin(dir.y * 0.4), -sin(dir.y * 0.4), cos(dir.y * 0.4)) * q;
+                cover = max(cover, mBat(q, flap) * smoothstep(1.0, 0.85, u));
+            }
+            col = mix(col, vec3(0.015, 0.0, 0.02), cover);
+        }
+    }
+
+    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+}
+"""
+
+
+def _build_momentos(proj, src_top, ctrl_tex, channels):
+    """program_momentos + momentos_pick: el switch deja pasar la imagen tal
+    cual cuando no corre ningun momento (el shader no cocina)."""
+    cs = "op('/project1/control_script').module"
+    # memoria para Rebobinar: la imagen a media resolucion y 8 bits
+    old = src_top
+    try:
+        small = proj.create(fitTOP, 'momento_small')  # noqa: F821
+        small.nodeX, small.nodeY = 1160, 1000
+        connect(small, src_top)
+        safe_set(small, 'outputresolution', 'custom')
+        safe_expr(small, 'resolutionw', "int(op('/project1').par.Outputwidth.eval() / 2)")
+        safe_expr(small, 'resolutionh', "int(op('/project1').par.Outputheight.eval() / 2)")
+        safe_set_first(small, ['format', 'pixelformat'], 'rgba8fixed')
+        cache = proj.create(cacheTOP, 'momento_cache')  # noqa: F821
+        cache.nodeX, cache.nodeY = 1320, 1000
+        connect(cache, small)
+        safe_set_first(cache, ['cachesize', 'size'], MOMENTO_CACHE)
+        safe_expr(cache, 'active', "0 if {}.rebobinando() else 1".format(cs))
+        safe_expr_first(cache, ['outputindex', 'index'], "{}.rebobinarIndice({})".format(cs, MOMENTO_CACHE))
+        old = cache
+    except Exception as e:
+        log('AVISO MOMENTOS: sin Cache TOP ({}) -- Rebobinar muestra la imagen en vivo'.format(e))
+
+    dat = proj.create(textDAT, 'program_momentos_frag')
+    dat.nodeX, dat.nodeY = 1160, 1140
+    dat.text = shader.ctrl_header(channels, 2) + _MOMENTOS_FRAG
+    mom = proj.create(glslTOP, 'program_momentos')
+    mom.nodeX, mom.nodeY = 1480, 1000
+    safe_set_first(mom, ['pixeldat', 'pixelshader'], dat.path)
+    connect(mom, src_top, 0)
+    connect(mom, old, 1)
+    connect(mom, ctrl_tex, 2)
+    safe_set_first(mom, ['format', 'pixelformat'], 'rgba16float')
+
+    pick = proj.create(switchTOP, 'momentos_pick')
+    pick.nodeX, pick.nodeY = 1640, 1000
+    connect(pick, src_top, 0)
+    connect(pick, mom, 1)
+    safe_set(pick, 'cooktype', 'selective')
+    safe_expr(pick, 'index', "1 if {}.momentoActivo() else 0".format(cs))
+    log('MOMENTOS: linterna/ojos/subida/murcielagos/rebobinar (bypass real) OK')
+    return mom, pick
+
+
 def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # --- puentes locales a cada escena ---
     srcs = []
@@ -1550,6 +1836,9 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     capas = None
     if ctrl_tex is not None and channels and getattr(config, 'CAPAS_ON', False):
         capas, post = _build_capas(proj, post, ctrl_tex, channels)
+    momentos = None
+    if config.MOMENTOS_ON and ctrl_tex is not None and channels:
+        momentos, post = _build_momentos(proj, post, ctrl_tex, channels)
 
     bloom_fx = _build_bloom(proj, post, ctrl_tex, channels)
     bloom = bloom_fx['bloom']
@@ -1592,8 +1881,10 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     if trans is not None:
         res_nodes += [trans, cross_out]
     if capas is not None:
-        res_nodes += [capas, post]
-    for t in res_nodes:
+        res_nodes += [capas, proj.op('capas_pick')]
+    if momentos is not None:
+        res_nodes += [momentos, post]
+    for t in [x for x in res_nodes if x is not None]:
         safe_set(t, 'outputresolution', 'custom')
         safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
         safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")

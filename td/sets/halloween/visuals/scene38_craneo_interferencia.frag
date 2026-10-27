@@ -90,25 +90,25 @@ vec3 ciSkull(vec2 q,vec3 ink,vec3 accent,float gain,float opening) {
     return col;
 }
 vec4 render(vec2 uv) {
-    vec2 p=centered(uv);float t=uTime*0.12,hit=hkHit();
+    vec2 p=centered(uv);float t=uTime*0.12,hit=hkHit(),B=hkBass();
     vec4 C=hkClimax(38.0,159.0,22.0);
     vec3 ink=mix(vec3(0.65,0.40,1.0),vec3(1.0,0.08,0.055),uD5);
     vec3 accent=mix(vec3(0.10,0.85,0.90),vec3(0.95,0.32,0.12),uD5);
-    vec2 q=p/0.93;
+    vec2 q=p/(0.93+0.06*hit+0.03*B);
     // Desplazamiento continuo por franjas con limites suavizados.
     float band=floor((q.y+2.0)*9.0);
     float within=fract((q.y+2.0)*9.0);
     float window=smoothstep(0.0,0.12,within)*(1.0-smoothstep(0.88,1.0,within));
-    q.x+=sin(t*1.2+band*1.7)*uD4*0.065*window*(0.25+hit+C.y*0.5);
+    q.x+=sin(t*1.2+band*1.7)*max(uD4,0.35)*0.065*window*(0.25+hit*2.0+B+C.y*0.5);
     for(int k=0;k<N_KEYS;k++) {
         float e=keyEnv(k,0.04,0.85);
         float zone=exp(-pow((q.y-mix(-0.7,0.8,keyPos(k)))*7.0,2.0));
         q.x+=e*zone*0.035*(keyPos(k)*2.0-1.0);
     }
-    float opening=uD2*0.06+hit*0.025+C.y*0.035;
+    float opening=uD2*0.06+hit*0.07+B*0.03+C.y*0.035;
     vec3 col=ciSkull(q,ink,accent,0.85,opening);
     for(int side=-1;side<=1;side+=2) {
-        vec2 echo=(p-vec2(float(side)*1.65,0.0))/0.60;
+        vec2 echo=(p-vec2(float(side)*(1.65+0.1*hit),0.0))/0.60;
         echo.x+=sin(t+echo.y*3.0)*0.025;
         col+=ciSkull(echo,accent,ink,uD6*0.45,opening*0.5);
     }

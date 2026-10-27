@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Fase 29 de Halloween: capas encima, MIEDO, NAVEGADOR y guardian de FPS.
 
-  1. MiniLab en Halloween: perilla 1 -> Miedo, perilla 9 -> Navegador,
-     clic 1 -> Momento, clic 9 -> lanzar, pad 14 -> capa ON/OFF, pad 15
+  1. MiniLab en Halloween (fase 43): perilla 2 -> Miedo; las perillas 1 y
+     9 y sus clics sin uso; los pads 14 y 15 son momentos (la capa y el
+     navegador siguen andando desde /project1). Antes: pad 14 -> capa ON/OFF, pad 15
      -> siguiente capa (set.json midi_redirect)
   2. Capas: el pad 14 prende/apaga; el 15 cambia con fundido (se apaga,
      espera CAPA_FADE_SECONDS, entra la nueva); si la capa no pega con la
@@ -67,15 +68,15 @@ def load(p):
 def main():
     print('--- 1. MiniLab en Halloween ---')
     r = config.MIDI_REDIRECT
-    for slot, want in (('Energy', 'Miedo'), ('Detail1', 'Navegador'), ('Clic1', 'triggerMoment'),
-                       ('Clic9', 'launchNav'), ('Mirror', 'toggleCapa'), ('Zoom', 'nextCapa')):
+    for slot, want in (('Hue', 'Miedo'), ('Energy', 'Ninguno'), ('Detail1', 'Ninguno'),
+                       ('Clic1', 'nada'), ('Clic9', 'nada'), ('Mirror', 'triggerMurcielagos'),
+                       ('Zoom', 'triggerRebobinar')):
         check('{} -> {}'.format(slot, want), r.get(slot), want)
     check('el set pide el pase de capas', config.CAPAS_ON, True)
     check('6 capas', len(config.CAPAS), 6)
 
-    # la perilla 1 escribe Miedo por la redireccion (no Energia)
-    p = project(Midienergy='ch1ctrl113', Mididetail1='ch1ctrl115', Midiclic1='ch1ctrl112',
-                Midimirror='ch1ctrl28', Energy=0.3)
+    # la perilla 2 escribe Miedo por la redireccion (no Hue); la 1 no hace nada
+    p = project(Midihue='ch1ctrl75', Midienergy='ch1ctrl113', Midiclic1='ch1ctrl112', Energy=0.3, Hue=0.0)
     cs, runs, _ = load(p)
     with open(MIDI_LOGIC) as f:
         src = f.read()
@@ -84,15 +85,15 @@ def main():
     ml.__dict__['op'] = lambda path=None: {'/project1': p, '/project1/control_script': ctrl}.get(path)
     ml.__dict__['run'] = lambda *a, **k: None
     exec(compile(src, MIDI_LOGIC, 'exec'), ml.__dict__)
-    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 127, False)
-    check('perilla 1 = Miedo arriba', p.par.Miedo.val, 1.0)
-    check('Energia no se toca', p.par.Energy.val, 0.3)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl75'), 127, False)
+    check('perilla 2 = Miedo arriba', p.par.Miedo.val, 1.0)
+    check('Hue no se toca', p.par.Hue.val, 0.0)
+    ml._handle(types.SimpleNamespace(name='ch1ctrl113'), 65, False)
+    check('perilla 1: Energia no se toca', p.par.Energy.val, 0.3)
     called = []
     cs.__dict__['triggerMoment'] = lambda: called.append('moment')
     ml._handle(types.SimpleNamespace(name='ch1ctrl112'), 127, True)
-    check('clic 1 = Momento', called, ['moment'])
-    ml._handle(types.SimpleNamespace(name='ch1ctrl28'), 127, True)
-    check('pad 14 prende la capa', p.par.Capaon.val, 1.0)
+    check('clic 1 no hace nada', called, [])
 
     print('\n--- 2. Capas ---')
     p = project(Activeindex=0)
@@ -133,16 +134,12 @@ def main():
     m._capaCompat(7)
     check('niebla en el pasillo: se queda', (p.par.Capasel.val, p.par.Capaon.val), (1, 1.0))
 
-    print('\n--- 4. LEDs de los pads 14 y 15 ---')
+    print('\n--- 4. LEDs de los pads 14 y 15 (momentos) ---')
     p = project(Capasel=2, Capaon=1.0, Padleds=True)
     m, _, _ = load(p)
     leds = m.padLedColors()
-    check('pad 14 = color de murcielagos', leds[13], 'purple')
-    check('pad 15 = color de la elegida', leds[14], 'purple')
-    p.par.Capaon = 0.0
-    leds = m.padLedColors()
-    check('pad 14 apagado sin capa', leds[13], 'off')
-    check('pad 15 sigue mostrando cual esta elegida', leds[14], 'purple')
+    check('pad 14 = murcielagos (violeta en reposo)', leds[13], 'purple')
+    check('pad 15 = rebobinar (cian en reposo)', leds[14], 'cyan')
 
     print('\n--- 5. Navegador ---')
     p = project(Activeindex=0)

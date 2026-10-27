@@ -20,10 +20,10 @@ Los nombres que se escriben en `/project1` > Parameters > página **Texto** sale
 
 **Variante.** Cada vez que se muestra el texto se sortea: ángulo (recto, ±8°, ±26°, ±45° o vertical), inclinación en profundidad, distancia, tamaño, color del halo, velocidad y estilo. Es `Textseed`; el botón "Otra variante" la cambia sin apagar.
 
-**Elegir el preset.** Página Texto > Preset (0 = uno distinto al azar en cada encendido, 1–13 fijo), o en vivo con **Shift + perilla 1** del MiniLab (abajo del todo = al azar).
+**Elegir el preset.** Página Texto > Preset (0 = uno distinto al azar en cada encendido, 1–13 fijo). Shift + perilla 1 ya no se usa (encoder relativo, docs/61). **Diagnóstico:** página Texto > Ver atlas de nombres.
 
 **Mostrar.** Pad 5 (banco A) o MOSTRAR/OCULTAR del dashboard.
 
 **Varios nombres.** En Texto se separan con `+`: `JAY INFINITO + DJ LUNA + MORTEM` (hasta 4). Los presets de un nombre usan el primero; Lluvia, Órbita y Patrón usan todos.
 
-**Red.** 5 Text TOP (filas de 2048×256: los 4 nombres y los signos de Decodificar) → Transform → Over → `text_atlas` → `program_textfx` (GLSL de 3 inputs: imagen, atlas, control) → `program_text` (Cross: fundido con `Textvisible` → Constant CHOP → Lag CHOP). Canales nuevos: `txtpre`, `txtseed`, `txtn`, `txtsize`, `txtt`, `txtlen`. Cambian CHOP y DAT: correr el Text DAT de arranque (o **Reconstruir Todo**).
+**Red.** 5 Text TOP (filas de 1280×160: los 4 nombres y los signos de Decodificar; fase 43, antes 2048 de ancho, más que el tope Non-Commercial) → Transform → Add → `text_atlas` → `program_textfx` (GLSL de 3 inputs: imagen, atlas, control) → `program_text` (Cross: fundido con `Textvisible` → Constant CHOP → Lag CHOP). Canales nuevos: `txtpre`, `txtseed`, `txtn`, `txtsize`, `txtt`, `txtlen`. Cambian CHOP y DAT: correr el Text DAT de arranque (o **Reconstruir Todo**).
