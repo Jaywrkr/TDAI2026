@@ -167,7 +167,7 @@ vec4 render(vec2 uv) {
     if (r < webR + 0.02) {
         // radios
         float spoke = abs(sin(al)) * r;
-        float spokeOn = smoothstep(0.0, 0.06, mix(0.45, 1.02, uD1) - hash21(vec2(ai, 51.0)) * 0.98);
+        float spokeOn = smoothstep(0.0, 0.06, hkDR(0.0, 0.735, 1.02, uD1) - hash21(vec2(ai, 51.0)) * 0.98);
         web = max(web, (1.0 - smoothstep(0.0, px, spoke)) * smoothstep(0.03, 0.06, r) * spokeOn);
         // espiral: tramos rectos entre radios (r del poligono)
         float rp = r * cos(al) / cos(0.0);
@@ -176,19 +176,19 @@ vec4 render(vec2 uv) {
         float k = (rp - 0.10) / spacing + (hash21(vec2(ai, 3.0)) - 0.5) * 0.35;
         float ring = floor(k);
         // vibracion del golpe: cada vuelta con su fase
-        float vib = (hit * (0.15 + uD4 * 0.6) + cA * CL.x * 0.5 * (1.0 - CL.z)) * sin(ring * 1.7 + uRTime * 30.0) * 0.25;
+        float vib = (hit * hkDR(0.0, 0.45, 1.4, uD4) + cA * CL.x * 0.5 * (1.0 - CL.z)) * sin(ring * 1.7 + uRTime * 30.0) * 0.25;
         // la presa forcejea: tiembla la tela a su alrededor
         vib += prey * preyIn * (1.0 - smoothstep(0.7, 0.9, sph)) * exp(-length(p - preyP) * 5.0) * sin(ring * 2.3 + uRTime * 24.0) * 0.3;
         float fk = fract(k + vib);
         float rd = abs(fk - 0.5) * spacing;
-        float ringOn = smoothstep(0.0, 0.06, mix(0.40, 1.02, uD2) - hash21(vec2(ring, 52.0)) * 0.98);
+        float ringOn = smoothstep(0.0, 0.06, hkDR(0.0, 0.71, 1.02, uD2) - hash21(vec2(ring, 52.0)) * 0.98);
         float onR = step(0.10, rp) * step(rp, webR) * step(ring, nRing - 1.0) * step(0.05, hash21(vec2(ring, ai + 17.0))) * ringOn;
         web = max(web, (1.0 - smoothstep(0.0, px, rd)) * onR);
         // gotas de rocio sobre la espiral
         float along = al * r / spacing * 1.2;
         float cid = floor(along);
         float hsd = hash21(vec2(ring * 13.0 + ai, cid));
-        float has = step(1.0 - clamp(uD5 + EST.y * 0.5, 0.0, 1.0) * 0.6, hsd) * onR;
+        float has = step(1.0 - clamp(uD5 + EST.y * 0.5, 0.0, 1.0) * 0.95, hsd) * onR;
         vec2 dq = vec2((fract(along) - 0.5) * spacing / 1.2, (fk - 0.5) * spacing);
         float dr = spacing * (0.16 + 0.16 * hash21(vec2(cid, ring)));
         float dd = length(dq) - dr;
@@ -243,7 +243,7 @@ vec4 render(vec2 uv) {
     }
 
     // --- arana en su hilo ---
-    float sz = (0.28 + uD3 * 0.22) * mix(1.0, 4.2, approach * approach);
+    float sz = hkDR(0.16, 0.39, 0.68, uD3) * mix(1.0, 4.2, approach * approach);
     float hang = 0.25 + 0.30 * sin(t * 0.28) + 0.10 * sin(t * 0.71);
     vec2 sp = vec2(1.15, hang);
     // historia: camina hasta el centro de la tela y vuelve
@@ -256,7 +256,7 @@ vec4 render(vec2 uv) {
     sp = mix(sp, vec2(1.5, 0.75), cB * smoothstep(0.05, 0.2, CL.w) * (1.0 - smoothstep(0.85, 0.98, CL.w)));
     // climax: baja hacia la camara (crece y queda en el centro, arriba)
     sp = mix(sp, vec2(0.05, 0.55), approach);
-    float curl = hit * (0.5 + uD4 * 0.5) - (dv == 3 ? D.x * 0.6 * sin(D.y * PI) : 0.0);
+    float curl = hit * hkDR(0.0, 0.75, 1.5, uD4) - (dv == 3 ? D.x * 0.6 * sin(D.y * PI) : 0.0);
     // hilo de seda
     float drag = abs(p.x - sp.x) - px * 0.5;
     drag = max(drag, max(sp.y - p.y, p.y - 0.86));

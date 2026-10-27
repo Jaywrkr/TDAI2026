@@ -180,14 +180,14 @@ vec4 render(vec2 uv) {
             keyCrack = max(keyCrack, max(line, ring) * e);
             keyShift += normalize(kr + 1e-4) * 0.01 * e * (1.0 - smoothstep(0.0, R, r));
         }
-        float lvl = clamp(uD2 * (0.10 + hit * (0.6 + loco)) + crackE, 0.0, 1.0);
+        float lvl = clamp(hkDR(0.0, 0.5, 1.8, uD2) * (0.10 + hit * (0.6 + loco)) + crackE, 0.0, 1.0);
         vec2 rel = (m - imp) * vec2(MR.x / MR.y, 1.0);
         float rr = length(rel);
         float ang = atan(rel.y, rel.x);
         vec3 vr = e21Vor(vec2(ang * 2.2, log(rr + 0.02) * 3.0));  // pedazos radiales
         float shardOn = step(rr, lvl * 0.9 + 0.02) * step(0.001, lvl);
         float crackLine = (1.0 - smoothstep(0.0, 0.05, vr.x)) * shardOn;
-        vec2 shardOff = (hash22(vr.yz) - 0.5) * 0.06 * (0.3 + uD3) * shardOn;
+        vec2 shardOff = (hash22(vr.yz) - 0.5) * 0.06 * hkDR(0.0, 0.8, 2.4, uD3) * shardOn;
         // ondula como agua (medios) + pedazos corridos
         vec2 w = vec2(sin(m.y * 18.0 + t * 1.5), cos(m.x * 15.0 - t * 1.2)) * 0.004 * (0.3 + mid * 2.0);
         vec2 mm = m + w + shardOff + keyShift;
@@ -231,7 +231,7 @@ vec4 render(vec2 uv) {
             for (int i = 0; i < 4; i++) palm = min(palm, hkSeg(hq, vec2(-0.6 + float(i) * 0.4, 0.6), vec2(-0.7 + float(i) * 0.45, 1.9)) - 0.22);
             wipe = max(wipe, (1.0 - smoothstep(-0.1, 0.1, palm)) * D.x * 0.8);
         }
-        float steam = clamp(max(max(uD1 * (0.7 + 0.3 * sin(t * 0.4 + bass)) + EST.z * 0.5, fogUp * 1.1), egFog) - wipe, 0.0, 1.0);
+        float steam = clamp(max(max(hkDR(0.0, 0.5, 1.5, uD1) * (0.7 + 0.3 * sin(t * 0.4 + bass)) + EST.z * 0.5, fogUp * 1.1), egFog) - wipe, 0.0, 1.0);
         steam *= 1.0 - grow * 0.8;
         float fogN = fbm(mm * 5.0 + vec2(0.0, t * 0.03), 4, 0.55);
         vec3 im = hkMediaGet(muv, steam * 3.5, has);
@@ -240,7 +240,7 @@ vec4 render(vec2 uv) {
         float lum = dot(im, vec3(0.33));
         float lp = pow(clamp(lum * 1.8, 0.0, 1.0), 1.0 / 2.2);
         vec3 ghost = tint * pow(1.0 - lp, 2.2) * 0.35;
-        im = mix(im, ghost, uD4 * 0.8 + hit * loco * 0.5 * step(0.5, fract(uRTime * 4.0)));
+        im = mix(im, ghost, hkDR(0.0, 0.4, 1.0, uD4) + hit * loco * 0.5 * step(0.5, fract(uRTime * 4.0)));
         im *= 0.8 + 0.6 * bulb * 0.5;
         im *= 1.0 - 0.45 * pow(mr, 3.0);                               // oscurece el borde del ovalo
         im = mix(im, vec3(0.20, 0.21, 0.22) * (0.4 + 0.6 * fogN) * (L * 3.0 + 0.1), steam * (0.35 + 0.5 * fogN));

@@ -111,7 +111,7 @@ vec4 render(vec2 uv) {
     float drift = sin(t * 0.045) * 0.28 + sin(t * 0.017 + 1.0) * 0.12;
 
     // --- faroles: posicion y luz (una vez por pixel, 16) ---
-    float nL = min(4.0 + uD1 * 12.0 + uDensity * 2.0 + hkActVal(3.0) * 2.0, 16.0);
+    float nL = min(hkDR(0.0, 10.0, 16.0, uD1) + uDensity * 2.0 + hkActVal(3.0) * 2.0, 16.0);
     float sel = floor(hash21(vec2(floor(uRTime * 0.8), 28.0)) * 16.0);
     // piano: el farol mas cercano en x a la nota
     int keyLan[6];
@@ -134,7 +134,7 @@ vec4 render(vec2 uv) {
         float fi = float(i);
         float s = flScale(f.y);
         float on = revealAt(nL, FL_ORD[i]);
-        float len = (0.10 + 0.32 * f.z) * (0.55 + uD2 * 0.9) * s;
+        float len = (0.10 + 0.32 * f.z) * hkDR(0.2, 1.0, 2.0, uD2) * s;
         float drop = (abs(fi - sel) < 0.5 ? hit : 0.0) * 0.12 * s;
         len += drop;
         float ax = f.x;
@@ -230,7 +230,7 @@ vec4 render(vec2 uv) {
         // niebla entre esta capa y la siguiente
         if (Ly < 2) {
             float fz = plate3Wrap(vec2(p.x * (0.22 + Lf * 0.1) + t * (0.008 + Lf * 0.004) + mid * 0.01, p.y * 0.5 + Lf)).g;
-            float fogA = (0.10 + uD3 * 0.55) * (0.6 + 0.6 * fz) * smoothstep(0.9, -0.6, p.y) * (Ly == 0 ? 1.0 : 0.6);
+            float fogA = hkDR(0.0, 0.375, 1.0, uD3) * (0.6 + 0.6 * fz) * smoothstep(0.9, -0.6, p.y) * (Ly == 0 ? 1.0 : 0.6);
             col = mix(col, vec3(0.10, 0.10, 0.15) + lcol * 0.04 * nL / 16.0, clamp(fogA, 0.0, 0.8));
         }
     }
@@ -238,7 +238,7 @@ vec4 render(vec2 uv) {
     // --- luciernagas (agudos) y hojas que caen (D4, la rafaga) ---
     float ff = hkParticles(p0 * 0.9 + vec2(sin(t * 0.3) * 0.2, 0.0), uRTime, 0.03 + high * 0.18, vec2(0.2, 0.3), 0.025);
     col += vec3(0.75, 1.0, 0.35) * ff * (0.4 + high * 2.0) * smoothstep(0.7, -0.3, p0.y);
-    float nLeaf = uD4 * 0.6 + gust * 0.5;
+    float nLeaf = hkDR(0.0, 0.3, 1.0, uD4) + gust * 0.5;
     if (nLeaf > 0.01) {
         for (int k = 0; k < 2; k++) {
             float fk = float(k);
@@ -247,12 +247,12 @@ vec4 render(vec2 uv) {
             vec2 id = floor(g);
             vec2 f = fract(g) - 0.5;
             vec2 h = hash22(id + fk * 5.0);
-            if (h.x > nLeaf * 0.3) continue;
+            if (h.x > nLeaf * hkDR(0.3, 0.3, 0.6, uD4)) continue;
             float a = uRTime * (2.0 + h.y * 3.0) + h.x * 6.28;
             f -= (h - 0.5) * 0.5;
             vec2 lq = mat2(cos(a), -sin(a), sin(a), cos(a)) * f;
             float leaf = 1.0 - smoothstep(0.08, 0.11, length(lq * vec2(1.0, 2.4 + 1.6 * abs(sin(a)))));
-            vec3 lc2 = mix(vec3(0.55, 0.20, 0.05), vec3(0.65, 0.40, 0.08), h.y) * 0.35;
+            vec3 lc2 = mix(vec3(0.55, 0.20, 0.05), vec3(0.65, 0.40, 0.08), h.y) * hkDR(0.35, 0.35, 0.75, uD4);
             col = mix(col, lc2, leaf * 0.9);
         }
     }
