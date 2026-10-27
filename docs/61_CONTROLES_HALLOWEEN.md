@@ -65,3 +65,17 @@ Red: `momento_small` (Fit, media resolución, 8 bits) → `momento_cache` (Cache
 - Colores de halos y cintas: calabaza, violeta, verde veneno, sangre, brasa y hueso. Rebote, Lluvia y Órbita se quedan más al centro.
 
 Cambian CHOP, DAT y parámetros: correr el Text DAT de arranque. El build muestra `controles-momentos-f43`.
+
+## Escenas VJ de imagen 39–43 (fase 44)
+
+Cinco escenas que usan la imagen de la carpeta Media (como 20–25; todas muestran la misma imagen). `hkMediaGain` sube la exposición hasta ×4 si la foto es oscura. Hoja: `docs/img/visuales_imagen.jpg` (`python3 td/tools/render_visuales_imagen.py`, con la mansión y las calabazas del set como imagen).
+
+| # | Escena | Qué hace con la imagen | Baile |
+|---|---|---|---|
+| 39 | Contorno neón | Sus bordes como líneas de neón sobre negro (D1 sensibilidad) | el trazo se dibuja desde el centro en cada tiempo; el bajo hace vibrar las líneas |
+| 40 | Puntos de neón | La imagen hecha de puntos o rayas de luz (D1 grilla, D2 puntos→rayas) | crecen con el bajo; una onda sale del centro en cada tiempo |
+| 41 | Caleidoscopio ritual | Mandala de 6 a 12 espejos con sello de neón | gira a saltos en cada tiempo; zoom con el bajo |
+| 42 | Túnel de cuadros | Marcos dorados con la imagen que vuelan hacia la cámara | avanzan de a saltos en cada tiempo; la imagen late con el golpe; velas con el bajo |
+| 43 | Pared de televisores | Recortes de la imagen en televisores viejos (D6: a veces todos muestran su parte de la imagen completa) | se prenden y apagan con el ritmo |
+
+Van intercaladas en el setlist (después de 00, 13, 20, 10 y 35). Destellos ≤ 3/s (en la 42 el clímax ya no cambia la velocidad: multiplicar el tiempo por algo que cambia hacía saltar los cuadros). Para cambiar de imagen: pad 6 (Imagen siguiente).
