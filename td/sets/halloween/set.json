@@ -1,21 +1,10 @@
 {
   "label": "HALLOWEEN 2026",
-  "output": [
-    1280,
-    512
-  ],
+  "output": [1280, 512],
   "visuals_dir": "visuals",
   "modern_from": 0,
   "audio_dance": false,
-  "media_scenes": [
-    6,
-    20,
-    21,
-    22,
-    23,
-    24,
-    25
-  ],
+  "media_scenes": [6, 20, 21, 22, 23, 24, 25],
   "fullres_scenes": [
     8,
     9
@@ -29,40 +18,132 @@
   "style_palettes": ["Calabaza", "Sangre", "Veneno", "Fantasma", "Infierno", "Hechizo", "Pantano", "Sepia"],
   "transition_style": "halloween",
   "capas": true,
-  "capas_excluir": {"4": [2], "5": [3, 6], "6": [3, 6], "7": [3, 6], "8": [4], "9": [3], "10": [3, 6], "11": [3, 6], "12": [3, 6], "14": [6], "16": [3, 6], "17": [3, 6], "18": [3, 6], "19": [3, 6], "20": [3, 6], "21": [3, 6], "24": [3, 6], "25": [3, 6], "29": [3, 6]},
+  "capas_excluir": {
+    "4": [
+      2
+    ],
+    "5": [
+      3,
+      6
+    ],
+    "6": [
+      3,
+      6
+    ],
+    "7": [
+      3,
+      6
+    ],
+    "8": [
+      4
+    ],
+    "9": [
+      3
+    ],
+    "10": [
+      3,
+      6
+    ],
+    "11": [
+      3,
+      6
+    ],
+    "12": [
+      3,
+      6
+    ],
+    "14": [
+      6
+    ],
+    "16": [
+      3,
+      6
+    ],
+    "17": [
+      3,
+      6
+    ],
+    "18": [
+      3,
+      6
+    ],
+    "19": [
+      3,
+      6
+    ],
+    "20": [
+      3,
+      6
+    ],
+    "21": [
+      3,
+      6
+    ],
+    "24": [
+      3,
+      6
+    ],
+    "25": [
+      3,
+      6
+    ],
+    "29": [
+      3,
+      6
+    ]
+  },
   "midi_redirect": {
-    "Hue": "Estilopaleta",
+    "Energy": "Ninguno",
+    "Clic1": "nada",
+    "Layermix": "Ninguno",
+    "Detail1": "Ninguno",
+    "Clic9": "nada",
+    "Transition": "Ninguno",
+    "Hue": "Miedo",
     "Density": "Estilo",
-    "Lookamount": "Nocheintensidad",
-    "Palettelock": "Estilomarco",
-    "Duallayer": "toggleNight",
-    "Blendnext": "triggerMoment",
-    "Energy": "Miedo",
-    "Clic1": "triggerMoment",
-    "Detail1": "Navegador",
-    "Clic9": "launchNav",
-    "Mirror": "toggleCapa",
-    "Zoom": "nextCapa",
+    "Detail2": "Detail1",
+    "Detail3": "Detail2",
+    "Detail4": "Detail3",
+    "Detail5": "Detail4",
+    "Detail6": "Detail5",
+    "Lookamount": "Detail6",
+    "Palettelock": "Nocheintensidad",
     "Mediascrub": "Resplandor",
+    "Duallayer": "toggleNight",
     "Retro": "triggerSecret",
-    "Layermix": "Textelegir"
+    "Blendnext": "triggerMoment",
+    "Glitch": "linternaOn",
+    "Pixelate": "triggerOjos",
+    "Invert": "subidaOn",
+    "Mirror": "triggerMurcielagos",
+    "Zoom": "triggerRebobinar"
   },
   "midi_labels": {
-    "Hue": "Perilla 2: Paleta del estilo",
+    "Energy": "Perilla 1: sin uso en Halloween (encoder relativo)",
+    "Clic1": "Clic perilla 1: sin uso",
+    "Layermix": "Shift+1: sin uso",
+    "Detail1": "Perilla 9: sin uso en Halloween (encoder relativo)",
+    "Clic9": "Clic perilla 9: sin uso",
+    "Transition": "Shift+9: sin uso",
+    "Hue": "Perilla 2: MIEDO (calma -> terror)",
     "Density": "Perilla 4: Estilo aerografo",
-    "Lookamount": "Perilla 15: Noche (intensidad)",
-    "Palettelock": "Perilla 16: Marco de arco",
+    "Detail2": "Perilla 10: Detail 1",
+    "Detail3": "Perilla 11: Detail 2",
+    "Detail4": "Perilla 12: Detail 3",
+    "Detail5": "Perilla 13: Detail 4",
+    "Detail6": "Perilla 14: Detail 5",
+    "Lookamount": "Perilla 15: Detail 6",
+    "Palettelock": "Perilla 16: Noche (intensidad)",
+    "Mediascrub": "Tira Mod: BRILLO (bloom: abajo nada, arriba todo; late con la musica)",
     "Duallayer": "Pad 7: Noche ON/OFF",
+    "Retro": "Pad 9: Easter egg JAY INFINITO",
     "Blendnext": "Pad 16: Momento (climax)",
-    "Energy": "Perilla 1: MIEDO (calma -> terror)",
-    "Clic1": "Clic perilla 1: Momento (climax)",
-    "Detail1": "Perilla 9: Navegador de escenas",
-    "Clic9": "Clic perilla 9: Lanzar la escena elegida",
-    "Mirror": "Pad 14: Capa encima ON/OFF",
-    "Zoom": "Pad 15: Siguiente capa",
-    "Mediascrub": "Tira Mod: RESPLANDOR (abajo nada brilla, centro normal, arriba solo lo que brilla)",
-    "Retro": "Pad 9: Easter egg JAY INFINITO (aprender una vez)",
-    "Layermix": "Shift+1: Preset del texto (abajo = al azar)"
+    "Glitch": "Pad 10: LINTERNA (mantener)",
+    "Pixelate": "Pad 11: OJOS en la oscuridad",
+    "Invert": "Pad 13: SUBIDA (mantener) -> IMPACTO al soltar",
+    "Mirror": "Pad 14: MURCIELAGOS hacia la camara",
+    "Zoom": "Pad 15: REBOBINAR VHS"
   },
-  "presets_default": "presets_default.json"
+  "presets_default": "presets_default.json",
+  "momentos": true
 }

@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'fuentes-orden-f42 2026-10-27'
+BUILD_TAG = 'controles-momentos-f43'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -325,7 +325,6 @@ CTRL_CHANNELS = [
     # ESTILO del set (pagina Estilo): 0 = como siempre, 1 = estilo pleno.
     # En Halloween es el "aerografo retro" del kit (hkStyle en common.glsl).
     'style',    # 46
-    'stylearch',  # 47 marco de arco alrededor de la imagen
     'stylepal',   # 48 paleta del estilo (0..1 recorre las paletas del set)
     'styleauto',  # 49 1 = la paleta cambia sola en cada acto
     # PIANO POLIFONICO: 6 voces (las ultimas teclas tocadas). Por voz:
@@ -375,6 +374,15 @@ CTRL_CHANNELS = [
     'txtsize',    # 94
     'txtt',       # 95 rtime en que se prendio (golpe, decodificar)
     'txtlen',     # 96 letras del primer nombre
+    'txtdbg',     # 1 = mostrar el atlas de nombres (diagnostico)
+    # MOMENTOS (fase 43, program.py _MOMENTOS_FRAG): rtime en que se apreto
+    # (y se solto) cada pad de momento; -1 = nunca. mseed cambia en cada toque.
+    'mlin', 'mlinoff',   # Linterna (mantener)
+    'mojos',             # Ojos en la oscuridad
+    'msub', 'msuboff',   # Subida -> impacto (mantener y soltar)
+    'mbat',              # Murcielagos hacia la camara
+    'mrew',              # Rebobinar VHS
+    'mseed',
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -423,7 +431,6 @@ PAR_CHANNELS = [
     ('Audioamount', 'audioamt'),
     ('Nochevalor', 'night'),
     ('Estilo', 'style'),
-    ('Estilomarco', 'stylearch'),
     ('Estilopaleta', 'stylepal'),
     ('Estiloauto', 'styleauto'),
 ] + [('K{}{}'.format(i, f), 'k{}{}'.format(i, f))
@@ -440,7 +447,9 @@ PAR_CHANNELS = [
     ('Secreton', 'secret'),
     ('Textpresetcur', 'txtpre'), ('Textseed', 'txtseed'),
     ('Textcount', 'txtn'), ('Textsize', 'txtsize'),
-    ('Textt', 'txtt'), ('Textlen', 'txtlen'),
+    ('Textt', 'txtt'), ('Textlen', 'txtlen'), ('Textdebug', 'txtdbg'),
+    ('Mlin', 'mlin'), ('Mlinoff', 'mlinoff'), ('Mojos', 'mojos'), ('Msub', 'msub'),
+    ('Msuboff', 'msuboff'), ('Mbat', 'mbat'), ('Mrew', 'mrew'), ('Mseed', 'mseed'),
 ]
 
 # Presets del texto (pagina Texto > Preset; 0 = uno al azar cada vez).
@@ -838,6 +847,9 @@ MIDI_REDIRECT = {}
 MIDI_REDIRECT_LABELS = {}
 # Capas encima de las escenas (set.json "capas"/"capas_excluir").
 CAPAS_ON = False
+# Momentos de los pads (set.json "momentos": true): Linterna, Ojos,
+# Subida -> impacto, Murcielagos y Rebobinar (program.py).
+MOMENTOS_ON = False
 CAPAS_EXCLUIR = {}
 
 # Nombres de las paletas del estilo, en el orden en que las recorre la
@@ -1007,6 +1019,7 @@ def _apply_set(name):
     # Capas encima de las escenas (program_capas): solo se arma el pase si
     # el set las pide. "capas_excluir": {"escena": [capas 1..N que no pegan]}.
     g['CAPAS_ON'] = bool(data.get('capas', False))
+    g['MOMENTOS_ON'] = bool(data.get('momentos', False))
     g['CAPAS_EXCLUIR'] = {int(k): [int(x) for x in v]
                           for k, v in data.get('capas_excluir', {}).items()}
     if data.get('plate_lod'):

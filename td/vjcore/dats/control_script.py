@@ -759,6 +759,21 @@ def padLedColors():
             out[13] = col if _capaOn(p) else 'off'
         if _vjconfig.MIDI_REDIRECT.get('Zoom') == 'nextCapa':
             out[14] = col
+        # MOMENTOS (fase 43): cada pad con su color; blanco mientras corre
+        red = _vjconfig.MIDI_REDIRECT
+        now = _rtNow()
+
+        def _live(name, length):
+            t = float(_parVal(p, name, -1.0) or -1.0)
+            return t > 0 and 0.0 <= now - t < length
+        lin_on = float(_parVal(p, 'Mlin', -1.0) or -1.0) > float(_parVal(p, 'Mlinoff', -1.0) or -1.0)
+        sub_on = float(_parVal(p, 'Msub', -1.0) or -1.0) > float(_parVal(p, 'Msuboff', -1.0) or -1.0)
+        for slot, idx, idle, live in (('Glitch', 9, 'yellow', lin_on), ('Pixelate', 10, 'green', _live('Mojos', 4.0)),
+                                      ('Invert', 12, 'red', sub_on), ('Mirror', 13, 'purple', _live('Mbat', 4.5)),
+                                      ('Zoom', 14, 'cyan', _live('Mrew', 2.2))):
+            if str(red.get(slot, '')).replace('On', '').replace('trigger', '').lower() in (
+                    'linterna', 'ojos', 'subida', 'murcielagos', 'rebobinar'):
+                out[idx] = 'white' if live else idle
     except Exception:
         pass
     # NEXT late blanco con el beat mientras el autopilot anda: se ve en el
@@ -1220,6 +1235,124 @@ def triggerSecret():
         return
     p.par.Secreton = max(now, 1e-3)
     print('EASTER EGG: JAY INFINITO')
+
+
+# ---------------------------------------------------------------
+# MOMENTOS (fase 43): pads 10, 11, 13, 14 y 15 en Halloween. Cada uno
+# escribe el rtime del shader (el mismo reloj de program_momentos) en que
+# se apreto o se solto; el efecto entero vive en el GLSL. mseed sortea la
+# variante de cada toque.
+# ---------------------------------------------------------------
+MOMENTO_LEN = {'Mojos': 4.0, 'Mbat': 4.5, 'Mrew': 2.2}
+
+
+def _rtNow():
+    c = op('/project1/ctrl')
+    try:
+        return float(c['rtime'].eval()) if c is not None else 0.0
+    except Exception:
+        return 0.0
+
+
+def _momento(name, seed=True):
+    import random
+    p = _p()
+    if not p or getattr(p.par, name, None) is None:
+        return None
+    now = max(_rtNow(), 1e-3)
+    if seed:
+        _setPar(p, 'Mseed', random.random())
+    _setPar(p, name, now)
+    return now
+
+
+def linternaOn():
+    """Pad 10: LINTERNA mientras se mantiene apretado."""
+    if _momento('Mlin') is not None:
+        _setPar(_p(), 'Mlinoff', -1.0)
+        print('MOMENTO: linterna')
+
+
+def linternaOff():
+    _momento('Mlinoff', seed=False)
+
+
+def triggerOjos():
+    """Pad 11: apagon con ojos en la oscuridad."""
+    if _momento('Mojos') is not None:
+        print('MOMENTO: ojos')
+
+
+def subidaOn():
+    """Pad 13: SUBIDA mientras se mantiene; al soltar, el impacto."""
+    if _momento('Msub') is not None:
+        _setPar(_p(), 'Msuboff', -1.0)
+        print('MOMENTO: subida')
+
+
+def subidaOff():
+    if _momento('Msuboff', seed=False) is not None:
+        print('MOMENTO: impacto')
+
+
+def triggerMurcielagos():
+    """Pad 14: bandada de murcielagos hacia la camara."""
+    if _momento('Mbat') is not None:
+        print('MOMENTO: murcielagos')
+
+
+def triggerRebobinar():
+    """Pad 15: la escena se rebobina 2 s como VHS."""
+    if _momento('Mrew') is not None:
+        print('MOMENTO: rebobinar')
+
+
+def momentoActivo():
+    """Para el switch de program_momentos: True mientras corre algun
+    momento (si no, el shader no cocina). Nunca tira excepcion."""
+    p = _p()
+    if not p:
+        return False
+    try:
+        now = _rtNow()
+        v = lambda n: float(_parVal(p, n, -1.0) or -1.0)
+        lin, linoff = v('Mlin'), v('Mlinoff')
+        if lin > 0 and (linoff < lin or now - linoff < 0.6):
+            return True
+        sub, suboff = v('Msub'), v('Msuboff')
+        if sub > 0 and (suboff < sub or now - suboff < 1.8):
+            return True
+        for n, length in MOMENTO_LEN.items():
+            t = v(n)
+            if t > 0 and 0.0 <= now - t < length:
+                return True
+    except Exception:
+        return False
+    return False
+
+
+def rebobinando():
+    """Para el Cache TOP: True mientras corre Rebobinar (no graba)."""
+    p = _p()
+    try:
+        t = float(_parVal(p, 'Mrew', -1.0) or -1.0)
+        return t > 0 and 0.0 <= _rtNow() - t < MOMENTO_LEN['Mrew']
+    except Exception:
+        return False
+
+
+def rebobinarIndice(size):
+    """Cuadro del Cache TOP a mostrar: 0 = el ultimo, -size+1 = el mas viejo.
+    En 1.6 s recorre todo lo guardado hacia atras."""
+    p = _p()
+    try:
+        t = float(_parVal(p, 'Mrew', -1.0) or -1.0)
+        e = _rtNow() - t
+        if t <= 0 or e < 0 or e > MOMENTO_LEN['Mrew']:
+            return 0
+        return -int(min(size - 1, max(0.0, e / 1.6) * (size - 1)))
+    except Exception:
+        return 0
 
 
 def toggleNight():

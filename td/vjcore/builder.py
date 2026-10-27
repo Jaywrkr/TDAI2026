@@ -210,6 +210,9 @@ def _parameters(proj):
     # Perilla para elegir el preset en vivo (Shift + perilla 1 en Halloween):
     # abajo del todo = al azar, despues los presets en orden.
     add_float(tx, 'Textelegir', 'Elegir preset con perilla (0 = al azar)', 0.0, 0, 1)
+    # Diagnostico: el atlas de nombres tal como le llega al shader, abajo
+    # a la izquierda de la salida (si ahi no hay letras, falla antes).
+    add_toggle(tx, 'Textdebug', 'Ver atlas de nombres (diagnostico)', False)
     # COLA DE NOMBRES: los proximos artistas escritos por adelantado,
     # separados con ';'. El pad TEXTO muestra el siguiente cada vez que
     # prende (ver control_script.toggleTextVisible). Lo ultimo que
@@ -340,16 +343,16 @@ def _parameters(proj):
 
     # ESTILO del set (Halloween: aerografo retro -- formas suaves, paleta
     # negro/violeta/naranja/crema, grano de spray, polvo, destellos). Van
-    # a la textura de control como 'style' y 'stylearch'.
+    # a la textura de control como 'style'.
     es = proj.appendCustomPage('Estilo')
     add_float(es, 'Estilo', 'Estilo aerografo (0 = normal)', float(c.STYLE_DEFAULT[0]), 0.0, 1.0)
-    add_float(es, 'Estilomarco', 'Marco de arco', float(c.STYLE_DEFAULT[1]), 0.0, 1.0)
     # Paleta del estilo: la perilla recorre las paletas del set en orden
     # (con fundido entre vecinas). Los nombres van en la etiqueta para
     # que se sepa cual es cual sin abrir el codigo.
     pal_names = list(c.STYLE_PALETTES) or ['(una sola)']
     add_float(es, 'Estilopaleta', 'Paleta  ' + ' > '.join(pal_names), 0.0, 0.0, 1.0)
-    add_toggle(es, 'Estiloauto', 'Paleta automatica (cambia en cada acto)', False)
+    # sin perilla en el MiniLab (fase 43): la paleta cambia sola por defecto
+    add_toggle(es, 'Estiloauto', 'Paleta automatica (cambia en cada acto)', True)
 
     # CAPAS encima de las escenas + MIEDO + NAVEGADOR (Fase 29, docs/53).
     # Capaon/Capasel los mueven los pads 14/15 en Halloween; Miedo es la
@@ -521,6 +524,13 @@ def _parameters(proj):
     add_float(s, 'Momenton', 'Momento pedido en (interno)', -1.0)
     # Easter egg JAY INFINITO pedido a mano (fase 38): kclock; -1 = nunca.
     add_float(s, 'Secreton', 'Easter egg pedido en (interno)', -1.0)
+    # MOMENTOS (fase 43): rtime en que se apreto / solto cada pad; -1 = nunca.
+    for _n, _l in (('Mlin', 'Linterna prendida en'), ('Mlinoff', 'Linterna soltada en'),
+                   ('Mojos', 'Ojos en'), ('Msub', 'Subida apretada en'),
+                   ('Msuboff', 'Subida soltada en'), ('Mbat', 'Murcielagos en'),
+                   ('Mrew', 'Rebobinar en')):
+        add_float(s, _n, _l + ' (interno)', -1.0)
+    add_float(s, 'Mseed', 'Momento: variante (interno)', 0.5, 0, 1)
     # RITMO (fase 36, vjcore/ritmo.py): lo escribe control_script con cada
     # golpe de bombo; el shader de Halloween encaja el calendario ahi.
     for _n, _l in (('Mbeat', 's por tiempo'), ('Manchor', 'inicio de frase'),

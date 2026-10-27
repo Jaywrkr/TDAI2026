@@ -579,6 +579,18 @@ def onOnToOff(channel, sampleIndex, val, prev):
     note = _piano_note(channel.name)
     if note is not None:
         _voiceOff(note)
+        return
+    # Pads de MANTENER del set (fase 43): si el pad esta redirigido a 'xOn',
+    # al soltarlo se llama 'xOff' (Linterna, Subida -> impacto).
+    p, ctrl = _ctx()
+    if not p or not ctrl or str(p.fetch('learn_slot', '') or ''):
+        return
+    slot = ctrl.module.midiMap().get(channel.name)
+    red = _redirect(slot) if slot else None
+    if red and red.endswith('On'):
+        fn = getattr(ctrl.module, red[:-2] + 'Off', None)
+        if callable(fn):
+            fn()
     return
 
 

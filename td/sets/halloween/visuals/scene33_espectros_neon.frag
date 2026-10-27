@@ -44,27 +44,27 @@ vec3 enSigil(vec2 q,float t,float seed,vec3 ink,float gain) {
 }
 vec4 render(vec2 uv) {
     vec2 p=centered(uv);
-    float t=uTime*0.13,hit=hkHit();
+    float t=uTime*0.13,hit=hkHit(),B=hkBass(),st=hkStepBeat();
     vec4 C=hkClimax(33.0,151.0,22.0);
     vec3 ink=mix(vec3(0.015,0.85,0.86),vec3(0.56,0.09,1.0),uD5);
     vec3 accent=mix(vec3(0.42,0.20,1.0),vec3(0.9,0.15,0.55),uD5);
     vec3 col=vec3(0.0);
     float r=length(p),a=atan(p.y,p.x);
-    float orbit=0.90+uD2*0.30+C.y*0.065;
+    float orbit=0.90+uD2*0.30+C.y*0.065+0.08*B+0.07*hit;
     float count=4.0+floor(uD1*8.0);
     // Roseta giratoria con apariciones alrededor de la mascara central.
     for(int j=0;j<12;j++) {
         float fj=float(j),show=revealAt(count,fj);
         if(show<0.001) continue;
-        float angle=fj*TAU/count+t*0.10*(0.15+uD4);
+        float angle=fj*TAU/count+t*0.10*(0.15+uD4)+st*TAU/count*0.5;
         vec2 center=vec2(cos(angle),sin(angle))*orbit;
         vec2 q=rot2(angle-PI*0.5)*(p-center)/0.31;
         col+=enSigil(q,t,fj*0.7,ink,show*0.52);
     }
     // Anillos grabados, puntas y contrarrotacion de la estructura gotica.
-    vec2 q=rot2(-t*0.12*(0.2+uD4))*p;
+    vec2 q=rot2(-t*0.12*(0.2+uD4)-st*TAU/24.0)*p;
     float angle=atan(q.y,q.x);
-    float teeth=0.035*pow(0.5+0.5*cos(angle*48.0),4.0);
+    float teeth=0.035*pow(0.5+0.5*cos(angle*48.0),4.0)*(1.0+3.0*B);
     col+=enStroke(r-(orbit+0.35)-teeth,accent,0.50);
     col+=enStroke(r-(orbit+0.44),ink,0.42);
     col+=enStroke(r-(orbit-0.27),accent,0.32);
@@ -73,7 +73,7 @@ vec4 render(vec2 uv) {
         float rose=0.68+fk*0.055+(0.025+uD3*0.025)*cos(a*12.0+t*(fk-1.0)*0.2);
         col+=enStroke(r-rose,mix(ink,accent,fk*0.5),0.35);
     }
-    col+=enSigil(p/(0.66+hit*0.008),t,0.0,ink,0.95+C.y*0.25);
+    col+=enSigil(p/(0.66-hit*0.06-B*0.03),t,0.0,ink,0.95+C.y*0.25);
     // Estrellas de cuatro puntas ancladas a las lineas del circulo.
     float sector=floor((angle+PI)/TAU*24.0);
     float aa=(sector+0.5)*TAU/24.0-PI;

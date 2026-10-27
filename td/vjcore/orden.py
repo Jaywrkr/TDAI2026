@@ -22,6 +22,7 @@ GROUPS = [
     ('AUDIO', r'^(a_|audio)'),
     ('MIDI Y PIANO', r'^(midi|key|piano|pad|fx_)'),
     ('TEXTO', r'^(text_|program_text)'),
+    ('MOMENTOS', r'^(momento|program_momentos)'),
     ('BRILLO', r'^(bloom|program_bloom)'),
     ('SALIDAS', r'^(show_|ndi|syphon|rec_|record|window|laser)'),
     ('PANEL', r'^(dashboard)'),
@@ -33,7 +34,7 @@ GROUPS = [
 FAMILY = {'DAT': 'SISTEMA', 'CHOP': 'CONTROL', 'TOP': 'PROGRAMA'}
 # Filas de bloques (de arriba hacia abajo), como se lee la senal
 ROWS = [['AUDIO', 'MIDI Y PIANO', 'CONTROL'],
-        ['ESCENAS', 'PROGRAMA', 'BRILLO', 'TEXTO', 'SALIDAS'],
+        ['ESCENAS', 'PROGRAMA', 'MOMENTOS', 'BRILLO', 'TEXTO', 'SALIDAS'],
         ['PANEL', 'SISTEMA', 'OTROS']]
 DX, DY = 190, 130            # separacion entre nodos
 GAP_X, GAP_Y = 360, 420      # separacion entre bloques
