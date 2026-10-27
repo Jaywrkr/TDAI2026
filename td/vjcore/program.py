@@ -455,103 +455,436 @@ void main() {
 """
 
 
+# ---------------------------------------------------------------
+# TEXTO CON PRESETS (fase 41)
+# ---------------------------------------------------------------
+# Los nombres se dibujan con Text TOPs nativos en un ATLAS (5 filas de
+# 2048x256: 4 nombres y los signos de Decodificar) y un GLSL de 3 inputs los pone encima de la
+# imagen: imagen, atlas, control (el Mac no acepta un cuarto input). Los
+# 13 presets y sus variantes viven en _TEXTFX_FRAG; el fundido es un Cross
+# TOP nativo (program_text), igual que master_fade.
+TEXT_ROWS = 5          # 4 nombres + la fila de signos de 'decodificar'
+TEXT_SCRAMBLE = '#7@K%2&Q$9!Z*4?X'
+_TEXTFX_FRAG = """// TEXTO CON PRESETS (fase 41). Input 0: imagen. Input 1: atlas (5 filas
+// de 8:1: los 4 nombres y una fila de signos para "decodificar"; letras
+// blancas sobre transparente). Input 2: control. Cada nombre es un plano
+// 3D (giro, diagonal, profundidad) visto en perspectiva; todos bailan con
+// el bajo y el bombo. uTxtseed cambia en cada encendido: angulo,
+// inclinacion, profundidad, tamano, color, velocidad y estilo.
+out vec4 fragColor;
+
+#define T_ROWS 5.0
+#define T_ROWA 8.0
+#define T_F 1.6
+#define T_SCRAMBLE 4.0
+
+float tH(float k) { return fract(sin((uTxtseed * 91.7 + k) * 12.9898) * 43758.5453); }
+float tHash(float n) { return fract(sin(n * 127.1) * 43758.5453); }
+float tTri(float x) { return abs(fract(x) - 0.5) * 4.0 - 1.0; }
+
+mat3 tRot(vec3 r) {
+    float cx = cos(r.x), sx = sin(r.x), cy = cos(r.y), sy = sin(r.y), cz = cos(r.z), sz = sin(r.z);
+    mat3 X = mat3(1.0, 0.0, 0.0, 0.0, cx, sx, 0.0, -sx, cx);
+    mat3 Y = mat3(cy, 0.0, -sy, 0.0, 1.0, 0.0, sy, 0.0, cy);
+    mat3 Z = mat3(cz, sz, 0.0, -sz, cz, 0.0, 0.0, 0.0, 1.0);
+    return Z * Y * X;
+}
+
+// Punto de pantalla p -> coordenadas sobre un plano centrado (en
+// pantalla) en c, a profundidad z, girado r. vec2(1e4) si no lo ve.
+vec2 tPlane(vec2 p, vec2 c, float z, vec3 r) {
+    mat3 R = tRot(r);
+    vec3 n = R[2];
+    vec3 o = vec3(0.0, 0.0, -T_F);
+    vec3 d = vec3(p, T_F);
+    vec3 P0 = vec3(c * (T_F + z) / T_F, z);
+    float den = dot(d, n);
+    if (abs(den) < 1e-4) return vec2(1e4);
+    float tt = dot(P0 - o, n) / den;
+    if (tt <= 0.0) return vec2(1e4);
+    vec3 hit = o + tt * d - P0;
+    return vec2(dot(hit, R[0]), dot(hit, R[1]));
+}
+
+vec2 tRowUV(float row, vec2 q, float pad) {
+    return vec2(q.x / T_ROWA + 0.5, (T_ROWS - 1.0 - row + clamp(q.y + 0.5, pad, 1.0 - pad)) / T_ROWS);
+}
+
+// q en unidades del nombre (alto 1, ancho T_ROWA): cobertura y halo
+vec2 tSample(float row, vec2 q) {
+    vec2 ruv = vec2(q.x / T_ROWA + 0.5, q.y + 0.5);
+    if (ruv.x < -0.05 || ruv.x > 1.05 || ruv.y < -0.7 || ruv.y > 1.7) return vec2(0.0);
+    float inside = step(0.0, ruv.y) * step(ruv.y, 1.0) * step(0.0, ruv.x) * step(ruv.x, 1.0);
+    float a = texture(sTD2DInputs[1], tRowUV(row, q, 0.0)).a * inside;
+    float g = textureLod(sTD2DInputs[1], tRowUV(row, q, 0.02), 4.0).a
+            * smoothstep(-0.7, 0.1, ruv.y) * smoothstep(1.7, 0.9, ruv.y);
+    return vec2(a, g);
+}
+
+// borde fino de las letras (nivel de mip chico menos el relleno)
+float tEdge(float row, vec2 q) {
+    if (abs(q.x) > T_ROWA * 0.52 || abs(q.y) > 0.6) return 0.0;
+    float a = texture(sTD2DInputs[1], tRowUV(row, q, 0.0)).a;
+    float b = textureLod(sTD2DInputs[1], tRowUV(row, q, 0.0), 1.6).a;
+    return clamp(b * 2.2 - a * 2.0, 0.0, 1.0) * step(abs(q.y), 0.5);
+}
+
+vec2 tName(float row, vec2 p, vec2 c, float z, vec3 r, float h, float wAmp, float wPh) {
+    vec2 q = tPlane(p, c, z, r) / h;
+    q.y += sin(q.x * 1.6 - wPh) * wAmp;
+    return tSample(row, q) * (1.0 - clamp(z, 0.0, 2.0) * 0.22);
+}
+
+// que fraccion del ancho de su fila ocupa un nombre de L letras (el
+// tamano de letra del atlas sale de la misma cuenta, ver program.py)
+float tInk(float L) {
+    L = max(L, 1.0);
+    return clamp(L * 0.62 * min(170.0, 3000.0 / L) / 2048.0, 0.08, 0.92);
+}
+
+void main() {
+    vec2 uv = vUV.st;
+    vec3 base = texture(sTD2DInputs[0], uv).rgb;
+    vec2 res = vec2(textureSize(sTD2DInputs[0], 0));
+    float A = res.x / res.y;
+    vec2 p = (uv - 0.5) * vec2(A, 1.0);
+    float n = clamp(floor(uTxtn + 0.5), 1.0, 4.0);
+    int P = int(clamp(floor(uTxtpre + 0.5), 0.0, 12.0));
+    float kick = clamp(uKick, 0.0, 1.0);
+    float bass = clamp(uBass, 0.0, 1.0);
+    float spd = 0.75 + 0.5 * tH(6.0);
+    float t = uRTime * spd;
+    float bt = uMbeat > 0.05 ? uMbeat : 0.5;           // s por tiempo
+    float since = max(uRTime - uTxtt, 0.0);           // desde que se prendio
+    float L = max(uTxtlen, 1.0);
+    float ink = tInk(L);
+    // alto con el que el nombre cruza la pantalla de lado a lado
+    float hFull = min(A * 0.78 / (T_ROWA * ink), 0.7);
+
+    // --- variante de este encendido ---
+    float S = (0.6 + 0.8 * clamp(uTxtsize, 0.0, 1.0)) * (0.85 + 0.3 * tH(1.0));
+    float ai = floor(tH(2.0) * 8.0);
+    float ang = ai < 1.0 ? 0.0 : ai < 3.0 ? (ai < 2.0 ? 0.14 : -0.14) : ai < 5.0 ? (ai < 4.0 ? 0.45 : -0.45)
+              : ai < 7.0 ? (ai < 6.0 ? 0.78 : -0.78) : 1.5708 * sign(tH(9.0) - 0.5);
+    vec2 tilt = (vec2(tH(3.0), tH(4.0)) - 0.5) * 1.5;
+    float zv = tH(7.0) * 0.8;
+    float pi6 = floor(tH(5.0) * 6.0);
+    vec3 tint = pi6 < 1.0 ? vec3(1.0, 0.5, 0.12) : pi6 < 2.0 ? vec3(0.65, 0.3, 1.0) : pi6 < 3.0 ? vec3(0.3, 1.0, 0.35)
+              : pi6 < 4.0 ? vec3(1.0, 0.12, 0.1) : pi6 < 5.0 ? vec3(0.2, 0.85, 1.0) : vec3(0.9, 0.9, 1.0);
+
+    // --- baile comun a todos ---
+    float pulse = 1.0 + 0.2 * kick;
+    float sway = 0.07 * sin(t * 2.1) * (0.3 + bass);
+    float wAmp = 0.05 + 0.12 * bass;
+    float wPh = t * 4.0;
+    vec3 dance = vec3(0.12 * sin(t * 0.9) * (0.4 + bass), 0.18 * sin(t * 0.7 + 1.0) * (0.4 + bass), sway);
+
+    vec2 acc = vec2(0.0);
+    vec3 rgbCov = vec3(-1.0);
+    bool done = false;                 // el preset ya armo el color final
+    vec3 col = base;
+
+    if (P == 0) {          // 1 CENTRO
+        float h = 0.075 * S * pulse;
+        vec3 r = vec3(tilt * 0.6, ang * 0.5) + dance;
+        acc = tName(0.0, p, vec2(0.0, 0.012 * kick), zv * 0.4, r, h, wAmp, wPh);
+        acc.y *= 0.6 + 1.4 * kick;
+    } else if (P == 1) {   // 2 FLOTA
+        float b = sin(t * 0.7);
+        vec2 c = vec2(0.06 * sin(t * 0.31), 0.04 * b);
+        vec3 r = vec3(tilt + vec2(0.35 * sin(t * 0.5), 0.45 * sin(t * 0.37)), ang * 0.7 + 0.05 * sin(t * 0.4)) + dance * 0.6;
+        acc = tName(0.0, p, c, zv * 0.6 + 0.2 * b, r, 0.07 * S * (pulse * 0.6 + 0.4 + 0.08 * bass), wAmp * 0.7, wPh * 0.5);
+        acc.x *= 0.75 + 0.25 * sin(t * 0.7 + 1.0);
+    } else if (P == 2) {   // 3 REBOTE
+        float h = 0.06 * S;
+        float w = h * T_ROWA * ink * 0.5;
+        float fx = 0.045 + 0.02 * tH(11.0), fy = 0.061 + 0.02 * tH(12.0);
+        vec2 c = vec2(tTri(t * fx + tH(13.0)) * (A * 0.5 - w), tTri(t * fy + tH(14.0)) * (0.5 - h * 1.5));
+        float k = floor((t * fx + tH(13.0)) * 2.0) + floor((t * fy + tH(14.0)) * 2.0);
+        vec3 r = vec3(tilt * 0.5, ang * 0.4 + 0.25 * sin(k * 2.3)) + dance;
+        acc = tName(0.0, p, c, zv * 0.3, r, h * pulse, wAmp, wPh);
+        tint = 0.5 + 0.5 * cos(6.2831 * (k * 0.17 + tH(15.0) + vec3(0.0, 0.33, 0.67)));
+    } else if (P == 3) {   // 4 BAILA
+        float h = 0.085 * S;
+        vec3 r = vec3(tilt * 0.5, ang * 0.5) + dance * 1.6;
+        vec2 q = tPlane(p, vec2(0.0), zv * 0.3, r) / (h * pulse);
+        q.y += sin(q.x * 1.6 - t * 5.0) * (0.08 + 0.25 * bass) - 0.25 * kick * sin(q.x * 0.8 + t);
+        q.x += sin(q.y * 3.0 + t * 3.0) * 0.08 * bass;
+        acc = tSample(0.0, q);
+    } else if (P == 4) {   // 5 LLUVIA (con profundidad)
+        mat2 fr = mat2(cos(ang * 0.6), sin(ang * 0.6), -sin(ang * 0.6), cos(ang * 0.6));
+        vec2 pr = fr * p;
+        for (int i = 0; i < 7; i++) {
+            float fi = float(i);
+            float z = tHash(fi + 21.0 + tH(17.0)) * 1.4;
+            float par = T_F / (T_F + z);
+            float h = (0.04 + 0.02 * tHash(fi + 3.0)) * S;
+            float x = (fi / 6.0 - 0.5) * (A - 0.4) * par;
+            float y = (0.7 - fract(t * (0.04 + 0.03 * tHash(fi)) * par + tHash(fi + 9.0)) * 1.4) * par;
+            vec3 r = vec3(tilt * 0.4, 0.0) + dance * 0.6;
+            vec2 rr = tName(mod(fi, n), pr, vec2(x, y), z, r, h * pulse, wAmp, wPh + fi);
+            acc += rr * smoothstep(0.7, 0.45, abs(y)) * (0.5 + 0.5 * tHash(fi + 1.0));
+        }
+    } else if (P == 5) {   // 6 ORBITA (anillo inclinado)
+        mat3 ring = tRot(vec3(0.45 + tilt.x * 0.5, 0.0, ang * 0.5));
+        float m = max(n, 3.0);
+        for (int i = 0; i < 4; i++) {
+            float fi = float(i);
+            if (fi >= m) break;
+            float a = t * 0.35 + fi * 6.2831 / m;
+            vec3 w = ring * vec3(cos(a) * A * 0.32, 0.0, sin(a) * 0.6);
+            float z = w.z + 0.4;
+            vec2 c = w.xy * T_F / (T_F + z);
+            vec3 r = vec3(0.0, -cos(a) * 0.5, ang * 0.3) + dance * 0.5;
+            vec2 rr = tName(mod(fi, n), p, c, z, r, 0.065 * S * pulse, wAmp, wPh + fi);
+            acc += rr * (0.55 + 0.45 * smoothstep(1.0, -0.2, z));
+        }
+    } else if (P == 6) {   // 7 GLITCH
+        float slice = floor(uv.y * 24.0);
+        float j = (tHash(slice + floor(t * 12.0)) - 0.5) * 0.12 * kick * step(0.55, tHash(slice * 1.7 + floor(t * 12.0)));
+        vec2 pj = p + vec2(j, 0.0);
+        float sp = 0.006 + 0.02 * kick;
+        vec3 r = vec3(tilt * 0.4, ang * 0.4) + dance;
+        float h = 0.08 * S * pulse;
+        vec2 cr = tName(0.0, pj + vec2(sp, 0.0), vec2(0.0), zv * 0.3, r, h, wAmp, wPh);
+        vec2 cg = tName(0.0, pj, vec2(0.0), zv * 0.3, r, h, wAmp, wPh);
+        vec2 cb = tName(0.0, pj - vec2(sp, 0.0), vec2(0.0), zv * 0.3, r, h, wAmp, wPh);
+        rgbCov = vec3(cr.x, cg.x, cb.x);
+        acc = vec2(0.0, cg.y * (0.5 + kick));
+        tint = vec3(0.2, 0.9, 1.0);
+    } else if (P == 7) {   // 8 RECORTADO: la escena se ve solo dentro del nombre gigante
+        float h = hFull * (0.9 + 0.1 * S) * (1.0 + 0.06 * kick);
+        vec3 r = vec3(tilt * 0.25, ang * 0.1) + dance * 0.35;
+        vec2 q = tPlane(p, vec2(0.0), zv * 0.15, r) / h;
+        q.y += sin(q.x * 1.6 - wPh) * wAmp * 0.4;
+        vec2 m = tSample(0.0, q);
+        float e = tEdge(0.0, q);
+        bool inv = tH(20.0) > 0.75;    // a veces al reves: el nombre negro sobre la escena
+        float k = inv ? 1.0 - m.x : m.x;
+        col = base * (0.05 + 1.25 * k) + tint * (e * (0.5 + 0.8 * kick) + m.y * 0.15 * (1.0 - k));
+        done = true;
+    } else if (P == 8) {   // 9 GOLPE: el nombre golpea en el drop (y al prenderlo)
+        float dropT = (uMbrk1 - uMbrk0 >= 4.0 && uMbrk1 <= uRTime) ? uMbrk1 : -1e4;
+        float every = bt * 32.0;       // sin drops: un golpe cada 8 compases
+        float autoT = uTxtt + floor(since / every) * every;
+        float hitT = max(autoT, dropT);
+        float dt = max(uRTime - hitT, 0.0);
+        float env = exp(-dt * 1.3);
+        float slam = exp(-dt * 7.0);
+        vec2 shake = (vec2(tHash(floor(uRTime * 40.0)), tHash(floor(uRTime * 40.0) + 3.0)) - 0.5) * 0.04 * slam;
+        float h = hFull * 0.55 * S * (1.0 + 0.45 * slam + 0.08 * kick);
+        vec3 r = vec3(tilt * 0.3 * (1.0 - slam), ang * 0.25) + dance * 0.5;
+        acc = tName(0.0, p + shake, vec2(0.0), zv * 0.2, r, h, wAmp, wPh) * env;
+        acc.y *= 1.5;
+        col = base * (1.0 + 0.5 * exp(-dt * 10.0));      // un solo destello por golpe
+        base = col;
+    } else if (P == 9) {   // 10 PATRON: filas del nombre que corren en sentidos alternos
+        float fa = ai < 2.0 ? 0.0 : ai < 4.0 ? 0.35 * sign(tH(9.0) - 0.5) : ai < 6.0 ? 0.78 * sign(tH(9.0) - 0.5) : 0.2;
+        mat2 fr = mat2(cos(fa), sin(fa), -sin(fa), cos(fa));
+        vec2 pr = fr * p;
+        float rowH = 0.07 * S;
+        float spacing = rowH * 2.3;
+        float ri = floor(pr.y / spacing + 0.5);
+        float ly = pr.y - ri * spacing;
+        float dir = mod(ri, 2.0) * 2.0 - 1.0;
+        float beatK = mod(floor(uRTime / bt), 2.0);
+        float hop = (mod(ri, 2.0) == beatK ? 1.0 : 0.0) * kick;
+        float span = rowH * T_ROWA * ink + rowH * 1.2;
+        float x = pr.x + dir * t * 0.09 + dir * 0.02 * hop;
+        float cell = floor(x / span);
+        float lx = mod(x, span) - span * 0.5;
+        vec2 q = vec2(lx, ly - 0.01 * hop) / (rowH * (1.0 + 0.12 * hop));
+        q.y += sin(q.x * 1.6 - wPh) * wAmp * 0.5;
+        vec2 m = tSample(mod(ri + cell, n), q);
+        if (tH(21.0) > 0.5) {          // cinta: franja de color, letras oscuras
+            float band = smoothstep(rowH * 0.62, rowH * 0.56, abs(ly));
+            col = mix(base * 0.8, tint * (0.75 + 0.25 * hop), band);
+            col = mix(col, vec3(0.03), m.x * band);
+        } else {                       // letras blancas sobre la escena oscurecida
+            col = base * (0.55 - 0.25 * m.y) + tint * m.y * 0.4;
+            col = mix(col, vec3(1.0), m.x);
+        }
+        done = true;
+    } else if (P == 10) {  // 11 DECODIFICAR: signos al azar que se resuelven en el nombre
+        float h = hFull * 0.45 * S * pulse;
+        vec3 r = vec3(tilt * 0.3, ang * 0.2) + dance * 0.6;
+        vec2 q = tPlane(p, vec2(0.0), zv * 0.2, r) / h;
+        q.y += sin(q.x * 1.6 - wPh) * wAmp * 0.5;
+        float half_ = T_ROWA * ink * 0.5;
+        float u = (q.x + half_) / (2.0 * half_);
+        float ci = floor(u * L);
+        float cycle = bt * 32.0;
+        float tc = mod(since, cycle);
+        float at = bt * (0.5 + tHash(ci + tH(23.0) * 17.0) * min(L, 12.0) * 0.5);
+        if (ci >= 0.0 && ci < L && tc < at) {
+            // signo de la fila de signos (16 caracteres), cambia 12 veces por segundo
+            float g = floor(tHash(ci * 3.1 + floor(uRTime * 12.0)) * 16.0);
+            float sHalf = T_ROWA * tInk(16.0) * 0.5;
+            float fx = fract(u * L);
+            vec2 sq = vec2(-sHalf + (g + fx) / 16.0 * 2.0 * sHalf, q.y);
+            vec2 m = tSample(T_SCRAMBLE, sq);
+            acc = vec2(m.x * 0.85, m.y);
+            rgbCov = vec3(-2.0);       // marca: signos en el color del halo
+        } else {
+            acc = tSample(0.0, q);
+            float flash = (ci >= 0.0 && ci < L) ? exp(-(tc - at) * 8.0) : 0.0;
+            acc.y += flash * 1.2;
+        }
+    } else if (P == 11) {  // 12 PROFUNDIDAD: copias en 3D (extrusion o tunel)
+        float h = 0.1 * S * pulse;
+        vec3 r = vec3(tilt * 0.5 + vec2(0.25 * sin(t * 0.5), 0.5 * sin(t * 0.37)), ang * 0.3) + dance * 0.6;
+        bool tunnel = tH(22.0) > 0.55;
+        for (int i = 9; i >= 0; i--) {
+            float fi = float(i);
+            float z = tunnel ? fract(-t * 0.12 + fi / 10.0) * 3.0 - 0.2 : zv * 0.3 + fi * 0.035 * (1.0 + 1.5 * bass);
+            vec2 m = tName(0.0, p, vec2(0.0), z, r, h, wAmp, wPh - fi * 0.3);
+            float fade = tunnel ? smoothstep(2.8, 2.0, z) * smoothstep(-0.2, 0.2, z) : 1.0;
+            vec3 lc = (!tunnel && i == 0) || (tunnel && z < 0.5) ? vec3(1.0) : tint * (1.0 - fi / 12.0);
+            col = mix(col, lc, m.x * fade);
+            acc.y = max(acc.y, m.y * fade * 0.6);
+        }
+        col += tint * acc.y * 0.3 * (0.5 + kick);
+        done = true;
+    } else {               // 13 CAMBIO POR TIEMPO: en cada tiempo, otro estilo
+        float k = floor(uRTime / bt);
+        float st = floor(tHash(k + tH(24.0) * 31.0) * 5.0);
+        float pop = exp(-fract(uRTime / bt) * 6.0);
+        vec2 off = (vec2(tHash(k * 1.3), tHash(k * 2.7)) - 0.5) * vec2(A * 0.35, 0.25) * step(0.5, tHash(k * 4.1));
+        float h = hFull * 0.45 * S * (1.0 + 0.12 * pop);
+        vec3 r = vec3(tilt * 0.4, ang * 0.3 + (tHash(k * 5.3) - 0.5) * 0.5) + dance * 0.6;
+        vec2 q = tPlane(p, off, zv * 0.2, r) / h;
+        q.y += sin(q.x * 1.6 - wPh) * wAmp * 0.5;
+        vec2 m = tSample(0.0, q);
+        if (st < 1.0) {        // relleno blanco con halo
+            col = base * (1.0 - 0.6 * m.y) + tint * m.y * 0.7;
+            col = mix(col, vec3(1.0), m.x);
+        } else if (st < 2.0) { // solo el contorno
+            col = mix(base * (1.0 - 0.3 * m.y), tint * 1.2, tEdge(0.0, q));
+        } else if (st < 3.0) { // recortado: la escena dentro de las letras
+            col = base * (0.12 + 1.2 * m.x);
+        } else if (st < 4.0) { // invertido dentro de las letras
+            col = mix(base, 1.0 - base, m.x);
+        } else {               // colores corridos
+            vec2 sp = vec2(0.02 + 0.03 * pop, 0.0) / h;
+            vec3 rc = vec3(tSample(0.0, q + sp).x, m.x, tSample(0.0, q - sp).x);
+            col = base * (1.0 - max(max(rc.r, rc.g), rc.b)) + rc;
+        }
+        done = true;
+    }
+
+    if (!done) {
+        float a = clamp(acc.x, 0.0, 1.0);
+        float g = clamp(acc.y, 0.0, 1.5);
+        col = base * (1.0 - 0.7 * clamp(g * 1.5, 0.0, 1.0));   // sombra: se lee encima de todo
+        col += tint * g * 0.8;                                    // halo de color
+        if (rgbCov.x >= 0.0) {
+            vec3 rc = clamp(rgbCov, 0.0, 1.0);
+            col = col * (1.0 - max(max(rc.r, rc.g), rc.b)) + rc;
+        } else if (rgbCov.x < -1.5) {
+            col = mix(col, tint * 1.3, a);                        // signos de decodificar
+        } else {
+            col = mix(col, vec3(1.0), a);
+        }
+    }
+    fragColor = TDOutputSwizzle(vec4(col, 1.0));
+}
+"""
+
+
 def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
-    """Nombre de artista tipeado en vivo, compositado sobre el programa.
+    """Nombres de artista tipeados en vivo (pagina Texto de /project1).
 
-    TODO con TOPs nativos (fase 40): en el Mac el GLSL del texto no
-    llegaba a mostrar nada (y no acepta la textura de control como cuarto
-    input). Cadena:
-      Text TOP blanco ----------------------------------------+
-      Text TOP negro -> Blur (sombra, para que se lea encima de todo) |
-      base -> Over(sombra) -> Over(texto) -> Cross(base, con texto)
-    El fundido es el Cross: Textvisible -> Constant CHOP -> Lag CHOP ->
-    expresion de 'cross'. Nada de GLSL ni CHOP to TOP: son los mismos
-    nodos que ya funcionan en master_fade y music_gate.
-
-    Posicion vertical con un Transform TOP (parametro 'ty').
-    ctrl_tex/channels quedan en la firma por compatibilidad.
+    Text TOP x4 (una fila por nombre, 'NOMBRE + NOMBRE' en Texto) ->
+    Transform a su fila -> Over -> atlas -> program_textfx (GLSL: preset,
+    baile, angulo, profundidad) -> program_text (Cross: fundido con
+    Textvisible -> Constant CHOP -> Lag CHOP).
     """
-    def _text_top(name, rgb, x, y):
-        t = proj.create(textTOP, name)  # noqa: F821
-        t.nodeX, t.nodeY = x, y
-        safe_expr(t, 'text', "op('/project1').par.Textcontent")
+    rows = []
+    for i in range(TEXT_ROWS):
+        t = proj.create(textTOP, 'text_row{}'.format(i))  # noqa: F821
+        t.nodeX, t.nodeY = 800, 1000 - i * 120
+        if i < TEXT_ROWS - 1:
+            name = "op('/project1/control_script').module.textName({})".format(i)
+            safe_expr(t, 'text', name)
+        else:
+            # ultima fila: los signos que usa el preset Decodificar
+            name = repr(TEXT_SCRAMBLE)
+            safe_set(t, 'text', TEXT_SCRAMBLE)
         safe_expr_first(t, ['font', 'fontfile'],
                         "op('/project1/control_script').module.currentFontName()")
-        # 24 px (perilla en 0) a 220 px (en 1) sobre una salida de 720p
+        # que el nombre entre a lo ancho de su fila (2048 px)
         safe_expr_first(t, ['fontsizex', 'fontsize'],
-                        "24 + op('/project1').par.Textsize.eval() * 196")
+                        "min(170.0, 3000.0 / max(1, len({})))".format(name))
         safe_set_first(t, ['alignx', 'justifyx', 'textalignx'], 'center')
         safe_set_first(t, ['aligny', 'justifyy', 'textaligny'], 'middle')
         safe_set_first(t, ['wordwrap', 'wrapwords'], False)
-        for pn, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb'), rgb):
-            safe_set(t, pn, v)
+        for pn in ('fontcolorr', 'fontcolorg', 'fontcolorb'):
+            safe_set(t, pn, 1.0)
         safe_set_first(t, ['fontalpha', 'fontcolora'], 1.0)
-        # fondo transparente: solo las letras
         safe_set_first(t, ['bgalpha', 'bgcolora'], 0.0)
         safe_set(t, 'outputresolution', 'custom')
-        safe_expr(t, 'resolutionw', "op('/project1').par.Outputwidth")
-        safe_expr(t, 'resolutionh', "op('/project1').par.Outputheight")
-        return t
+        safe_set(t, 'resolutionw', 2048)
+        safe_set(t, 'resolutionh', 256 * TEXT_ROWS)
+        tr = proj.create(transformTOP, 'text_row{}_y'.format(i))  # noqa: F821
+        tr.nodeX, tr.nodeY = 960, 1000 - i * 120
+        connect(tr, t)
+        # fila i (0 arriba): centro de la fila, en fraccion desde el medio
+        safe_set_first(tr, ['tunit', 'translateunit'], 'fraction')
+        safe_set(tr, 'ty', 0.5 - (i + 0.5) / TEXT_ROWS)
+        rows.append(tr)
+    # las filas se apilan con Over TOPs de 2 entradas, una por una
+    atlas = rows[0]
+    for i in range(1, TEXT_ROWS):
+        ov = proj.create(overTOP, 'text_atlas' if i == TEXT_ROWS - 1 else 'text_atlas_{}'.format(i))  # noqa: F821
+        ov.nodeX, ov.nodeY = 1120 + i * 40, 1000 - i * 120
+        connect(ov, atlas, 0)
+        connect(ov, rows[i], 1)
+        atlas = ov
 
-    # Texty 0..1 (0 abajo, 1 arriba) -> desplazamiento desde el centro en
-    # FRACCION de la imagen (la unidad por defecto del Transform TOP; antes
-    # se pasaban pixeles y el texto salia fuera de cuadro). En TD +y = arriba.
-    ty_expr = "(op('/project1').par.Texty.eval() - 0.5) * 0.7"
-
-    text_top = _text_top('text_overlay_src', (1, 1, 1), 960, 780)
-    text_y = proj.create(transformTOP, 'text_overlay_y')  # noqa: F821
-    text_y.nodeX, text_y.nodeY = 1120, 780
-    connect(text_y, text_top)
-    safe_expr(text_y, 'ty', ty_expr)
-    safe_set_first(text_y, ['tunit', 'translateunit'], 'fraction')
-
-    shadow_src = _text_top('text_shadow_src', (0, 0, 0), 960, 660)
-    shadow_y = proj.create(transformTOP, 'text_shadow_y')  # noqa: F821
-    shadow_y.nodeX, shadow_y.nodeY = 1120, 660
-    connect(shadow_y, shadow_src)
-    safe_expr(shadow_y, 'ty', ty_expr)
-    safe_set_first(shadow_y, ['tunit', 'translateunit'], 'fraction')
-    shadow = proj.create(blurTOP, 'text_shadow_blur')  # noqa: F821
-    shadow.nodeX, shadow.nodeY = 1280, 660
-    connect(shadow, shadow_y)
-    safe_set(shadow, 'size', 6)
+    src = proj.create(textDAT, 'program_textfx_frag')
+    src.nodeX, src.nodeY = 1440, 960
+    if ctrl_tex is not None and channels:
+        src.text = shader.ctrl_header(channels, 2) + _TEXTFX_FRAG
+    else:
+        src.text = ('#define uKick 0.0\n#define uBass 0.0\n#define uRTime 0.0\n'
+                    '#define uMbeat 0.0\n#define uTxtpre 0.0\n#define uTxtseed 0.0\n'
+                    '#define uTxtn 1.0\n#define uTxtsize 0.5\n#define uTxtt 0.0\n'
+                    '#define uTxtlen 8.0\n#define uMbrk0 0.0\n#define uMbrk1 0.0\n') + _TEXTFX_FRAG
+    fx = proj.create(glslTOP, 'program_textfx')
+    fx.nodeX, fx.nodeY = 1440, 840
+    safe_set_first(fx, ['pixeldat', 'pixelshader'], src.path)
+    connect(fx, base_top, 0)
+    connect(fx, atlas, 1)
+    if ctrl_tex is not None and channels:
+        connect(fx, ctrl_tex, 2)
+    safe_set_first(fx, ['format', 'pixelformat'], 'rgba16float')
+    # mipmaps del atlas: el halo de las letras sale de un nivel borroso
+    safe_set_first(fx, ['inputfiltertype', 'inputfilter'], 'mipmap')
 
     # --- fundido: Textvisible -> Constant -> Lag ---
     fp = proj.create(constantCHOP, 'text_fade_par')
-    fp.nodeX, fp.nodeY = 960, 900
+    fp.nodeX, fp.nodeY = 1280, 1080
     safe_set_first(fp, ['const0name', 'name0'], 'textvisible')
     safe_expr_first(fp, ['const0value', 'value0'],
                     "1.0 if op('/project1').par.Textvisible.eval() else 0.0")
-
     flag = proj.create(lagCHOP, 'text_fade_lag')
-    flag.nodeX, flag.nodeY = 1120, 900
+    flag.nodeX, flag.nodeY = 1440, 1080
     safe_set(flag, 'lag1', config.TEXT_FADE_SECONDS)
     safe_set(flag, 'lag2', config.TEXT_FADE_SECONDS)
     safe_set_first(flag, ['lagmethod', 'method'], 'slew')
     connect(flag, fp)
 
-    # --- composite ---
-    over_shadow = proj.create(overTOP, 'text_over_shadow')  # noqa: F821
-    over_shadow.nodeX, over_shadow.nodeY = 1440, 700
-    connect(over_shadow, shadow, 0)
-    connect(over_shadow, base_top, 1)
-    over_text = proj.create(overTOP, 'text_over')  # noqa: F821
-    over_text.nodeX, over_text.nodeY = 1600, 760
-    connect(over_text, text_y, 0)
-    connect(over_text, over_shadow, 1)
-
     out = proj.create(crossTOP, 'program_text')  # noqa: F821
-    out.nodeX, out.nodeY = 1760, 780
+    out.nodeX, out.nodeY = 1600, 840
     connect(out, base_top, 0)
-    connect(out, over_text, 1)
+    connect(out, fx, 1)
     safe_expr(out, 'cross',
               "op('/project1/text_fade_lag')[0].eval() "
               "if op('/project1/text_fade_lag').numChans else 0.0")
 
-    log('OVERLAY DE TEXTO: Text TOP + sombra + fundido nativo (sin GLSL) OK')
-    return {'text_top': text_top, 'text_y': text_y, 'fade_tex': flag,
-            'text_composite': out, 'text_extra': [shadow_y, shadow,
-                                                  over_shadow, over_text]}
+    log('OVERLAY DE TEXTO: atlas de {} filas + {} presets (program_textfx) + fundido OK'.format(TEXT_ROWS, len(config.TEXT_PRESETS)))
+    return {'text_top': rows[0], 'text_y': fx, 'fade_tex': flag,
+            'text_composite': out, 'text_extra': []}
 
 
 def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):

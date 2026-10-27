@@ -2652,7 +2652,87 @@ def toggleTextVisible():
         # la cola (salvo que escribas algo nuevo otra vez).
         p.store('text_last_auto', current)
     _setPar(p, 'Textediting', False)
+    textNewVariant(True)
     _setPar(p, 'Textvisible', True)
+
+
+def textNames():
+    """Los nombres que estan en pantalla: 'Texto' separado por '+'
+    (ej. 'DJ LUNA + MORTEM'), hasta 4. Siempre al menos uno."""
+    p = _p()
+    raw = str(_parVal(p, 'Textcontent', '') or '') if p else ''
+    names = [s.strip() for s in raw.split('+') if s.strip()][:4]
+    return names or ['']
+
+
+def textName(i):
+    """Fila i del atlas de nombres (program.py). Si hay menos nombres,
+    se repiten: los presets de varios nombres nunca quedan vacios.
+    Nunca tira excepcion (la llama una expresion de Text TOP)."""
+    try:
+        names = textNames()
+        return names[int(i) % len(names)]
+    except Exception:
+        return ''
+
+
+def textNewVariant(new_preset=True):
+    """Elige la variante del texto (angulo, diagonal, profundidad, color,
+    tamano, velocidad: todo sale de Textseed en el shader) y, si
+    new_preset, el preset: el de la perilla, o uno al azar con 0."""
+    import random
+    p = _p()
+    if not p:
+        return
+    try:
+        names = textNames()
+        n = len(names)
+        _setPar(p, 'Textcount', float(n))
+        _setPar(p, 'Textlen', float(max(1, len(names[0]))))
+        if not new_preset:
+            return
+        try:
+            import vjcore.config as _vjconfig
+            total = len(_vjconfig.TEXT_PRESETS)
+        except Exception:
+            total = 10
+        choice = int(_parVal(p, 'Textpreset', 0) or 0)
+        if choice <= 0:
+            prev = int(round(float(_parVal(p, 'Textpresetcur', 0) or 0)))
+            options = [k for k in range(total) if k != prev] or [0]
+            cur = random.choice(options)
+        else:
+            cur = min(choice, total) - 1
+        _setPar(p, 'Textpresetcur', float(cur))
+        _setPar(p, 'Textseed', random.random())
+        # reloj del shader (rtime) del encendido: Golpe y Decodificar
+        # cuentan desde aca
+        ctrl = op('/project1/ctrl')
+        try:
+            _setPar(p, 'Textt', float(ctrl['rtime'].eval()) if ctrl is not None else 0.0)
+        except Exception:
+            pass
+        print('TEXTO: preset', cur + 1)
+    except Exception as e:
+        print('textNewVariant ERROR:', e)
+
+
+def textKnob(v):
+    """Perilla de preset (Textelegir 0..1): abajo = al azar, despues los
+    presets en orden. Solo cambia cuando cruza a otro preset."""
+    p = _p()
+    if not p:
+        return
+    try:
+        import vjcore.config as _vjconfig
+        total = len(_vjconfig.TEXT_PRESETS)
+    except Exception:
+        total = 13
+    choice = int(min(total, max(0, round(float(v) * total))))
+    if choice != int(_parVal(p, 'Textpreset', 0) or 0):
+        _setPar(p, 'Textpreset', choice)
+        if choice <= 0:
+            textNewVariant(True)
 
 
 def _textStep(step):
