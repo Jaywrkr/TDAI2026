@@ -533,8 +533,12 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
     connect(glsl, base_top, 0)
     connect(glsl, text_y, 1)
     connect(glsl, fade_tex, 2)
-    if ctrl_tex is not None and channels:
-        connect(glsl, ctrl_tex, 3)
+    # En el Mac (TD actual) el GLSL TOP no acepta un cuarto input: si la
+    # textura de control no entra, el header no puede leer sTD2DInputs[3]
+    # (el shader no compilaria y la salida entera quedaria gris). Sin
+    # control, el halo queda quieto.
+    if not (ctrl_tex is not None and channels and connect(glsl, ctrl_tex, 3)):
+        src.text = '#define uKick 0.0\n' + _TEXT_FRAG
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
 
     log('OVERLAY DE TEXTO: Text TOP + fundido nativo + composite OK')
