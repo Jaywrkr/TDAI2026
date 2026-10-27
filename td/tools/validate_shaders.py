@@ -99,11 +99,8 @@ def validate(index, force_template=False, channels=None):
 # abrir TD. Van por el mismo gate.
 
 def _td_prologue_post(n_inputs):
-    """Igual que el de las escenas + uTD2DInfos (tamano de texel), que el
-    bloom usa para muestrear a los pixeles vecinos."""
-    return _td_prologue(n_inputs) + (
-        'struct TDTexInfoShim {{ vec4 res; }};\n'
-        'uniform TDTexInfoShim uTD2DInfos[{}];\n'.format(n_inputs))
+    """Sin inventar structs del runtime: las dimensiones salen de textureSize."""
+    return _td_prologue(n_inputs)
 
 
 def postfx_sources(channels=None):

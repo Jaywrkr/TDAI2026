@@ -27,26 +27,21 @@ sys.path.insert(0, HERE)
 import render_scenes as R  # noqa: E402  (lee --set y --size)
 from vjcore import config, program, shader  # noqa: E402
 
-_PRE = ('#version 330\nuniform sampler2D sTD2DInputs[3];\n'
-        'struct TDTexInfo { vec4 res; };\nuniform TDTexInfo uTD2DInfos[3];\n'
+_PRE = ('#version 330\nuniform sampler2D sTD2DInputs[__INPUTS__];\n'
         'in vec3 vUV;\nvec4 TDOutputSwizzle(vec4 c) { return c; }\n')
 
 
 def _pass(ctx, frag, inputs, ctrl_index):
     """Corre 'frag' con 'inputs' (texturas) y la de control en
     'ctrl_index'; devuelve la textura de salida (rgba16f)."""
-    src = _PRE + shader.ctrl_header(config.CTRL_CHANNELS, ctrl_index) + frag
+    src = _PRE.replace('__INPUTS__', str(len(inputs))) + shader.ctrl_header(config.CTRL_CHANNELS, ctrl_index) + frag
     prog = ctx.program(vertex_shader=R._VERT, fragment_shader=src)
     vbo = ctx.buffer(np.array([-1, -1, 1, -1, -1, 1, 1, 1], 'f4').tobytes())
     vao = ctx.simple_vertex_array(prog, vbo, 'in_pos')
     for i, tex in enumerate(inputs):
         tex.use(i)
-        name = 'uTD2DInfos[{}].res'.format(i)
-        if name in prog:
-            w, h = tex.size
-            prog[name].value = (1.0 / w, 1.0 / h, float(w), float(h))
     try:
-        prog['sTD2DInputs'].value = list(range(3))[:prog['sTD2DInputs'].array_length]
+        prog['sTD2DInputs'].value = list(range(len(inputs)))[:prog['sTD2DInputs'].array_length]
     except Exception:
         pass
     out = ctx.texture((R.W, R.H), 4, dtype='f2')
@@ -67,15 +62,13 @@ def bloom(ctx, img, values):
     ctrl = ctx.texture((1, len(vals)), 1, vals.tobytes(), dtype='f4')
     ctrl.filter = (ctx.NEAREST, ctx.NEAREST)
     src = ctx.texture((R.W, R.H), 3, np.ascontiguousarray(img[::-1]).astype('f4').tobytes(), dtype='f4')
-    # el prefiltro tiene 1 entrada de imagen: la de control va en la 2,
-    # igual que en program.py (connect(pre, ctrl_tex, 2))
-    dummy = ctx.texture((1, 1), 4, dtype='f4')
-    pre = _pass(ctx, program._BLOOM_PREFILTER_FRAG, [src, dummy, ctrl], 2)
+    # Dos entradas contiguas, iguales a las construidas en TouchDesigner.
+    pre = _pass(ctx, program._BLOOM_PREFILTER_FRAG, [src, ctrl], 1)
     pre.build_mipmaps()
     pre.filter = (ctx.LINEAR_MIPMAP_LINEAR, ctx.LINEAR)
     out = _pass(ctx, program._BLOOM_FRAG, [src, pre, ctrl], 2)
     data = np.frombuffer(out.read(), 'f2').astype('f4').reshape(R.H, R.W, 4)[::-1, :, :3]
-    for o in (ctrl, src, dummy, pre, out):
+    for o in (ctrl, src, pre, out):
         o.release()
     return np.clip(data, 0, 1)
 

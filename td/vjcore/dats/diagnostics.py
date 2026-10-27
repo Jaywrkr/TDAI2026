@@ -417,6 +417,11 @@ def update():
     status = op('/project1/dashboard_ui/system_status_src')
     if not p or not status:
         return
+    try:
+        import vjcore.program as program
+        program.guard_postprocess(p)
+    except Exception as e:
+        print('guard_postprocess ERROR:', e)
     # Aislado: si el panel de Master FX fallara (por ejemplo en un build
     # viejo, sin los parametros nuevos), el panel de status -- que es el
     # que dice si el SISTEMA esta bien -- tiene que seguir actualizandose
@@ -487,6 +492,9 @@ def update():
             active, _sceneName(active),
             '{:02d}'.format(target) if moving else '-'),
     ]
+    recovered = p.fetch('postfx_fallback', []) or []
+    if recovered:
+        lines.append('>> SALIDA RECUPERADA: {}'.format(', '.join(recovered)))
 
     # Valores en vivo: van ARRIBA de los avisos opcionales (Cue/Failsafe/
     # Record/Setlist/Banco/Energia/Media/Learn/Autopilot), no abajo. Esos

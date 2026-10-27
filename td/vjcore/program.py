@@ -139,7 +139,7 @@ void main() {
     // textureLod 0 explicito: la entrada tiene filtro mipmap y no hace
     // falta que el GPU adivine el nivel por derivadas.
     vec3 base = textureLod(sTD2DInputs[0], uv, 0.0).rgb;
-    vec2 texel = uTD2DInfos[1].res.xy;   // res = (1/ancho, 1/alto, ancho, alto)
+    vec2 texel = 1.0 / vec2(textureSize(sTD2DInputs[1], 0));
 
     vec3 glow = vec3(0.0);
     float wsum = 0.0;
@@ -216,19 +216,23 @@ def _build_bloom(proj, src_top, ctrl_tex=None, channels=None):
     # siempre, sin uKick indefinido.
     if ctrl_tex is not None and channels:
         head = shader.ctrl_header(channels, 2)
+        pre_head = shader.ctrl_header(channels, 1)
     else:
         head = _BLOOM_NOCTRL
+        pre_head = _BLOOM_NOCTRL
 
     pre_src = proj.create(textDAT, 'bloom_prefilter_src')
     pre_src.nodeX, pre_src.nodeY = 1000, 160
-    pre_src.text = head + _BLOOM_PREFILTER_FRAG
+    pre_src.text = pre_head + _BLOOM_PREFILTER_FRAG
 
     pre = proj.create(glslTOP, 'bloom_prefilter')
     pre.nodeX, pre.nodeY = 1000, 380
     safe_set_first(pre, ['pixeldat', 'pixelshader'], pre_src.path)
     connect(pre, src_top, 0)
     if ctrl_tex is not None and channels:
-        connect(pre, ctrl_tex, 2)
+        # GLSL TOP enumera las texturas conectadas, sin reservar un
+        # sampler para una entrada vacia. No dejar un hueco en input 1.
+        connect(pre, ctrl_tex, 1)
     safe_set_first(pre, ['format', 'pixelformat'], 'rgba16float')
 
     src = proj.create(textDAT, 'bloom_src')
@@ -398,7 +402,7 @@ void main() {
 
     float textCov = texture(sTD2DInputs[1], uv).a;
 
-    vec2 texel = uTD2DInfos[1].res.xy;   // res = (1/ancho, 1/alto, ancho, alto)
+    vec2 texel = 1.0 / vec2(textureSize(sTD2DInputs[1], 0));
     const float TAU = 6.2831853072;
     const int N = 8;
     const float THICK = 2.5;
@@ -431,7 +435,7 @@ void main() {
         halo2 += texture(sTD2DInputs[1], uv + vec2(cos(ang + 0.26), sin(ang + 0.26)) * texel * 22.0).a;
     }
     float halo = (halo1 * 0.6 + halo2 * 0.4) / float(NH);
-    vec2 texel0 = uTD2DInfos[0].res.xy;
+    vec2 texel0 = 1.0 / vec2(textureSize(sTD2DInputs[0], 0));
     vec3 amb = vec3(0.0);
     for (int i = 0; i < 8; i++) {
         float ang = (float(i) / 8.0 + 0.0625) * TAU;
@@ -480,6 +484,7 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
     safe_set_first(text_top, ['alignx', 'justifyx', 'textalignx'], 'center')
     safe_set_first(text_top, ['aligny', 'justifyy', 'textaligny'], 'middle')
     safe_set_first(text_top, ['wordwrap', 'wrapwords'], False)
+    safe_set(text_top, 'bgcolora', 0.0)
     for pn, v in zip(('fontcolorr', 'fontcolorg', 'fontcolorb', 'fontcolora'),
                      (1, 1, 1, 1)):
         safe_set(text_top, pn, v)
@@ -537,9 +542,31 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
         connect(glsl, ctrl_tex, 3)
     safe_set_first(glsl, ['format', 'pixelformat'], 'rgba16float')
 
+    # Ruta nativa para conservar el texto si el driver rechaza el GLSL.
+    # Usa el MISMO Text TOP y el mismo Lag: no hay un segundo estado.
+    native_alpha = proj.create(levelTOP, 'text_native_alpha')
+    native_alpha.nodeX, native_alpha.nodeY = 2400, 780
+    connect(native_alpha, text_y)
+    safe_expr(native_alpha, 'opacity',
+              "op('/project1/text_fade_lag')[0].eval() if "
+              "op('/project1/text_fade_lag').numChans else 0.0")
+    native = proj.create(compositeTOP, 'text_native_over')
+    native.nodeX, native.nodeY = 2580, 780
+    safe_set(native, 'operand', 'over')
+    connect(native, native_alpha, 0)
+    connect(native, base_top, 1)
+    pick = proj.create(switchTOP, 'text_output_pick')
+    pick.nodeX, pick.nodeY = 2760, 780
+    connect(pick, glsl, 0)
+    connect(pick, native, 1)
+    safe_set(pick, 'cooktype', 'selective')
+    safe_expr(pick, 'index',
+              "1 if op('/project1').fetch('text_native_fallback', False) else 0")
+
     log('OVERLAY DE TEXTO: Text TOP + fundido nativo + composite OK')
     return {'text_top': text_top, 'text_y': text_y, 'fade_tex': fade_tex,
-            'text_composite': glsl}
+            'text_shader': glsl, 'text_native_alpha': native_alpha,
+            'text_native_over': native, 'text_composite': pick}
 
 
 def _build_master_fx(proj, sw_a, sw_b, cross, ctrl_tex, channels):
@@ -1106,6 +1133,84 @@ def _build_capas(proj, src_top, ctrl_tex, channels):
     return capas, pick
 
 
+def reload_program(proj, channels):
+    """Actualiza tambien los DAT del bus y repara el cableado viejo del bloom."""
+    ctrl = proj.op('ctrl_tex')
+    pre = proj.op('bloom_prefilter')
+    if pre is not None and ctrl is not None:
+        inputs = list(pre.inputs)
+        if inputs and inputs[0] is not None:
+            pre.setInputs([inputs[0], ctrl])
+    with_ctrl = ctrl is not None and bool(channels)
+    specs = [
+        ('bloom_prefilter_src', _BLOOM_PREFILTER_FRAG, 1, _BLOOM_NOCTRL),
+        ('bloom_src', _BLOOM_FRAG, 2, _BLOOM_NOCTRL),
+        ('program_blend_frag', _BLEND_FRAG, 2, None),
+        ('program_trails_frag', _TRAILS_FRAG, 2, None),
+        ('program_trans_frag', _TRANS_FRAG, 2, None),
+        ('program_capas_frag', _CAPAS_FRAG, 1, None),
+        ('program_text_src', _TEXT_FRAG, 3, '#define uKick 0.0\n'),
+    ]
+    count = 0
+    for name, body, index, fallback in specs:
+        dat = proj.op(name)
+        if dat is None or (not with_ctrl and fallback is None):
+            continue
+        dat.text = (shader.ctrl_header(channels, index) if with_ctrl else fallback) + body
+        count += 1
+    # Solo se revierten los bypass activados por nuestra recuperacion.
+    for name in proj.fetch('postfx_fallback', []) or []:
+        node = proj.op(name)
+        if node is not None:
+            node.bypass = False
+    proj.store('postfx_fallback', [])
+    proj.store('text_native_fallback', False)
+    proj.store('postfx_check_time', 0.0)
+    log('RELOAD: {} shaders de salida recargados; bloom con entradas contiguas'.format(count))
+    return count
+
+
+def guard_postprocess(proj):
+    """Un fallo de un efecto opcional no debe reemplazar toda la imagen.
+
+    Se ejecuta desde el diagnostico, como maximo una vez por segundo.
+    Los fallos quedan visibles y se vuelven a intentar al recargar.
+    Nunca se puentea el shader de una escena hacia su textura de control.
+    """
+    import time
+    now = time.monotonic()
+    if now - float(proj.fetch('postfx_check_time', 0.0) or 0.0) < 1.0:
+        return
+    proj.store('postfx_check_time', now)
+    recovered = list(proj.fetch('postfx_fallback', []) or [])
+    changed = False
+    names = ('program_trans', 'program_blend', 'program_trails',
+             'program_capas', 'bloom_prefilter', 'program_bloom', 'program_text')
+    for name in names:
+        node = proj.op(name)
+        if node is None or name in recovered:
+            continue
+        errors = str(node.errors() or '')
+        warnings = str(node.warnings() or '')
+        low = warnings.lower()
+        failed = bool(errors) or ('compil' in low and ('error' in low or 'failed' in low))
+        if name == 'program_bloom' and 'bloom_prefilter' in recovered:
+            failed = True
+        if not failed:
+            continue
+        # El texto dispone de composicion nativa; los demas efectos
+        # dejan pasar su imagen de entrada si no pueden compilar.
+        if name == 'program_text' and proj.op('text_output_pick') is not None:
+            proj.store('text_native_fallback', True)
+        else:
+            node.bypass = True
+        recovered.append(name)
+        changed = True
+        log('RECUPERACION DE SALIDA {}: {}'.format(name, (errors or warnings).strip()))
+    if changed:
+        proj.store('postfx_fallback', recovered)
+
+
 def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # --- puentes locales a cada escena ---
     srcs = []
@@ -1240,7 +1345,9 @@ def build(proj, scene_outs, ctrl_tex=None, channels=None):
     # frame se reescala contra el anterior y la estela "respira" sola).
     res_nodes = [black, cross, clean, bloom, bloom_fx['bloom_prefilter'],
                  master, show,
-                 text_fx['text_y'], text_fx['text_composite']]
+                 text_fx['text_y'], text_fx['text_shader'],
+                 text_fx['text_native_alpha'], text_fx['text_native_over'],
+                 text_fx['text_composite']]
     res_nodes += [fx[k] for k in ('blend', 'pick', 'trails', 'trails_fb',
                                   'trails_pick') if k in fx]
     if trans is not None:
