@@ -2798,6 +2798,18 @@ def nextFont():
         print('nextFont ERROR:', e)
 
 
+def currentFontFile():
+    """Ruta del archivo de la fuente elegida si es una fuente propia
+    (td/fonts), '' si es una del sistema. Para el parametro fontfile de los
+    Text TOP del texto. Nunca tira excepcion."""
+    try:
+        import vjcore.config as _vjconfig
+        name = currentFontName()
+        return str(_vjconfig.FONT_FILES.get(name, ''))
+    except Exception:
+        return ''
+
+
 def currentFontName():
     """Llamada por la expresion 'font' del Text TOP del overlay (ver
     program.py). Nunca tira excepcion: se llama desde una expresion de

@@ -810,8 +810,9 @@ def _build_text_overlay(proj, base_top, ctrl_tex=None, channels=None):
             # ultima fila: los signos que usa el preset Decodificar
             name = repr(TEXT_SCRAMBLE)
             safe_set(t, 'text', TEXT_SCRAMBLE)
-        safe_expr_first(t, ['font', 'fontfile'],
-                        "op('/project1/control_script').module.currentFontName()")
+        safe_expr(t, 'font', "op('/project1/control_script').module.currentFontName()")
+        # fuente propia (td/fonts): se carga por archivo; '' = la del sistema
+        safe_expr(t, 'fontfile', "op('/project1/control_script').module.currentFontFile()")
         # que el nombre entre a lo ancho de su fila (2048 px)
         safe_expr_first(t, ['fontsizex', 'fontsize'],
                         "min(170.0, 3000.0 / max(1, len({})))".format(name))
