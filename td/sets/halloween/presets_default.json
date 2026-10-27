@@ -37,5 +37,6 @@
   "35": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.15, "Detail6": 0.5},
   "36": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.15, "Detail6": 0.5},
   "37": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.15, "Detail6": 0.5},
-  "38": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.15, "Detail6": 0.5}
+  "38": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.2, "Detail1": 0.5, "Detail2": 0.5, "Detail3": 0.5, "Detail4": 0.5, "Detail5": 0.15, "Detail6": 0.5},
+  "39": {"Speed": 0.55, "Density": 0.5, "Hue": 0.0, "Chaos": 0.15, "Detail1": 0.65, "Detail2": 0.6, "Detail3": 0.55, "Detail4": 0.5, "Detail5": 0.0, "Detail6": 0.5}
 }

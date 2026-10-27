@@ -1,6 +1,6 @@
 # Cinco escenas VJ de neon — Halloween 34–38
 
-Halloween pasa a **39 escenas**. Estas cinco mantienen el trazo fino, cobertura antialias en pantalla y halo estrecho de las escenas 32 y 33. Son procedurales, sin Media ni nuevas laminas.
+Halloween pasa a **40 escenas**. Estas cinco mantienen el trazo fino, cobertura antialias en pantalla y halo estrecho de las escenas 32 y 33. Son procedurales, sin Media ni nuevas laminas.
 
 | # | Nombre | Composicion y movimiento | Piano |
 |---|---|---|---|
@@ -15,7 +15,7 @@ Cada shader documenta sus seis Detail. D5 cambia la paleta; D6 ajusta los detall
 ## Cargar y ensayar
 
 1. Actualizar a la rama de esta entrega, mantener `SET = 'halloween'` en el Text DAT y ejecutar **Reconstruir Todo**, porque cambio el numero de escenas.
-2. Confirmar 39 escenas en el reporte del build. Lanzar 34–38 desde dashboard o navegador; tienen miniaturas y presets de fabrica propios.
+2. Confirmar 40 escenas en el reporte del build. Lanzar 34–38 desde dashboard o navegador; tienen miniaturas y presets de fabrica propios.
 3. Probar con musica, sin audio, con acordes y con Momento. Ajustar Detail desde el panel; la perilla 9 del MiniLab sigue siendo navegador.
 4. Verificar nitidez y FPS en el Mac, con la resolucion real del show. Las capturas se renderizan fuera de TouchDesigner y no miden el rendimiento del equipo.
 
@@ -31,4 +31,4 @@ Se conservan los cinco indices y sus controles. La telarana incorpora lazos de u
 
 El laberinto suma biseles, esquinas trabadas, frisos, paneles y recorridos grabados. Las serpientes incorporan tres hileras de escamas alternadas y cabezas de vibora orientadas por la tangente del cuerpo, con ojos, pupilas, narinas y lengua bifida. El craneo cambia a un perfil de boveda, sienes, pomulos y menton; incluye suturas, rebordes orbitales, grietas y dientes de bordes redondeados.
 
-Para esta revision basta **Recargar Shaders**: siguen siendo 39 escenas y no cambia la red. Se actualizaron las cinco miniaturas. Se verifican compilacion GLSL 330/460 con y sin audio, renders, movimiento en silencio, respuesta al piano y la prueba existente de destellos. El rendimiento real de estos shaders mas detallados se debe comprobar en el Mac.
+Para esta revision basta **Recargar Shaders**: siguen siendo 40 escenas y no cambia la red. Se actualizaron las cinco miniaturas. Se verifican compilacion GLSL 330/460 con y sin audio, renders, movimiento en silencio, respuesta al piano y la prueba existente de destellos. El rendimiento real de estos shaders mas detallados se debe comprobar en el Mac.
