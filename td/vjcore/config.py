@@ -373,6 +373,8 @@ CTRL_CHANNELS = [
     'txtseed',    # 92
     'txtn',       # 93
     'txtsize',    # 94
+    'txtt',       # 95 rtime en que se prendio (golpe, decodificar)
+    'txtlen',     # 96 letras del primer nombre
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -438,11 +440,13 @@ PAR_CHANNELS = [
     ('Secreton', 'secret'),
     ('Textpresetcur', 'txtpre'), ('Textseed', 'txtseed'),
     ('Textcount', 'txtn'), ('Textsize', 'txtsize'),
+    ('Textt', 'txtt'), ('Textlen', 'txtlen'),
 ]
 
 # Presets del texto (pagina Texto > Preset; 0 = uno al azar cada vez).
-TEXT_PRESETS = ['Centro', 'Flota', 'Rebote', 'Cinta', 'Baila',
-                'Lluvia', 'Orbita', 'Glitch', 'Eco', 'Lineup']
+TEXT_PRESETS = ['Centro', 'Flota', 'Rebote', 'Baila', 'Lluvia', 'Orbita',
+                'Glitch', 'Recortado', 'Golpe', 'Patron', 'Decodificar',
+                'Profundidad', 'Cambio']
 
 # Voces del piano polifonico y su suavizado de perillas Detail
 PIANO_VOICES = 6

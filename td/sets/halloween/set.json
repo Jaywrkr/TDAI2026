@@ -44,7 +44,8 @@
     "Mirror": "toggleCapa",
     "Zoom": "nextCapa",
     "Mediascrub": "Resplandor",
-    "Retro": "triggerSecret"
+    "Retro": "triggerSecret",
+    "Layermix": "Textelegir"
   },
   "midi_labels": {
     "Hue": "Perilla 2: Paleta del estilo",
@@ -60,7 +61,8 @@
     "Mirror": "Pad 14: Capa encima ON/OFF",
     "Zoom": "Pad 15: Siguiente capa",
     "Mediascrub": "Tira Mod: RESPLANDOR (abajo nada brilla, centro normal, arriba solo lo que brilla)",
-    "Retro": "Pad 9: Easter egg JAY INFINITO (aprender una vez)"
+    "Retro": "Pad 9: Easter egg JAY INFINITO (aprender una vez)",
+    "Layermix": "Shift+1: Preset del texto (abajo = al azar)"
   },
   "presets_default": "presets_default.json"
 }

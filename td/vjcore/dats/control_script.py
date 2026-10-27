@@ -2685,8 +2685,10 @@ def textNewVariant(new_preset=True):
     if not p:
         return
     try:
-        n = len(textNames())
+        names = textNames()
+        n = len(names)
         _setPar(p, 'Textcount', float(n))
+        _setPar(p, 'Textlen', float(max(1, len(names[0]))))
         if not new_preset:
             return
         try:
@@ -2698,17 +2700,39 @@ def textNewVariant(new_preset=True):
         if choice <= 0:
             prev = int(round(float(_parVal(p, 'Textpresetcur', 0) or 0)))
             options = [k for k in range(total) if k != prev] or [0]
-            # el lineup (esquinas) luce con varios nombres
-            if n < 2 and total > 9 and 9 in options and len(options) > 1:
-                options.remove(9)
             cur = random.choice(options)
         else:
             cur = min(choice, total) - 1
         _setPar(p, 'Textpresetcur', float(cur))
         _setPar(p, 'Textseed', random.random())
+        # reloj del shader (rtime) del encendido: Golpe y Decodificar
+        # cuentan desde aca
+        ctrl = op('/project1/ctrl')
+        try:
+            _setPar(p, 'Textt', float(ctrl['rtime'].eval()) if ctrl is not None else 0.0)
+        except Exception:
+            pass
         print('TEXTO: preset', cur + 1)
     except Exception as e:
         print('textNewVariant ERROR:', e)
+
+
+def textKnob(v):
+    """Perilla de preset (Textelegir 0..1): abajo = al azar, despues los
+    presets en orden. Solo cambia cuando cruza a otro preset."""
+    p = _p()
+    if not p:
+        return
+    try:
+        import vjcore.config as _vjconfig
+        total = len(_vjconfig.TEXT_PRESETS)
+    except Exception:
+        total = 13
+    choice = int(min(total, max(0, round(float(v) * total))))
+    if choice != int(_parVal(p, 'Textpreset', 0) or 0):
+        _setPar(p, 'Textpreset', choice)
+        if choice <= 0:
+            textNewVariant(True)
 
 
 def _textStep(step):

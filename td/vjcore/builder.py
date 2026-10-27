@@ -205,6 +205,11 @@ def _parameters(proj):
     add_float(tx, 'Textpresetcur', 'Preset en pantalla (interno)', 0.0, 0, len(c.TEXT_PRESETS) - 1)
     add_float(tx, 'Textseed', 'Variante (interno)', 0.37, 0, 1)
     add_float(tx, 'Textcount', 'Cuantos nombres (interno)', 1.0, 1, 4)
+    add_float(tx, 'Textt', 'Prendido en (interno)', 0.0)
+    add_float(tx, 'Textlen', 'Letras del nombre (interno)', 8.0, 1, 64)
+    # Perilla para elegir el preset en vivo (Shift + perilla 1 en Halloween):
+    # abajo del todo = al azar, despues los presets en orden.
+    add_float(tx, 'Textelegir', 'Elegir preset con perilla (0 = al azar)', 0.0, 0, 1)
     # COLA DE NOMBRES: los proximos artistas escritos por adelantado,
     # separados con ';'. El pad TEXTO muestra el siguiente cada vez que
     # prende (ver control_script.toggleTextVisible). Lo ultimo que
@@ -639,6 +644,8 @@ def onValueChange(par, prev):
         ctrl.module.setSceneCooking()
     elif par.name in ('Textpreset', 'Textcontent'):
         ctrl.module.textNewVariant(par.name == 'Textpreset')
+    elif par.name == 'Textelegir':
+        ctrl.module.textKnob(par.eval())
     elif par.name in ('Nocheon', 'Nocheauto', 'Nocheinicio', 'Nochefin', 'Nochemanual', 'Nocheintensidad'):
         # la perilla manual responde en el momento (no espera el refresco)
         d = op('/project1/diagnostics')
