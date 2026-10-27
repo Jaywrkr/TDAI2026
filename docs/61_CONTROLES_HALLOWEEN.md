@@ -79,3 +79,12 @@ Cinco escenas que usan la imagen de la carpeta Media (como 20–25; todas muestr
 | 43 | Pared de televisores | Recortes de la imagen en televisores viejos (D6: a veces todos muestran su parte de la imagen completa) | se prenden y apagan con el ritmo |
 
 Van intercaladas en el setlist (después de 00, 13, 20, 10 y 35). Destellos ≤ 3/s (en la 42 el clímax ya no cambia la velocidad: multiplicar el tiempo por algo que cambia hacía saltar los cuadros). Para cambiar de imagen: pad 6 (Imagen siguiente).
+
+## Escena 44: Villanos (fase 45)
+
+Caras de villanos propios en estilo caricatura de los 80, como la referencia del usuario (colores planos, contorno grueso oscuro, tramas, look VHS), dibujadas en el shader: **hechicero calavera encapuchado, vampiro, bruja, rey calabaza y demonio**. Hoja: `docs/img/villanos.jpg` (arriba la paleta clásica, abajo la alterna con D5).
+
+- **D1** una cara grande / trío / pared de 10 caras (cada casillero su villano).
+- Cada 8 tiempos cambia el villano con un glitch de rebanadas; cabecean en cada golpe (en la pared, a destiempo), la mandíbula muerde con el bombo y los ojos brillan con el bajo. **D2** VHS (colores corridos, rayas, temblor), **D3** tramas, **D4** cuánto bailan, **D5** paleta, **D6** estrellas y halo.
+- Piano: cada nota enciende los ojos de su villano. Momento: todos gritan.
+- Destellos 2/s. Va en el setlist después del bosque de faroles (28).
