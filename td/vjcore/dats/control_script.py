@@ -1774,8 +1774,7 @@ def revisarShaders():
             lines.extend(msgs)
     # Post-proceso del program bus (dos capas, estela, transiciones).
     proj = _p()
-    for name in ('program_blend', 'program_trails', 'program_trans',
-                 'program_capas', 'bloom_prefilter', 'program_bloom', 'program_text'):
+    for name in ('program_blend', 'program_trails', 'program_trans'):
         o = proj.op(name) if proj else None
         if o is None:
             continue
