@@ -219,21 +219,26 @@ def _build_bloom(proj, src_top, ctrl_tex=None, channels=None):
     # bomba -- ver la nota en _BLOOM_PREFILTER_FRAG/_BLOOM_FRAG. Sin
     # ctrl_tex (build() suelto, sin audio) cae a 0.0: mismo bloom fijo de
     # siempre, sin uKick indefinido.
+    # El prefiltro tiene UNA imagen: la textura de control va en su input 1
+    # (con un hueco en el 1 y el control en el 2, en la Mac sTD2DInputs[2]
+    # queda fuera del arreglo y el shader no compila). El bloom tiene dos
+    # imagenes, asi que su control va en el 2.
     if ctrl_tex is not None and channels:
         head = shader.ctrl_header(channels, 2)
+        pre_head = shader.ctrl_header(channels, 1)
     else:
-        head = _BLOOM_NOCTRL
+        head = pre_head = _BLOOM_NOCTRL
 
     pre_src = proj.create(textDAT, 'bloom_prefilter_src')
     pre_src.nodeX, pre_src.nodeY = 1000, 160
-    pre_src.text = head + _BLOOM_PREFILTER_FRAG
+    pre_src.text = pre_head + _BLOOM_PREFILTER_FRAG
 
     pre = proj.create(glslTOP, 'bloom_prefilter')
     pre.nodeX, pre.nodeY = 1000, 380
     safe_set_first(pre, ['pixeldat', 'pixelshader'], pre_src.path)
     connect(pre, src_top, 0)
     if ctrl_tex is not None and channels:
-        connect(pre, ctrl_tex, 2)
+        connect(pre, ctrl_tex, 1)
     safe_set_first(pre, ['format', 'pixelformat'], 'rgba16float')
 
     src = proj.create(textDAT, 'bloom_src')
@@ -1595,8 +1600,10 @@ void main() {
     if (build > 0.0) {
         float l = dot(col, vec3(0.299, 0.587, 0.114));
         col = mix(col, vec3(l) * vec3(1.25, 0.85, 0.8), 0.55 * build);
-        float rate = 1.0 + 3.0 * build;                  // hasta 4 respiros por segundo
-        col *= 1.0 + 0.07 * build * sin(6.2831 * rt * rate);
+        // respira: hasta 1,5 por segundo y suave (prendida mucho rato, con
+        // 4 por segundo pasaba de 3 destellos/s)
+        float rate = 1.0 + 0.5 * build;
+        col *= 1.0 + 0.035 * build * sin(6.2831 * rt * rate);
         col += vec3(1.0, 0.85, 0.8) * 0.22 * build * build;
     }
     if (impact > 0.0) {
@@ -1635,7 +1642,8 @@ void main() {
     // ---- OJOS EN LA OSCURIDAD ----
     if (uMojos > 0.0) {
         float e = rt - uMojos;
-        float D = max(1.6, bt * 4.0);
+        // prendido hasta que se apaga (uMojosoff < uMojos = sigue prendido)
+        float D = uMojosoff > uMojos ? uMojosoff - uMojos : 1e6;
         if (e >= 0.0 && e < D + 1.2) {
             float black = smoothstep(0.0, 0.1, e) * (1.0 - smoothstep(D, D + 0.08, e));
             vec2 p = (uv - 0.5) * vec2(A, 1.0);
@@ -1645,7 +1653,7 @@ void main() {
                 float fi = float(i);
                 vec2 c = (vec2(mH(fi * 1.7), mH(fi * 2.9)) - 0.5) * vec2(A * 0.9, 0.85);
                 float s = 0.012 + 0.03 * mH(fi * 4.3) * mH(fi * 4.3);
-                float t0 = mH(fi * 5.1) * D * 0.6;
+                float t0 = mH(fi * 5.1) * 1.2;
                 float open = smoothstep(t0, t0 + 0.25, e);
                 float blink = 1.0 - smoothstep(0.0, 0.06, 0.06 - abs(mod(e + mH(fi) * 3.0, 2.3) - 0.06));
                 open *= blink;
@@ -1667,15 +1675,25 @@ void main() {
     // ---- MURCIELAGOS HACIA LA CAMARA ----
     if (uMbat > 0.0) {
         float e = rt - uMbat;
-        if (e >= 0.0 && e < 4.5) {
+        // prendido hasta que se apaga; mientras, cada murcielago vuelve a
+        // salir cada 4 s (los ultimos 14 solo en la primera bandada, asi el
+        // vuelo continuo no tapa la pantalla seguido). Al apagar no salen
+        // mas y los que estan en vuelo terminan.
+        float E = uMbatoff > uMbat ? uMbatoff - uMbat : 1e6;
+        if (e >= 0.0 && e < E + 2.5) {
             vec2 p = (uv - 0.5) * vec2(A, 1.0);
             vec2 ctr = (vec2(mH(1.0), mH(2.0)) - 0.5) * vec2(A * 0.3, 0.2);
             float cover = 0.0;
             for (int i = 0; i < 30; i++) {
                 float fi = float(i);
-                float u = (e - mH(fi * 1.3) * 1.6) / (1.6 + 0.8 * mH(fi * 2.2));
+                float del = mH(fi * 1.3) * 1.6;
+                float k = max(floor((e - del) / 4.0), 0.0);
+                if (k > 0.0 && i >= 16) continue;
+                float launch = del + k * 4.0;
+                if (launch > E) continue;
+                float u = (e - launch) / (1.6 + 0.8 * mH(fi * 2.2));
                 if (u <= 0.0 || u >= 1.0) continue;
-                float ang = mH(fi * 3.7) * 6.2831;
+                float ang = mH(fi * 3.7 + k * 1.31) * 6.2831;
                 vec2 dir = vec2(cos(ang) * 1.3, sin(ang) * 0.8);
                 vec2 c = ctr + dir * (0.03 + u * u * 0.9);
                 float s = 0.02 + u * u * 0.45;

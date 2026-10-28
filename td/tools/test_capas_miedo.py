@@ -69,7 +69,7 @@ def main():
     print('--- 1. MiniLab en Halloween ---')
     r = config.MIDI_REDIRECT
     for slot, want in (('Hue', 'Miedo'), ('Energy', 'Ninguno'), ('Detail1', 'Ninguno'),
-                       ('Clic1', 'nada'), ('Clic9', 'nada'), ('Mirror', 'triggerMurcielagos'),
+                       ('Clic1', 'nada'), ('Clic9', 'nada'), ('Mirror', 'murcielagosToggle'),
                        ('Zoom', 'triggerRebobinar')):
         check('{} -> {}'.format(slot, want), r.get(slot), want)
     check('el set pide el pase de capas', config.CAPAS_ON, True)

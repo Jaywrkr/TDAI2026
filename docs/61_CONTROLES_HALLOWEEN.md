@@ -36,11 +36,11 @@ La **paleta del estilo** queda automática (cambia en cada acto) y el **marco de
 | Pad | Función | Pad | Función |
 |---|---|---|---|
 | 1 | Siguiente escena | 9 | Easter egg JAY |
-| 2 | Escena anterior | **10** | **Linterna** (mantener) |
-| 3 | Blackout | **11** | **Ojos en la oscuridad** |
+| 2 | Escena anterior | **10** | **Linterna** (prende / apaga) |
+| 3 | Blackout | **11** | **Ojos en la oscuridad** (prende / apaga) |
 | 4 | Autopilot | 12 | Strobe |
-| 5 | Texto mostrar / ocultar (otro preset cada vez) | **13** | **Subida** (mantener) → **impacto** al soltar |
-| 6 | Imagen siguiente (escenas de imagen) | **14** | **Murciélagos** hacia la cámara |
+| 5 | Texto mostrar / ocultar (otro preset cada vez) | **13** | **Subida** (un toque) → **impacto** (otro toque) |
+| 6 | Imagen siguiente (escenas de imagen) | **14** | **Murciélagos** hacia la cámara (prende / apaga) |
 | 7 | Noche on/off | **15** | **Rebobinar VHS** |
 | 8 | Imagen fija | 16 | Momento (clímax) |
 
@@ -127,3 +127,23 @@ Además:
 **Destellos.** `test_destellos.py --detail 1` (nuevo) prueba con las 6 Detail al máximo y `--detail 0` en el mínimo: todo ≤ 3/s. En la 02 los tubos gruesos con la calavera grande pasaban a 5/s; el grosor máximo quedó como antes y se afina cuando la calavera es grande.
 
 Hoja antes/ahora: `docs/img/detail_rango.jpg`.
+
+## Pads de prendido/apagado y error del bloom (fase 51)
+
+**Pads.** Los pads 9–16 del MiniLab mandan CC. Según cómo esté configurado el pad, manda 127 al apretar y 0 al soltar (gate) o 127 en un toque y 0 en el siguiente (toggle). Antes solo contaba la subida a 127; con los pads en toggle, los de un toque andaban uno sí y otro no, y los de mantener se quedaban prendidos. Ahora **cada cambio es un toque** (`midi_logic._padEdge`). La excepción es el que llega menos de 0,25 s después del anterior, que es el soltar de un toque corto. Así funcionan igual en los dos modos:
+
+- **Linterna (10), Ojos (11) y Murciélagos (14):** un toque prende y el siguiente apaga. Mientras están prendidos, los ojos siguen mirando y los murciélagos siguen saliendo cada ~4 s. Al apagar, la escena vuelve: los ojos en ~1,3 s; los murciélagos en vuelo terminan.
+- **Subida (13):** un toque empieza la subida y el siguiente pega el impacto. La respiración quedó más suave para poder dejarla prendida.
+- **Rebobinar (15), easter egg (9), Strobe (12) y Momento (16):** cada toque.
+
+El LED queda blanco mientras el momento está prendido. Canales nuevos: `mojosoff` y `mbatoff`. `test_destellos.py` mide los momentos prendidos 20 s: todos ≤ 1/s.
+
+**Bloom.** `bloom_prefilter` tiene una sola imagen; la textura de control estaba en su input 2 con el 1 vacío. En la Mac `sTD2DInputs[2]` quedaba fuera del arreglo y el shader no compilaba. Ahora va en el input 1. `test_bloom_inputs.py` arma el bloom con un TouchDesigner de mentira y falla si vuelve a pasar.
+
+**Mapeo MIDI.** `DEFAULT_MIDI` toma lo aprendido en el MiniLab del usuario (capturas del 28/10):
+
+- Pads 9 y 10 = CC 23 y 24.
+- Clic de las perillas 1 y 9 = CC 114 y 116.
+- Piano en canal 1, notas 49–73.
+
+Shift + perilla 1 / 9 quedan sin default (el CC 23/24 viejo pisaba los pads 9 y 10). Lo aprendido con Learn se guarda solo en `midi_map.json` y el build lo vuelve a cargar.

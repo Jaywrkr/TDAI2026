@@ -17,7 +17,7 @@ N_SCENES = 98
 # Se imprime al final de cada build (VERIFICACION). Si no coincide con el
 # ultimo commit del repo, TD esta corriendo codigo viejo: revisar REPO en
 # text1 y que la carpeta tenga la rama actualizada.
-BUILD_TAG = 'detail-rango-f49'
+BUILD_TAG = 'pads-prendido-f51'
 
 # Escenas que necesitan un SEGUNDO input de imagen/video (ademas de la
 # textura de control): se les agrega un Movie File In TOP como input 1
@@ -383,6 +383,9 @@ CTRL_CHANNELS = [
     'mbat',              # Murcielagos hacia la camara
     'mrew',              # Rebobinar VHS
     'mseed',
+    # fase 51: Ojos y Murcielagos de prendido/apagado (rtime en que se
+    # apagaron; menor que el de prendido = siguen prendidos)
+    'mojosoff', 'mbatoff',
 ]
 
 # Capas que se pueden poner encima de cualquier escena (pad 15 las
@@ -450,6 +453,7 @@ PAR_CHANNELS = [
     ('Textt', 'txtt'), ('Textlen', 'txtlen'), ('Textdebug', 'txtdbg'),
     ('Mlin', 'mlin'), ('Mlinoff', 'mlinoff'), ('Mojos', 'mojos'), ('Msub', 'msub'),
     ('Msuboff', 'msuboff'), ('Mbat', 'mbat'), ('Mrew', 'mrew'), ('Mseed', 'mseed'),
+    ('Mojosoff', 'mojosoff'), ('Mbatoff', 'mbatoff'),
 ]
 
 # Presets del texto (pagina Texto > Preset; 0 = uno al azar cada vez).
@@ -555,7 +559,7 @@ TEXT_FADE_SECONDS = 0.5
 # dats/midi_logic.py _piano_range) sin tocar codigo -- necesario si se
 # usa otro controlador, o si se corrio la octava con los botones
 # Octave -/+ del MiniLab (eso NO le avisa al software).
-PIANO_CHANNEL = 13
+PIANO_CHANNEL = 1      # aprendido en el MiniLab del usuario (28/10): canal 1, notas 49-73
 PIANO_LO_NOTE = 49
 PIANO_HI_NOTE = 73
 
@@ -582,10 +586,9 @@ DEFAULT_MIDI = {
     # (dats/midi_logic.py), asi que se confirman ABSOLUTAS de una: ya no
     # necesitan la red de seguridad de modo relativo.
     #
-    # Tres controles del panel siguen SIN default a proposito porque las
-    # capturas los mostraban vacios (no aprendidos todavia): Retro (pad
-    # 9), Glitch (pad 10) y Trailszoom (tira de pitch). Quedan listos
-    # para Learn el dia que se les asigne un control.
+    # Fase 51 (capturas del 28/10): Retro y Glitch (pads 9 y 10) y los
+    # clics de las perillas 1 y 9 ya estan aprendidos. Siguen SIN default
+    # la tira de pitch (Trailszoom) y Shift + perilla 1 / 9.
     'Energy':      'ch1ctrl113',
     'Hue':         'ch1ctrl75',
     'Speed':       'ch1ctrl72',
@@ -602,11 +605,13 @@ DEFAULT_MIDI = {
     'Detail6':     'ch1ctrl92',
     'Lookamount':  'ch1ctrl80',
     'Palettelock': 'ch1ctrl73',
-    'Layermix':    'ch1ctrl23',     # Shift + perilla 1
-    'Transition':  'ch1ctrl24',     # Shift + perilla 9
-    # Clic de las perillas 1 y 9: cada una manda su propio CC (Arturia:
-    # girar, clic y Shift+girar = 3 controles). El numero depende de la
-    # memoria del MiniLab, asi que quedan para Learn (docs/02).
+    # Shift + perilla 1 / 9 (Layermix / Transition): SIN default. En el
+    # MiniLab del usuario el CC 23 y 24 son los pads 9 y 10 (fase 51,
+    # capturas del panel): con el default viejo ch1ctrl23/24 un build
+    # nuevo le ponia dos funciones a esos pads.
+    # Clic de las perillas 1 y 9 (capturas del 28/10): CC 114 y 116.
+    'Clic1':       'ch1ctrl114',
+    'Clic9':       'ch1ctrl116',
     'Mediascrub':  'ch1ctrl1',      # tira de modulacion
     # Pads banco A (el show): notas de canal 10, no CC.
     'Next':        'ch10n38',
@@ -617,7 +622,9 @@ DEFAULT_MIDI = {
     'Medianext':   'ch10n42',
     'Duallayer':   'ch10n43',
     'Medialock':   'ch10n44',
-    # Pads banco B (efectos): estos 6 quedaron en CC de canal 1, no notas.
+    # Pads banco B: CC 23..30 de canal 1, no notas (pads 9..16).
+    'Retro':     'ch1ctrl23',
+    'Glitch':    'ch1ctrl24',
     'Pixelate':  'ch1ctrl25',
     'Strobe':    'ch1ctrl26',
     'Invert':    'ch1ctrl27',
