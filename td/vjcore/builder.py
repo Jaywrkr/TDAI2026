@@ -528,7 +528,8 @@ def _parameters(proj):
     for _n, _l in (('Mlin', 'Linterna prendida en'), ('Mlinoff', 'Linterna soltada en'),
                    ('Mojos', 'Ojos en'), ('Msub', 'Subida apretada en'),
                    ('Msuboff', 'Subida soltada en'), ('Mbat', 'Murcielagos en'),
-                   ('Mrew', 'Rebobinar en')):
+                   ('Mrew', 'Rebobinar en'), ('Mojosoff', 'Ojos apagados en'),
+                   ('Mbatoff', 'Murcielagos apagados en')):
         add_float(s, _n, _l + ' (interno)', -1.0)
     add_float(s, 'Mseed', 'Momento: variante (interno)', 0.5, 0, 1)
     # RITMO (fase 36, vjcore/ritmo.py): lo escribe control_script con cada

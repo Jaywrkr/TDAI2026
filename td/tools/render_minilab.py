@@ -54,11 +54,11 @@ YELLOW, GREEN, RED, PURPLE, CYAN = (255, 220, 0), (40, 220, 60), (255, 45, 45), 
 # (numero, nombre, nota, estilo, color del LED)
 PADS_B = [
     (9, 'EASTER EGG', 'JAY infinito', 'h', YELLOW),
-    (10, 'LINTERNA', 'mantener', 'm', YELLOW),
-    (11, 'OJOS', 'en la oscuridad', 'm', GREEN),
+    (10, 'LINTERNA', 'prende / apaga', 'm', YELLOW),
+    (11, 'OJOS', 'prende / apaga', 'm', GREEN),
     (12, 'Strobe', '', 'n', RED),
-    (13, 'SUBIDA', 'mantener → impacto', 'm', RED),
-    (14, 'MURCIÉLAGOS', 'hacia la cámara', 'm', PURPLE),
+    (13, 'SUBIDA', 'otro toque: impacto', 'm', RED),
+    (14, 'MURCIÉLAGOS', 'prende / apaga', 'm', PURPLE),
     (15, 'REBOBINAR', 'VHS', 'm', CYAN),
     (16, 'MOMENTO', 'clímax', 'h', PURPLE),
 ]
@@ -168,8 +168,8 @@ def main():
            fill=TEXT)
     for i, p in enumerate(PADS_B):
         pad(d, x0 - 40 + i * (pw + gap), 788, pw, ph, *p[:4], led=p[4])
-    d.text((x0 - 40, 892), 'Linterna y Subida: mientras se mantiene apretado (la Subida pega el '
-           'impacto al soltar).  Capas y navegador de escenas: en los Parameters de /project1.',
+    d.text((x0 - 40, 892), 'Un toque prende, el siguiente apaga (no hace falta mantener).  Rebobinar, '
+           'easter egg y Momento: cada toque.  Capas: Parameters de /project1.',
            font=font(15), fill=GREY)
 
     # teclado

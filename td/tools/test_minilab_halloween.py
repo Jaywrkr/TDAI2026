@@ -33,8 +33,8 @@ p = R.project_with_midi(Midihue='ch1ctrl75', Mididensity='ch1ctrl77', Midilookam
 ml = R.load_midi_logic(p)
 cs = ml.op('/project1/control_script').module
 calls = []
-for fn in ('toggleNight', 'toggleDual', 'triggerMoment', 'nextBlendMode', 'linternaOn',
-           'linternaOff', 'triggerMurcielagos'):
+for fn in ('toggleNight', 'toggleDual', 'triggerMoment', 'nextBlendMode', 'linternaToggle',
+           'murcielagosToggle'):
     setattr(cs, fn, (lambda f: (lambda: calls.append(f)))(fn))
 ml._refreshLeds = lambda: None
 ml._resetEffect = lambda *a: None
@@ -50,9 +50,19 @@ ml._handle(ch('ch1ctrl113'), 65, False)      # perilla 1
 ml._handle(ch('ch1ctrl115'), 65, False)      # perilla 9
 ml._handle(ch('ch10n43'), 1, True)           # pad 7
 ml._handle(ch('ch1ctrl30'), 127, True)       # pad 16
-ml._handle(ch('ch1ctrl98'), 127, True)       # pad 10 apretar
-ml.onOnToOff(ch('ch1ctrl98'), 0, 0, 127)     # pad 10 soltar
-ml._handle(ch('ch1ctrl28'), 127, True)       # pad 14
+# pads CC (fase 51): cada cambio es un toque, salvo el soltar de un toque
+# corto. Pad 10 en modo toggle (127 un toque, 0 el siguiente); pad 14 en
+# modo gate (127 al apretar, 0 al soltar enseguida).
+T = [0.0]
+ml._now_s = lambda: T[0]
+for t, fn, v in ((10.0, ml.onOffToOn, 1.0), (12.0, ml.onOnToOff, 0.0),
+                 (13.0, ml.onOffToOn, 1.0), (13.1, ml.onOnToOff, 0.0)):
+    T[0] = t
+    fn(ch('ch1ctrl98' if t < 13 else 'ch1ctrl28'), 0, v, 1.0 - v)
+T[0] = 15.0
+ml.onOffToOn(ch('ch1ctrl28'), 0, 1.0, 0.0)
+T[0] = 15.1
+ml.onOnToOff(ch('ch1ctrl28'), 0, 0.0, 1.0)
 print(repr(dict(miedo=p.par.Miedo.val, hue=p.par.Hue.val, est=p.par.Estilo.val, dens=p.par.Density.val,
                 d1=p.par.Detail1.val, d6=p.par.Detail6.val, d2=p.par.Detail2.val,
                 noche=p.par.Nocheintensidad.val, look=p.par.Lookamount.val,
@@ -86,8 +96,9 @@ def main():
     check('perilla 16 -> Noche (intensidad)', r['noche'] == 0.0)
     check('perillas 1 y 9 no hacen nada', r['energy'][0] == r['energy'][1], r['energy'])
     check('pad 7 -> Noche, pad 16 -> Momento', r['calls'][:2] == ['toggleNight', 'triggerMoment'], r['calls'])
-    check('pad 10 -> Linterna al apretar y al soltar', r['calls'][2:4] == ['linternaOn', 'linternaOff'], r['calls'])
-    check('pad 14 -> Murcielagos', r['calls'][4:] == ['triggerMurcielagos'], r['calls'])
+    check('pad 10 (modo toggle): un toque prende, el otro apaga', r['calls'][2:4] == ['linternaToggle'] * 2, r['calls'])
+    check('pad 14 (modo gate): un toque = una vez, el soltar no cuenta',
+          r['calls'][4:] == ['murcielagosToggle'] * 2, r['calls'])
     print('SET tdai2026 (el de siempre)')
     r = run('tdai2026')
     check('sin redireccion', r['redirect'] == {})

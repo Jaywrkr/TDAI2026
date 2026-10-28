@@ -28,7 +28,7 @@ import re
 # mandan canal 10, notas 45-52 -- esas notas 49-52 SE PISAN con el piano
 # si solo se mira el numero de nota, por eso el chequeo de canal es
 # obligatorio, no cosmetico.
-PIANO_CHANNEL = 13
+PIANO_CHANNEL = 1
 PIANO_LO = 49
 PIANO_HI = 73
 
@@ -546,6 +546,51 @@ def _handle(channel, val, is_trigger):
         run("op('/project1/midi_logic').module._resetEffect('{}')".format(slot), delayFrames=2)
 
 
+# PADS QUE MANDAN CC (banco B del MiniLab, fase 51). Segun como este
+# configurado el pad, el MiniLab manda 127 al apretar y 0 al soltar
+# (gate) o 127 en un toque y 0 en el siguiente (toggle). Para que los dos
+# funcionen igual, CADA cambio cuenta como un toque, salvo el que llega
+# menos de PAD_DEBOUNCE s despues del anterior (es el soltar de un toque
+# corto en modo gate). Asi un toque = una accion siempre, y los momentos
+# de prendido/apagado (Linterna, Ojos...) se prenden con un toque y se
+# apagan con el siguiente.
+PAD_DEBOUNCE = 0.25
+_PAD_EDGE = {}
+
+
+def _now_s():
+    try:
+        return float(absTime.seconds)  # noqa: F821 (global de TouchDesigner)
+    except Exception:
+        import time
+        return time.monotonic()
+
+
+def _isPadCC(name, slot):
+    if 'ctrl' not in name.lower() and 'cc' not in name.lower():
+        return False
+    if not slot or slot in CONTINUOUS:
+        return False
+    return (slot in TRIGGERS or slot in EFFECT_TRIGGERS or slot in EFFECT_COMBOS
+            or bool(_redirect(slot)))
+
+
+def _padEdge(channel, val, now=None):
+    """Un cambio de un pad CC: True si cuenta como toque."""
+    now = _now_s() if now is None else now
+    last = _PAD_EDGE.get(channel.name, -1e9)
+    _PAD_EDGE[channel.name] = now
+    return now - last >= PAD_DEBOUNCE
+
+
+def _padSlot(channel):
+    p, ctrl = _ctx()
+    if not p or not ctrl or str(p.fetch('learn_slot', '') or ''):
+        return None
+    slot = ctrl.module.midiMap().get(channel.name)
+    return slot if _isPadCC(channel.name, slot) else None
+
+
 def onValueChange(channel, sampleIndex, val, prev):
     _handle(channel, val, False)
     return
@@ -569,6 +614,10 @@ def onOffToOn(channel, sampleIndex, val, prev):
     if note is not None:
         _handlePianoKey(note, val)
         return
+    if _padSlot(channel):
+        if _padEdge(channel, val):
+            _handle(channel, val, True)
+        return
     _handle(channel, val, True)
     return
 
@@ -580,8 +629,13 @@ def onOnToOff(channel, sampleIndex, val, prev):
     if note is not None:
         _voiceOff(note)
         return
-    # Pads de MANTENER del set (fase 43): si el pad esta redirigido a 'xOn',
-    # al soltarlo se llama 'xOff' (Linterna, Subida -> impacto).
+    # Pad CC (fase 51): la bajada tambien es un toque (pad en modo toggle).
+    if _padSlot(channel):
+        if _padEdge(channel, val):
+            _handle(channel, val, True)
+        return
+    # Pads de MANTENER (fase 43, pads de nota): si el pad esta redirigido a
+    # 'xOn', al soltarlo se llama 'xOff'.
     p, ctrl = _ctx()
     if not p or not ctrl or str(p.fetch('learn_slot', '') or ''):
         return

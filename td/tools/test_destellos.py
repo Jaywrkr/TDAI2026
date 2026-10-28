@@ -327,6 +327,35 @@ def audit_fear(ctx, fps):
     return out
 
 
+def audit_momentos(ctx, fps):
+    """Momentos de prendido/apagado (fase 51) prendidos 20 s seguidos sobre
+    una escena clara, y los de un toque repetidos cada 2,5 s."""
+    gray = np.full((R.H, R.W, 3), 0.80, 'f4')
+    frame = _post(ctx, program._MOMENTOS_FRAG, 3, 2, (gray, gray), {})
+    base = {n: -1.0 for n in ('mlin', 'mlinoff', 'mojos', 'mojosoff', 'msub', 'msuboff',
+                              'mbat', 'mbatoff', 'mrew')}
+    out = []
+    for label, on in (('Momento linterna prendida', {'mlin': 30.0}),
+                      ('Momento ojos prendidos', {'mojos': 30.0}),
+                      ('Momento murcielagos prendidos', {'mbat': 30.0}),
+                      ('Momento subida prendida', {'msub': 30.0}),
+                      ('Momento rebobinar seguido', 'rew')):
+        series = [[] for _ in range(GRID * GRID)]
+        for k in range(int(20 * fps)):
+            t = 30.0 + k / fps
+            ph = (t * BPM / 60.0) % 1.0
+            vals = dict(base, rtime=t, kclock=t, mbeat=60.0 / BPM, kick=math.exp(-ph * 9.0),
+                        bass=0.6, mseed=0.37)
+            if on == 'rew':
+                vals['mrew'] = 30.0 + 2.5 * math.floor((t - 30.0) / 2.5)
+            else:
+                vals.update(on)
+            for c, val in enumerate(cells(frame(vals))):
+                series[c].append(val)
+        out.append((max(flashes_per_second(s, fps) for s in series), label))
+    return out
+
+
 def main():
     args = sys.argv[1:]
     fps = float(args[args.index('--fps') + 1]) if '--fps' in args else 60.0
@@ -360,7 +389,7 @@ def main():
             print('  [{}] {:<28} {}   ({:.1f} s)'.format(flag, label, worst, dur))
             if worst > MAX_PER_SECOND:
                 bad.append(label)
-        for worst, label in audit_fear(ctx, fps):
+        for worst, label in audit_fear(ctx, fps) + audit_momentos(ctx, fps):
             flag = 'OK' if worst <= MAX_PER_SECOND else '!!'
             print('  [{}] {:<28} {}'.format(flag, label, worst))
             if worst > MAX_PER_SECOND:

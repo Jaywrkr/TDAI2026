@@ -766,13 +766,15 @@ def padLedColors():
         def _live(name, length):
             t = float(_parVal(p, name, -1.0) or -1.0)
             return t > 0 and 0.0 <= now - t < length
-        lin_on = float(_parVal(p, 'Mlin', -1.0) or -1.0) > float(_parVal(p, 'Mlinoff', -1.0) or -1.0)
-        sub_on = float(_parVal(p, 'Msub', -1.0) or -1.0) > float(_parVal(p, 'Msuboff', -1.0) or -1.0)
-        for slot, idx, idle, live in (('Glitch', 9, 'yellow', lin_on), ('Pixelate', 10, 'green', _live('Mojos', 4.0)),
-                                      ('Invert', 12, 'red', sub_on), ('Mirror', 13, 'purple', _live('Mbat', 4.5)),
+        for slot, idx, idle, live in (('Glitch', 9, 'yellow', momentoPrendido('Mlin')),
+                                      ('Pixelate', 10, 'green', momentoPrendido('Mojos')),
+                                      ('Invert', 12, 'red', momentoPrendido('Msub')),
+                                      ('Mirror', 13, 'purple', momentoPrendido('Mbat')),
                                       ('Zoom', 14, 'cyan', _live('Mrew', 2.2))):
-            if str(red.get(slot, '')).replace('On', '').replace('trigger', '').lower() in (
-                    'linterna', 'ojos', 'subida', 'murcielagos', 'rebobinar'):
+            fn = str(red.get(slot, ''))
+            for cut in ('Toggle', 'On', 'trigger'):
+                fn = fn.replace(cut, '')
+            if fn.lower() in ('linterna', 'ojos', 'subida', 'murcielagos', 'rebobinar'):
                 out[idx] = 'white' if live else idle
     except Exception:
         pass
@@ -1243,7 +1245,14 @@ def triggerSecret():
 # se apreto o se solto; el efecto entero vive en el GLSL. mseed sortea la
 # variante de cada toque.
 # ---------------------------------------------------------------
-MOMENTO_LEN = {'Mojos': 4.0, 'Mbat': 4.5, 'Mrew': 2.2}
+MOMENTO_LEN = {'Mrew': 2.2}
+# Ojos y Murcielagos (fase 51): prendidos hasta que se apagan. Al apagar,
+# los ojos vuelven en ~1.3 s y los murcielagos en vuelo terminan en ~2.6 s.
+# El toque suelto viejo (triggerOjos / triggerMurcielagos) es un prendido
+# con el apagado ya puesto unos segundos despues.
+MOMENTO_COLA = {'Mojos': 1.3, 'Mbat': 2.6}
+MOMENTO_OFF = {'Mojos': 'Mojosoff', 'Mbat': 'Mbatoff'}
+MOMENTO_SOLO = {'Mojos': 2.0, 'Mbat': 2.0}
 
 
 def _rtNow():
@@ -1266,8 +1275,28 @@ def _momento(name, seed=True):
     return now
 
 
+def _mv(name):
+    p = _p()
+    try:
+        return float(_parVal(p, name, -1.0) or -1.0)
+    except Exception:
+        return -1.0
+
+
+def momentoPrendido(name):
+    """True si el momento de prendido/apagado esta prendido ahora
+    ('Mlin', 'Msub', 'Mojos' o 'Mbat')."""
+    off = {'Mlin': 'Mlinoff', 'Msub': 'Msuboff'}.get(name, MOMENTO_OFF.get(name))
+    start, end = _mv(name), _mv(off)
+    if start <= 0:
+        return False
+    if end < start:
+        return True
+    return _rtNow() < end      # apagado programado (toque suelto)
+
+
 def linternaOn():
-    """Pad 10: LINTERNA mientras se mantiene apretado."""
+    """Pad 10: prende la LINTERNA."""
     if _momento('Mlin') is not None:
         _setPar(_p(), 'Mlinoff', -1.0)
         print('MOMENTO: linterna')
@@ -1277,14 +1306,44 @@ def linternaOff():
     _momento('Mlinoff', seed=False)
 
 
+def linternaToggle():
+    """Pad 10 (fase 51): un toque prende la linterna, el siguiente la apaga."""
+    linternaOff() if momentoPrendido('Mlin') else linternaOn()
+
+
+def _onOff(name, on, solo=None):
+    p = _p()
+    off = MOMENTO_OFF[name]
+    if on:
+        now = _momento(name)
+        if now is not None:
+            _setPar(p, off, now + solo if solo else -1.0)
+        return now
+    return _momento(off, seed=False)
+
+
+def ojosOn():
+    if _onOff('Mojos', True) is not None:
+        print('MOMENTO: ojos')
+
+
+def ojosOff():
+    _onOff('Mojos', False)
+
+
+def ojosToggle():
+    """Pad 11 (fase 51): ojos en la oscuridad hasta el siguiente toque."""
+    ojosOff() if momentoPrendido('Mojos') else ojosOn()
+
+
 def triggerOjos():
-    """Pad 11: apagon con ojos en la oscuridad."""
-    if _momento('Mojos') is not None:
+    """Ojos de un toque (unos 2 s), por compatibilidad."""
+    if _onOff('Mojos', True, MOMENTO_SOLO['Mojos']) is not None:
         print('MOMENTO: ojos')
 
 
 def subidaOn():
-    """Pad 13: SUBIDA mientras se mantiene; al soltar, el impacto."""
+    """Pad 13: empieza la SUBIDA."""
     if _momento('Msub') is not None:
         _setPar(_p(), 'Msuboff', -1.0)
         print('MOMENTO: subida')
@@ -1295,14 +1354,33 @@ def subidaOff():
         print('MOMENTO: impacto')
 
 
+def subidaToggle():
+    """Pad 13 (fase 51): un toque empieza la subida, el siguiente pega el impacto."""
+    subidaOff() if momentoPrendido('Msub') else subidaOn()
+
+
+def murcielagosOn():
+    if _onOff('Mbat', True) is not None:
+        print('MOMENTO: murcielagos')
+
+
+def murcielagosOff():
+    _onOff('Mbat', False)
+
+
+def murcielagosToggle():
+    """Pad 14 (fase 51): murcielagos saliendo hasta el siguiente toque."""
+    murcielagosOff() if momentoPrendido('Mbat') else murcielagosOn()
+
+
 def triggerMurcielagos():
-    """Pad 14: bandada de murcielagos hacia la camara."""
-    if _momento('Mbat') is not None:
+    """Una bandada de un toque, por compatibilidad."""
+    if _onOff('Mbat', True, MOMENTO_SOLO['Mbat']) is not None:
         print('MOMENTO: murcielagos')
 
 
 def triggerRebobinar():
-    """Pad 15: la escena se rebobina 2 s como VHS."""
+    """Pad 15: la escena se rebobina 2 s como VHS (cada toque)."""
     if _momento('Mrew') is not None:
         print('MOMENTO: rebobinar')
 
@@ -1322,6 +1400,10 @@ def momentoActivo():
         sub, suboff = v('Msub'), v('Msuboff')
         if sub > 0 and (suboff < sub or now - suboff < 1.8):
             return True
+        for n, cola in MOMENTO_COLA.items():
+            t, off = v(n), v(MOMENTO_OFF[n])
+            if t > 0 and (off < t or now - off < cola):
+                return True
         for n, length in MOMENTO_LEN.items():
             t = v(n)
             if t > 0 and 0.0 <= now - t < length:

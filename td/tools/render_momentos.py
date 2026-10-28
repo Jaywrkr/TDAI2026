@@ -34,12 +34,12 @@ def run(base, old, d):
 T = 50.0
 base = {s: R.render(ctx, s, R.ctrl_values(T, 'musica', 0.5), media)[0] for s in (26, 0, 4, 13, 28)}
 old = {s: R.render(ctx, s, R.ctrl_values(T - 1.8, 'musica', 0.5), media)[0] for s in (13,)}
-Z = dict(uRTime=T, uMbeat=0.5, uKick=0.3, uBass=0.5, uMseed=0.37, uMlin=-1, uMlinoff=-1, uMojos=-1, uMsub=-1, uMsuboff=-1, uMbat=-1, uMrew=-1)
+Z = dict(uRTime=T, uMbeat=0.5, uKick=0.3, uBass=0.5, uMseed=0.37, uMlin=-1, uMlinoff=-1, uMojos=-1, uMojosoff=-1, uMsub=-1, uMsuboff=-1, uMbat=-1, uMbatoff=-1, uMrew=-1)
 rows = [
- ('10 LINTERNA (mantener)', 26, [dict(uMlin=T-0.5), dict(uMlin=T-1.8), dict(uMlin=T-3.3), dict(uMlin=T-4.0, uMlinoff=T-0.05)]),
- ('11 OJOS', 0, [dict(uMojos=T-0.4), dict(uMojos=T-1.2), dict(uMojos=T-1.8), dict(uMojos=T-2.15)]),
- ('13 SUBIDA -> IMPACTO', 4, [dict(uMsub=T-2.0), dict(uMsub=T-6.0), dict(uMsub=T-6.2, uMsuboff=T-0.12), dict(uMsub=T-6.6, uMsuboff=T-0.45)]),
- ('14 MURCIELAGOS', 28, [dict(uMbat=T-0.6), dict(uMbat=T-1.4), dict(uMbat=T-2.1), dict(uMbat=T-2.8)]),
+ ('10 LINTERNA (prende/apaga)', 26, [dict(uMlin=T-0.5), dict(uMlin=T-1.8), dict(uMlin=T-3.3), dict(uMlin=T-4.0, uMlinoff=T-0.05)]),
+ ('11 OJOS (prende/apaga)', 0, [dict(uMojos=T-0.4), dict(uMojos=T-1.2), dict(uMojos=T-6.0), dict(uMojos=T-8.15, uMojosoff=T-0.15)]),
+ ('13 SUBIDA -> IMPACTO (2 toques)', 4, [dict(uMsub=T-2.0), dict(uMsub=T-6.0), dict(uMsub=T-6.2, uMsuboff=T-0.12), dict(uMsub=T-6.6, uMsuboff=T-0.45)]),
+ ('14 MURCIELAGOS (prende/apaga)', 28, [dict(uMbat=T-0.6), dict(uMbat=T-1.4), dict(uMbat=T-2.1), dict(uMbat=T-6.1)]),
  ('15 REBOBINAR VHS', 13, [dict(uMrew=T-0.3), dict(uMrew=T-0.9), dict(uMrew=T-1.4), dict(uMrew=T-1.8)]),
 ]
 tw, th = 400, 160
