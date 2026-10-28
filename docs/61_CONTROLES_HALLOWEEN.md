@@ -2,6 +2,10 @@
 
 Las perillas **1 y 9** del MiniLab (y sus clics y Shift) son encoders relativos: mandan pasos (+1/−1 alrededor de 64) y TouchDesigner solo avisa cuando el valor cambia, así que no se pueden leer como posición. En Halloween quedan **sin función** (en el set principal siguen como siempre). El resto se reacomodó así (`td/sets/halloween/set.json` → `midi_redirect`):
 
+![MiniLab en Halloween](img/minilab_halloween.png)
+
+Mapa: `docs/img/minilab_halloween.png` (`python3 td/tools/render_minilab.py`; si cambia el `midi_redirect`, actualizar su tabla y volver a correr).
+
 ## Perillas
 
 | Perilla | Función |
